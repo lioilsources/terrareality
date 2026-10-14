@@ -1,0 +1,27 @@
+{
+  "name": "terrareality",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/site",
+    "packages/contracts",
+    "packages/ui"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "gen": "npm run gen -w @terra/contracts",
+    "dev:web": "npm run dev -w web",
+    "dev:site": "npm run dev -w site",
+    "build": "npm run build -w web && npm run build -w site",
+    "check": "npm run check -w @terra/contracts && npm run check -w web && npm run check -w site",
+    "test": "npm run test:unit -w web -- --run"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "^6.0.3"
+    }
+  }
+}

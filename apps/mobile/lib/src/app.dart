@@ -1,0 +1,42 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
+
+import '../l10n/gen/app_localizations.dart';
+import 'auth/login_screen.dart';
+import 'status/status_screen.dart';
+
+GoRouter createRouter() => GoRouter(
+  routes: [
+    GoRoute(path: '/', builder: (_, _) => const StatusScreen()),
+    GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+  ],
+);
+
+const _seed = Color(0xFF2F7D4F);
+
+class TerraApp extends StatelessWidget {
+  TerraApp({super.key, this.locale, GoRouter? router}) : router = router ?? createRouter();
+
+  /// Forces a locale (tests, user preference); null follows the device.
+  final Locale? locale;
+  final GoRouter router;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      onGenerateTitle: (c) => AppLocalizations.of(c).appName,
+      theme: ThemeData(colorSchemeSeed: _seed, useMaterial3: true),
+      darkTheme: ThemeData(colorSchemeSeed: _seed, brightness: Brightness.dark, useMaterial3: true),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: locale,
+      routerConfig: router,
+    );
+  }
+}

@@ -1,0 +1,106 @@
+openapi: 3.0.3
+info:
+  title: TerraReality API
+  version: 0.1.0
+  description: |
+    Public and internal HTTP API of TerraReality. This file is the source of truth:
+    the Go server stubs, the TypeScript client and the Dart client are generated from it
+    (`make gen`). Errors are returned as RFC 9457 `application/problem+json`.
+servers:
+  - url: http://localhost:8080
+    description: local dev
+tags:
+  - name: system
+paths:
+  /healthz:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Liveness and dependency health
+      responses:
+        "200":
+          description: Service and dependencies are healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          description: At least one dependency is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /v1/version:
+    get:
+      tags: [system]
+      operationId: getVersion
+      summary: Build information
+      responses:
+        "200":
+          description: Build info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Version"
+        default:
+          $ref: "#/components/responses/Problem"
+components:
+  responses:
+    Problem:
+      description: Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    Health:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/HealthCheck"
+    HealthCheck:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, fail, disabled]
+        latency_ms:
+          type: integer
+          format: int64
+        error:
+          type: string
+    Version:
+      type: object
+      required: [version, commit, built_at, schema_version]
+      properties:
+        version:
+          type: string
+        commit:
+          type: string
+        built_at:
+          type: string
+        schema_version:
+          type: integer
+          format: int64
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

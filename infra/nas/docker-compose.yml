@@ -1,0 +1,110 @@
+# Staging / pilot on the NAS (Ubuntu, docker compose). Production runs on
+# Hetzner (milestone M8, infra/hetzner). Only Caddy is exposed publicly.
+# Usage: cp ../../.env.example .env && edit && docker compose up -d --build
+name: terra-staging
+
+x-api-env: &api-env
+  APP_ENV: staging
+  LOG_FORMAT: json
+  DATABASE_URL: postgres://terra:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/terra?sslmode=disable
+  MIGRATE_ON_START: "false"
+  TEMPORAL_ADDRESS: temporal:7233
+  CENTRIFUGO_API_URL: http://centrifugo:8000/api
+  CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:?set CENTRIFUGO_API_KEY}
+  VISION_URL: http://vision:8001
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  TRUSTED_PROXIES: 172.16.0.0/12
+  CORS_ORIGINS: https://${APP_DOMAIN:?set APP_DOMAIN},https://${SITE_DOMAIN:?set SITE_DOMAIN}
+
+services:
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site-dist:/srv/site:ro
+      - caddy_data:/data
+    depends_on: [api, web]
+    restart: unless-stopped
+
+  db:
+    build: ../dev/postgres
+    environment:
+      POSTGRES_USER: terra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: terra
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U terra -d terra"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build: ../../services/api
+    command: ["/app/migrate", "up"]
+    environment: *api-env
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    build: ../../services/api
+    command: ["/app/api"]
+    environment: *api-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  worker:
+    build: ../../services/api
+    command: ["/app/worker"]
+    environment: *api-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_URL: http://api:8080
+      ORIGIN: https://${APP_DOMAIN}
+    restart: unless-stopped
+
+  vision:
+    build: ../../services/vision
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+    restart: unless-stopped
+
+  temporal:
+    # Staging uses the dev server with SQLite; production gets a full Temporal
+    # cluster on PostgreSQL (M8).
+    image: temporalio/temporal:1.4.1
+    user: "0:0"
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
+    volumes: [temporaldata:/data]
+    restart: unless-stopped
+
+  centrifugo:
+    image: centrifugo/centrifugo:v6
+    # Same namespaces as dev; secrets and origins are overridden by env.
+    command: ["centrifugo", "--config", "/centrifugo/config.json"]
+    volumes: [../dev/centrifugo/config.json:/centrifugo/config.json:ro]
+    environment:
+      CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY}
+      CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET}
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: https://${APP_DOMAIN}
+      CENTRIFUGO_ADMIN_ENABLED: "false"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  temporaldata:
+  caddy_data:

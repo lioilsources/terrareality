@@ -1,0 +1,22 @@
+{
+  "@@locale": "cs",
+  "appName": "TerraReality",
+  "statusTitle": "Stav platformy",
+  "statusOk": "Vše v pořádku",
+  "statusDegraded": "Omezený provoz",
+  "statusUnreachable": "API není dostupné",
+  "retry": "Zkusit znovu",
+  "checkDatabase": "Databáze",
+  "checkWorker": "Worker",
+  "checkCentrifugo": "Realtime",
+  "checkVision": "Vision",
+  "stateOk": "v pořádku",
+  "stateFail": "chyba",
+  "stateDisabled": "vypnuto",
+  "schemaVersion": "Verze schématu {version}",
+  "@schemaVersion": { "placeholders": { "version": { "type": "String" } } },
+  "loginTitle": "Přihlášení",
+  "loginEmail": "E-mail",
+  "loginContinue": "Pokračovat",
+  "loginComingSoon": "Přihlášení přijde v milníku M1."
+}

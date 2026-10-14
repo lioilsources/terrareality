@@ -35,3 +35,12 @@ apps/mobile/ios/Pods/
 
 # data
 infra/dev/data/
+
+# test artefacts
+test-results/
+playwright-report/
+
+# generated at build time
+apps/mobile/lib/l10n/gen/
+apps/web/src/lib/paraglide/
+*.egg-info/

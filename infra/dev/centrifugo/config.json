@@ -1,0 +1,40 @@
+{
+  "client": {
+    "token": {
+      "hmac_secret_key": "dev-centrifugo-token-secret-change-me"
+    },
+    "allowed_origins": [
+      "http://localhost:5173",
+      "http://localhost:4321"
+    ]
+  },
+  "http_api": {
+    "key": "dev-centrifugo-api-key"
+  },
+  "admin": {
+    "enabled": true,
+    "password": "admin",
+    "secret": "dev-admin-secret"
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "conv",
+        "presence": true,
+        "join_leave": true,
+        "history_size": 100,
+        "history_ttl": "720h",
+        "force_recovery": true
+      },
+      {
+        "name": "user",
+        "history_size": 50,
+        "history_ttl": "168h",
+        "force_recovery": true
+      }
+    ]
+  },
+  "health": {
+    "enabled": true
+  }
+}

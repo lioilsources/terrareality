@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "terra",
+      "credentials": [{ "accessKey": "terra", "secretKey": "terra-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

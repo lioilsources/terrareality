@@ -1,0 +1,25 @@
+{
+  "name": "@terra/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenAPI contract (source of truth) and generated TypeScript client.",
+  "exports": {
+    ".": "./ts/index.ts",
+    "./openapi.yaml": "./openapi.yaml"
+  },
+  "scripts": {
+    "gen": "npm run gen:ts && npm run gen:dart",
+    "gen:ts": "openapi-typescript openapi.yaml -o ts/schema.d.ts",
+    "gen:dart": "openapi-generator-cli generate -i openapi.yaml -g dart -o dart --additional-properties=pubName=terra_api,pubVersion=0.1.0,pubDescription=Generated_TerraReality_API_client --global-property=skipFormModel=true",
+    "check": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.41.0",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^6.0.3"
+  }
+}

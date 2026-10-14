@@ -1,0 +1,19 @@
+{
+  "name": "@terra/ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared Svelte components and design tokens for apps/web and apps/site.",
+  "svelte": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./tokens.css": "./src/tokens.css"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

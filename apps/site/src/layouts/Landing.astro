@@ -1,0 +1,32 @@
+---
+import Layout from './Layout.astro';
+import { strings, type Locale } from '../i18n/strings';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const t = strings[lang];
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
+---
+
+<Layout title={t.title} description={t.description} lang={lang} altHref={lang === 'cs' ? '/en/' : '/'} altLabel={t.switchLang}>
+  <section class="max-w-3xl">
+    <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">{t.hero}</h1>
+    <p class="mt-4 text-lg text-[var(--muted)]">{t.lead}</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href={appUrl} class="rounded-lg bg-[var(--accent)] px-5 py-3 font-medium text-white">{t.ctaSearch}</a>
+      <a href={`${appUrl}/admin`} class="rounded-lg border border-[var(--border)] px-5 py-3 font-medium">{t.ctaLandlord}</a>
+    </div>
+  </section>
+  <section class="mt-16 grid gap-4 sm:grid-cols-2">
+    {
+      t.features.map(([title, body]) => (
+        <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
+          <h2 class="text-lg font-semibold">{title}</h2>
+          <p class="mt-2 text-[var(--muted)]">{body}</p>
+        </article>
+      ))
+    }
+  </section>
+</Layout>

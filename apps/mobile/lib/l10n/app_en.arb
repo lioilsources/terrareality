@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "appName": "TerraReality",
+  "statusTitle": "Platform status",
+  "statusOk": "All systems operational",
+  "statusDegraded": "Degraded",
+  "statusUnreachable": "API is unreachable",
+  "retry": "Retry",
+  "checkDatabase": "Database",
+  "checkWorker": "Worker",
+  "checkCentrifugo": "Realtime",
+  "checkVision": "Vision",
+  "stateOk": "ok",
+  "stateFail": "failing",
+  "stateDisabled": "disabled",
+  "schemaVersion": "Schema version {version}",
+  "loginTitle": "Sign in",
+  "loginEmail": "E-mail",
+  "loginContinue": "Continue",
+  "loginComingSoon": "Sign-in arrives in milestone M1."
+}

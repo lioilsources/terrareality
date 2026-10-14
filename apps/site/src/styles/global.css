@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import '@terra/ui/tokens.css';
+
+@source '../../../../packages/ui/src';
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}

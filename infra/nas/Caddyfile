@@ -1,0 +1,17 @@
+# Public entry point for staging. TLS via Let's Encrypt.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy /connection/* centrifugo:8000
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8080
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	root * /srv/site
+	file_server
+}
