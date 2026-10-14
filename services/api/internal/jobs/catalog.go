@@ -25,8 +25,9 @@ type SuggestionArgs struct {
 // Kind implements river.JobArgs.
 func (SuggestionArgs) Kind() string { return "ai_suggestion" }
 
-// InsertOpts: AI calls can be slow; few retries.
-func (SuggestionArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{MaxAttempts: 3} }
+// InsertOpts: the Spark serves LLM routes only 13:00-07:00 (ComfyUI owns the
+// GPU in the morning), so retries with River's backoff span about 7 hours.
+func (SuggestionArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{MaxAttempts: 10} }
 
 // CatalogRunner is implemented by listing.Service.
 type CatalogRunner interface {

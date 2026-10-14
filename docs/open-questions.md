@@ -22,10 +22,10 @@ follows until decided otherwise.
 
 ## M2
 
-- **OQ-7 Spark routes.** The gateway has no `terra`, `terra-embed` or `terra-vision` routes yet
-  (`infra/spark/README.md`). On 2026-10-14 `shop` and `vl` backends were down; the live AI test ran
-  against `dev` (Qwen 3.6). Proposal: add the three routes before the pilot; until then set
-  `LLM_MODEL=dev` for manual tests and keep the mock in CI.
+- **OQ-7 Spark routes.** Resolved with the AiStack operator: chat/JSON uses `openclaw-default`
+  (verified live 2026-10-14). Embeddings (`shop-embed`/bge-m3) and vision (`vl`) are not running;
+  the owner decides whether to run them resident, as a CPU sidecar or in a time window. Until then
+  embeddings and vision stay off/mock (infra/spark/README.md).
 - **OQ-8 RÚIAN import.** Dev and tests use a 26-address synthetic sample. The full CZ data set
   (about 3 million address points, ZIP of per-municipality CSVs from ČÚZK) is imported with
   `terractl ruian import <file.zip>`; schedule a monthly refresh job in M3.
