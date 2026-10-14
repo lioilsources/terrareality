@@ -29,6 +29,42 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	CORSOrigins     []string
 	TrustedProxies  []string // CIDRs of reverse proxies allowed to set X-Forwarded-For
+
+	// Identity (M1).
+	SecretKey        string        // 32+ bytes; seals TOTP secrets, signs mock IdP codes
+	WebBaseURL       string        // links in e-mails point here
+	APIPublicURL     string        // browser-reachable API URL (mock IdP pages)
+	RedirectAllow    []string      // allowed OIDC redirect URI prefixes (web + mobile)
+	SessionTTLWeb    time.Duration // sliding
+	SessionTTLMobile time.Duration // sliding
+	StaffRequireMFA  bool
+	ErasureGrace     time.Duration
+	TermsVersion     string
+	PrivacyVersion   string
+	MockIdP          bool // enable the local mock identity provider (dev/test only)
+	GoogleClientID   string
+	GoogleSecret     string
+	AppleClientID    string
+	AppleSecret      string // pre-generated client secret JWT (rotate every 6 months)
+	BankIDIssuer     string // e.g. https://oidc.sandbox.bankid.cz/
+	BankIDClientID   string
+	BankIDSecret     string
+	BankIDScopes     []string
+
+	// Delivery.
+	SMTPAddr    string // host:port; empty = log only
+	MailFrom    string
+	SMSProvider string // mock | log
+
+	// Object storage (S3 compatible).
+	S3Endpoint  string // host:port
+	S3AccessKey string
+	S3SecretKey string
+	S3Bucket    string
+	S3UseSSL    bool
+	S3Region    string
+
+	RateBurst int // credential endpoint burst per client IP
 }
 
 // Load reads the environment. It returns an error only for values that are
@@ -52,13 +88,59 @@ func Load() (Config, error) {
 		CORSOrigins:     splitList(get("CORS_ORIGINS", "http://localhost:5173,http://localhost:4321")),
 		TrustedProxies:  splitList(get("TRUSTED_PROXIES", "127.0.0.1,::1")),
 	}
-	d, err := time.ParseDuration(get("SHUTDOWN_TIMEOUT", "15s"))
-	if err != nil {
-		return c, fmt.Errorf("SHUTDOWN_TIMEOUT: %w", err)
+	devLike := c.Env == "dev" || c.Env == "test"
+	c.SecretKey = get("APP_SECRET_KEY", "")
+	if c.SecretKey == "" && devLike {
+		c.SecretKey = "dev-only-secret-key-change-me-0123456789"
 	}
-	c.ShutdownTimeout = d
+	c.WebBaseURL = strings.TrimRight(get("WEB_BASE_URL", "http://localhost:5173"), "/")
+	c.APIPublicURL = strings.TrimRight(get("API_PUBLIC_URL", "http://localhost:8080"), "/")
+	c.RedirectAllow = splitList(get("OIDC_REDIRECT_ALLOWLIST", c.WebBaseURL+"/auth/,http://localhost:4173/auth/,terra://auth/"))
+	c.StaffRequireMFA = MustBool("STAFF_REQUIRE_MFA", !devLike)
+	c.TermsVersion = get("TERMS_VERSION", "2026-10")
+	c.PrivacyVersion = get("PRIVACY_VERSION", "2026-10")
+	c.MockIdP = MustBool("MOCK_IDP", devLike)
+	c.GoogleClientID, c.GoogleSecret = get("GOOGLE_CLIENT_ID", ""), get("GOOGLE_CLIENT_SECRET", "")
+	c.AppleClientID, c.AppleSecret = get("APPLE_CLIENT_ID", ""), get("APPLE_CLIENT_SECRET", "")
+	c.BankIDIssuer = get("BANKID_ISSUER", "")
+	c.BankIDClientID, c.BankIDSecret = get("BANKID_CLIENT_ID", ""), get("BANKID_CLIENT_SECRET", "")
+	c.BankIDScopes = splitList(get("BANKID_SCOPES", "openid,profile.name,profile.birthdate,profile.addresses"))
+	c.SMTPAddr = get("SMTP_ADDR", "")
+	c.MailFrom = get("MAIL_FROM", "TerraReality <no-reply@terrareality.cz>")
+	c.SMSProvider = get("SMS_PROVIDER", "mock")
+	c.S3Endpoint = get("S3_ENDPOINT", "")
+	c.S3AccessKey, c.S3SecretKey = get("S3_ACCESS_KEY", ""), get("S3_SECRET_KEY", "")
+	c.S3Bucket = get("S3_BUCKET", "terra")
+	c.S3UseSSL = MustBool("S3_USE_SSL", false)
+	c.S3Region = get("S3_REGION", "us-east-1")
+	if n, err := strconv.Atoi(get("AUTH_RATE_BURST", "10")); err == nil {
+		c.RateBurst = n
+	}
+
+	durations := []struct {
+		key, def string
+		dst      *time.Duration
+	}{
+		{"SHUTDOWN_TIMEOUT", "15s", &c.ShutdownTimeout},
+		{"SESSION_TTL_WEB", "720h", &c.SessionTTLWeb},
+		{"SESSION_TTL_MOBILE", "2160h", &c.SessionTTLMobile},
+		{"GDPR_ERASURE_GRACE", "720h", &c.ErasureGrace},
+	}
+	for _, d := range durations {
+		v, err := time.ParseDuration(get(d.key, d.def))
+		if err != nil {
+			return c, fmt.Errorf("%s: %w", d.key, err)
+		}
+		*d.dst = v
+	}
 	if c.Env != "dev" && c.Env != "staging" && c.Env != "prod" && c.Env != "test" {
 		return c, fmt.Errorf("APP_ENV must be dev|staging|prod|test, got %q", c.Env)
+	}
+	if len(c.SecretKey) < 32 {
+		return c, fmt.Errorf("APP_SECRET_KEY must be at least 32 characters")
+	}
+	if c.MockIdP && !devLike && c.Env != "staging" {
+		return c, fmt.Errorf("MOCK_IDP is not allowed in %s", c.Env)
 	}
 	return c, nil
 }

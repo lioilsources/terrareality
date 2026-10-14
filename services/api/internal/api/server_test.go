@@ -20,7 +20,7 @@ func newTestRouter(checks map[string]health.CheckFunc) http.Handler {
 		c.Add(k, v)
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewRouter(NewServer(nil, c), RouterConfig{Log: log, CORSOrigins: []string{"http://localhost:5173"}})
+	return NewRouter(NewServer(nil, c, Services{}), RouterConfig{Log: log, CORSOrigins: []string{"http://localhost:5173"}})
 }
 
 func TestHealthOK(t *testing.T) {

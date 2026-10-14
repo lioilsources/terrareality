@@ -1,0 +1,34 @@
+{
+  "verify_email": {
+    "subject": "Potvrďte svůj e-mail v TerraReality",
+    "text": "Dobrý den{{if .Name}}, {{.Name}}{{end}},\n\npotvrďte prosím svou e-mailovou adresu kliknutím na odkaz:\n{{.Link}}\n\nOdkaz platí 48 hodin. Pokud jste účet nezakládali, zprávu ignorujte."
+  },
+  "magic_link": {
+    "subject": "Přihlášení do TerraReality",
+    "text": "Dobrý den,\n\npro přihlášení klikněte na odkaz:\n{{.Link}}\n\nOdkaz platí 15 minut a lze ho použít jen jednou. Pokud jste o přihlášení nežádali, zprávu ignorujte."
+  },
+  "password_reset": {
+    "subject": "Obnovení hesla v TerraReality",
+    "text": "Dobrý den,\n\nnové heslo nastavíte na odkazu:\n{{.Link}}\n\nOdkaz platí 1 hodinu. Po změně hesla budete odhlášeni ze všech zařízení. Pokud jste o obnovení nežádali, zprávu ignorujte."
+  },
+  "invitation": {
+    "subject": "Pozvánka do organizace {{.OrgName}}",
+    "text": "Dobrý den,\n\n{{.InviterName}} vás zve do organizace {{.OrgName}} v TerraReality (role: {{.Role}}).\n\nPozvánku přijmete na odkazu:\n{{.Link}}\n\nPozvánka platí 7 dní."
+  },
+  "export_ready": {
+    "subject": "Export vašich dat je připraven",
+    "text": "Dobrý den,\n\nexport vašich osobních údajů je připraven ke stažení v nastavení soukromí:\n{{.Link}}\n\nOdkaz ke stažení platí krátce, vygenerujte si ho při stahování."
+  },
+  "erasure_scheduled": {
+    "subject": "Žádost o výmaz účtu přijata",
+    "text": "Dobrý den,\n\nváš účet bude vymazán {{.Date}}. Do té doby žádost můžete zrušit v nastavení soukromí:\n{{.Link}}\n\nSmluvní dokumenty uchováváme po dobu stanovenou zákonem."
+  },
+  "erasure_rejected": {
+    "subject": "Výmaz účtu nelze dokončit",
+    "text": "Dobrý den,\n\nvýmaz účtu nelze dokončit: {{.Reason}}\n\nPodrobnosti najdete v nastavení soukromí:\n{{.Link}}"
+  },
+  "sms_code": {
+    "subject": "SMS",
+    "text": "TerraReality: váš ověřovací kód je {{.Code}}. Platí 10 minut."
+  }
+}

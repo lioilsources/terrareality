@@ -11,6 +11,8 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 
+	"github.com/terrareality/terrareality/services/api/internal/account"
+	"github.com/terrareality/terrareality/services/api/internal/app"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
@@ -51,10 +53,17 @@ func run() error {
 		}
 	}
 
-	rc, err := jobs.NewWorkerClient(pool, log)
+	deps, err := app.Build(cfg, log)
 	if err != nil {
 		return err
 	}
+	gdpr := &jobs.GDPRWorker{}
+	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr})
+	if err != nil {
+		return err
+	}
+	gdpr.Runner = &account.Service{Pool: pool, Box: deps.Box, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
+		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}
