@@ -1,0 +1,37 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# env
+.env
+.env.*
+!.env.example
+
+# Go
+services/api/bin/
+coverage.out
+
+# Node
+node_modules/
+.svelte-kit/
+dist/
+build/
+.astro/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/.flutter-plugins*
+apps/mobile/ios/Pods/
+
+# data
+infra/dev/data/
