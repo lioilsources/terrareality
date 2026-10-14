@@ -3,10 +3,14 @@
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { formatMoney, kindLabel, t, valueLabel } from '#lib/catalog.js';
 	import { fmtDate } from '#lib/labels.js';
+	import Alert from '#lib/components/Alert.svelte';
+	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	const locale = getLocale();
 	const l = $derived(data.listing);
 	const defOf = (key: string) => data.schema.attributes.find((a) => a.key === key);
@@ -90,7 +94,69 @@
 			<p class="mt-3 text-sm text-[var(--muted)]">
 				{l.location.address ?? m.listing_location_approx()}
 			</p>
-			<p class="mt-3 text-sm text-[var(--muted)]">{m.listing_contact_soon()}</p>
+		</Card>
+		<Card title={m.msg_contact_title()} testid="contact">
+			{#if data.conversation}
+				<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_existing()}</p>
+				<a href={localizeHref(`/zpravy/${data.conversation}`)}>{m.msg_open_conversation()}</a>
+			{:else if !page.data.me}
+				<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_login()}</p>
+				<a href={localizeHref(`/login?next=${encodeURIComponent(page.url.pathname)}`)}
+					>{m.nav_login()}</a
+				>
+			{:else}
+				{#if form?.error}<div class="mb-3"><Alert kind="error">{form.error}</Alert></div>{/if}
+				<form method="POST" action="?/contact" use:enhance class="grid gap-3">
+					{#if l.prescreen.length}
+						<fieldset class="grid gap-3">
+							<legend class="mb-1 text-sm font-semibold">{m.msg_prescreen_title()}</legend>
+							{#each l.prescreen as q (q.id)}
+								{@const label =
+									(q.text[locale as 'cs'] || q.text.cs || q.text.en) + (q.required ? ' *' : '')}
+								{#if q.kind === 'yes_no'}
+									<div class="grid gap-1 text-sm">
+										<span class="font-medium">{label}</span>
+										<div class="flex gap-4">
+											<label class="flex items-center gap-1"
+												><input type="radio" name="q_{q.id}" value="yes" required={q.required} />
+												{m.msg_yes()}</label
+											>
+											<label class="flex items-center gap-1"
+												><input type="radio" name="q_{q.id}" value="no" /> {m.msg_no()}</label
+											>
+										</div>
+									</div>
+								{:else}
+									<label class="grid gap-1 text-sm font-medium"
+										>{label}
+										<input
+											name="q_{q.id}"
+											type={q.kind === 'number' ? 'number' : 'text'}
+											required={q.required}
+											maxlength="500"
+											value={form?.answers?.[q.id!] ?? ''}
+											class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+										/>
+									</label>
+								{/if}
+							{/each}
+						</fieldset>
+					{/if}
+					<label class="grid gap-1 text-sm font-medium"
+						>{m.msg_body_label()}
+						<textarea
+							name="body"
+							rows="4"
+							required
+							maxlength="4000"
+							class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+							>{form?.body ?? ''}</textarea
+						>
+					</label>
+					<p class="text-xs text-[var(--muted)]">{m.msg_safety()}</p>
+					<Button type="submit">{m.msg_send()}</Button>
+				</form>
+			{/if}
 		</Card>
 		{#if data.similar.length}
 			<Card title={m.listing_similar()}>

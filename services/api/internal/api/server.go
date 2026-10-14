@@ -42,6 +42,7 @@ type Services struct {
 	Engine          *search.Engine
 	Chat            *search.Chat
 	Messages        *messaging.Service
+	VAPIDPublicKey  string // browser push subscriptions
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per

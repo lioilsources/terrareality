@@ -497,3 +497,8 @@ func (s *Server) BackofficeDecideModeration(ctx context.Context, r gen.Backoffic
 	}
 	return gen.BackofficeDecideModeration204Response{}, nil
 }
+
+// GetPushConfig implements GET /v1/push/config.
+func (s *Server) GetPushConfig(context.Context, gen.GetPushConfigRequestObject) (gen.GetPushConfigResponseObject, error) {
+	return gen.GetPushConfig200JSONResponse{VapidPublicKey: s.VAPIDPublicKey}, nil
+}

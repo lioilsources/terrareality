@@ -15,6 +15,7 @@ Method | HTTP request | Description
 [**createReplyTemplate**](MessagingApi.md#createreplytemplate) | **POST** /v1/orgs/{orgId}/reply-templates | Create a reply template
 [**deleteReplyTemplate**](MessagingApi.md#deletereplytemplate) | **DELETE** /v1/orgs/{orgId}/reply-templates/{templateId} | Delete a reply template
 [**getConversation**](MessagingApi.md#getconversation) | **GET** /v1/conversations/{conversationId} | Conversation with read receipts and pre-screening answers
+[**getPushConfig**](MessagingApi.md#getpushconfig) | **GET** /v1/push/config | Public key for browser push subscriptions (VAPID)
 [**listConversations**](MessagingApi.md#listconversations) | **GET** /v1/conversations | My conversations (as a seeker and for my organizations), newest first
 [**listMessages**](MessagingApi.md#listmessages) | **GET** /v1/conversations/{conversationId}/messages | Messages, newest first
 [**listReplyTemplates**](MessagingApi.md#listreplytemplates) | **GET** /v1/orgs/{orgId}/reply-templates | Reply templates of the organization
@@ -307,6 +308,43 @@ Name | Type | Description  | Notes
 ### Authorization
 
 [bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getPushConfig**
+> GetPushConfig200Response getPushConfig()
+
+Public key for browser push subscriptions (VAPID)
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+
+final api_instance = MessagingApi();
+
+try {
+    final result = api_instance.getPushConfig();
+    print(result);
+} catch (e) {
+    print('Exception when calling MessagingApi->getPushConfig: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**GetPushConfig200Response**](GetPushConfig200Response.md)
+
+### Authorization
+
+No authorization required
 
 ### HTTP request headers
 

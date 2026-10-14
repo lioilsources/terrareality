@@ -82,6 +82,8 @@ type Config struct {
 	PushProvider          string        // mock | log | fcm
 	FCMCredentialsFile    string        // service account JSON (PUSH_PROVIDER=fcm)
 	FCMProject            string        // defaults to the project in the credentials
+	WebPushSeed           string        // derives the VAPID key pair (default: APP_SECRET_KEY)
+	WebPushSubject        string        // contact for push services
 }
 
 // Flag reports whether a feature flag is on.
@@ -151,6 +153,8 @@ func Load() (Config, error) {
 	}
 	c.PushProvider = get("PUSH_PROVIDER", pushDefault)
 	c.FCMCredentialsFile, c.FCMProject = get("FCM_CREDENTIALS_FILE", ""), get("FCM_PROJECT_ID", "")
+	c.WebPushSeed = get("WEBPUSH_VAPID_SEED", c.SecretKey)
+	c.WebPushSubject = get("WEBPUSH_SUBJECT", "mailto:podpora@terrareality.cz")
 	// Feature flags: comma list, "-name" turns a default off.
 	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false, "ai.moderation": true}
 	for _, f := range splitList(get("FEATURE_FLAGS", "")) {

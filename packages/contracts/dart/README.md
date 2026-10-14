@@ -136,6 +136,7 @@ Class | Method | HTTP request | Description
 *MessagingApi* | [**createReplyTemplate**](doc//MessagingApi.md#createreplytemplate) | **POST** /v1/orgs/{orgId}/reply-templates | Create a reply template
 *MessagingApi* | [**deleteReplyTemplate**](doc//MessagingApi.md#deletereplytemplate) | **DELETE** /v1/orgs/{orgId}/reply-templates/{templateId} | Delete a reply template
 *MessagingApi* | [**getConversation**](doc//MessagingApi.md#getconversation) | **GET** /v1/conversations/{conversationId} | Conversation with read receipts and pre-screening answers
+*MessagingApi* | [**getPushConfig**](doc//MessagingApi.md#getpushconfig) | **GET** /v1/push/config | Public key for browser push subscriptions (VAPID)
 *MessagingApi* | [**listConversations**](doc//MessagingApi.md#listconversations) | **GET** /v1/conversations | My conversations (as a seeker and for my organizations), newest first
 *MessagingApi* | [**listMessages**](doc//MessagingApi.md#listmessages) | **GET** /v1/conversations/{conversationId}/messages | Messages, newest first
 *MessagingApi* | [**listReplyTemplates**](doc//MessagingApi.md#listreplytemplates) | **GET** /v1/orgs/{orgId}/reply-templates | Reply templates of the organization
@@ -211,6 +212,7 @@ Class | Method | HTTP request | Description
  - [FieldError](doc//FieldError.md)
  - [FilterProposal](doc//FilterProposal.md)
  - [GdprRequest](doc//GdprRequest.md)
+ - [GetPushConfig200Response](doc//GetPushConfig200Response.md)
  - [Health](doc//Health.md)
  - [HealthCheck](doc//HealthCheck.md)
  - [I18nText](doc//I18nText.md)

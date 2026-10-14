@@ -14,9 +14,39 @@
   "stateFail": "chyba",
   "stateDisabled": "vypnuto",
   "schemaVersion": "Verze schématu {version}",
-  "@schemaVersion": { "placeholders": { "version": { "type": "String" } } },
+  "@schemaVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "loginTitle": "Přihlášení",
   "loginEmail": "E-mail",
   "loginContinue": "Pokračovat",
-  "loginComingSoon": "Přihlášení přijde v milníku M1."
+  "loginPassword": "Heslo",
+  "loginFailed": "Přihlášení se nepovedlo. Zkontrolujte e-mail a heslo.",
+  "messagesTitle": "Zprávy",
+  "messagesEmpty": "Zatím nemáte žádné konverzace.",
+  "messageHint": "Napište zprávu",
+  "messageSend": "Odeslat",
+  "messageRead": "Přečteno",
+  "messageRemoved": "Zprávu odstranil moderátor.",
+  "flagContact": "Kontaktní údaje jsme skryli. Domluvte se přes TerraReality, dokud nepodepíšete smlouvu.",
+  "flagAdvance": "Pozor: zpráva žádá platbu předem. Nikdy neposílejte peníze před prohlídkou a podpisem smlouvy.",
+  "safetyNote": "Bezpečně: komunikujte přes TerraReality a nic neplaťte před prohlídkou.",
+  "blocked": "Konverzace je zablokovaná.",
+  "report": "Nahlásit",
+  "reportScam": "Podvod nebo platba předem",
+  "reportHarassment": "Obtěžování",
+  "reportOther": "Jiné",
+  "reportSent": "Děkujeme, nahlášení prověří náš tým.",
+  "unreadCount": "{count} nepřečtené",
+  "@unreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

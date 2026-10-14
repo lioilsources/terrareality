@@ -339,6 +339,50 @@ class MessagingApi {
     return null;
   }
 
+  /// Public key for browser push subscriptions (VAPID)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> getPushConfigWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/push/config';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Public key for browser push subscriptions (VAPID)
+  Future<GetPushConfig200Response?> getPushConfig() async {
+    final response = await getPushConfigWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'GetPushConfig200Response',) as GetPushConfig200Response;
+    
+    }
+    return null;
+  }
+
   /// My conversations (as a seeker and for my organizations), newest first
   ///
   /// Note: This method returns the HTTP [Response].

@@ -39,6 +39,7 @@ doc/FacetCount.md
 doc/FieldError.md
 doc/FilterProposal.md
 doc/GdprRequest.md
+doc/GetPushConfig200Response.md
 doc/Health.md
 doc/HealthCheck.md
 doc/I18nText.md
@@ -195,6 +196,7 @@ lib/model/facet_count.dart
 lib/model/field_error.dart
 lib/model/filter_proposal.dart
 lib/model/gdpr_request.dart
+lib/model/get_push_config200_response.dart
 lib/model/health.dart
 lib/model/health_check.dart
 lib/model/i18n_text.dart

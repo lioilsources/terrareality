@@ -17,5 +17,29 @@
   "loginTitle": "Sign in",
   "loginEmail": "E-mail",
   "loginContinue": "Continue",
-  "loginComingSoon": "Sign-in arrives in milestone M1."
+  "loginPassword": "Password",
+  "loginFailed": "Sign-in failed. Check your e-mail and password.",
+  "messagesTitle": "Messages",
+  "messagesEmpty": "No conversations yet.",
+  "messageHint": "Write a message",
+  "messageSend": "Send",
+  "messageRead": "Read",
+  "messageRemoved": "Removed by a moderator.",
+  "flagContact": "We hid the contact details. Talk through TerraReality until you sign the lease.",
+  "flagAdvance": "Warning: this message asks for payment in advance. Never send money before a viewing and a signed lease.",
+  "safetyNote": "Stay safe: talk through TerraReality and never pay before a viewing.",
+  "blocked": "This conversation is blocked.",
+  "report": "Report",
+  "reportScam": "Scam or payment in advance",
+  "reportHarassment": "Harassment",
+  "reportOther": "Other",
+  "reportSent": "Thank you, our team will review the report.",
+  "unreadCount": "{count} unread",
+  "@unreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

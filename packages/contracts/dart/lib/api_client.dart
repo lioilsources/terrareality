@@ -254,6 +254,8 @@ class ApiClient {
           return FilterProposal.fromJson(value);
         case 'GdprRequest':
           return GdprRequest.fromJson(value);
+        case 'GetPushConfig200Response':
+          return GetPushConfig200Response.fromJson(value);
         case 'Health':
           return Health.fromJson(value);
         case 'HealthCheck':

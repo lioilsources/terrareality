@@ -1385,6 +1385,23 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SubscriptionToken" }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/push/config:
+    get:
+      tags: [messaging]
+      operationId: getPushConfig
+      summary: Public key for browser push subscriptions (VAPID)
+      security: []
+      responses:
+        "200":
+          description: Push configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [vapid_public_key]
+                properties:
+                  vapid_public_key: { type: string, description: "Uncompressed P-256 point, base64url." }
+        default: { $ref: "#/components/responses/Problem" }
   /v1/realtime/token:
     post:
       tags: [messaging]

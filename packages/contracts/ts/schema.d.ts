@@ -1400,6 +1400,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/push/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public key for browser push subscriptions (VAPID) */
+        get: operations["getPushConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/realtime/token": {
         parameters: {
             query?: never;
@@ -4901,6 +4918,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubscriptionToken"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPushConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Push configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Uncompressed P-256 point, base64url. */
+                        vapid_public_key: string;
+                    };
                 };
             };
             default: components["responses"]["Problem"];

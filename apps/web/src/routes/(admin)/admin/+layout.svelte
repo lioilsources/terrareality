@@ -10,7 +10,8 @@
 		{ href: '/admin/settings/profile', label: m.settings_profile },
 		{ href: '/admin/settings/security', label: m.settings_security },
 		{ href: '/admin/settings/privacy', label: m.settings_privacy },
-		{ href: '/admin/settings/searches', label: m.nav_saved_searches }
+		{ href: '/admin/settings/searches', label: m.nav_saved_searches },
+		{ href: '/admin/settings/notifications', label: m.settings_notifications }
 	];
 </script>
 

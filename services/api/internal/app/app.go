@@ -38,6 +38,7 @@ type Deps struct {
 	AI       ai.Assistant
 	RT       realtime.Publisher
 	Pusher   notify.Pusher
+	WebPush  *notify.WebPush
 }
 
 // Build creates adapters. Real providers are used when their credentials are
@@ -141,19 +142,29 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 		log.Warn("CENTRIFUGO_API_URL not set, realtime events stay in memory")
 		d.RT = &realtime.Memory{}
 	}
-	d.Pusher = notify.PushLog{L: log}
+	var mobile notify.Pusher = notify.PushLog{L: log}
 	switch cfg.PushProvider {
 	case "mock":
-		d.Pusher = notify.PushViaEmail{Email: email}
+		mobile = notify.PushViaEmail{Email: email}
 	case "fcm":
 		creds, err := os.ReadFile(cfg.FCMCredentialsFile)
 		if err != nil {
 			return d, fmt.Errorf("FCM_CREDENTIALS_FILE: %w", err)
 		}
-		if d.Pusher, err = notify.NewFCM(context.Background(), cfg.FCMProject, creds, notify.PushLog{L: log}); err != nil {
+		if mobile, err = notify.NewFCM(context.Background(), cfg.FCMProject, creds, notify.PushLog{L: log}); err != nil {
 			return d, err
 		}
 	}
+	if d.WebPush, err = notify.NewWebPush(cfg.WebPushSeed, cfg.WebPushSubject); err != nil {
+		return d, err
+	}
+	// Browser subscriptions always go to the real push services (they are
+	// created by real browsers); PUSH_PROVIDER=log silences everything.
+	web := notify.Pusher(d.WebPush)
+	if cfg.PushProvider == "log" {
+		web = mobile
+	}
+	d.Pusher = notify.PlatformRouter{Web: web, Mobile: mobile}
 	return d, nil
 }
 

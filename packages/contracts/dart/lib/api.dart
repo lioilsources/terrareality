@@ -74,6 +74,7 @@ part 'model/facet_count.dart';
 part 'model/field_error.dart';
 part 'model/filter_proposal.dart';
 part 'model/gdpr_request.dart';
+part 'model/get_push_config200_response.dart';
 part 'model/health.dart';
 part 'model/health_check.dart';
 part 'model/i18n_text.dart';
