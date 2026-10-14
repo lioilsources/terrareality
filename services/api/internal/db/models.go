@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/pgvector/pgvector-go"
 )
 
 type Address struct {
@@ -26,6 +27,19 @@ type Address struct {
 	Location          interface{} `json:"location"`
 	Label             string      `json:"label"`
 	CreatedAt         time.Time   `json:"created_at"`
+	AdminPath         pgtype.Text `json:"admin_path"`
+}
+
+type AdminUnit struct {
+	ID       int32       `json:"id"`
+	Code     string      `json:"code"`
+	Level    int16       `json:"level"`
+	Name     string      `json:"name"`
+	Slug     string      `json:"slug"`
+	Path     string      `json:"path"`
+	Geom     interface{} `json:"geom"`
+	Centroid interface{} `json:"centroid"`
+	Search   string      `json:"search"`
 }
 
 type AiSuggestion struct {
@@ -202,6 +216,39 @@ type Listing struct {
 	DeletedAt         *time.Time  `json:"deleted_at"`
 }
 
+type ListingAggregate struct {
+	Path       string      `json:"path"`
+	Level      int16       `json:"level"`
+	Listings   int32       `json:"listings"`
+	MedianRent int64       `json:"median_rent"`
+	MinRent    interface{} `json:"min_rent"`
+	MaxRent    interface{} `json:"max_rent"`
+}
+
+type ListingSearch struct {
+	ListingID        uuid.UUID       `json:"listing_id"`
+	OrgID            uuid.UUID       `json:"org_id"`
+	Version          int32           `json:"version"`
+	UnitKind         string          `json:"unit_kind"`
+	Layout           *string         `json:"layout"`
+	RentAmount       int64           `json:"rent_amount"`
+	Currency         string          `json:"currency"`
+	DepositAmount    *int64          `json:"deposit_amount"`
+	FloorArea        *float64        `json:"floor_area"`
+	Attributes       []byte          `json:"attributes"`
+	Facets           []string        `json:"facets"`
+	Title            []byte          `json:"title"`
+	Location         interface{}     `json:"location"`
+	AdminPath        pgtype.Text     `json:"admin_path"`
+	City             string          `json:"city"`
+	CityPart         *string         `json:"city_part"`
+	CoverKey         *string         `json:"cover_key"`
+	CoverOrientation int32           `json:"cover_orientation"`
+	Tsv              interface{}     `json:"tsv"`
+	Embedding        pgvector.Vector `json:"embedding"`
+	PublishedAt      time.Time       `json:"published_at"`
+}
+
 type ListingVersion struct {
 	ID          uuid.UUID  `json:"id"`
 	ListingID   uuid.UUID  `json:"listing_id"`
@@ -312,6 +359,16 @@ type RuianStaging struct {
 	PostalCode        string  `json:"postal_code"`
 	SjtskY            float64 `json:"sjtsk_y"`
 	SjtskX            float64 `json:"sjtsk_x"`
+}
+
+type SavedSearch struct {
+	ID             uuid.UUID `json:"id"`
+	UserID         uuid.UUID `json:"user_id"`
+	Name           string    `json:"name"`
+	Query          []byte    `json:"query"`
+	Notify         bool      `json:"notify"`
+	LastNotifiedAt time.Time `json:"last_notified_at"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Session struct {

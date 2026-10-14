@@ -94,8 +94,8 @@ func Load() (Config, error) {
 		CentrifugoKey:   get("CENTRIFUGO_API_KEY", ""),
 		VisionURL:       get("VISION_URL", ""),
 		LLMBaseURL:      get("LLM_BASE_URL", ""),
-		LLMModel:        get("LLM_MODEL", "terra"),
-		EmbeddingsModel: get("EMBEDDINGS_MODEL", "terra-embed"),
+		LLMModel:        get("LLM_MODEL", "openclaw-default"),
+		EmbeddingsModel: get("EMBEDDINGS_MODEL", ""), // empty = no embeddings (similar listings off)
 		OTLPEndpoint:    get("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
 		CORSOrigins:     splitList(get("CORS_ORIGINS", "http://localhost:5173,http://localhost:4321")),
 		TrustedProxies:  splitList(get("TRUSTED_PROXIES", "127.0.0.1,::1")),

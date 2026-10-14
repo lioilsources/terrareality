@@ -1,18 +1,32 @@
-# LLM routes on the DGX Spark (AiStack)
+# LLM on the DGX Spark (AiStack)
 
-TerraReality does not run its own inference stack. It uses the existing AiStack
-LiteLLM gateway on the Spark (same pattern as ChatShop), reached over LAN/VPN.
-Add these routes to the gateway config:
+TerraReality does not run its own inference stack. It calls the AiStack LiteLLM gateway on the Spark
+over the LAN (`LLM_BASE_URL=http://<spark-lan-ip>:8080/v1`, dummy API key). The public Cloudflare
+endpoint is not used by apps without the owner's approval.
 
-| Route | Purpose | Suggested backend |
+## Routes (agreed with the AiStack operator, 2026-10-14)
+
+| Use | Route | Status |
 |---|---|---|
-| `terra` | chat-first search with tool calling, attribute extraction, listing text drafts | Qwen3-32B (vLLM), shares weights with `shop` |
-| `terra-embed` | listing embeddings (1024 dim, pgvector) | BAAI/bge-m3, vLLM `--runner pooling` |
-| `terra-vision` | photo tagging in `services/vision` | a vision-language model, e.g. Qwen2.5-VL-7B/32B |
+| Attribute extraction, listing texts, chat-first search (tool calling, JSON) | `openclaw-default` (Qwen3.6-35B-A3B, 64k context) | in use |
+| Listing embeddings (1024 dim, pgvector) | `shop-embed` (bge-m3); requests must send `"encoding_format": "float"` | on demand: stopped by default, the operator starts it for a batch (~10 s startup). `EMBEDDINGS_MODEL` stays empty for normal operation; similar listings use the attribute fallback |
+| Photo tagging in `services/vision` | `vl` (Qwen2.5-VL-7B, max 3 images per request, 16k context) | on demand: stopped by default (~4 min startup). Vision runs in mock mode otherwise |
 
-Fallback chain: `terra -> fallback` (cloud model), enabled only behind the
-`ai.cloud_fallback` feature flag. Every AI output is a suggestion that a human
-approves (ADR 0003).
+There are no `terra*` routes. Route changes are pull requests to the AiStack repo
+(`deploy/litellm_config.yaml`); deploying them (pull + LiteLLM restart on the Spark) is done by the
+operator or the owner, never by this project.
 
-Clients only know `LLM_BASE_URL` (OpenAI-compatible) and the route names above,
-so routes can be re-pointed without touching application code.
+## Operating rules
+
+- Schedule: LLM routes are up 13:00–07:00; 07:00–13:00 the GPU belongs to ComfyUI and every LLM
+  call fails. AI suggestions are River jobs with retries spanning about 7 hours, so they finish
+  once the window opens. The UI shows "generating" meanwhile.
+- At most 4 parallel interactive requests from TerraReality.
+- Batch jobs (bulk extraction, tagging, embedding backfills) are requested from the operator
+  (Director session) with the kind and size, e.g. "embed backfill 5 000 listings, ~20 min", only
+  in the 13:10–06:55 window. Wait for "running", send "done" afterwards. Jobs are resumable by id
+  and stop at 06:57. A permanently running embedding model (needed for query embeddings) is a
+  separate decision of the owner.
+- No own containers on the Spark without the owner's approval.
+
+Every AI output is a suggestion that a human approves (ADR 0003).

@@ -8,19 +8,24 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) (int64, error)
 	AddFilterOption(ctx context.Context, arg AddFilterOptionParams) error
 	AddMembership(ctx context.Context, arg AddMembershipParams) error
+	// Deepest administrative unit covering a point.
+	AdminPathAt(ctx context.Context, arg AdminPathAtParams) (string, error)
 	// Accepts a TOTP step only once (replay protection).
 	AdvanceTOTPStep(ctx context.Context, arg AdvanceTOTPStepParams) (int64, error)
+	AssignAddressAdminPaths(ctx context.Context, onlyMissing pgtype.Bool) (int64, error)
 	CompleteSuggestion(ctx context.Context, arg CompleteSuggestionParams) error
 	// Atomically marks a valid token as used and returns it.
 	ConsumeAuthToken(ctx context.Context, arg ConsumeAuthTokenParams) (AuthToken, error)
 	// RÚIAN ---------------------------------------------------------------------
 	CopyRuianStaging(ctx context.Context, arg []CopyRuianStagingParams) (int64, error)
+	CountAdminUnits(ctx context.Context) (int64, error)
 	CountOwners(ctx context.Context, orgID uuid.UUID) (int64, error)
 	CountReadyPhotos(ctx context.Context, listingID *uuid.UUID) (int64, error)
 	CountRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -38,6 +43,8 @@ type Querier interface {
 	// Queries on RLS tables run inside db.WithUser transactions unless noted.
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
 	CreateProperty(ctx context.Context, arg CreatePropertyParams) (Property, error)
+	// Saved searches ---------------------------------------------------------------
+	CreateSavedSearch(ctx context.Context, arg CreateSavedSearchParams) (SavedSearch, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	// AI suggestions -------------------------------------------------------------
 	CreateSuggestion(ctx context.Context, arg CreateSuggestionParams) (AiSuggestion, error)
@@ -46,15 +53,20 @@ type Querier interface {
 	DecideFilterProposal(ctx context.Context, arg DecideFilterProposalParams) (int64, error)
 	DecideSuggestion(ctx context.Context, arg DecideSuggestionParams) (int64, error)
 	DeleteExpiredAuthTokens(ctx context.Context) (int64, error)
+	DeleteListingSearch(ctx context.Context, listingID uuid.UUID) error
 	DeleteMedia(ctx context.Context, arg DeleteMediaParams) (string, error)
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
 	DeleteOAuthIdentities(ctx context.Context, userID uuid.UUID) error
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
+	DeleteSavedSearch(ctx context.Context, arg DeleteSavedSearchParams) (int64, error)
 	DisableTOTP(ctx context.Context, id uuid.UUID) error
 	EnableTOTP(ctx context.Context, arg EnableTOTPParams) error
 	FailSuggestion(ctx context.Context, arg FailSuggestionParams) error
+	// Place lookup for chat search ("Praha 6", "Dejvice").
+	FindAdminUnits(ctx context.Context, q_ string) ([]FindAdminUnitsRow, error)
 	FindPropertyByRuian(ctx context.Context, arg FindPropertyByRuianParams) (Property, error)
 	GetActiveSession(ctx context.Context, tokenHash []byte) (GetActiveSessionRow, error)
+	GetAdminUnit(ctx context.Context, path string) (GetAdminUnitRow, error)
 	GetAppMeta(ctx context.Context, key string) (AppMetum, error)
 	// Latest open code of a purpose for a user (phone codes are short, so they
 	// are looked up by user and compared in constant time).
@@ -62,6 +74,8 @@ type Querier interface {
 	GetFilterProposal(ctx context.Context, id uuid.UUID) (FilterSchemaProposal, error)
 	GetGDPRRequest(ctx context.Context, id uuid.UUID) (GdprRequest, error)
 	GetIdentityVerification(ctx context.Context, userID uuid.UUID) (IdentityVerification, error)
+	// Everything the search index needs about a published listing (system context).
+	GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSourceRow, error)
 	// System context: the invitee is not a member yet.
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
 	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
@@ -77,6 +91,7 @@ type Querier interface {
 	GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error)
 	GetPersonalOrganization(ctx context.Context, personalOwnerID *uuid.UUID) (Organization, error)
 	GetProperty(ctx context.Context, arg GetPropertyParams) (GetPropertyRow, error)
+	GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error)
 	GetPublishedSnapshot(ctx context.Context, id uuid.UUID) (ListingVersion, error)
 	GetRuianPlace(ctx context.Context, id int64) (GetRuianPlaceRow, error)
 	GetSuggestion(ctx context.Context, arg GetSuggestionParams) (AiSuggestion, error)
@@ -88,6 +103,9 @@ type Querier interface {
 	InsertConsent(ctx context.Context, arg InsertConsentParams) (Consent, error)
 	InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error
 	InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTokensParams) error
+	ListAdminBySlug(ctx context.Context, slug string) ([]ListAdminBySlugRow, error)
+	// Children of a unit (or regions when path is empty) with simplified outlines.
+	ListAdminChildren(ctx context.Context, arg ListAdminChildrenParams) ([]ListAdminChildrenRow, error)
 	// System context: every organization (RLS tests and backoffice).
 	ListAllOrganizationIDs(ctx context.Context) ([]uuid.UUID, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]ListAuditEventsRow, error)
@@ -108,6 +126,7 @@ type Querier interface {
 	// Backoffice moderation queue (system context).
 	ListPendingVersions(ctx context.Context) ([]ListPendingVersionsRow, error)
 	ListProperties(ctx context.Context, orgID uuid.UUID) ([]ListPropertiesRow, error)
+	ListSavedSearches(ctx context.Context, userID uuid.UUID) ([]SavedSearch, error)
 	ListSuggestions(ctx context.Context, listingID uuid.UUID) ([]AiSuggestion, error)
 	ListUnits(ctx context.Context, propertyID uuid.UUID) ([]Unit, error)
 	// System context: used by GDPR erasure.
@@ -117,21 +136,34 @@ type Querier interface {
 	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
 	MarkIdentityVerified(ctx context.Context, id uuid.UUID) error
 	MarkPhoneVerified(ctx context.Context, arg MarkPhoneVerifiedParams) error
+	MarkSavedSearchNotified(ctx context.Context, arg MarkSavedSearchNotifiedParams) error
 	// S-JTSK coordinates in the CSV are positive; EPSG:5514 uses negative axes.
 	MergeRuianStaging(ctx context.Context) (int64, error)
+	// Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
+	MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error)
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
 	NextListingVersion(ctx context.Context, listingID uuid.UUID) (int32, error)
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
 	// System context (backoffice review).
 	PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error
+	// Only listings with an approved version (synthetic load-test rows have none).
+	PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error)
+	RefreshListingAggregates(ctx context.Context) error
 	ReviewListingVersion(ctx context.Context, arg ReviewListingVersionParams) (int64, error)
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOpenInvitationsForEmail(ctx context.Context, arg RevokeOpenInvitationsForEmailParams) error
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
 	RevokeUserSessions(ctx context.Context, arg RevokeUserSessionsParams) error
+	RuianDistrictHull(ctx context.Context) ([]RuianDistrictHullRow, error)
+	// Dev seed: approximate polygons from address points (500 m around their hull).
+	RuianMunicipalityHull(ctx context.Context) ([]RuianMunicipalityHullRow, error)
+	RuianPartHull(ctx context.Context) ([]RuianPartHullRow, error)
+	SavedSearchesToNotify(ctx context.Context) ([]SavedSearchesToNotifyRow, error)
 	SearchRuian(ctx context.Context, arg SearchRuianParams) ([]SearchRuianRow, error)
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error)
+	SetAddressAdminPath(ctx context.Context, arg SetAddressAdminPathParams) error
 	SetListingAttributes(ctx context.Context, arg SetListingAttributesParams) error
+	SetListingEmbedding(ctx context.Context, arg SetListingEmbeddingParams) error
 	SetListingStatus(ctx context.Context, arg SetListingStatusParams) error
 	SetListingTexts(ctx context.Context, arg SetListingTextsParams) error
 	SetMediaProcessed(ctx context.Context, arg SetMediaProcessedParams) error
@@ -141,6 +173,9 @@ type Querier interface {
 	SetTOTPPending(ctx context.Context, arg SetTOTPPendingParams) error
 	SetUserPassword(ctx context.Context, arg SetUserPasswordParams) error
 	SetUserPhone(ctx context.Context, arg SetUserPhoneParams) error
+	// Fallback without embeddings: same kind, nearby, similar rent.
+	SimilarByAttributes(ctx context.Context, arg SimilarByAttributesParams) ([]uuid.UUID, error)
+	SimilarByEmbedding(ctx context.Context, arg SimilarByEmbeddingParams) ([]uuid.UUID, error)
 	SoftDeleteListing(ctx context.Context, arg SoftDeleteListingParams) error
 	SoftDeleteOrganization(ctx context.Context, id uuid.UUID) error
 	SystemGetMedia(ctx context.Context, id uuid.UUID) (Medium, error)
@@ -156,6 +191,8 @@ type Querier interface {
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error)
 	UpdateUnit(ctx context.Context, arg UpdateUnitParams) (Unit, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
+	// Administrative units ------------------------------------------------------
+	UpsertAdminUnit(ctx context.Context, arg UpsertAdminUnitParams) error
 	UpsertAppMeta(ctx context.Context, arg UpsertAppMetaParams) error
 	UpsertFilterGroup(ctx context.Context, arg UpsertFilterGroupParams) error
 	UpsertFilterProposal(ctx context.Context, arg UpsertFilterProposalParams) error
@@ -164,6 +201,8 @@ type Querier interface {
 	// were added through approved ingest proposals are kept.
 	UpsertFilterSchema(ctx context.Context, arg UpsertFilterSchemaParams) error
 	UpsertIdentityVerification(ctx context.Context, arg UpsertIdentityVerificationParams) (IdentityVerification, error)
+	// Search index ---------------------------------------------------------------
+	UpsertListingSearch(ctx context.Context, arg UpsertListingSearchParams) error
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 	// Row-level security context: only versions of the caller's organizations.
 	WithdrawMyPendingVersions(ctx context.Context, pListing uuid.UUID) error

@@ -19,6 +19,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/logx"
+	"github.com/terrareality/terrareality/services/api/internal/search"
 	"github.com/terrareality/terrareality/services/api/internal/workflows"
 )
 
@@ -59,8 +60,9 @@ func run() error {
 		return err
 	}
 	gdpr := &jobs.GDPRWorker{}
-	mediaW, suggestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}
-	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW, Suggestions: suggestW})
+	mediaW, suggestW, digestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}, &jobs.DigestWorker{}
+	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
+		Suggestions: suggestW, Digest: digestW})
 	if err != nil {
 		return err
 	}
@@ -68,8 +70,10 @@ func run() error {
 		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
 	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
 		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(cfg),
-		WebBaseURL: cfg.WebBaseURL}
+		WebBaseURL: cfg.WebBaseURL, Search: search.Indexer{}}
 	mediaW.Runner, suggestW.Runner = listings, listings
+	digestW.Runner = &search.Digest{Engine: &search.Engine{Pool: pool}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
+		WebBaseURL: cfg.WebBaseURL}
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}

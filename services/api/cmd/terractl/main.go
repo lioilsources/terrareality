@@ -4,6 +4,9 @@
 //	terractl staff revoke <email>   remove staff rights
 //	terractl seed-dev               create dev accounts (APP_ENV=dev|test only)
 //	terractl ruian import <file>    import RÚIAN address points (CSV or ZIP of CSVs)
+//	terractl admin import <file>    import administrative units (GeoJSON, see infra/README-geo.md)
+//	terractl seed-search <n>        ensure n synthetic published listings (APP_ENV=dev|test only)
+//	terractl reindex                rebuild the search index from approved versions
 package main
 
 import (
@@ -21,6 +24,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/ruian"
+	"github.com/terrareality/terrareality/services/api/internal/search"
 )
 
 // Dev accounts created by seed-dev. The password is public on purpose and
@@ -68,6 +72,52 @@ func run(args []string) error {
 		n, err := ruian.ImportFile(ctx, pool, args[2])
 		fmt.Printf("imported %d address points\n", n)
 		return err
+	case len(args) == 3 && args[0] == "admin" && args[1] == "import":
+		if err := platformdb.Migrate(ctx, pool); err != nil {
+			return err
+		}
+		f, err := os.Open(args[2])
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		n, err := search.ImportGeoJSON(ctx, pool, f)
+		fmt.Printf("imported %d administrative units\n", n)
+		return err
+	case len(args) == 2 && args[0] == "seed-search":
+		if cfg.Env != "dev" && cfg.Env != "test" {
+			return errors.New("seed-search only runs with APP_ENV=dev or test")
+		}
+		var count int
+		if _, err := fmt.Sscan(args[1], &count); err != nil {
+			return err
+		}
+		if _, err := ruian.SeedSample(ctx, pool); err != nil {
+			return err
+		}
+		if _, err := search.SeedFromRuian(ctx, pool); err != nil {
+			return err
+		}
+		n, err := search.Synthetic(ctx, pool, count)
+		fmt.Printf("added %d synthetic listings\n", n)
+		return err
+	case len(args) == 1 && args[0] == "reindex":
+		ids, err := q.PublishedListingIDs(ctx)
+		if err != nil {
+			return err
+		}
+		n := 0
+		for _, id := range ids {
+			if err := (search.Indexer{}).Index(ctx, q, id); err != nil {
+				return fmt.Errorf("listing %s: %w", id, err)
+			}
+			n++
+		}
+		if err := q.RefreshListingAggregates(ctx); err != nil {
+			return err
+		}
+		fmt.Printf("reindexed %d listings\n", n)
+		return nil
 	case len(args) == 1 && args[0] == "seed-dev":
 		if cfg.Env != "dev" && cfg.Env != "test" {
 			return errors.New("seed-dev only runs with APP_ENV=dev or test")
@@ -86,7 +136,7 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file>")
+	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex")
 }
 
 func seedUser(ctx context.Context, pool *pgxpool.Pool, email, name string, staff bool) error {

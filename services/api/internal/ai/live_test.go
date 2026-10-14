@@ -8,7 +8,7 @@ import (
 )
 
 // TestLiveGateway runs extraction and drafting against a real OpenAI-compatible
-// gateway: TEST_LLM_URL=http://<spark>:8080/v1 TEST_LLM_MODEL=terra go test ./internal/ai -run Live -v
+// gateway: TEST_LLM_URL=http://<spark>:8080/v1 TEST_LLM_MODEL=openclaw-default go test ./internal/ai -run Live -v
 func TestLiveGateway(t *testing.T) {
 	url, model := os.Getenv("TEST_LLM_URL"), os.Getenv("TEST_LLM_MODEL")
 	if url == "" || model == "" {

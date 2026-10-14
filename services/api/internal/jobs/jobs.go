@@ -55,6 +55,7 @@ type WorkerDeps struct {
 	GDPR        *GDPRWorker
 	Media       *ProcessMediaWorker
 	Suggestions *SuggestionWorker
+	Digest      *DigestWorker
 }
 
 // NewWorkerClient builds a River client that processes jobs. Completed jobs
@@ -67,6 +68,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	river.AddWorker(workers, &CleanupWorker{Q: db.New(pool)})
 	river.AddWorker(workers, deps.Media)
 	river.AddWorker(workers, deps.Suggestions)
+	river.AddWorker(workers, &RefreshAggregatesWorker{Q: db.New(pool)})
+	river.AddWorker(workers, deps.Digest)
 	return river.NewClient[pgx.Tx](riverpgxv5.New(pool), &river.Config{
 		Logger:                      log,
 		Queues:                      map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 20}},
@@ -78,6 +81,10 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 				&river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return CleanupArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute),
+				func() (river.JobArgs, *river.InsertOpts) { return RefreshAggregatesArgs{}, nil }, &river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return DigestArgs{}, nil }, nil),
 		},
 	})
 }

@@ -4,7 +4,8 @@ import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
 
 // Marketing + SEO site. Locality pages (/pronajem-bytu/<obec>) are generated
-// from the API in milestone M3; M0 ships the landing page in cs and en.
+// from the API at build time (src/pages/[kind]); without a reachable API only
+// the landing pages are built.
 export default defineConfig({
   site: 'https://terrareality.cz',
   integrations: [svelte()],

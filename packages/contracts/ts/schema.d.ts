@@ -1108,6 +1108,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Faceted search over published listings with map aggregates */
+        post: operations["search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/search/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Natural-language search – turns a message into filters and a map area, then searches */
+        post: operations["chatSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Child administrative units with simplified outlines (regions when parent is empty) */
+        get: operations["listAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published listing (approved version only) */
+        get: operations["getPublicListing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/listings/{listingId}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Similar listings (embeddings when available, otherwise kind, price and distance) */
+        get: operations["getSimilarListings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seo/municipalities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Municipalities with at least one listing (static site pages) */
+        get: operations["listSeoMunicipalities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/saved-searches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My saved searches */
+        get: operations["listSavedSearches"];
+        put?: never;
+        /** Save a search; new matching listings are e-mailed daily when notify is on */
+        post: operations["createSavedSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/saved-searches/{savedSearchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved search */
+        delete: operations["deleteSavedSearch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1793,6 +1930,201 @@ export interface components {
             approve: boolean;
             label?: components["schemas"]["I18nText"];
             note?: string;
+        };
+        AttrFilter: {
+            values?: string[];
+            bool?: boolean;
+            /** Format: double */
+            min?: number;
+            /** Format: double */
+            max?: number;
+        };
+        SearchQuery: {
+            text?: string;
+            kinds?: components["schemas"]["UnitKind"][];
+            /**
+             * Format: int64
+             * @description Minor units.
+             */
+            rent_min?: number;
+            /** Format: int64 */
+            rent_max?: number;
+            /** Format: double */
+            area_min?: number;
+            /** Format: double */
+            area_max?: number;
+            layouts?: string[];
+            admin_path?: string;
+            /** @description west, south, east, north */
+            bbox?: number[];
+            attributes?: {
+                [key: string]: components["schemas"]["AttrFilter"];
+            };
+            /** @enum {string} */
+            sort?: "relevance" | "price_asc" | "price_desc" | "newest" | "area_desc";
+            limit?: number;
+            offset?: number;
+        };
+        ListingCard: {
+            /** Format: uuid */
+            id: string;
+            unit_kind: components["schemas"]["UnitKind"];
+            layout?: string;
+            /** Format: int64 */
+            rent_amount: number;
+            currency: string;
+            /** Format: double */
+            floor_area?: number;
+            title: components["schemas"]["I18nText"];
+            city: string;
+            city_part?: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            cover_url?: string;
+            /** Format: date-time */
+            published_at: string;
+        };
+        FacetCount: {
+            value: string;
+            count: number;
+        };
+        AreaAggregate: {
+            path: string;
+            name: string;
+            level: number;
+            count: number;
+            /** Format: int64 */
+            median_rent: number;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
+        MapPoint: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            /** Format: int64 */
+            rent_amount: number;
+        };
+        SearchResult: {
+            total: number;
+            items: components["schemas"]["ListingCard"][];
+            facets: {
+                [key: string]: components["schemas"]["FacetCount"][];
+            };
+            /** Format: int64 */
+            rent_min: number;
+            /** Format: int64 */
+            rent_max: number;
+            areas: components["schemas"]["AreaAggregate"][];
+            /** @description Up to 2000 markers. */
+            points: components["schemas"]["MapPoint"][];
+        };
+        Place: {
+            path: string;
+            name: string;
+            bbox: number[];
+        };
+        ChatRequest: {
+            message: string;
+            query?: components["schemas"]["SearchQuery"];
+            locale?: components["schemas"]["UserLocale"];
+        };
+        ChatResponse: {
+            query: components["schemas"]["SearchQuery"];
+            place?: components["schemas"]["Place"];
+            reply: string;
+            /** @description LLM route or "rules" for the offline parser. */
+            model: string;
+            /** @description The LLM was unavailable and rules were used. */
+            degraded: boolean;
+            result: components["schemas"]["SearchResult"];
+        };
+        Area: {
+            path: string;
+            name: string;
+            slug: string;
+            level: number;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            /** @description GeoJSON MultiPolygon (simplified). */
+            geometry: {
+                [key: string]: unknown;
+            };
+        };
+        PublicListing: {
+            /** Format: uuid */
+            id: string;
+            title: components["schemas"]["I18nText"];
+            description: components["schemas"]["I18nText"];
+            /** Format: int64 */
+            rent_amount: number;
+            /** Format: int64 */
+            deposit_amount?: number;
+            /** Format: int64 */
+            utilities_amount?: number;
+            currency: string;
+            /** Format: date */
+            available_from?: string;
+            /** Format: int32 */
+            min_term_months?: number;
+            attributes: {
+                [key: string]: unknown;
+            };
+            unit: {
+                kind: components["schemas"]["UnitKind"];
+                layout?: string;
+                /** Format: int32 */
+                floor?: number;
+                /** Format: double */
+                floor_area?: number;
+            };
+            location: {
+                /** Format: double */
+                lat: number;
+                /** Format: double */
+                lng: number;
+                /** @enum {string} */
+                precision: "exact" | "approximate";
+                /** @description Only when the owner chose the exact location. */
+                address?: string;
+            };
+            /** @description From region to neighbourhood. */
+            area_names: string[];
+            photos: components["schemas"]["PhotoVariants"][];
+            /** Format: date-time */
+            published_at: string;
+        };
+        MunicipalityStat: {
+            name: string;
+            slug: string;
+            path: string;
+            listings: number;
+            /** Format: int64 */
+            median_rent: number;
+        };
+        SavedSearchInput: {
+            name: string;
+            query: components["schemas"]["SearchQuery"];
+            /** @default true */
+            notify: boolean;
+        };
+        SavedSearch: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            query: components["schemas"]["SearchQuery"];
+            notify: boolean;
+            /** Format: date-time */
+            created_at: string;
         };
     };
     responses: {
@@ -3452,6 +3784,214 @@ export interface operations {
         };
         responses: {
             /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchQuery"];
+            };
+        };
+        responses: {
+            /** @description Results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResult"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    chatSearch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Applied filters, place, a short reply and the results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listAreas: {
+        parameters: {
+            query?: {
+                parent?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Areas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Area"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPublicListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicListing"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSimilarListings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingCard"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listSeoMunicipalities: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["UnitKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Municipalities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MunicipalityStat"][];
+                };
+            };
+        };
+    };
+    listSavedSearches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved searches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearch"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createSavedSearch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearch"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteSavedSearch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                savedSearchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
             204: {
                 headers: {
                     [name: string]: unknown;

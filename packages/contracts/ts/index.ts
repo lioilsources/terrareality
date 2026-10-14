@@ -37,6 +37,14 @@ export type ReviewItem = Schemas['ReviewItem'];
 export type FilterProposal = Schemas['FilterProposal'];
 export type FieldError = Schemas['FieldError'];
 export type I18nText = Schemas['I18nText'];
+export type SearchQuery = Schemas['SearchQuery'];
+export type SearchResult = Schemas['SearchResult'];
+export type ListingCard = Schemas['ListingCard'];
+export type Area = Schemas['Area'];
+export type AreaAggregate = Schemas['AreaAggregate'];
+export type PublicListing = Schemas['PublicListing'];
+export type SavedSearch = Schemas['SavedSearch'];
+export type MunicipalityStat = Schemas['MunicipalityStat'];
 export type ApiClient = Client<paths>;
 
 /** Create a client bound to the given API base URL. */

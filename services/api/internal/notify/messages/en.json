@@ -38,5 +38,9 @@
   "listing_rejected": {
     "subject": "Listing returned for changes: {{.Title}}",
     "text": "Hello,\n\nwe returned your listing \"{{.Title}}\" (version {{.Version}}) for changes.{{if .Note}}\n\nReason: {{.Note}}{{end}}\n\nEdit it and submit again:\n{{.Link}}"
+  },
+  "saved_search_digest": {
+    "subject": "New listings for \"{{.Name}}\" ({{.Count}})",
+    "text": "Hello,\n\nthere are new listings for your saved search \"{{.Name}}\" ({{.Count}}):\n\n{{.Items}}\n\nAll results and notification settings:\n{{.Link}}"
   }
 }

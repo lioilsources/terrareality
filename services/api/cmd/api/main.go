@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
+	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/app"
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
@@ -27,6 +28,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/logx"
 	"github.com/terrareality/terrareality/services/api/internal/platform/telemetry"
 	"github.com/terrareality/terrareality/services/api/internal/ruian"
+	"github.com/terrareality/terrareality/services/api/internal/search"
 )
 
 func main() {
@@ -79,7 +81,11 @@ func run() error {
 	orgs := &org.Service{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL}
 	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
 		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(cfg),
-		WebBaseURL: cfg.WebBaseURL}
+		WebBaseURL: cfg.WebBaseURL, Search: search.Indexer{}}
+	chat := &search.Chat{Pool: pool, Model: "rules"}
+	if cfg.LLMBaseURL != "" {
+		chat.LLM, chat.Model = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel), cfg.LLMModel
+	}
 	if err := catalog.Sync(ctx, dbq.New(pool)); err != nil {
 		return fmt.Errorf("sync attribute catalog: %w", err)
 	}
@@ -88,6 +94,11 @@ func run() error {
 			return fmt.Errorf("seed RÚIAN sample: %w", err)
 		} else if n > 0 {
 			log.Info("loaded RÚIAN sample addresses", "count", n)
+		}
+		if n, err := search.SeedFromRuian(ctx, pool); err != nil {
+			return fmt.Errorf("seed admin units: %w", err)
+		} else if n > 0 {
+			log.Info("derived dev administrative units from the RÚIAN sample", "count", n)
 		}
 	}
 
@@ -105,7 +116,7 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
 				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP}),
 		ReadHeaderTimeout: 10 * time.Second,

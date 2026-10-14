@@ -71,8 +71,9 @@ lint: ## Linters (go vet, staticcheck, prettier+eslint, ruff, flutter analyze)
 	cd apps/mobile && flutter analyze
 
 e2e: ## Playwright E2E against a running api + worker (make dev in another terminal)
-	cd $(API) && go run ./cmd/terractl seed-dev >/dev/null
+	cd $(API) && go run ./cmd/terractl seed-dev >/dev/null && go run ./cmd/terractl seed-search 500 >/dev/null
 	cd apps/web && npx playwright test
+	./scripts/check-site.sh
 
 build: ## Build Go binaries and web/site bundles
 	cd $(API) && go build -o bin/ ./cmd/...

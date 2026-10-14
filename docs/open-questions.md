@@ -22,10 +22,10 @@ follows until decided otherwise.
 
 ## M2
 
-- **OQ-7 Spark routes.** The gateway has no `terra`, `terra-embed` or `terra-vision` routes yet
-  (`infra/spark/README.md`). On 2026-10-14 `shop` and `vl` backends were down; the live AI test ran
-  against `dev` (Qwen 3.6). Proposal: add the three routes before the pilot; until then set
-  `LLM_MODEL=dev` for manual tests and keep the mock in CI.
+- **OQ-7 Spark routes.** Resolved with the AiStack operator: chat/JSON uses `openclaw-default`
+  (verified live 2026-10-14). Embeddings (`shop-embed`/bge-m3) and vision (`vl`) are not running;
+  the owner decides whether to run them resident, as a CPU sidecar or in a time window. Until then
+  embeddings and vision stay off/mock (infra/spark/README.md).
 - **OQ-8 RÚIAN import.** Dev and tests use a 26-address synthetic sample. The full CZ data set
   (about 3 million address points, ZIP of per-municipality CSVs from ČÚZK) is imported with
   `terractl ruian import <file.zip>`; schedule a monthly refresh job in M3.
@@ -33,3 +33,14 @@ follows until decided otherwise.
   Proposal: run clamd as a sidecar on the production VM (about 1 GB RAM for signatures).
 - **OQ-10 Removed photos of published listings** stay in storage until the next approved version;
   a cleanup job comes with M3 search.
+
+## M3
+
+- **OQ-11 Administrative boundaries source.** Overpass API was overloaded on 2026-10-14, so dev uses
+  outlines derived from address points. Proposal: import RÚIAN VFR boundaries (official, CC-BY) for
+  regions, municipalities, MOMC and parts of municipalities via `ogr2ogr` → GeoJSON with properties
+  code/level/name/parent → `terractl admin import`. Needs a one-off conversion script (M8).
+- **OQ-12 Basemap.** OpenFreeMap (free, no key, OSM data). For production traffic consider
+  self-hosted PMTiles of CZ on our object storage. Decide before launch (M8).
+- **OQ-13 Embeddings.** See OQ-7: bge-m3 location (Spark resident, CPU sidecar on the app VM, or a
+  time window). Until decided, similar listings use the attribute fallback.
