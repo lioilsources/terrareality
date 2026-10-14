@@ -49,7 +49,7 @@ func suggestionDTO(sg db.AiSuggestion) gen.Suggestion {
 
 func (s *Server) listingDTO(ctx context.Context, v listing.View) (gen.Listing, error) {
 	l, c := v.Listing, v.Context
-	out := gen.Listing{Id: l.ID, OrgId: l.OrgID, Status: gen.ListingStatus(l.Status), Title: i18nDTO(l.Title),
+	out := gen.Listing{Id: l.ID, OrgId: l.OrgID, Prescreen: prescreenOf(l.Prescreen), Status: gen.ListingStatus(l.Status), Title: i18nDTO(l.Title),
 		Description: i18nDTO(l.Description), RentAmount: l.RentAmount, DepositAmount: l.DepositAmount,
 		UtilitiesAmount: l.UtilitiesAmount, Currency: l.Currency, MinTermMonths: l.MinTermMonths, Attributes: objectOf(l.Attributes),
 		LocationPrecision: gen.ListingLocationPrecision(l.LocationPrecision), PublishedVersion: l.PublishedVersion,

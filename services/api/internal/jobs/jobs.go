@@ -13,6 +13,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
+	_ "time/tzdata" // Europe/Prague for the daily digest in minimal images
 
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
@@ -56,6 +57,9 @@ type WorkerDeps struct {
 	Media       *ProcessMediaWorker
 	Suggestions *SuggestionWorker
 	Digest      *DigestWorker
+	Messages    *MessageNotifyWorker
+	MsgDigest   *MessagesDigestWorker
+	Verdicts    *VerdictWorker
 }
 
 // NewWorkerClient builds a River client that processes jobs. Completed jobs
@@ -70,6 +74,13 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	river.AddWorker(workers, deps.Suggestions)
 	river.AddWorker(workers, &RefreshAggregatesWorker{Q: db.New(pool)})
 	river.AddWorker(workers, deps.Digest)
+	river.AddWorker(workers, deps.Messages)
+	river.AddWorker(workers, deps.MsgDigest)
+	river.AddWorker(workers, deps.Verdicts)
+	prague, err := time.LoadLocation("Europe/Prague")
+	if err != nil {
+		prague = time.UTC
+	}
 	return river.NewClient[pgx.Tx](riverpgxv5.New(pool), &river.Config{
 		Logger:                      log,
 		Queues:                      map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 20}},
@@ -85,6 +96,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 				func() (river.JobArgs, *river.InsertOpts) { return RefreshAggregatesArgs{}, nil }, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return DigestArgs{}, nil }, nil),
+			river.NewPeriodicJob(dailyAt{hour: 18, loc: prague},
+				func() (river.JobArgs, *river.InsertOpts) { return MessagesDigestArgs{}, nil }, nil),
 		},
 	})
 }

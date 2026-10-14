@@ -5,7 +5,9 @@
     },
     "allowed_origins": [
       "http://localhost:5173",
-      "http://localhost:4321"
+      "http://localhost:4321",
+      "http://localhost:4173",
+      "http://localhost:4174"
     ]
   },
   "http_api": {
@@ -30,7 +32,8 @@
         "name": "user",
         "history_size": 50,
         "history_ttl": "168h",
-        "force_recovery": true
+        "force_recovery": true,
+        "presence": true
       }
     ]
   },

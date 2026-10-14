@@ -258,9 +258,11 @@ func (q *Queries) GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSou
 
 const getPublicListing = `-- name: GetPublicListing :one
 SELECT s.listing_id, s.org_id, s.version, ST_Y(s.location::geometry)::float8 AS lat,
-  ST_X(s.location::geometry)::float8 AS lng, s.admin_path::text AS admin_path, s.published_at, v.snapshot
+  ST_X(s.location::geometry)::float8 AS lng, s.admin_path::text AS admin_path, s.published_at, v.snapshot,
+  l.prescreen
 FROM listing_search s
 JOIN listing_versions v ON v.listing_id = s.listing_id AND v.version = s.version
+JOIN listings l ON l.id = s.listing_id
 WHERE s.listing_id = $1
 `
 
@@ -273,6 +275,7 @@ type GetPublicListingRow struct {
 	AdminPath   string    `json:"admin_path"`
 	PublishedAt time.Time `json:"published_at"`
 	Snapshot    []byte    `json:"snapshot"`
+	Prescreen   []byte    `json:"prescreen"`
 }
 
 func (q *Queries) GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error) {
@@ -287,6 +290,7 @@ func (q *Queries) GetPublicListing(ctx context.Context, listingID uuid.UUID) (Ge
 		&i.AdminPath,
 		&i.PublishedAt,
 		&i.Snapshot,
+		&i.Prescreen,
 	)
 	return i, err
 }

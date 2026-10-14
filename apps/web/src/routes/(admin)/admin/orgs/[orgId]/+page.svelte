@@ -21,7 +21,10 @@
 <div class="grid gap-6">
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<h1 class="text-2xl font-semibold" data-testid="org-name">{org.name}</h1>
-		<a href={localizeHref(`/admin/orgs/${org.id}/listings`)}>{m.nav_listings()} →</a>
+		<span class="flex gap-4">
+			<a href={localizeHref(`/admin/orgs/${org.id}/sablony`)}>{m.msg_templates()}</a>
+			<a href={localizeHref(`/admin/orgs/${org.id}/listings`)}>{m.nav_listings()} →</a>
+		</span>
 	</div>
 	{#if form?.error}<Alert kind="error">{form.error}</Alert>{/if}
 

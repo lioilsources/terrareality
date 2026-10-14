@@ -147,6 +147,19 @@ func (o *MemoryOutbox) Last(to, key string) (Message, bool) {
 	return Message{}, false
 }
 
+// All returns all messages to a recipient with the template key.
+func (o *MemoryOutbox) All(to, key string) []Message {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	var out []Message
+	for _, m := range o.msgs {
+		if strings.EqualFold(m.To, to) && m.Template == key {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // LinkToken extracts the token query parameter from the first link in text.
 func LinkToken(text string) string {
 	u := urlRe.FindString(text)

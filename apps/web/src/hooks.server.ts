@@ -48,7 +48,10 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 
 	const id = event.route.id ?? '';
 	const isPrivate =
-		id.startsWith('/(admin)') || id.startsWith('/(tenant)') || id.startsWith('/(backoffice)');
+		id.startsWith('/(admin)') ||
+		id.startsWith('/(tenant)') ||
+		id.startsWith('/(backoffice)') ||
+		id.startsWith('/(messages)');
 	if (isPrivate && !event.locals.me) {
 		const next = event.url.pathname + event.url.search;
 		redirect(303, localizeHref(`/login?next=${encodeURIComponent(next)}`));

@@ -4,12 +4,19 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/gen/app_localizations.dart';
 import 'auth/login_screen.dart';
+import 'messaging/conversations_screen.dart';
+import 'messaging/thread_screen.dart';
 import 'status/status_screen.dart';
 
 GoRouter createRouter() => GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, _) => const StatusScreen()),
     GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+    GoRoute(path: '/zpravy', builder: (_, _) => const ConversationsScreen()),
+    GoRoute(
+      path: '/zpravy/:id',
+      builder: (_, s) => ThreadScreen(id: s.pathParameters['id']!),
+    ),
   ],
 );
 

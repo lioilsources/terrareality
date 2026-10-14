@@ -44,3 +44,15 @@ follows until decided otherwise.
   self-hosted PMTiles of CZ on our object storage. Decide before launch (M8).
 - **OQ-13 Embeddings.** See OQ-7: bge-m3 location (Spark resident, CPU sidecar on the app VM, or a
   time window). Until decided, similar listings use the attribute fallback.
+
+## M4
+
+- **OQ-14 Firebase project for push.** Mobile push needs a Firebase project (Android
+  `google-services.json`, iOS `GoogleService-Info.plist` plus an APNs key uploaded to Firebase) and a
+  service account JSON for the api (`PUSH_PROVIDER=fcm`, `FCM_CREDENTIALS_FILE`). Owner: customer
+  (developer accounts). Until then mobile users get e-mail.
+- **OQ-15 Transactional e-mail provider** (follows OQ-4). Message notifications raise the volume;
+  Postmark or SES via SMTP needs SPF/DKIM on the sending domain before launch.
+- **OQ-16 Notification delay.** Push/e-mail wait `MESSAGE_NOTIFY_DELAY` (20 s) so that people who
+  are chatting are not disturbed. Tune after launch with real response times.
+

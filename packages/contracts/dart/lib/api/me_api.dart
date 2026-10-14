@@ -96,6 +96,51 @@ class MeApi {
     }
   }
 
+  /// Unregister a push device
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] deviceId (required):
+  Future<Response> deletePushDeviceWithHttpInfo(String deviceId,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/push-devices/{deviceId}'
+      .replaceAll('{deviceId}', deviceId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'DELETE',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Unregister a push device
+  ///
+  /// Parameters:
+  ///
+  /// * [String] deviceId (required):
+  Future<void> deletePushDevice(String deviceId,) async {
+    final response = await deletePushDeviceWithHttpInfo(deviceId,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
   /// Disable TOTP after confirming a current code
   ///
   /// Note: This method returns the HTTP [Response].
@@ -341,6 +386,50 @@ class MeApi {
     return null;
   }
 
+  /// Notification settings
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> getNotificationPreferencesWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/notification-preferences';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Notification settings
+  Future<NotificationPreferences?> getNotificationPreferences() async {
+    final response = await getNotificationPreferencesWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'NotificationPreferences',) as NotificationPreferences;
+    
+    }
+    return null;
+  }
+
   /// Consent history (append-only)
   ///
   /// Note: This method returns the HTTP [Response].
@@ -482,6 +571,141 @@ class MeApi {
     return null;
   }
 
+  /// Latest in-app notifications
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> listNotificationsWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/notifications';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Latest in-app notifications
+  Future<NotificationList?> listNotifications() async {
+    final response = await listNotificationsWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'NotificationList',) as NotificationList;
+    
+    }
+    return null;
+  }
+
+  /// Registered push devices
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> listPushDevicesWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/push-devices';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Registered push devices
+  Future<List<PushDevice>?> listPushDevices() async {
+    final response = await listPushDevicesWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(responseBody, 'List<PushDevice>') as List)
+        .cast<PushDevice>()
+        .toList(growable: false);
+
+    }
+    return null;
+  }
+
+  /// Mark one notification (id) or all as read
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [MarkNotificationsReadRequest] markNotificationsReadRequest:
+  Future<Response> markNotificationsReadWithHttpInfo({ MarkNotificationsReadRequest? markNotificationsReadRequest, }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/notifications/read';
+
+    // ignore: prefer_final_locals
+    Object? postBody = markNotificationsReadRequest;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Mark one notification (id) or all as read
+  ///
+  /// Parameters:
+  ///
+  /// * [MarkNotificationsReadRequest] markNotificationsReadRequest:
+  Future<void> markNotificationsRead({ MarkNotificationsReadRequest? markNotificationsReadRequest, }) async {
+    final response = await markNotificationsReadWithHttpInfo( markNotificationsReadRequest: markNotificationsReadRequest, );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
   /// Grant or withdraw a consent
   ///
   /// Note: This method returns the HTTP [Response].
@@ -529,6 +753,58 @@ class MeApi {
     // FormatException when trying to decode an empty string.
     if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
       return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'Consent',) as Consent;
+    
+    }
+    return null;
+  }
+
+  /// Register an FCM token or a web push subscription
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [PushDeviceInput] pushDeviceInput (required):
+  Future<Response> registerPushDeviceWithHttpInfo(PushDeviceInput pushDeviceInput,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/push-devices';
+
+    // ignore: prefer_final_locals
+    Object? postBody = pushDeviceInput;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Register an FCM token or a web push subscription
+  ///
+  /// Parameters:
+  ///
+  /// * [PushDeviceInput] pushDeviceInput (required):
+  Future<PushDevice?> registerPushDevice(PushDeviceInput pushDeviceInput,) async {
+    final response = await registerPushDeviceWithHttpInfo(pushDeviceInput,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'PushDevice',) as PushDevice;
     
     }
     return null;
@@ -665,6 +941,58 @@ class MeApi {
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
+  }
+
+  /// Change notification settings
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [NotificationPreferences] notificationPreferences (required):
+  Future<Response> setNotificationPreferencesWithHttpInfo(NotificationPreferences notificationPreferences,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/me/notification-preferences';
+
+    // ignore: prefer_final_locals
+    Object? postBody = notificationPreferences;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'PUT',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Change notification settings
+  ///
+  /// Parameters:
+  ///
+  /// * [NotificationPreferences] notificationPreferences (required):
+  Future<NotificationPreferences?> setNotificationPreferences(NotificationPreferences notificationPreferences,) async {
+    final response = await setNotificationPreferencesWithHttpInfo(notificationPreferences,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'NotificationPreferences',) as NotificationPreferences;
+    
+    }
+    return null;
   }
 
   /// Generate a new TOTP secret (not active until confirmed)

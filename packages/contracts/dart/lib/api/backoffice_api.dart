@@ -65,6 +65,55 @@ class BackofficeApi {
     }
   }
 
+  /// Resolve a case (human decision; the AI verdict is only a suggestion)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] caseId (required):
+  ///
+  /// * [BackofficeDecideModerationRequest] backofficeDecideModerationRequest (required):
+  Future<Response> backofficeDecideModerationWithHttpInfo(String caseId, BackofficeDecideModerationRequest backofficeDecideModerationRequest,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/moderation/{caseId}/decision'
+      .replaceAll('{caseId}', caseId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = backofficeDecideModerationRequest;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Resolve a case (human decision; the AI verdict is only a suggestion)
+  ///
+  /// Parameters:
+  ///
+  /// * [String] caseId (required):
+  ///
+  /// * [BackofficeDecideModerationRequest] backofficeDecideModerationRequest (required):
+  Future<void> backofficeDecideModeration(String caseId, BackofficeDecideModerationRequest backofficeDecideModerationRequest,) async {
+    final response = await backofficeDecideModerationWithHttpInfo(caseId, backofficeDecideModerationRequest,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
   /// Approve (publish) or reject a version (staff)
   ///
   /// Note: This method returns the HTTP [Response].
@@ -112,6 +161,59 @@ class BackofficeApi {
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
+  }
+
+  /// A case with the conversation transcript and the AI suggestion
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] caseId (required):
+  Future<Response> backofficeGetModerationWithHttpInfo(String caseId,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/moderation/{caseId}'
+      .replaceAll('{caseId}', caseId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// A case with the conversation transcript and the AI suggestion
+  ///
+  /// Parameters:
+  ///
+  /// * [String] caseId (required):
+  Future<ModerationCaseDetail?> backofficeGetModeration(String caseId,) async {
+    final response = await backofficeGetModerationWithHttpInfo(caseId,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'ModerationCaseDetail',) as ModerationCaseDetail;
+    
+    }
+    return null;
   }
 
   /// One submitted version with its snapshot (staff)
@@ -420,6 +522,53 @@ class BackofficeApi {
       final responseBody = await _decodeBodyBytes(response);
       return (await apiClient.deserializeAsync(responseBody, 'List<FilterProposal>') as List)
         .cast<FilterProposal>()
+        .toList(growable: false);
+
+    }
+    return null;
+  }
+
+  /// Open reports and automatic flags, oldest first
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> backofficeListModerationWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/moderation';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Open reports and automatic flags, oldest first
+  Future<List<ModerationCase>?> backofficeListModeration() async {
+    final response = await backofficeListModerationWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(responseBody, 'List<ModerationCase>') as List)
+        .cast<ModerationCase>()
         .toList(growable: false);
 
     }

@@ -50,6 +50,7 @@
 	"dependencies": {
 		"@terra/contracts": "*",
 		"@terra/ui": "*",
+		"centrifuge": "5.7.4",
 		"maplibre-gl": "^5.24.0",
 		"qrcode": "^1.5.4"
 	}

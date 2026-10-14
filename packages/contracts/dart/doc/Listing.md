@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
 **orgId** | **String** |  | 
+**prescreen** | [**List<PrescreenQuestion>**](PrescreenQuestion.md) |  | [default to const []]
 **status** | [**ListingStatus**](ListingStatus.md) |  | 
 **title** | [**I18nText**](I18nText.md) |  | 
 **description** | [**I18nText**](I18nText.md) |  | 

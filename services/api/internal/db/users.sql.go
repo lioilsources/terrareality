@@ -67,7 +67,7 @@ func (q *Queries) CreateOAuthIdentity(ctx context.Context, arg CreateOAuthIdenti
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, display_name, locale, email_verified_at)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level
+RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at
 `
 
 type CreateUserParams struct {
@@ -106,6 +106,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerificationLevel,
+		&i.MessagingSuspendedAt,
 	)
 	return i, err
 }
@@ -199,7 +200,7 @@ func (q *Queries) GetOAuthIdentity(ctx context.Context, arg GetOAuthIdentityPara
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level FROM users WHERE id = $1
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -224,12 +225,13 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerificationLevel,
+		&i.MessagingSuspendedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level FROM users WHERE email = $1
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -254,6 +256,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerificationLevel,
+		&i.MessagingSuspendedAt,
 	)
 	return i, err
 }
@@ -318,7 +321,7 @@ func (q *Queries) PseudonymizeUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level FROM users
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users
 WHERE ($1::text IS NULL OR email ILIKE '%' || $1 || '%' OR display_name ILIKE '%' || $1 || '%')
   AND ($2::uuid IS NULL OR id < $2)
 ORDER BY id DESC
@@ -359,6 +362,7 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Use
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.VerificationLevel,
+			&i.MessagingSuspendedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -427,7 +431,7 @@ func (q *Queries) SetUserPhone(ctx context.Context, arg SetUserPhoneParams) erro
 }
 
 const updateUserProfile = `-- name: UpdateUserProfile :one
-UPDATE users SET display_name = $2, locale = $3 WHERE id = $1 RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level
+UPDATE users SET display_name = $2, locale = $3 WHERE id = $1 RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at
 `
 
 type UpdateUserProfileParams struct {
@@ -458,6 +462,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerificationLevel,
+		&i.MessagingSuspendedAt,
 	)
 	return i, err
 }

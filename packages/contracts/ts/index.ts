@@ -45,6 +45,15 @@ export type AreaAggregate = Schemas['AreaAggregate'];
 export type PublicListing = Schemas['PublicListing'];
 export type SavedSearch = Schemas['SavedSearch'];
 export type MunicipalityStat = Schemas['MunicipalityStat'];
+export type Conversation = Schemas['Conversation'];
+export type ConversationDetail = Schemas['ConversationDetail'];
+export type Message = Schemas['Message'];
+export type MessageFlag = Schemas['MessageFlag'];
+export type PrescreenQuestion = Schemas['PrescreenQuestion'];
+export type ReplyTemplate = Schemas['ReplyTemplate'];
+export type NotificationPreferences = Schemas['NotificationPreferences'];
+export type ModerationCase = Schemas['ModerationCase'];
+export type ModerationVerdict = Schemas['ModerationVerdict'];
 export type ApiClient = Client<paths>;
 
 /** Create a client bound to the given API base URL. */

@@ -78,6 +78,9 @@
 			</h1>
 			<p class="text-sm text-[var(--muted)]">{l.address.label}</p>
 		</div>
+		<a href={localizeHref(`/admin/orgs/${l.org_id}/listings/${l.id}/otazky`)} class="text-sm"
+			>{m.msg_prescreen_edit()} ({l.prescreen.length})</a
+		>
 		<span class="rounded bg-[var(--border)]/60 px-3 py-1 text-sm" data-testid="listing-status"
 			>{statusLabel[l.status]()}{l.pending_review && l.status !== 'review'
 				? ` · ${m.pending_review()}`

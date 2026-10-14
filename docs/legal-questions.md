@@ -32,3 +32,16 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
 
 - **Q-IMP-1** Staff impersonation requires a reason and is audited, but the user is not notified.
   Must the user be informed (notification or entry in their activity)?
+
+## Messaging (M4)
+
+- **Q-MSG-1 Retention of messages.** Conversations are kept while both accounts exist; erasure of one
+  party pseudonymizes the sender but keeps the other party's copy. What retention applies to
+  conversations that never led to a lease? Proposal: delete 24 months after the last message.
+- **Q-MSG-2 Contact masking.** We mask phone numbers, e-mails and bank accounts in messages before a
+  lease is signed. Is processing message content for this purpose (and for scam detection) covered
+  by legitimate interest, and how must it be described in the privacy policy?
+- **Q-MSG-3 Moderation and sanctions.** Staff may remove a message or suspend messaging after a
+  report, with an AI suggestion as input (DSA art. 16-17 notice and statement of reasons for
+  hosting services?). Which information must the affected user receive?
+

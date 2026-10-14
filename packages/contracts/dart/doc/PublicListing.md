@@ -9,6 +9,7 @@ import 'package:terra_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
+**prescreen** | [**List<PrescreenQuestion>**](PrescreenQuestion.md) | Questions to answer when contacting the landlord. | [default to const []]
 **title** | [**I18nText**](I18nText.md) |  | 
 **description** | [**I18nText**](I18nText.md) |  | 
 **rentAmount** | **int** |  | 

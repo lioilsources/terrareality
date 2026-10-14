@@ -11,18 +11,25 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**cancelErasure**](MeApi.md#cancelerasure) | **DELETE** /v1/me/erasure | Cancel a scheduled erasure during the grace period
 [**changePassword**](MeApi.md#changepassword) | **POST** /v1/me/password | Change or set the password; revokes other sessions
+[**deletePushDevice**](MeApi.md#deletepushdevice) | **DELETE** /v1/me/push-devices/{deviceId} | Unregister a push device
 [**disableTotp**](MeApi.md#disabletotp) | **POST** /v1/me/mfa/totp/disable | Disable TOTP after confirming a current code
 [**enableTotp**](MeApi.md#enabletotp) | **POST** /v1/me/mfa/totp/enable | Confirm the TOTP secret with a code; returns one-time recovery codes
 [**finishIdentityVerification**](MeApi.md#finishidentityverification) | **POST** /v1/me/identity/callback | Finish identity verification with the code from the provider redirect
 [**getDataExportDownload**](MeApi.md#getdataexportdownload) | **GET** /v1/me/data-exports/{requestId}/download | Short-lived download URL of a finished export
 [**getMe**](MeApi.md#getme) | **GET** /v1/me | Current user, verification level and organizations
+[**getNotificationPreferences**](MeApi.md#getnotificationpreferences) | **GET** /v1/me/notification-preferences | Notification settings
 [**listConsents**](MeApi.md#listconsents) | **GET** /v1/me/consents | Consent history (append-only)
 [**listGdprRequests**](MeApi.md#listgdprrequests) | **GET** /v1/me/gdpr-requests | My data export and erasure requests
 [**listMySessions**](MeApi.md#listmysessions) | **GET** /v1/me/sessions | Active sessions of the current user
+[**listNotifications**](MeApi.md#listnotifications) | **GET** /v1/me/notifications | Latest in-app notifications
+[**listPushDevices**](MeApi.md#listpushdevices) | **GET** /v1/me/push-devices | Registered push devices
+[**markNotificationsRead**](MeApi.md#marknotificationsread) | **POST** /v1/me/notifications/read | Mark one notification (id) or all as read
 [**recordConsent**](MeApi.md#recordconsent) | **POST** /v1/me/consents | Grant or withdraw a consent
+[**registerPushDevice**](MeApi.md#registerpushdevice) | **POST** /v1/me/push-devices | Register an FCM token or a web push subscription
 [**requestDataExport**](MeApi.md#requestdataexport) | **POST** /v1/me/data-exports | Request a machine-readable export of my data (GDPR art. 15 and 20)
 [**requestErasure**](MeApi.md#requesterasure) | **POST** /v1/me/erasure | Request account erasure (GDPR art. 17) after a grace period
 [**revokeMySession**](MeApi.md#revokemysession) | **DELETE** /v1/me/sessions/{sessionId} | Revoke one of my sessions
+[**setNotificationPreferences**](MeApi.md#setnotificationpreferences) | **PUT** /v1/me/notification-preferences | Change notification settings
 [**setupTotp**](MeApi.md#setuptotp) | **POST** /v1/me/mfa/totp/setup | Generate a new TOTP secret (not active until confirmed)
 [**startIdentityVerification**](MeApi.md#startidentityverification) | **POST** /v1/me/identity/start | Begin identity verification (BankID in CZ); returns the provider URL
 [**startPhoneVerification**](MeApi.md#startphoneverification) | **POST** /v1/me/phone | Send a verification code by SMS
@@ -114,6 +121,52 @@ void (empty response body)
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deletePushDevice**
+> deletePushDevice(deviceId)
+
+Unregister a push device
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+final deviceId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    api_instance.deletePushDevice(deviceId);
+} catch (e) {
+    print('Exception when calling MeApi->deletePushDevice: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **deviceId** | **String**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -348,6 +401,49 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getNotificationPreferences**
+> NotificationPreferences getNotificationPreferences()
+
+Notification settings
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+
+try {
+    final result = api_instance.getNotificationPreferences();
+    print(result);
+} catch (e) {
+    print('Exception when calling MeApi->getNotificationPreferences: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**NotificationPreferences**](NotificationPreferences.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listConsents**
 > List<Consent> listConsents()
 
@@ -477,6 +573,138 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listNotifications**
+> NotificationList listNotifications()
+
+Latest in-app notifications
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+
+try {
+    final result = api_instance.listNotifications();
+    print(result);
+} catch (e) {
+    print('Exception when calling MeApi->listNotifications: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**NotificationList**](NotificationList.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listPushDevices**
+> List<PushDevice> listPushDevices()
+
+Registered push devices
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+
+try {
+    final result = api_instance.listPushDevices();
+    print(result);
+} catch (e) {
+    print('Exception when calling MeApi->listPushDevices: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**List<PushDevice>**](PushDevice.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **markNotificationsRead**
+> markNotificationsRead(markNotificationsReadRequest)
+
+Mark one notification (id) or all as read
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+final markNotificationsReadRequest = MarkNotificationsReadRequest(); // MarkNotificationsReadRequest | 
+
+try {
+    api_instance.markNotificationsRead(markNotificationsReadRequest);
+} catch (e) {
+    print('Exception when calling MeApi->markNotificationsRead: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **markNotificationsReadRequest** | [**MarkNotificationsReadRequest**](MarkNotificationsReadRequest.md)|  | [optional] 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **recordConsent**
 > Consent recordConsent(consentInput)
 
@@ -512,6 +740,53 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Consent**](Consent.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **registerPushDevice**
+> PushDevice registerPushDevice(pushDeviceInput)
+
+Register an FCM token or a web push subscription
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+final pushDeviceInput = PushDeviceInput(); // PushDeviceInput | 
+
+try {
+    final result = api_instance.registerPushDevice(pushDeviceInput);
+    print(result);
+} catch (e) {
+    print('Exception when calling MeApi->registerPushDevice: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **pushDeviceInput** | [**PushDeviceInput**](PushDeviceInput.md)|  | 
+
+### Return type
+
+[**PushDevice**](PushDevice.md)
 
 ### Authorization
 
@@ -653,6 +928,53 @@ void (empty response body)
 
  - **Content-Type**: Not defined
  - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **setNotificationPreferences**
+> NotificationPreferences setNotificationPreferences(notificationPreferences)
+
+Change notification settings
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = MeApi();
+final notificationPreferences = NotificationPreferences(); // NotificationPreferences | 
+
+try {
+    final result = api_instance.setNotificationPreferences(notificationPreferences);
+    print(result);
+} catch (e) {
+    print('Exception when calling MeApi->setNotificationPreferences: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **notificationPreferences** | [**NotificationPreferences**](NotificationPreferences.md)|  | 
+
+### Return type
+
+[**NotificationPreferences**](NotificationPreferences.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

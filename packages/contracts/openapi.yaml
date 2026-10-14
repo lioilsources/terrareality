@@ -18,6 +18,7 @@ tags:
   - name: backoffice
   - name: catalog
   - name: search
+  - name: messaging
 security:
   - bearerAuth: []
 paths:
@@ -1203,6 +1204,443 @@ paths:
       responses:
         "204": { description: Deleted }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations:
+    get:
+      tags: [messaging]
+      operationId: listConversations
+      summary: My conversations (as a seeker and for my organizations), newest first
+      parameters:
+        - { name: org_id, in: query, required: false, description: Only this organization's inbox., schema: { type: string, format: uuid } }
+        - { name: as, in: query, required: false, description: "seeker = only conversations I started.", schema: { type: string, enum: [seeker] } }
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [messaging]
+      operationId: startConversation
+      summary: Contact the landlord of a published listing (reuses an existing conversation)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StartConversation" }
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SentMessage" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}:
+    get:
+      tags: [messaging]
+      operationId: getConversation
+      summary: Conversation with read receipts and pre-screening answers
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      responses:
+        "200":
+          description: Conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/messages:
+    get:
+      tags: [messaging]
+      operationId: listMessages
+      summary: Messages, newest first
+      parameters:
+        - { $ref: "#/components/parameters/ConversationId" }
+        - { name: before, in: query, required: false, description: Return messages older than this time., schema: { type: string, format: date-time } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [messaging]
+      operationId: sendMessage
+      summary: Send a message. Contact details are masked and flagged, never blocked.
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SentMessage" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/read:
+    post:
+      tags: [messaging]
+      operationId: markConversationRead
+      summary: Mark the conversation read up to now (read receipt)
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      responses:
+        "204": { description: Marked }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/block:
+    put:
+      tags: [messaging]
+      operationId: setConversationBlocked
+      summary: Block or unblock the conversation
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [blocked]
+              properties:
+                blocked: { type: boolean }
+      responses:
+        "204": { description: Saved }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/reports:
+    post:
+      tags: [messaging]
+      operationId: reportConversation
+      summary: Report the conversation or one message to the moderators
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportInput" }
+      responses:
+        "201":
+          description: Report filed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/attachments:
+    post:
+      tags: [messaging]
+      operationId: createAttachmentUpload
+      summary: Reserve an attachment and get a presigned upload URL (PUT the file there, then complete)
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, content_type, size_bytes]
+              properties:
+                filename: { type: string, minLength: 1, maxLength: 255 }
+                content_type: { type: string, enum: [image/jpeg, image/png, image/webp, image/heic, application/pdf] }
+                size_bytes: { type: integer, format: int64, minimum: 1, maximum: 10485760 }
+      responses:
+        "201":
+          description: Upload slot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttachmentUpload" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/attachments/{attachmentId}/complete:
+    post:
+      tags: [messaging]
+      operationId: completeAttachmentUpload
+      summary: Check the uploaded file (type, size, malware) so it can be sent
+      parameters:
+        - { name: attachmentId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Ready to send
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Attachment" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{conversationId}/realtime-token:
+    post:
+      tags: [messaging]
+      operationId: conversationRealtimeToken
+      summary: Subscription token for the conversation's realtime channel
+      parameters: [{ $ref: "#/components/parameters/ConversationId" }]
+      responses:
+        "200":
+          description: Token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubscriptionToken" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/push/config:
+    get:
+      tags: [messaging]
+      operationId: getPushConfig
+      summary: Public key for browser push subscriptions (VAPID)
+      security: []
+      responses:
+        "200":
+          description: Push configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [vapid_public_key]
+                properties:
+                  vapid_public_key: { type: string, description: "Uncompressed P-256 point, base64url." }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/realtime/token:
+    post:
+      tags: [messaging]
+      operationId: realtimeToken
+      summary: Connection token for Centrifugo; the connection joins the caller's user channel
+      responses:
+        "200":
+          description: Token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RealtimeToken" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/reply-templates:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [messaging]
+      operationId: listReplyTemplates
+      summary: Reply templates of the organization
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ReplyTemplate" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [messaging]
+      operationId: createReplyTemplate
+      summary: Create a reply template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplyTemplateInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplyTemplate" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/reply-templates/{templateId}:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { name: templateId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [messaging]
+      operationId: updateReplyTemplate
+      summary: Update a reply template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplyTemplateInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplyTemplate" }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [messaging]
+      operationId: deleteReplyTemplate
+      summary: Delete a reply template
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/prescreen:
+    put:
+      tags: [messaging]
+      operationId: setListingPrescreen
+      summary: Replace the questions a seeker answers before the first message
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 10
+              items: { $ref: "#/components/schemas/PrescreenQuestion" }
+      responses:
+        "200":
+          description: Saved questions (new ones get an id)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PrescreenQuestion" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/notifications:
+    get:
+      tags: [me]
+      operationId: listNotifications
+      summary: Latest in-app notifications
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/notifications/read:
+    post:
+      tags: [me]
+      operationId: markNotificationsRead
+      summary: Mark one notification (id) or all as read
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: string, format: uuid }
+      responses:
+        "204": { description: Marked }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/notification-preferences:
+    get:
+      tags: [me]
+      operationId: getNotificationPreferences
+      summary: Notification settings
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreferences" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [me]
+      operationId: setNotificationPreferences
+      summary: Change notification settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationPreferences" }
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreferences" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/push-devices:
+    get:
+      tags: [me]
+      operationId: listPushDevices
+      summary: Registered push devices
+      responses:
+        "200":
+          description: Devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PushDevice" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [me]
+      operationId: registerPushDevice
+      summary: Register an FCM token or a web push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PushDeviceInput" }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PushDevice" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/push-devices/{deviceId}:
+    delete:
+      tags: [me]
+      operationId: deletePushDevice
+      summary: Unregister a push device
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/moderation:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListModeration
+      summary: Open reports and automatic flags, oldest first
+      responses:
+        "200":
+          description: Cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ModerationCase" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/moderation/{caseId}:
+    get:
+      tags: [backoffice]
+      operationId: backofficeGetModeration
+      summary: A case with the conversation transcript and the AI suggestion
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ModerationCaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/moderation/{caseId}/decision:
+    post:
+      tags: [backoffice]
+      operationId: backofficeDecideModeration
+      summary: Resolve a case (human decision; the AI verdict is only a suggestion)
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { $ref: "#/components/schemas/ModerationVerdict" }
+                note: { type: string, maxLength: 2000 }
+      responses:
+        "204": { description: Resolved }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -1221,6 +1659,7 @@ components:
       schema: { type: string, format: uuid }
     ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
     MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
+    ConversationId: { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
   responses:
     Problem:
@@ -1874,10 +2313,11 @@ components:
     Listing:
       type: object
       required: [id, org_id, status, title, description, currency, attributes, location_precision, pending_review,
-        unit, property_id, address, media, suggestions, versions, deposit_max_months, created_at, updated_at]
+        unit, property_id, address, media, suggestions, versions, deposit_max_months, created_at, updated_at, prescreen]
       properties:
         id: { type: string, format: uuid }
         org_id: { type: string, format: uuid }
+        prescreen: { type: array, items: { $ref: "#/components/schemas/PrescreenQuestion" } }
         status: { $ref: "#/components/schemas/ListingStatus" }
         title: { $ref: "#/components/schemas/I18nText" }
         description: { $ref: "#/components/schemas/I18nText" }
@@ -2075,9 +2515,10 @@ components:
         geometry: { type: object, additionalProperties: true, description: GeoJSON MultiPolygon (simplified). }
     PublicListing:
       type: object
-      required: [id, title, description, rent_amount, currency, attributes, unit, location, photos, published_at, area_names]
+      required: [id, title, description, rent_amount, currency, attributes, unit, location, photos, published_at, area_names, prescreen]
       properties:
         id: { type: string, format: uuid }
+        prescreen: { type: array, items: { $ref: "#/components/schemas/PrescreenQuestion" }, description: Questions to answer when contacting the landlord. }
         title: { $ref: "#/components/schemas/I18nText" }
         description: { $ref: "#/components/schemas/I18nText" }
         rent_amount: { type: integer, format: int64 }
@@ -2131,3 +2572,236 @@ components:
         query: { $ref: "#/components/schemas/SearchQuery" }
         notify: { type: boolean }
         created_at: { type: string, format: date-time }
+    PrescreenQuestion:
+      type: object
+      required: [text, kind, required]
+      properties:
+        id: { type: string, maxLength: 40, description: Assigned by the server for new questions. }
+        text:
+          type: object
+          properties:
+            cs: { type: string, maxLength: 300 }
+            en: { type: string, maxLength: 300 }
+        kind: { type: string, enum: [text, yes_no, number] }
+        required: { type: boolean }
+    PrescreenAnswer:
+      type: object
+      required: [id, question, kind, answer]
+      properties:
+        id: { type: string }
+        question:
+          type: object
+          properties:
+            cs: { type: string }
+            en: { type: string }
+        kind: { type: string, enum: [text, yes_no, number] }
+        answer: { type: string }
+    ConversationRole: { type: string, enum: [seeker, owner] }
+    Conversation:
+      type: object
+      required: [id, listing_id, org_id, org_name, seeker_id, seeker_name, listing_title, role, last_message_at,
+        last_message, unread, blocked, blocked_by_me, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        org_name: { type: string }
+        seeker_id: { type: string, format: uuid }
+        seeker_name: { type: string }
+        listing_title: { $ref: "#/components/schemas/I18nText" }
+        cover_url: { type: string }
+        role: { $ref: "#/components/schemas/ConversationRole" }
+        last_message_at: { type: string, format: date-time }
+        last_message: { type: string, description: Preview of the latest message. }
+        last_sender_id: { type: string, format: uuid }
+        unread: { type: integer }
+        blocked: { type: boolean }
+        blocked_by_me: { type: boolean }
+        created_at: { type: string, format: date-time }
+    ConversationDetail:
+      type: object
+      required: [conversation, prescreen]
+      properties:
+        conversation: { $ref: "#/components/schemas/Conversation" }
+        peer_read_at: { type: string, format: date-time, description: When the other side last read the conversation. }
+        prescreen: { type: array, items: { $ref: "#/components/schemas/PrescreenAnswer" } }
+    Attachment:
+      type: object
+      required: [id, filename, content_type, size_bytes, url]
+      properties:
+        id: { type: string, format: uuid }
+        filename: { type: string }
+        content_type: { type: string }
+        size_bytes: { type: integer, format: int64 }
+        url: { type: string, description: Short-lived download URL. }
+    AttachmentUpload:
+      type: object
+      required: [id, upload_url, expires_at]
+      properties:
+        id: { type: string, format: uuid }
+        upload_url: { type: string }
+        expires_at: { type: string, format: date-time }
+    MessageFlag: { type: string, enum: [contact_phone, contact_email, contact_bank_account, advance_payment] }
+    Message:
+      type: object
+      required: [id, conversation_id, kind, body, flags, removed, created_at, attachments]
+      properties:
+        id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        sender_id: { type: string, format: uuid }
+        kind: { type: string, enum: [text, prescreen, system] }
+        body: { type: string, description: "Contact details are masked as [•••]. Empty when removed by a moderator." }
+        flags: { type: array, items: { $ref: "#/components/schemas/MessageFlag" } }
+        removed: { type: boolean }
+        created_at: { type: string, format: date-time }
+        attachments: { type: array, items: { $ref: "#/components/schemas/Attachment" } }
+    MessageInput:
+      type: object
+      properties:
+        body: { type: string, maxLength: 4000 }
+        attachment_ids: { type: array, maxItems: 10, items: { type: string, format: uuid } }
+    StartConversation:
+      type: object
+      required: [listing_id, body]
+      properties:
+        listing_id: { type: string, format: uuid }
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        prescreen_answers:
+          type: object
+          description: Question id -> answer (yes/no questions take "yes" or "no").
+          additionalProperties: { type: string, maxLength: 500 }
+    SentMessage:
+      type: object
+      required: [conversation_id, message]
+      properties:
+        conversation_id: { type: string, format: uuid }
+        message: { $ref: "#/components/schemas/Message" }
+    ReportInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, enum: [scam, advance_payment, harassment, discrimination, spam, other] }
+        message_id: { type: string, format: uuid }
+        note: { type: string, maxLength: 2000 }
+    RealtimeToken:
+      type: object
+      required: [url, token, expires_at, channel]
+      properties:
+        url: { type: string, description: Centrifugo websocket URL. }
+        token: { type: string }
+        expires_at: { type: string, format: date-time }
+        channel: { type: string, description: The caller's user channel (joined automatically). }
+    SubscriptionToken:
+      type: object
+      required: [channel, token, expires_at]
+      properties:
+        channel: { type: string }
+        token: { type: string }
+        expires_at: { type: string, format: date-time }
+    ReplyTemplateInput:
+      type: object
+      required: [title, body]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 80 }
+        body: { type: string, minLength: 1, maxLength: 4000 }
+    ReplyTemplate:
+      type: object
+      required: [id, title, body, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        updated_at: { type: string, format: date-time }
+    Notification:
+      type: object
+      required: [id, kind, data, link, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, description: "message: data has conversation_id, sender, listing, preview, count." }
+        data: { type: object, additionalProperties: true }
+        link: { type: string }
+        read_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    NotificationList:
+      type: object
+      required: [items, unread]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Notification" } }
+        unread: { type: integer }
+    NotificationPreferences:
+      type: object
+      required: [email_messages, push_messages]
+      properties:
+        email_messages: { type: string, enum: [instant, daily, "off"], description: "instant = one e-mail per unread conversation; daily = summary at 18:00." }
+        push_messages: { type: boolean }
+    PushDeviceInput:
+      type: object
+      required: [platform, token]
+      properties:
+        platform: { type: string, enum: [fcm, apns, webpush] }
+        token: { type: string, minLength: 1, maxLength: 4096, description: FCM/APNs token or the web push endpoint URL. }
+        keys:
+          type: object
+          description: Web push subscription keys.
+          properties:
+            p256dh: { type: string }
+            auth: { type: string }
+        label: { type: string, maxLength: 120 }
+    PushDevice:
+      type: object
+      required: [id, platform, label, created_at, last_seen_at]
+      properties:
+        id: { type: string, format: uuid }
+        platform: { type: string, enum: [fcm, apns, webpush] }
+        label: { type: string }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+    ModerationVerdict: { type: string, enum: [dismiss, warn, remove_message, suspend_user] }
+    ModerationSuggestion:
+      type: object
+      required: [verdict, reason, confidence]
+      properties:
+        verdict: { $ref: "#/components/schemas/ModerationVerdict" }
+        reason: { type: string }
+        confidence: { type: number, format: double }
+        model: { type: string }
+    ModerationCase:
+      type: object
+      required: [id, source, conversation_id, reason, status, ai_status, listing_title, message_body, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        source: { type: string, enum: [report, auto] }
+        conversation_id: { type: string, format: uuid }
+        message_id: { type: string, format: uuid }
+        reason: { type: string }
+        note: { type: string }
+        status: { type: string, enum: [open, resolved] }
+        reporter_name: { type: string }
+        reporter_email: { type: string }
+        reported_id: { type: string, format: uuid }
+        reported_name: { type: string }
+        reported_email: { type: string }
+        listing_title: { $ref: "#/components/schemas/I18nText" }
+        message_body: { type: string }
+        ai_status: { type: string, enum: [pending, ready, failed, disabled] }
+        ai_suggestion: { $ref: "#/components/schemas/ModerationSuggestion" }
+        decision: { $ref: "#/components/schemas/ModerationVerdict" }
+        decision_note: { type: string }
+        created_at: { type: string, format: date-time }
+    TranscriptMessage:
+      type: object
+      required: [id, role, sender_name, body, flags, removed, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        role: { $ref: "#/components/schemas/ConversationRole" }
+        sender_name: { type: string }
+        body: { type: string }
+        flags: { type: array, items: { type: string } }
+        removed: { type: boolean }
+        created_at: { type: string, format: date-time }
+    ModerationCaseDetail:
+      type: object
+      required: [case, transcript]
+      properties:
+        case: { $ref: "#/components/schemas/ModerationCase" }
+        transcript: { type: array, items: { $ref: "#/components/schemas/TranscriptMessage" } }

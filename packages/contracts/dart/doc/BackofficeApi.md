@@ -10,12 +10,15 @@ All URIs are relative to *http://localhost:8080*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**backofficeDecideFilterProposal**](BackofficeApi.md#backofficedecidefilterproposal) | **POST** /v1/backoffice/filter-proposals/{proposalId}/decision | Add the option to the schema or reject it (staff)
+[**backofficeDecideModeration**](BackofficeApi.md#backofficedecidemoderation) | **POST** /v1/backoffice/moderation/{caseId}/decision | Resolve a case (human decision; the AI verdict is only a suggestion)
 [**backofficeDecideReview**](BackofficeApi.md#backofficedecidereview) | **POST** /v1/backoffice/reviews/{versionId}/decision | Approve (publish) or reject a version (staff)
+[**backofficeGetModeration**](BackofficeApi.md#backofficegetmoderation) | **GET** /v1/backoffice/moderation/{caseId} | A case with the conversation transcript and the AI suggestion
 [**backofficeGetReview**](BackofficeApi.md#backofficegetreview) | **GET** /v1/backoffice/reviews/{versionId} | One submitted version with its snapshot (staff)
 [**backofficeGetUser**](BackofficeApi.md#backofficegetuser) | **GET** /v1/backoffice/users/{userId} | User detail with organizations (staff)
 [**backofficeImpersonate**](BackofficeApi.md#backofficeimpersonate) | **POST** /v1/backoffice/users/{userId}/impersonate | Start a short audited session as the user (staff)
 [**backofficeListAudit**](BackofficeApi.md#backofficelistaudit) | **GET** /v1/backoffice/audit | Platform-wide audit log (staff)
 [**backofficeListFilterProposals**](BackofficeApi.md#backofficelistfilterproposals) | **GET** /v1/backoffice/filter-proposals | New attribute options proposed by AI ingest (staff)
+[**backofficeListModeration**](BackofficeApi.md#backofficelistmoderation) | **GET** /v1/backoffice/moderation | Open reports and automatic flags, oldest first
 [**backofficeListReviews**](BackofficeApi.md#backofficelistreviews) | **GET** /v1/backoffice/reviews | Moderation queue of submitted listing versions (staff)
 [**backofficeListUsers**](BackofficeApi.md#backofficelistusers) | **GET** /v1/backoffice/users | Search users (staff)
 
@@ -52,6 +55,54 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **proposalId** | **String**|  | 
  **proposalDecision** | [**ProposalDecision**](ProposalDecision.md)|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **backofficeDecideModeration**
+> backofficeDecideModeration(caseId, backofficeDecideModerationRequest)
+
+Resolve a case (human decision; the AI verdict is only a suggestion)
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = BackofficeApi();
+final caseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final backofficeDecideModerationRequest = BackofficeDecideModerationRequest(); // BackofficeDecideModerationRequest | 
+
+try {
+    api_instance.backofficeDecideModeration(caseId, backofficeDecideModerationRequest);
+} catch (e) {
+    print('Exception when calling BackofficeApi->backofficeDecideModeration: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **caseId** | **String**|  | 
+ **backofficeDecideModerationRequest** | [**BackofficeDecideModerationRequest**](BackofficeDecideModerationRequest.md)|  | 
 
 ### Return type
 
@@ -113,6 +164,53 @@ void (empty response body)
 
  - **Content-Type**: application/json
  - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **backofficeGetModeration**
+> ModerationCaseDetail backofficeGetModeration(caseId)
+
+A case with the conversation transcript and the AI suggestion
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = BackofficeApi();
+final caseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final result = api_instance.backofficeGetModeration(caseId);
+    print(result);
+} catch (e) {
+    print('Exception when calling BackofficeApi->backofficeGetModeration: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **caseId** | **String**|  | 
+
+### Return type
+
+[**ModerationCaseDetail**](ModerationCaseDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -351,6 +449,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**List<FilterProposal>**](FilterProposal.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **backofficeListModeration**
+> List<ModerationCase> backofficeListModeration()
+
+Open reports and automatic flags, oldest first
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = BackofficeApi();
+
+try {
+    final result = api_instance.backofficeListModeration();
+    print(result);
+} catch (e) {
+    print('Exception when calling BackofficeApi->backofficeListModeration: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**List<ModerationCase>**](ModerationCase.md)
 
 ### Authorization
 

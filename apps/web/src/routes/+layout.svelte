@@ -11,6 +11,7 @@
 
 	const nav = $derived([
 		{ href: '/hledat', label: m.nav_search },
+		...(data.me ? [{ href: '/zpravy', label: m.nav_messages }] : []),
 		{ href: '/admin', label: m.nav_admin },
 		{ href: '/tenant', label: m.nav_tenant },
 		...(data.me?.is_staff ? [{ href: '/backoffice', label: m.nav_backoffice }] : [])
@@ -34,6 +35,10 @@
 						aria-current={page.url.pathname.endsWith(item.href) ? 'page' : undefined}
 					>
 						{item.label()}
+						{#if item.href === '/zpravy' && data.unread}<span
+								class="ml-1 rounded-full bg-[var(--accent)] px-1.5 text-xs font-semibold text-white"
+								data-testid="nav-unread">{data.unread}</span
+							>{/if}
 					</a>
 				{/each}
 			</nav>

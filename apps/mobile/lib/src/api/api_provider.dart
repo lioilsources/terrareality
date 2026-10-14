@@ -15,10 +15,23 @@ String defaultApiUrl() {
 
 final apiBaseUrlProvider = Provider<String>((ref) => defaultApiUrl());
 
-final apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(basePath: ref.watch(apiBaseUrlProvider)),
-);
+/// The signed-in session token (null when signed out). Kept in memory for
+/// now; secure storage arrives with the full app in M8.
+class AuthSession extends Notifier<String?> {
+  @override
+  String? build() => null;
 
-final systemApiProvider = Provider<SystemApi>(
-  (ref) => SystemApi(ref.watch(apiClientProvider)),
-);
+  void signIn(String token) => state = token;
+  void signOut() => state = null;
+}
+
+final authSessionProvider = NotifierProvider<AuthSession, String?>(AuthSession.new);
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final token = ref.watch(authSessionProvider);
+  final auth = HttpBearerAuth();
+  if (token != null) auth.accessToken = token;
+  return ApiClient(basePath: ref.watch(apiBaseUrlProvider), authentication: auth);
+});
+
+final systemApiProvider = Provider<SystemApi>((ref) => SystemApi(ref.watch(apiClientProvider)));

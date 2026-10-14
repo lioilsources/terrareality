@@ -42,5 +42,21 @@
   "saved_search_digest": {
     "subject": "Nové nabídky pro „{{.Name}}“ ({{.Count}})",
     "text": "Dobrý den,\n\nk vašemu uloženému hledání „{{.Name}}“ přibyly nové nabídky ({{.Count}}):\n\n{{.Items}}\n\nVšechny výsledky a nastavení upozornění:\n{{.Link}}"
+  },
+  "new_message": {
+    "subject": "Nová zpráva od {{.Sender}}: {{.Listing}}",
+    "text": "Dobrý den,\n\n{{.Sender}} vám napsal(a) k inzerátu „{{.Listing}}“:\n\n„{{.Preview}}“\n\nOdpovědět můžete zde:\n{{.Link}}\n\nTerraReality nikdy nechce platbu předem před prohlídkou. Pokud vás o ni někdo žádá, nahlaste konverzaci.\n\nUpozornění si nastavíte v profilu: {{.Settings}}"
+  },
+  "messages_digest": {
+    "subject": "Nepřečtené zprávy ({{.Count}})",
+    "text": "Dobrý den,\n\nmáte nepřečtené zprávy ({{.Count}}):\n\n{{.Items}}\n\nVšechny konverzace:\n{{.Link}}\n\nUpozornění si nastavíte v profilu: {{.Settings}}"
+  },
+  "moderation_warning": {
+    "subject": "Upozornění k vaší konverzaci",
+    "text": "Dobrý den,\n\nnáš tým prověřil nahlášenou konverzaci k inzerátu „{{.Listing}}“ a zjistil porušení pravidel komunikace.{{if .Note}}\n\nPoznámka moderátora: {{.Note}}{{end}}\n\nDodržujte prosím pravidla: komunikujte přes platformu, nežádejte platby před prohlídkou a jednejte s respektem. Opakované porušení vede k zablokování účtu.\n\n{{.Link}}"
+  },
+  "messaging_suspended": {
+    "subject": "Posílání zpráv je pozastaveno",
+    "text": "Dobrý den,\n\nna základě prověření nahlášené konverzace jsme vašemu účtu pozastavili posílání zpráv.{{if .Note}}\n\nPoznámka moderátora: {{.Note}}{{end}}\n\nPokud jde o omyl, odpovězte na tento e-mail."
   }
 }

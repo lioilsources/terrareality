@@ -26,7 +26,15 @@ const byCode: Record<string, () => string> = {
 	unsupported_format: m.err_unsupported_format,
 	file_too_large: m.err_file_too_large,
 	feature_disabled: m.err_feature_disabled,
-	unknown_address: m.err_unknown_address
+	unknown_address: m.err_unknown_address,
+	conversation_blocked: m.err_conversation_blocked,
+	messaging_suspended: m.err_messaging_suspended,
+	prescreen_incomplete: m.err_prescreen_incomplete,
+	own_listing: m.err_own_listing,
+	attachment_type: m.err_attachment_type,
+	attachment_size: m.err_attachment_size,
+	attachment_infected: m.err_attachment_infected,
+	message_empty: m.err_message_empty
 };
 
 /** Translates an api problem into a user-facing message. */

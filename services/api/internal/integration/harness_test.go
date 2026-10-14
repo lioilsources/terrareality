@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -28,9 +29,11 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
+	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
+	"github.com/terrareality/terrareality/services/api/internal/realtime"
 	"github.com/terrareality/terrareality/services/api/internal/ruian"
 	"github.com/terrareality/terrareality/services/api/internal/search"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
@@ -77,6 +80,52 @@ func (r *recJobs) RunSuggestion(_ context.Context, _ pgx.Tx, id uuid.UUID) error
 	return nil
 }
 
+// recMsgJobs records messaging jobs; tests run them explicitly.
+type recMsgJobs struct {
+	mu       sync.Mutex
+	messages []uuid.UUID
+	cases    []uuid.UUID
+}
+
+func (r *recMsgJobs) NotifyMessage(_ context.Context, _ pgx.Tx, id uuid.UUID, _ time.Duration) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.messages = append(r.messages, id)
+	return nil
+}
+
+func (r *recMsgJobs) SuggestVerdict(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.cases = append(r.cases, id)
+	return nil
+}
+
+// recPusher records push notifications.
+type recPusher struct {
+	mu    sync.Mutex
+	items []notify.Push
+}
+
+func (r *recPusher) Push(_ context.Context, p notify.Push) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.items = append(r.items, p)
+	return nil
+}
+
+func (r *recPusher) count(userID uuid.UUID) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for _, p := range r.items {
+		if p.UserID == userID.String() {
+			n++
+		}
+	}
+	return n
+}
+
 type env struct {
 	t        *testing.T
 	pool     *pgxpool.Pool
@@ -88,6 +137,11 @@ type env struct {
 	jobs     *recJobs
 	blob     *storage.Memory
 	vision   *httptest.Server
+	rt       *realtime.Memory
+	msgJobs  *recMsgJobs
+	pusher   *recPusher
+	notifier *messaging.Notifier
+	verdicts *messaging.Verdicts
 }
 
 func newEnv(t *testing.T) *env {
@@ -136,8 +190,18 @@ func newEnv(t *testing.T) *env {
 		AI: ai.Mock{}, Jobs: e.jobs, Outbox: e.outbox, Render: render, WebBaseURL: "http://web.test",
 		Flags: listing.Flags{AIAttributes: true, AIText: true, Vision: true}, Search: search.Indexer{}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	if os.Getenv("TEST_LOG") != "" {
+		log = slog.New(slog.NewTextHandler(os.Stderr, nil))
+	}
+	e.rt, e.msgJobs, e.pusher = &realtime.Memory{}, &recMsgJobs{}, &recPusher{}
+	messages := &messaging.Service{Pool: pool, RT: e.rt, Tokens: realtime.Tokens{Secret: []byte("rt"), TTL: time.Hour},
+		WSURL: "ws://rt.test", Jobs: e.msgJobs, Blob: e.blob, Scanner: media.NoScanner{}, Outbox: e.outbox, Render: render,
+		WebBaseURL: "http://web.test", Log: log}
+	e.notifier = &messaging.Notifier{Pool: pool, RT: e.rt, Pusher: e.pusher, Outbox: e.outbox, Render: render,
+		WebBaseURL: "http://web.test", Log: log}
+	e.verdicts = &messaging.Verdicts{Pool: pool, AI: ai.Mock{}, Enabled: true}
 	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
-		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}}),
+		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e

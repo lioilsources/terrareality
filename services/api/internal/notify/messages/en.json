@@ -42,5 +42,21 @@
   "saved_search_digest": {
     "subject": "New listings for \"{{.Name}}\" ({{.Count}})",
     "text": "Hello,\n\nthere are new listings for your saved search \"{{.Name}}\" ({{.Count}}):\n\n{{.Items}}\n\nAll results and notification settings:\n{{.Link}}"
+  },
+  "new_message": {
+    "subject": "New message from {{.Sender}}: {{.Listing}}",
+    "text": "Hello,\n\n{{.Sender}} wrote to you about “{{.Listing}}”:\n\n“{{.Preview}}”\n\nReply here:\n{{.Link}}\n\nTerraReality never asks for payment before a viewing. If someone asks you to pay in advance, report the conversation.\n\nNotification settings: {{.Settings}}"
+  },
+  "messages_digest": {
+    "subject": "Unread messages ({{.Count}})",
+    "text": "Hello,\n\nyou have unread messages ({{.Count}}):\n\n{{.Items}}\n\nAll conversations:\n{{.Link}}\n\nNotification settings: {{.Settings}}"
+  },
+  "moderation_warning": {
+    "subject": "A warning about your conversation",
+    "text": "Hello,\n\nour team reviewed a reported conversation about “{{.Listing}}” and found a breach of the messaging rules.{{if .Note}}\n\nModerator's note: {{.Note}}{{end}}\n\nPlease keep the rules: talk through the platform, never ask for payment before a viewing and be respectful. Repeated breaches lead to a suspension.\n\n{{.Link}}"
+  },
+  "messaging_suspended": {
+    "subject": "Messaging suspended",
+    "text": "Hello,\n\nafter reviewing a reported conversation we suspended messaging for your account.{{if .Note}}\n\nModerator's note: {{.Note}}{{end}}\n\nIf you think this is a mistake, reply to this e-mail."
   }
 }
