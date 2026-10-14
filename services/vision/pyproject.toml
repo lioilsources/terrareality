@@ -1,7 +1,7 @@
 [project]
 name = "terra-vision"
 version = "0.1.0"
-description = "TerraReality vision worker: photo tagging (later: privacy blur, document OCR). Calls the LLM gateway on DGX Spark."
+description = "TerraReality vision worker: photo tagging and privacy blur (later: document OCR). Calls the LLM gateway on DGX Spark."
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115",
@@ -9,6 +9,7 @@ dependencies = [
   "httpx>=0.28",
   "pydantic>=2.9",
   "pydantic-settings>=2.6",
+  "pillow>=11.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TerraReality attribute catalog",
+  "type": "object",
+  "required": ["version", "groups", "attributes"],
+  "properties": {
+    "version": { "type": "integer" },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "label"],
+        "properties": { "key": { "type": "string" }, "label": { "$ref": "#/$defs/i18n" } }
+      }
+    },
+    "attributes": {
+      "type": "array",
+      "minItems": 60,
+      "items": {
+        "type": "object",
+        "required": ["key", "type", "group", "label", "filter"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "type": { "enum": ["bool", "int", "range", "enum", "set", "text"] },
+          "group": { "type": "string" },
+          "label": { "$ref": "#/$defs/i18n" },
+          "filter": { "type": "boolean" },
+          "unit": { "type": "string" },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "applies_to": { "type": "array", "items": { "enum": ["apartment", "house", "room", "parking", "storage", "commercial"] } },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["value", "label"],
+              "properties": { "value": { "type": "string" }, "label": { "$ref": "#/$defs/i18n" } }
+            }
+          },
+          "keywords": {
+            "type": "object",
+            "description": "Phrases for the offline mock extractor and ingest hints.",
+            "properties": { "cs": { "type": "array", "items": { "type": "string" } }, "en": { "type": "array", "items": { "type": "string" } } }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "i18n": { "type": "object", "required": ["cs", "en"], "properties": { "cs": { "type": "string" }, "en": { "type": "string" } } }
+  }
+}

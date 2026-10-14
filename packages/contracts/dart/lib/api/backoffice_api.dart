@@ -16,6 +16,157 @@ class BackofficeApi {
 
   final ApiClient apiClient;
 
+  /// Add the option to the schema or reject it (staff)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] proposalId (required):
+  ///
+  /// * [ProposalDecision] proposalDecision (required):
+  Future<Response> backofficeDecideFilterProposalWithHttpInfo(String proposalId, ProposalDecision proposalDecision,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/filter-proposals/{proposalId}/decision'
+      .replaceAll('{proposalId}', proposalId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = proposalDecision;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Add the option to the schema or reject it (staff)
+  ///
+  /// Parameters:
+  ///
+  /// * [String] proposalId (required):
+  ///
+  /// * [ProposalDecision] proposalDecision (required):
+  Future<void> backofficeDecideFilterProposal(String proposalId, ProposalDecision proposalDecision,) async {
+    final response = await backofficeDecideFilterProposalWithHttpInfo(proposalId, proposalDecision,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
+  /// Approve (publish) or reject a version (staff)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] versionId (required):
+  ///
+  /// * [ReviewDecision] reviewDecision (required):
+  Future<Response> backofficeDecideReviewWithHttpInfo(String versionId, ReviewDecision reviewDecision,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/reviews/{versionId}/decision'
+      .replaceAll('{versionId}', versionId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = reviewDecision;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Approve (publish) or reject a version (staff)
+  ///
+  /// Parameters:
+  ///
+  /// * [String] versionId (required):
+  ///
+  /// * [ReviewDecision] reviewDecision (required):
+  Future<void> backofficeDecideReview(String versionId, ReviewDecision reviewDecision,) async {
+    final response = await backofficeDecideReviewWithHttpInfo(versionId, reviewDecision,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
+
+  /// One submitted version with its snapshot (staff)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] versionId (required):
+  Future<Response> backofficeGetReviewWithHttpInfo(String versionId,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/reviews/{versionId}'
+      .replaceAll('{versionId}', versionId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// One submitted version with its snapshot (staff)
+  ///
+  /// Parameters:
+  ///
+  /// * [String] versionId (required):
+  Future<ReviewDetail?> backofficeGetReview(String versionId,) async {
+    final response = await backofficeGetReviewWithHttpInfo(versionId,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'ReviewDetail',) as ReviewDetail;
+    
+    }
+    return null;
+  }
+
   /// User detail with organizations (staff)
   ///
   /// Note: This method returns the HTTP [Response].
@@ -212,6 +363,112 @@ class BackofficeApi {
     if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
       return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'AuditPage',) as AuditPage;
     
+    }
+    return null;
+  }
+
+  /// New attribute options proposed by AI ingest (staff)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] status:
+  Future<Response> backofficeListFilterProposalsWithHttpInfo({ String? status, }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/filter-proposals';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    if (status != null) {
+      queryParams.addAll(_queryParams('', 'status', status));
+    }
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// New attribute options proposed by AI ingest (staff)
+  ///
+  /// Parameters:
+  ///
+  /// * [String] status:
+  Future<List<FilterProposal>?> backofficeListFilterProposals({ String? status, }) async {
+    final response = await backofficeListFilterProposalsWithHttpInfo( status: status, );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(responseBody, 'List<FilterProposal>') as List)
+        .cast<FilterProposal>()
+        .toList(growable: false);
+
+    }
+    return null;
+  }
+
+  /// Moderation queue of submitted listing versions (staff)
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> backofficeListReviewsWithHttpInfo() async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/backoffice/reviews';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Moderation queue of submitted listing versions (staff)
+  Future<List<ReviewItem>?> backofficeListReviews() async {
+    final response = await backofficeListReviewsWithHttpInfo();
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(responseBody, 'List<ReviewItem>') as List)
+        .cast<ReviewItem>()
+        .toList(growable: false);
+
     }
     return null;
   }

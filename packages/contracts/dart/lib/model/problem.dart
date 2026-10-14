@@ -19,6 +19,7 @@ class Problem {
     this.detail,
     this.instance,
     this.code,
+    this.errors = const [],
   });
 
   String type;
@@ -52,6 +53,9 @@ class Problem {
   ///
   String? code;
 
+  /// Field errors (code invalid_fields).
+  List<FieldError> errors;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is Problem &&
     other.type == type &&
@@ -59,7 +63,8 @@ class Problem {
     other.status == status &&
     other.detail == detail &&
     other.instance == instance &&
-    other.code == code;
+    other.code == code &&
+    _deepEquality.equals(other.errors, errors);
 
   @override
   int get hashCode =>
@@ -69,10 +74,11 @@ class Problem {
     (status.hashCode) +
     (detail == null ? 0 : detail!.hashCode) +
     (instance == null ? 0 : instance!.hashCode) +
-    (code == null ? 0 : code!.hashCode);
+    (code == null ? 0 : code!.hashCode) +
+    (errors.hashCode);
 
   @override
-  String toString() => 'Problem[type=$type, title=$title, status=$status, detail=$detail, instance=$instance, code=$code]';
+  String toString() => 'Problem[type=$type, title=$title, status=$status, detail=$detail, instance=$instance, code=$code, errors=$errors]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -94,6 +100,7 @@ class Problem {
     } else {
       json[r'code'] = null;
     }
+      json[r'errors'] = this.errors;
     return json;
   }
 
@@ -122,6 +129,7 @@ class Problem {
         detail: mapValueOfType<String>(json, r'detail'),
         instance: mapValueOfType<String>(json, r'instance'),
         code: mapValueOfType<String>(json, r'code'),
+        errors: FieldError.listFromJson(json[r'errors']),
       );
     }
     return null;

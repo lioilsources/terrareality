@@ -3,6 +3,7 @@
 //	terractl staff grant <email>    mark an existing user as platform staff
 //	terractl staff revoke <email>   remove staff rights
 //	terractl seed-dev               create dev accounts (APP_ENV=dev|test only)
+//	terractl ruian import <file>    import RÚIAN address points (CSV or ZIP of CSVs)
 package main
 
 import (
@@ -19,6 +20,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
+	"github.com/terrareality/terrareality/services/api/internal/ruian"
 )
 
 // Dev accounts created by seed-dev. The password is public on purpose and
@@ -59,6 +61,13 @@ func run(args []string) error {
 		}
 		fmt.Printf("%s staff=%v\n", u.Email, args[1] == "grant")
 		return nil
+	case len(args) == 3 && args[0] == "ruian" && args[1] == "import":
+		if err := platformdb.Migrate(ctx, pool); err != nil {
+			return err
+		}
+		n, err := ruian.ImportFile(ctx, pool, args[2])
+		fmt.Printf("imported %d address points\n", n)
+		return err
 	case len(args) == 1 && args[0] == "seed-dev":
 		if cfg.Env != "dev" && cfg.Env != "test" {
 			return errors.New("seed-dev only runs with APP_ENV=dev or test")
@@ -77,7 +86,7 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev")
+	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file>")
 }
 
 func seedUser(ctx context.Context, pool *pgxpool.Pool, email, name string, staff bool) error {

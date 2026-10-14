@@ -10,11 +10,15 @@ import (
 	"os"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
+	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/listing"
+	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
+	"github.com/terrareality/terrareality/services/api/internal/vision"
 )
 
 // Deps are the configured adapters.
@@ -25,6 +29,10 @@ type Deps struct {
 	MockIdP  http.Handler // nil when no mock provider is active
 	Blob     storage.Blob
 	Sender   notify.Sender
+	Img      *media.Imgproxy
+	Scanner  media.Scanner
+	Vision   *vision.Client
+	AI       ai.Assistant
 }
 
 // Build creates adapters. Real providers are used when their credentials are
@@ -106,7 +114,27 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 		sms = notify.SMSViaEmail{Email: email}
 	}
 	d.Sender = notify.Router{Email: email, SMS: sms}
+
+	if d.Img, err = media.NewImgproxy(cfg.ImgproxyURL, cfg.S3Bucket, cfg.ImgproxyKey, cfg.ImgproxySalt); err != nil {
+		return d, err
+	}
+	d.Scanner = media.NoScanner{}
+	if cfg.ClamAVAddr != "" {
+		d.Scanner = media.ClamAV{Addr: cfg.ClamAVAddr}
+	} else if cfg.Env == "prod" {
+		log.Warn("CLAMAV_ADDR not set, uploads are not scanned for malware")
+	}
+	d.Vision = vision.New(cfg.VisionURL)
+	d.AI = ai.Mock{}
+	if cfg.LLMBaseURL != "" {
+		d.AI = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel)
+	}
 	return d, nil
+}
+
+// ListingFlags maps feature flags onto the catalog service.
+func ListingFlags(cfg config.Config) listing.Flags {
+	return listing.Flags{AIAttributes: cfg.Flag("ai.attributes"), AIText: cfg.Flag("ai.text"), Vision: cfg.Flag("ai.vision")}
 }
 
 // AccountConfig maps process config onto the account service settings.

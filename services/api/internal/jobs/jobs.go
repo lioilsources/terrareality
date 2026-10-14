@@ -51,8 +51,10 @@ func MigrateRiver(ctx context.Context, pool *pgxpool.Pool) error {
 
 // WorkerDeps are the collaborators of job workers.
 type WorkerDeps struct {
-	Sender notify.Sender
-	GDPR   *GDPRWorker
+	Sender      notify.Sender
+	GDPR        *GDPRWorker
+	Media       *ProcessMediaWorker
+	Suggestions *SuggestionWorker
 }
 
 // NewWorkerClient builds a River client that processes jobs. Completed jobs
@@ -63,6 +65,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	river.AddWorker(workers, &SendMessageWorker{Sender: deps.Sender})
 	river.AddWorker(workers, deps.GDPR)
 	river.AddWorker(workers, &CleanupWorker{Q: db.New(pool)})
+	river.AddWorker(workers, deps.Media)
+	river.AddWorker(workers, deps.Suggestions)
 	return river.NewClient[pgx.Tx](riverpgxv5.New(pool), &river.Config{
 		Logger:                      log,
 		Queues:                      map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 20}},

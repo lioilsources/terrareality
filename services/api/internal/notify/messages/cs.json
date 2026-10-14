@@ -30,5 +30,13 @@
   "sms_code": {
     "subject": "SMS",
     "text": "TerraReality: váš ověřovací kód je {{.Code}}. Platí 10 minut."
+  },
+  "listing_approved": {
+    "subject": "Inzerát schválen: {{.Title}}",
+    "text": "Dobrý den,\n\nváš inzerát „{{.Title}}“ (verze {{.Version}}) prošel kontrolou a je zveřejněný.\n\n{{.Link}}"
+  },
+  "listing_rejected": {
+    "subject": "Inzerát vrácen k úpravě: {{.Title}}",
+    "text": "Dobrý den,\n\nváš inzerát „{{.Title}}“ (verze {{.Version}}) jsme vrátili k úpravě.{{if .Note}}\n\nDůvod: {{.Note}}{{end}}\n\nUpravte ho a odešlete znovu:\n{{.Link}}"
   }
 }

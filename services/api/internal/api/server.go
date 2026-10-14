@@ -5,6 +5,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/netip"
@@ -21,6 +22,7 @@ import (
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
@@ -34,6 +36,7 @@ type Services struct {
 	Account         *account.Service
 	Orgs            *org.Service
 	IDP             *identity.Registry
+	Listings        *listing.Service
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per
@@ -48,6 +51,7 @@ type Server struct {
 	Services
 	loginLimit *ratelimit.Limiter // per client IP
 	emailLimit *ratelimit.Limiter // per target e-mail / phone
+	addrLimit  *ratelimit.Limiter
 }
 
 var _ gen.StrictServerInterface = (*Server)(nil)
@@ -60,7 +64,8 @@ func NewServer(pool *pgxpool.Pool, checker *health.Checker, svc Services) *Serve
 	}
 	return &Server{pool: pool, checker: checker, Services: svc,
 		loginLimit: ratelimit.New(6*time.Second, burst),
-		emailLimit: ratelimit.New(time.Minute, max(3, burst/3))}
+		emailLimit: ratelimit.New(time.Minute, max(3, burst/3)),
+		addrLimit:  ratelimit.New(100*time.Millisecond, 50)}
 }
 
 // GetHealth implements GET /healthz.
@@ -134,6 +139,16 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 			httpx.WriteProblem(w, httpx.Problem{Status: http.StatusBadRequest, Code: "invalid_request", Detail: err.Error(), Instance: r.URL.Path})
 		},
 		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			var fe *listing.FieldErrors
+			if errors.As(err, &fe) {
+				errs := make([]map[string]string, 0, len(fe.Errors))
+				for _, x := range fe.Errors {
+					errs = append(errs, map[string]string{"key": x.Key, "reason": x.Reason})
+				}
+				httpx.WriteProblem(w, httpx.Problem{Status: http.StatusUnprocessableEntity, Code: "invalid_fields",
+					Detail: fe.Error(), Instance: r.URL.Path, Errors: errs})
+				return
+			}
 			if e, ok := apperr.As(err); ok {
 				httpx.WriteProblem(w, httpx.Problem{Status: e.Status, Code: e.Code, Detail: e.Detail, Instance: r.URL.Path})
 				return

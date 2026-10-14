@@ -182,12 +182,22 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AddressSuggestion':
+          return AddressSuggestion.fromJson(value);
         case 'AdminUser':
           return AdminUser.fromJson(value);
         case 'AdminUserDetail':
           return AdminUserDetail.fromJson(value);
         case 'AdminUserPage':
           return AdminUserPage.fromJson(value);
+        case 'AttributeDef':
+          return AttributeDef.fromJson(value);
+        case 'AttributeGroup':
+          return AttributeGroup.fromJson(value);
+        case 'AttributeOption':
+          return AttributeOption.fromJson(value);
+        case 'AttributeSchema':
+          return AttributeSchema.fromJson(value);
         case 'AuditEvent':
           return AuditEvent.fromJson(value);
         case 'AuditPage':
@@ -196,6 +206,8 @@ class ApiClient {
           return AuthProvider.fromJson(value);
         case 'AuthResult':
           return AuthResult.fromJson(value);
+        case 'ChangeListingStatusRequest':
+          return ChangeListingStatusRequest.fromJson(value);
         case 'ChangePasswordRequest':
           return ChangePasswordRequest.fromJson(value);
         case 'ClientKind':
@@ -210,12 +222,18 @@ class ApiClient {
           return ConsentKindTypeTransformer().decode(value);
         case 'DownloadLink':
           return DownloadLink.fromJson(value);
+        case 'FieldError':
+          return FieldError.fromJson(value);
+        case 'FilterProposal':
+          return FilterProposal.fromJson(value);
         case 'GdprRequest':
           return GdprRequest.fromJson(value);
         case 'Health':
           return Health.fromJson(value);
         case 'HealthCheck':
           return HealthCheck.fromJson(value);
+        case 'I18nText':
+          return I18nText.fromJson(value);
         case 'ImpersonateRequest':
           return ImpersonateRequest.fromJson(value);
         case 'Invitation':
@@ -226,12 +244,36 @@ class ApiClient {
           return InvitationPreview.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
+        case 'Listing':
+          return Listing.fromJson(value);
+        case 'ListingAddress':
+          return ListingAddress.fromJson(value);
+        case 'ListingCreate':
+          return ListingCreate.fromJson(value);
+        case 'ListingStatus':
+          return ListingStatusTypeTransformer().decode(value);
+        case 'ListingSummary':
+          return ListingSummary.fromJson(value);
+        case 'ListingUnit':
+          return ListingUnit.fromJson(value);
+        case 'ListingUpdate':
+          return ListingUpdate.fromJson(value);
+        case 'ListingVersionInfo':
+          return ListingVersionInfo.fromJson(value);
         case 'LoginRequest':
           return LoginRequest.fromJson(value);
         case 'MagicLinkRequest':
           return MagicLinkRequest.fromJson(value);
         case 'Me':
           return Me.fromJson(value);
+        case 'Media':
+          return Media.fromJson(value);
+        case 'MediaUpdate':
+          return MediaUpdate.fromJson(value);
+        case 'MediaUpload':
+          return MediaUpload.fromJson(value);
+        case 'MediaUploadRequest':
+          return MediaUploadRequest.fromJson(value);
         case 'Member':
           return Member.fromJson(value);
         case 'MfaRequest':
@@ -254,10 +296,20 @@ class ApiClient {
           return PhoneRequest.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
+        case 'ProposalDecision':
+          return ProposalDecision.fromJson(value);
         case 'RecoveryCodes':
           return RecoveryCodes.fromJson(value);
         case 'RegisterRequest':
           return RegisterRequest.fromJson(value);
+        case 'RequestSuggestionRequest':
+          return RequestSuggestionRequest.fromJson(value);
+        case 'ReviewDecision':
+          return ReviewDecision.fromJson(value);
+        case 'ReviewDetail':
+          return ReviewDetail.fromJson(value);
+        case 'ReviewItem':
+          return ReviewItem.fromJson(value);
         case 'Role':
           return RoleTypeTransformer().decode(value);
         case 'RoleInput':
@@ -266,10 +318,16 @@ class ApiClient {
           return SessionInfo.fromJson(value);
         case 'SessionToken':
           return SessionToken.fromJson(value);
+        case 'Suggestion':
+          return Suggestion.fromJson(value);
+        case 'SuggestionDecision':
+          return SuggestionDecision.fromJson(value);
         case 'TokenRequest':
           return TokenRequest.fromJson(value);
         case 'TotpSetup':
           return TotpSetup.fromJson(value);
+        case 'UnitKind':
+          return UnitKindTypeTransformer().decode(value);
         case 'UpdateMeRequest':
           return UpdateMeRequest.fromJson(value);
         case 'UserLocale':

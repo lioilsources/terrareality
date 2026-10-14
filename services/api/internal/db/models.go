@@ -12,6 +12,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Address struct {
+	ID                uuid.UUID   `json:"id"`
+	OrgID             uuid.UUID   `json:"org_id"`
+	RuianID           *int64      `json:"ruian_id"`
+	Street            *string     `json:"street"`
+	HouseNumber       string      `json:"house_number"`
+	OrientationNumber *string     `json:"orientation_number"`
+	City              string      `json:"city"`
+	CityPart          *string     `json:"city_part"`
+	PostalCode        string      `json:"postal_code"`
+	Country           string      `json:"country"`
+	Location          interface{} `json:"location"`
+	Label             string      `json:"label"`
+	CreatedAt         time.Time   `json:"created_at"`
+}
+
+type AiSuggestion struct {
+	ID        uuid.UUID  `json:"id"`
+	OrgID     uuid.UUID  `json:"org_id"`
+	ListingID uuid.UUID  `json:"listing_id"`
+	MediaID   *uuid.UUID `json:"media_id"`
+	Kind      string     `json:"kind"`
+	Status    string     `json:"status"`
+	Payload   []byte     `json:"payload"`
+	Decision  []byte     `json:"decision"`
+	Model     *string    `json:"model"`
+	Error     *string    `json:"error"`
+	CreatedBy *uuid.UUID `json:"created_by"`
+	DecidedBy *uuid.UUID `json:"decided_by"`
+	CreatedAt time.Time  `json:"created_at"`
+	DecidedAt *time.Time `json:"decided_at"`
+}
+
 type AppMetum struct {
 	Key       string    `json:"key"`
 	Value     []byte    `json:"value"`
@@ -54,6 +87,42 @@ type Consent struct {
 	Ip        *netip.Addr `json:"ip"`
 	UserAgent *string     `json:"user_agent"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+type FilterSchema struct {
+	Key       string    `json:"key"`
+	Type      string    `json:"type"`
+	GroupKey  string    `json:"group_key"`
+	Label     []byte    `json:"label"`
+	Filter    bool      `json:"filter"`
+	Unit      *string   `json:"unit"`
+	MinValue  *float64  `json:"min_value"`
+	MaxValue  *float64  `json:"max_value"`
+	AppliesTo []string  `json:"applies_to"`
+	Options   []byte    `json:"options"`
+	Keywords  []byte    `json:"keywords"`
+	Position  int32     `json:"position"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type FilterSchemaGroup struct {
+	Key      string `json:"key"`
+	Label    []byte `json:"label"`
+	Position int32  `json:"position"`
+}
+
+type FilterSchemaProposal struct {
+	ID               uuid.UUID  `json:"id"`
+	AttributeKey     string     `json:"attribute_key"`
+	Value            string     `json:"value"`
+	Label            []byte     `json:"label"`
+	ExampleListingID *uuid.UUID `json:"example_listing_id"`
+	Occurrences      int32      `json:"occurrences"`
+	Status           string     `json:"status"`
+	Note             *string    `json:"note"`
+	DecidedBy        *uuid.UUID `json:"decided_by"`
+	DecidedAt        *time.Time `json:"decided_at"`
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 type GdprRequest struct {
@@ -110,6 +179,67 @@ type Jurisdiction struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
+type Listing struct {
+	ID                uuid.UUID   `json:"id"`
+	OrgID             uuid.UUID   `json:"org_id"`
+	UnitID            uuid.UUID   `json:"unit_id"`
+	Status            string      `json:"status"`
+	Title             []byte      `json:"title"`
+	Description       []byte      `json:"description"`
+	RentAmount        *int64      `json:"rent_amount"`
+	Currency          string      `json:"currency"`
+	DepositAmount     *int64      `json:"deposit_amount"`
+	UtilitiesAmount   *int64      `json:"utilities_amount"`
+	AvailableFrom     pgtype.Date `json:"available_from"`
+	MinTermMonths     *int32      `json:"min_term_months"`
+	Attributes        []byte      `json:"attributes"`
+	LocationPrecision string      `json:"location_precision"`
+	PublishedVersion  *int32      `json:"published_version"`
+	CreatedBy         *uuid.UUID  `json:"created_by"`
+	CreatedAt         time.Time   `json:"created_at"`
+	UpdatedAt         time.Time   `json:"updated_at"`
+	PublishedAt       *time.Time  `json:"published_at"`
+	DeletedAt         *time.Time  `json:"deleted_at"`
+}
+
+type ListingVersion struct {
+	ID          uuid.UUID  `json:"id"`
+	ListingID   uuid.UUID  `json:"listing_id"`
+	OrgID       uuid.UUID  `json:"org_id"`
+	Version     int32      `json:"version"`
+	Snapshot    []byte     `json:"snapshot"`
+	Status      string     `json:"status"`
+	SubmittedBy *uuid.UUID `json:"submitted_by"`
+	SubmittedAt time.Time  `json:"submitted_at"`
+	ReviewedBy  *uuid.UUID `json:"reviewed_by"`
+	ReviewedAt  *time.Time `json:"reviewed_at"`
+	ReviewNote  *string    `json:"review_note"`
+}
+
+type Medium struct {
+	ID              uuid.UUID  `json:"id"`
+	OrgID           uuid.UUID  `json:"org_id"`
+	ListingID       *uuid.UUID `json:"listing_id"`
+	Kind            string     `json:"kind"`
+	ObjectKey       string     `json:"object_key"`
+	Filename        string     `json:"filename"`
+	ContentType     string     `json:"content_type"`
+	SizeBytes       *int64     `json:"size_bytes"`
+	Sha256          []byte     `json:"sha256"`
+	Width           *int32     `json:"width"`
+	Height          *int32     `json:"height"`
+	Orientation     int32      `json:"orientation"`
+	Status          string     `json:"status"`
+	RejectionReason *string    `json:"rejection_reason"`
+	AvStatus        string     `json:"av_status"`
+	Vision          []byte     `json:"vision"`
+	Position        int32      `json:"position"`
+	Caption         []byte     `json:"caption"`
+	CreatedBy       *uuid.UUID `json:"created_by"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
 type Membership struct {
 	OrgID     uuid.UUID `json:"org_id"`
 	UserID    uuid.UUID `json:"user_id"`
@@ -140,6 +270,50 @@ type Organization struct {
 	DeletedAt        *time.Time `json:"deleted_at"`
 }
 
+type Property struct {
+	ID        uuid.UUID  `json:"id"`
+	OrgID     uuid.UUID  `json:"org_id"`
+	AddressID uuid.UUID  `json:"address_id"`
+	Kind      string     `json:"kind"`
+	Name      string     `json:"name"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at"`
+}
+
+type RuianPlace struct {
+	ID                int64       `json:"id"`
+	MunicipalityCode  int32       `json:"municipality_code"`
+	Municipality      string      `json:"municipality"`
+	District          *string     `json:"district"`
+	CityPart          *string     `json:"city_part"`
+	Street            *string     `json:"street"`
+	HouseNumber       int32       `json:"house_number"`
+	HouseNumberType   string      `json:"house_number_type"`
+	OrientationNumber *int32      `json:"orientation_number"`
+	OrientationLetter *string     `json:"orientation_letter"`
+	PostalCode        string      `json:"postal_code"`
+	Location          interface{} `json:"location"`
+	Label             string      `json:"label"`
+	Search            string      `json:"search"`
+}
+
+type RuianStaging struct {
+	ID                int64   `json:"id"`
+	MunicipalityCode  int32   `json:"municipality_code"`
+	Municipality      string  `json:"municipality"`
+	District          *string `json:"district"`
+	CityPart          *string `json:"city_part"`
+	Street            *string `json:"street"`
+	HouseNumber       int32   `json:"house_number"`
+	HouseNumberType   string  `json:"house_number_type"`
+	OrientationNumber *int32  `json:"orientation_number"`
+	OrientationLetter *string `json:"orientation_letter"`
+	PostalCode        string  `json:"postal_code"`
+	SjtskY            float64 `json:"sjtsk_y"`
+	SjtskX            float64 `json:"sjtsk_x"`
+}
+
 type Session struct {
 	ID             uuid.UUID   `json:"id"`
 	UserID         uuid.UUID   `json:"user_id"`
@@ -152,6 +326,21 @@ type Session struct {
 	LastSeenAt     time.Time   `json:"last_seen_at"`
 	ExpiresAt      time.Time   `json:"expires_at"`
 	RevokedAt      *time.Time  `json:"revoked_at"`
+}
+
+type Unit struct {
+	ID         uuid.UUID  `json:"id"`
+	OrgID      uuid.UUID  `json:"org_id"`
+	PropertyID uuid.UUID  `json:"property_id"`
+	ParentID   *uuid.UUID `json:"parent_id"`
+	Kind       string     `json:"kind"`
+	Label      string     `json:"label"`
+	Floor      *int32     `json:"floor"`
+	FloorArea  *float64   `json:"floor_area"`
+	Layout     *string    `json:"layout"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	DeletedAt  *time.Time `json:"deleted_at"`
 }
 
 type User struct {

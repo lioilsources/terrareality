@@ -19,15 +19,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
+	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
+	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/listing"
+	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
+	"github.com/terrareality/terrareality/services/api/internal/ruian"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
+	"github.com/terrareality/terrareality/services/api/internal/vision"
 )
 
 const redirectBase = "http://web.test/auth/"
@@ -49,13 +55,38 @@ func (r *recScheduler) ScheduleErasure(_ context.Context, _ pgx.Tx, id uuid.UUID
 	return r.ScheduleExport(context.Background(), nil, id)
 }
 
+// recJobs records catalog jobs; tests run them explicitly.
+type recJobs struct {
+	mu          sync.Mutex
+	media       []uuid.UUID
+	suggestions []uuid.UUID
+}
+
+func (r *recJobs) ProcessMedia(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.media = append(r.media, id)
+	return nil
+}
+
+func (r *recJobs) RunSuggestion(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.suggestions = append(r.suggestions, id)
+	return nil
+}
+
 type env struct {
-	t      *testing.T
-	pool   *pgxpool.Pool
-	srv    *httptest.Server
-	outbox *notify.MemoryOutbox
-	sched  *recScheduler
-	acct   *account.Service
+	t        *testing.T
+	pool     *pgxpool.Pool
+	srv      *httptest.Server
+	outbox   *notify.MemoryOutbox
+	sched    *recScheduler
+	acct     *account.Service
+	listings *listing.Service
+	jobs     *recJobs
+	blob     *storage.Memory
+	vision   *httptest.Server
 }
 
 func newEnv(t *testing.T) *env {
@@ -69,7 +100,19 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &env{t: t, pool: pool, outbox: &notify.MemoryOutbox{}, sched: &recScheduler{}}
+	e := &env{t: t, pool: pool, outbox: &notify.MemoryOutbox{}, sched: &recScheduler{}, jobs: &recJobs{},
+		blob: storage.NewMemory("http://blob.test")}
+	if err := catalog.Sync(context.Background(), db.New(pool)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ruian.SeedSample(context.Background(), pool); err != nil {
+		t.Fatal(err)
+	}
+	e.vision = fakeVision(t)
+	img, err := media.NewImgproxy("http://img.test", "terra", "6b6579", "73616c74")
+	if err != nil {
+		t.Fatal(err)
+	}
 	mux := http.NewServeMux()
 	e.srv = httptest.NewServer(mux)
 	t.Cleanup(e.srv.Close)
@@ -80,13 +123,16 @@ func newEnv(t *testing.T) *env {
 	}
 	idp := identity.NewRegistry(mocks["bankid"], mocks["google"])
 	e.acct = &account.Service{Pool: pool, Box: box, Outbox: e.outbox, Render: render, IDP: idp,
-		Blob: storage.NewMemory("http://blob.test"), Scheduler: e.sched, Cfg: account.Config{
+		Blob: e.blob, Scheduler: e.sched, Cfg: account.Config{
 			WebBaseURL: "http://web.test", SessionTTLWeb: time.Hour, SessionTTLMobile: time.Hour,
 			RedirectAllow: []string{redirectBase}, TermsVersion: "t1", PrivacyVersion: "p1", ErasureGrace: 0,
 		}}
 	orgs := &org.Service{Pool: pool, Outbox: e.outbox, Render: render, WebBaseURL: "http://web.test"}
+	e.listings = &listing.Service{Pool: pool, Blob: e.blob, Img: img, Scanner: media.NoScanner{}, Vision: vision.New(e.vision.URL),
+		AI: ai.Mock{}, Jobs: e.jobs, Outbox: e.outbox, Render: render, WebBaseURL: "http://web.test",
+		Flags: listing.Flags{AIAttributes: true, AIText: true, Vision: true}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, RateBurst: 10000}),
+	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e

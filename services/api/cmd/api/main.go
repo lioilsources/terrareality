@@ -14,9 +14,11 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/app"
+	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
+	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
@@ -24,6 +26,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/httpx"
 	"github.com/terrareality/terrareality/services/api/internal/platform/logx"
 	"github.com/terrareality/terrareality/services/api/internal/platform/telemetry"
+	"github.com/terrareality/terrareality/services/api/internal/ruian"
 )
 
 func main() {
@@ -74,6 +77,19 @@ func run() error {
 	accounts := &account.Service{Pool: pool, Box: deps.Box, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
 		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
 	orgs := &org.Service{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL}
+	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
+		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(cfg),
+		WebBaseURL: cfg.WebBaseURL}
+	if err := catalog.Sync(ctx, dbq.New(pool)); err != nil {
+		return fmt.Errorf("sync attribute catalog: %w", err)
+	}
+	if cfg.SeedRuian {
+		if n, err := ruian.SeedSample(ctx, pool); err != nil {
+			return fmt.Errorf("seed RÚIAN sample: %w", err)
+		} else if n > 0 {
+			log.Info("loaded RÚIAN sample addresses", "count", n)
+		}
+	}
 
 	httpClient := &http.Client{Timeout: 3 * time.Second}
 	checker := health.New(3 * time.Second)
@@ -89,7 +105,7 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
 				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP}),
 		ReadHeaderTimeout: 10 * time.Second,

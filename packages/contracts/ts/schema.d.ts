@@ -808,6 +808,306 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing attribute schema (catalog plus approved options) */
+        get: operations["getAttributeSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/addresses/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Autocomplete Czech addresses (RÚIAN) */
+        get: operations["searchAddresses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Listings of an organization */
+        get: operations["listListings"];
+        put?: never;
+        /** Wizard step 1 – address and unit; creates a draft listing */
+        post: operations["createListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        /** Listing with unit, address, photos, AI suggestions and versions */
+        get: operations["getListing"];
+        /** Save the working copy (withdraws a pending review) */
+        put: operations["updateListing"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the working copy to moderation as a new version */
+        post: operations["submitListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause, resume, mark as rented or archive */
+        post: operations["changeListingStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy the listing onto a new unit in the same building (without photos) */
+        post: operations["duplicateListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reserve a photo and get a presigned upload URL (PUT the file there, then complete) */
+        post: operations["createMediaUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/media/{mediaId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start processing (EXIF strip, malware scan, vision) after the upload */
+        post: operations["completeMediaUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/media/{mediaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a photo */
+        delete: operations["deleteMedia"];
+        options?: never;
+        head?: never;
+        /** Change order and caption */
+        patch: operations["updateMedia"];
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the AI for attribute or text suggestions (generated in the background) */
+        post: operations["requestSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/suggestions/{suggestionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept (all or selected attributes) or reject an AI suggestion */
+        post: operations["decideSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Moderation queue of submitted listing versions (staff) */
+        get: operations["backofficeListReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/reviews/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One submitted version with its snapshot (staff) */
+        get: operations["backofficeGetReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/reviews/{versionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve (publish) or reject a version (staff) */
+        post: operations["backofficeDecideReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/filter-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** New attribute options proposed by AI ingest (staff) */
+        get: operations["backofficeListFilterProposals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/filter-proposals/{proposalId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add the option to the schema or reject it (staff) */
+        post: operations["backofficeDecideFilterProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -845,6 +1145,12 @@ export interface components {
              * @example invalid_credentials
              */
             code?: string;
+            /** @description Field errors (code invalid_fields). */
+            errors?: components["schemas"]["FieldError"][];
+        };
+        FieldError: {
+            key: string;
+            reason: string;
         };
         /** @enum {string} */
         UserLocale: "cs" | "en";
@@ -1171,6 +1477,318 @@ export interface components {
             /** @description Stored in the audit log. */
             reason: string;
         };
+        I18nText: {
+            cs: string;
+            en: string;
+        };
+        AttributeOption: {
+            value: string;
+            label: components["schemas"]["I18nText"];
+            /** @enum {string} */
+            source?: "catalog" | "ingest";
+        };
+        AttributeDef: {
+            key: string;
+            /** @enum {string} */
+            type: "bool" | "int" | "range" | "enum" | "set" | "text";
+            group: string;
+            label: components["schemas"]["I18nText"];
+            filter: boolean;
+            unit?: string;
+            /** Format: double */
+            min?: number;
+            /** Format: double */
+            max?: number;
+            applies_to: components["schemas"]["UnitKind"][];
+            options: components["schemas"]["AttributeOption"][];
+        };
+        AttributeGroup: {
+            key: string;
+            label: components["schemas"]["I18nText"];
+        };
+        AttributeSchema: {
+            groups: components["schemas"]["AttributeGroup"][];
+            attributes: components["schemas"]["AttributeDef"][];
+        };
+        AddressSuggestion: {
+            /** Format: int64 */
+            ruian_id: number;
+            label: string;
+            municipality: string;
+            district?: string;
+            city_part?: string;
+            street?: string;
+            postal_code: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
+        /** @enum {string} */
+        UnitKind: "apartment" | "house" | "room" | "parking" | "storage" | "commercial";
+        /** @enum {string} */
+        ListingStatus: "draft" | "review" | "published" | "paused" | "rented" | "archived";
+        ListingCreate: {
+            /** Format: int64 */
+            ruian_id: number;
+            unit_kind: components["schemas"]["UnitKind"];
+            unit_label?: string;
+            /** Format: int32 */
+            floor?: number;
+            /** Format: double */
+            floor_area?: number;
+            layout?: string;
+            /**
+             * Format: uuid
+             * @description Rooms only – an existing apartment at the same address.
+             */
+            parent_unit_id?: string;
+            /** @description Rooms only – layout of the apartment to create. */
+            parent_layout?: string;
+            /** Format: double */
+            parent_floor_area?: number;
+        };
+        ListingUpdate: {
+            title: components["schemas"]["I18nText"];
+            description: components["schemas"]["I18nText"];
+            /**
+             * Format: int64
+             * @description Minor units (haléře).
+             */
+            rent_amount?: number;
+            /** Format: int64 */
+            deposit_amount?: number;
+            /** Format: int64 */
+            utilities_amount?: number;
+            /** Format: date */
+            available_from?: string;
+            /** Format: int32 */
+            min_term_months?: number;
+            attributes: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            location_precision: "exact" | "approximate";
+            unit_label?: string;
+            /** Format: int32 */
+            floor?: number;
+            /** Format: double */
+            floor_area?: number;
+            layout?: string;
+        };
+        ListingUnit: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["UnitKind"];
+            label: string;
+            /** Format: int32 */
+            floor?: number;
+            /** Format: double */
+            floor_area?: number;
+            layout?: string;
+            /** Format: uuid */
+            parent_id?: string;
+            parent_label?: string;
+        };
+        ListingAddress: {
+            label: string;
+            city: string;
+            city_part?: string;
+            postal_code: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
+        /** @description Signed imgproxy URLs by variant (thumb 400px, medium 1024px, large 1920px). */
+        PhotoUrls: {
+            [key: string]: string;
+        };
+        Media: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "uploading" | "processing" | "ready" | "rejected";
+            rejection_reason?: string;
+            filename: string;
+            content_type: string;
+            /** Format: int32 */
+            width?: number;
+            /** Format: int32 */
+            height?: number;
+            /** Format: int32 */
+            position: number;
+            caption: components["schemas"]["I18nText"];
+            urls: components["schemas"]["PhotoUrls"];
+            room_type?: string;
+            tags?: string[];
+        };
+        MediaUploadRequest: {
+            filename: string;
+            /** @enum {string} */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Format: int64 */
+            size: number;
+        };
+        MediaUpload: {
+            media: components["schemas"]["Media"];
+            /** @description Presigned PUT URL; send the file body with its Content-Type. */
+            upload_url: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        MediaUpdate: {
+            /** Format: int32 */
+            position: number;
+            caption: components["schemas"]["I18nText"];
+        };
+        /** @description AI output. Applied to the listing only after the owner accepts it. */
+        Suggestion: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "attributes" | "text" | "photo_tags" | "privacy_blur";
+            /** @enum {string} */
+            status: "generating" | "pending" | "accepted" | "partially_accepted" | "rejected" | "failed";
+            /** Format: uuid */
+            media_id?: string;
+            payload: {
+                [key: string]: unknown;
+            };
+            model?: string;
+            error?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            decided_at?: string;
+        };
+        SuggestionDecision: {
+            accept: boolean;
+            /** @description Attribute suggestions only – accept just these attributes. */
+            keys?: string[];
+        };
+        ListingVersionInfo: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            version: number;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected" | "withdrawn";
+            /** Format: date-time */
+            submitted_at: string;
+            /** Format: date-time */
+            reviewed_at?: string;
+            review_note?: string;
+        };
+        ListingSummary: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ListingStatus"];
+            title: components["schemas"]["I18nText"];
+            unit_kind: components["schemas"]["UnitKind"];
+            unit_label: string;
+            address_label: string;
+            /** Format: int64 */
+            rent_amount?: number;
+            currency: string;
+            cover_url?: string;
+            pending_review: boolean;
+            /** Format: int32 */
+            published_version?: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        Listing: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            org_id: string;
+            status: components["schemas"]["ListingStatus"];
+            title: components["schemas"]["I18nText"];
+            description: components["schemas"]["I18nText"];
+            /** Format: int64 */
+            rent_amount?: number;
+            /** Format: int64 */
+            deposit_amount?: number;
+            /** Format: int64 */
+            utilities_amount?: number;
+            currency: string;
+            /** Format: date */
+            available_from?: string;
+            /** Format: int32 */
+            min_term_months?: number;
+            attributes: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            location_precision: "exact" | "approximate";
+            /** Format: int32 */
+            published_version?: number;
+            /** Format: date-time */
+            published_at?: string;
+            pending_review: boolean;
+            unit: components["schemas"]["ListingUnit"];
+            /** Format: uuid */
+            property_id: string;
+            address: components["schemas"]["ListingAddress"];
+            media: components["schemas"]["Media"][];
+            suggestions: components["schemas"]["Suggestion"][];
+            versions: components["schemas"]["ListingVersionInfo"][];
+            /** @description Jurisdiction cap for the deposit in monthly rents. */
+            deposit_max_months: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ReviewItem: {
+            /** Format: uuid */
+            version_id: string;
+            /** Format: uuid */
+            listing_id: string;
+            /** Format: uuid */
+            org_id: string;
+            org_name: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            submitted_at: string;
+            submitted_by_email: string;
+            title: components["schemas"]["I18nText"];
+            first_publication: boolean;
+            cover_url?: string;
+        };
+        ReviewDetail: {
+            item: components["schemas"]["ReviewItem"];
+            snapshot: {
+                [key: string]: unknown;
+            };
+            photos: components["schemas"]["PhotoUrls"][];
+        };
+        ReviewDecision: {
+            approve: boolean;
+            /** @description Shown to the owner; required when rejecting. */
+            note?: string;
+        };
+        FilterProposal: {
+            /** Format: uuid */
+            id: string;
+            attribute_key: string;
+            value: string;
+            label: components["schemas"]["I18nText"];
+            occurrences: number;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** Format: uuid */
+            example_listing_id?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ProposalDecision: {
+            approve: boolean;
+            label?: components["schemas"]["I18nText"];
+            note?: string;
+        };
     };
     responses: {
         /** @description Error */
@@ -1200,6 +1818,15 @@ export interface components {
                 "application/json": components["schemas"]["Me"];
             };
         };
+        /** @description Listing */
+        Listing: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Listing"];
+            };
+        };
         /** @description Redirect the browser to authorization_url */
         OidcStart: {
             headers: {
@@ -1216,6 +1843,8 @@ export interface components {
         InvitationToken: string;
         /** @description Cursor; return items with an id lower than this one. */
         Before: string;
+        ListingId: string;
+        MediaId: string;
         Limit: number;
     };
     requestBodies: never;
@@ -2366,6 +2995,463 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AuditPage"];
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getAttributeSchema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Schema */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributeSchema"];
+                };
+            };
+        };
+    };
+    searchAddresses: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching address points */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressSuggestion"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listListings: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ListingStatus"];
+            };
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listings, recently edited first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingSummary"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingCreate"];
+            };
+        };
+        responses: {
+            201: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingUpdate"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    submitListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    changeListingStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "published" | "paused" | "rented" | "archived";
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    duplicateListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: components["responses"]["Listing"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createMediaUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Upload slot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaUpload"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    completeMediaUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Photo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Photo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    requestSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "attributes" | "text";
+                };
+            };
+        };
+        responses: {
+            /** @description Suggestion is being generated; poll the listing */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestion"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    decideSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                suggestionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestion"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending versions, oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewItem"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeGetReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeDecideReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListFilterProposals: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "rejected";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Proposals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilterProposal"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeDecideFilterProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };

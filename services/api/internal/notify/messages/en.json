@@ -30,5 +30,13 @@
   "sms_code": {
     "subject": "SMS",
     "text": "TerraReality: your verification code is {{.Code}}. Valid for 10 minutes."
+  },
+  "listing_approved": {
+    "subject": "Listing approved: {{.Title}}",
+    "text": "Hello,\n\nyour listing \"{{.Title}}\" (version {{.Version}}) passed review and is published.\n\n{{.Link}}"
+  },
+  "listing_rejected": {
+    "subject": "Listing returned for changes: {{.Title}}",
+    "text": "Hello,\n\nwe returned your listing \"{{.Title}}\" (version {{.Version}}) for changes.{{if .Note}}\n\nReason: {{.Note}}{{end}}\n\nEdit it and submit again:\n{{.Link}}"
   }
 }
