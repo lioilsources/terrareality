@@ -18,6 +18,7 @@ class Problem {
     required this.status,
     this.detail,
     this.instance,
+    this.code,
   });
 
   String type;
@@ -42,13 +43,23 @@ class Problem {
   ///
   String? instance;
 
+  /// Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? code;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is Problem &&
     other.type == type &&
     other.title == title &&
     other.status == status &&
     other.detail == detail &&
-    other.instance == instance;
+    other.instance == instance &&
+    other.code == code;
 
   @override
   int get hashCode =>
@@ -57,10 +68,11 @@ class Problem {
     (title.hashCode) +
     (status.hashCode) +
     (detail == null ? 0 : detail!.hashCode) +
-    (instance == null ? 0 : instance!.hashCode);
+    (instance == null ? 0 : instance!.hashCode) +
+    (code == null ? 0 : code!.hashCode);
 
   @override
-  String toString() => 'Problem[type=$type, title=$title, status=$status, detail=$detail, instance=$instance]';
+  String toString() => 'Problem[type=$type, title=$title, status=$status, detail=$detail, instance=$instance, code=$code]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -76,6 +88,11 @@ class Problem {
       json[r'instance'] = this.instance;
     } else {
       json[r'instance'] = null;
+    }
+    if (this.code != null) {
+      json[r'code'] = this.code;
+    } else {
+      json[r'code'] = null;
     }
     return json;
   }
@@ -104,6 +121,7 @@ class Problem {
         status: mapValueOfType<int>(json, r'status')!,
         detail: mapValueOfType<String>(json, r'detail'),
         instance: mapValueOfType<String>(json, r'instance'),
+        code: mapValueOfType<String>(json, r'code'),
       );
     }
     return null;

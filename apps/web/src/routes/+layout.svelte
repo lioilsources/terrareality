@@ -9,14 +9,14 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { children, data }: LayoutProps = $props();
 
-	const nav = [
+	const nav = $derived([
 		{ href: '/', label: m.nav_search },
 		{ href: '/admin', label: m.nav_admin },
 		{ href: '/tenant', label: m.nav_tenant },
-		{ href: '/backoffice', label: m.nav_backoffice }
-	] as const;
+		...(data.me?.is_staff ? [{ href: '/backoffice', label: m.nav_backoffice }] : [])
+	]);
 </script>
 
 <svelte:head>
@@ -39,7 +39,19 @@
 					</a>
 				{/each}
 			</nav>
-			<div class="ml-auto flex items-center gap-2 text-sm" aria-label={m.language()}>
+			<div class="ml-auto flex items-center gap-3 text-sm">
+				{#if data.me}
+					<span class="text-[var(--muted)]" data-testid="user-menu"
+						>{data.me.display_name || data.me.email}</span
+					>
+					<form method="POST" action={localizeHref('/logout')}>
+						<button class="text-[var(--muted)] hover:text-[var(--text)]">{m.nav_logout()}</button>
+					</form>
+				{:else}
+					<a href={resolve(localizeHref('/login') as Path)}>{m.nav_login()}</a>
+				{/if}
+			</div>
+			<div class="flex items-center gap-2 text-sm" aria-label={m.language()}>
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Path)}
@@ -52,6 +64,23 @@
 			</div>
 		</div>
 	</header>
+	{#if data.me?.impersonator}
+		<div class="bg-amber-400 text-amber-950" role="status">
+			<div
+				class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm"
+			>
+				<span data-testid="impersonation-banner"
+					>{m.impersonation_banner({
+						user: data.me.email,
+						staff: data.me.impersonator.email
+					})}</span
+				>
+				<form method="POST" action={localizeHref('/impersonation/end')}>
+					<button class="font-semibold underline">{m.impersonation_end()}</button>
+				</form>
+			</div>
+		</div>
+	{/if}
 	<main class="mx-auto max-w-6xl px-4 py-8">
 		{@render children()}
 	</main>

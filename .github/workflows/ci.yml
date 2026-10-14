@@ -76,17 +76,25 @@ jobs:
           node-version: 24
           cache: npm
       - name: Start dependencies
-        run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db centrifugo
+        run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db centrifugo mailpit s3
       - name: Start api and worker
         run: |
           cd services/api
           go build -o bin/ ./cmd/...
+          bin/migrate up
+          bin/terractl seed-dev
           (bin/worker &) ; (bin/api &)
           for i in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 2; done
         env:
           DATABASE_URL: postgres://terra:terra@localhost:5433/terra?sslmode=disable
           CENTRIFUGO_API_URL: http://localhost:8000/api
           MIGRATE_ON_START: "true"
+          SMTP_ADDR: localhost:1025
+          S3_ENDPOINT: localhost:8333
+          S3_ACCESS_KEY: terra
+          S3_SECRET_KEY: terra-dev-secret
+          WEB_BASE_URL: http://localhost:4173
+          AUTH_RATE_BURST: "500"
       - run: npm ci
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web

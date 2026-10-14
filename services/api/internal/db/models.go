@@ -5,11 +5,180 @@
 package db
 
 import (
+	"net/netip"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AppMetum struct {
 	Key       string    `json:"key"`
 	Value     []byte    `json:"value"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type AuditEvent struct {
+	ID             uuid.UUID   `json:"id"`
+	OccurredAt     time.Time   `json:"occurred_at"`
+	ActorID        *uuid.UUID  `json:"actor_id"`
+	ImpersonatorID *uuid.UUID  `json:"impersonator_id"`
+	OrgID          *uuid.UUID  `json:"org_id"`
+	Entity         string      `json:"entity"`
+	EntityID       *uuid.UUID  `json:"entity_id"`
+	Action         string      `json:"action"`
+	Diff           []byte      `json:"diff"`
+	Ip             *netip.Addr `json:"ip"`
+	RequestID      *string     `json:"request_id"`
+}
+
+type AuthToken struct {
+	ID        uuid.UUID  `json:"id"`
+	Purpose   string     `json:"purpose"`
+	UserID    *uuid.UUID `json:"user_id"`
+	Email     *string    `json:"email"`
+	TokenHash []byte     `json:"token_hash"`
+	Data      []byte     `json:"data"`
+	Attempts  int32      `json:"attempts"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type Consent struct {
+	ID        uuid.UUID   `json:"id"`
+	UserID    uuid.UUID   `json:"user_id"`
+	Kind      string      `json:"kind"`
+	Version   string      `json:"version"`
+	Granted   bool        `json:"granted"`
+	Ip        *netip.Addr `json:"ip"`
+	UserAgent *string     `json:"user_agent"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type GdprRequest struct {
+	ID          uuid.UUID  `json:"id"`
+	UserID      uuid.UUID  `json:"user_id"`
+	Kind        string     `json:"kind"`
+	Status      string     `json:"status"`
+	ScheduledAt time.Time  `json:"scheduled_at"`
+	ObjectKey   *string    `json:"object_key"`
+	Detail      *string    `json:"detail"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at"`
+}
+
+type IdentityVerification struct {
+	ID         uuid.UUID   `json:"id"`
+	UserID     uuid.UUID   `json:"user_id"`
+	Provider   string      `json:"provider"`
+	Subject    string      `json:"subject"`
+	GivenName  *string     `json:"given_name"`
+	FamilyName *string     `json:"family_name"`
+	Birthdate  pgtype.Date `json:"birthdate"`
+	Address    []byte      `json:"address"`
+	VerifiedAt time.Time   `json:"verified_at"`
+}
+
+type Invitation struct {
+	ID         uuid.UUID  `json:"id"`
+	OrgID      uuid.UUID  `json:"org_id"`
+	Email      string     `json:"email"`
+	Role       string     `json:"role"`
+	TokenHash  []byte     `json:"token_hash"`
+	InvitedBy  *uuid.UUID `json:"invited_by"`
+	ExpiresAt  time.Time  `json:"expires_at"`
+	AcceptedAt *time.Time `json:"accepted_at"`
+	AcceptedBy *uuid.UUID `json:"accepted_by"`
+	RevokedAt  *time.Time `json:"revoked_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+type Jurisdiction struct {
+	Code               string    `json:"code"`
+	Name               []byte    `json:"name"`
+	Currency           string    `json:"currency"`
+	DefaultLocale      string    `json:"default_locale"`
+	DepositMaxMonths   int32     `json:"deposit_max_months"`
+	NoticePeriodMonths int32     `json:"notice_period_months"`
+	SignatureProvider  string    `json:"signature_provider"`
+	IdentityProvider   string    `json:"identity_provider"`
+	AddressFormat      []byte    `json:"address_format"`
+	Rules              []byte    `json:"rules"`
+	Active             bool      `json:"active"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type Membership struct {
+	OrgID     uuid.UUID `json:"org_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type OauthIdentity struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Provider  string    `json:"provider"`
+	Subject   string    `json:"subject"`
+	Email     *string   `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Organization struct {
+	ID               uuid.UUID  `json:"id"`
+	Kind             string     `json:"kind"`
+	Name             string     `json:"name"`
+	RegistrationNo   *string    `json:"registration_no"`
+	VatNo            *string    `json:"vat_no"`
+	JurisdictionCode string     `json:"jurisdiction_code"`
+	PersonalOwnerID  *uuid.UUID `json:"personal_owner_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+	DeletedAt        *time.Time `json:"deleted_at"`
+}
+
+type Session struct {
+	ID             uuid.UUID   `json:"id"`
+	UserID         uuid.UUID   `json:"user_id"`
+	TokenHash      []byte      `json:"token_hash"`
+	Client         string      `json:"client"`
+	ImpersonatorID *uuid.UUID  `json:"impersonator_id"`
+	Ip             *netip.Addr `json:"ip"`
+	UserAgent      *string     `json:"user_agent"`
+	CreatedAt      time.Time   `json:"created_at"`
+	LastSeenAt     time.Time   `json:"last_seen_at"`
+	ExpiresAt      time.Time   `json:"expires_at"`
+	RevokedAt      *time.Time  `json:"revoked_at"`
+}
+
+type User struct {
+	ID                 uuid.UUID  `json:"id"`
+	Email              string     `json:"email"`
+	EmailVerifiedAt    *time.Time `json:"email_verified_at"`
+	PasswordHash       *string    `json:"password_hash"`
+	DisplayName        string     `json:"display_name"`
+	Locale             string     `json:"locale"`
+	Phone              *string    `json:"phone"`
+	PhoneVerifiedAt    *time.Time `json:"phone_verified_at"`
+	IdentityVerifiedAt *time.Time `json:"identity_verified_at"`
+	TotpSecret         []byte     `json:"totp_secret"`
+	TotpPendingSecret  []byte     `json:"totp_pending_secret"`
+	TotpEnabledAt      *time.Time `json:"totp_enabled_at"`
+	TotpLastStep       int64      `json:"totp_last_step"`
+	IsStaff            bool       `json:"is_staff"`
+	PseudonymizedAt    *time.Time `json:"pseudonymized_at"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	VerificationLevel  *string    `json:"verification_level"`
+}
+
+type UserRecoveryCode struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	CodeHash  []byte     `json:"code_hash"`
+	UsedAt    *time.Time `json:"used_at"`
+	CreatedAt time.Time  `json:"created_at"`
 }

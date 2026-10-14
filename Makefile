@@ -6,7 +6,7 @@ VISION := services/vision
 -include .env
 export
 
-.PHONY: help setup up down dev migrate gen gen-check test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db
+.PHONY: help setup up down dev migrate seed gen gen-check test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -31,6 +31,9 @@ dev: ## Start everything (deps, api, worker, vision, web, site)
 
 migrate: ## Apply DB migrations (goose + River)
 	cd $(API) && go run ./cmd/migrate up
+
+seed: ## Create dev accounts staff@terra.local and owner@terra.local (password terra-dev-password)
+	cd $(API) && go run ./cmd/terractl seed-dev
 
 gen: ## Regenerate code from contracts (Go server, sqlc, TS + Dart clients, l10n)
 	cd $(API) && go tool oapi-codegen -config oapi-codegen.yaml ../../packages/contracts/openapi.yaml
@@ -66,7 +69,8 @@ lint: ## Linters (go vet, staticcheck, prettier+eslint, ruff, flutter analyze)
 	cd $(VISION) && .venv/bin/ruff check . && .venv/bin/ruff format --check .
 	cd apps/mobile && flutter analyze
 
-e2e: ## Playwright E2E against a running api (make dev in another terminal)
+e2e: ## Playwright E2E against a running api + worker (make dev in another terminal)
+	cd $(API) && go run ./cmd/terractl seed-dev >/dev/null
 	cd apps/web && npx playwright test
 
 build: ## Build Go binaries and web/site bundles

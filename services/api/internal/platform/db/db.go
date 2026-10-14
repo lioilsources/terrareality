@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -69,4 +71,25 @@ func withGoose(fn func() error) error {
 		return err
 	}
 	return fn()
+}
+
+// InTx runs fn in a transaction as the owner role (system context: auth,
+// jobs, backoffice). Authorization is the caller's responsibility.
+func InTx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
+	return pgx.BeginFunc(ctx, pool, fn)
+}
+
+// AsUser runs fn in a transaction with row-level security enforced for the
+// given user: the role switches to terra_app and app.current_user is set, so
+// org-scoped tables only expose rows of the user's organizations.
+func AsUser(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID, fn func(pgx.Tx) error) error {
+	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, "SET LOCAL ROLE terra_app"); err != nil {
+			return fmt.Errorf("set role: %w", err)
+		}
+		if _, err := tx.Exec(ctx, "SELECT set_config('app.current_user', $1, true)", userID.String()); err != nil {
+			return fmt.Errorf("set current user: %w", err)
+		}
+		return fn(tx)
+	})
 }

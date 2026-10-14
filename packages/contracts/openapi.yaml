@@ -11,9 +11,17 @@ servers:
     description: local dev
 tags:
   - name: system
+  - name: auth
+  - name: me
+  - name: orgs
+  - name: jurisdictions
+  - name: backoffice
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
+      security: []
       tags: [system]
       operationId: getHealth
       summary: Liveness and dependency health
@@ -32,6 +40,7 @@ paths:
                 $ref: "#/components/schemas/Health"
   /v1/version:
     get:
+      security: []
       tags: [system]
       operationId: getVersion
       summary: Build information
@@ -44,7 +53,723 @@ paths:
                 $ref: "#/components/schemas/Version"
         default:
           $ref: "#/components/responses/Problem"
+  # ------------------------------------------------------------------ auth
+  /v1/auth/register:
+    post:
+      security: []
+      tags: [auth]
+      operationId: register
+      summary: Create an account with e-mail and password
+      description: Creates the user and their personal organization, records consents and sends a verification e-mail.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/login:
+    post:
+      security: []
+      tags: [auth]
+      operationId: login
+      summary: Log in with e-mail and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/mfa:
+    post:
+      security: []
+      tags: [auth]
+      operationId: completeMfa
+      summary: Complete a login that requires a second factor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MfaRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/magic-link:
+    post:
+      security: []
+      tags: [auth]
+      operationId: requestMagicLink
+      summary: E-mail a one-time login link (creates the account if needed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MagicLinkRequest" }
+      responses:
+        "202": { description: Accepted; always returned to avoid account enumeration }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/magic-link/verify:
+    post:
+      security: []
+      tags: [auth]
+      operationId: verifyMagicLink
+      summary: Exchange a magic link token for a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/email/verify:
+    post:
+      security: []
+      tags: [auth]
+      operationId: verifyEmail
+      summary: Confirm an e-mail address with the token from the verification e-mail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "204": { description: E-mail verified }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/email/resend:
+    post:
+      tags: [auth]
+      operationId: resendEmailVerification
+      summary: Send the verification e-mail again
+      responses:
+        "202": { description: Sent unless already verified }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/password/forgot:
+    post:
+      security: []
+      tags: [auth]
+      operationId: forgotPassword
+      summary: E-mail a password reset link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MagicLinkRequest" }
+      responses:
+        "202": { description: Accepted; always returned to avoid account enumeration }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/password/reset:
+    post:
+      security: []
+      tags: [auth]
+      operationId: resetPassword
+      summary: Set a new password with a reset token; revokes all sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordResetRequest" }
+      responses:
+        "204": { description: Password changed }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/providers:
+    get:
+      security: []
+      tags: [auth]
+      operationId: listAuthProviders
+      summary: Social login providers enabled on this deployment
+      responses:
+        "200":
+          description: Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AuthProvider" }
+  /v1/auth/oidc/{provider}/start:
+    post:
+      security: []
+      tags: [auth]
+      operationId: startOidc
+      summary: Begin a social login; returns the provider authorization URL
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OidcStartRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/OidcStart" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/oidc/{provider}/callback:
+    post:
+      security: []
+      tags: [auth]
+      operationId: finishOidc
+      summary: Finish a social login with the code from the provider redirect
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OidcCallbackRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Revoke the current session
+      responses:
+        "204": { description: Logged out }
+        default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ me
+  /v1/me:
+    get:
+      tags: [me]
+      operationId: getMe
+      summary: Current user, verification level and organizations
+      responses:
+        "200": { $ref: "#/components/responses/Me" }
+        default: { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [me]
+      operationId: updateMe
+      summary: Update profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateMeRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Me" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/password:
+    post:
+      tags: [me]
+      operationId: changePassword
+      summary: Change or set the password; revokes other sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "204": { description: Password changed }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/sessions:
+    get:
+      tags: [me]
+      operationId: listMySessions
+      summary: Active sessions of the current user
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionInfo" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/sessions/{sessionId}:
+    delete:
+      tags: [me]
+      operationId: revokeMySession
+      summary: Revoke one of my sessions
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Revoked }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/mfa/totp/setup:
+    post:
+      tags: [me]
+      operationId: setupTotp
+      summary: Generate a new TOTP secret (not active until confirmed)
+      responses:
+        "200":
+          description: Secret for the authenticator app
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TotpSetup" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/mfa/totp/enable:
+    post:
+      tags: [me]
+      operationId: enableTotp
+      summary: Confirm the TOTP secret with a code; returns one-time recovery codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "200":
+          description: Enabled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecoveryCodes" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/mfa/totp/disable:
+    post:
+      tags: [me]
+      operationId: disableTotp
+      summary: Disable TOTP after confirming a current code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "204": { description: Disabled }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/phone:
+    post:
+      tags: [me]
+      operationId: startPhoneVerification
+      summary: Send a verification code by SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PhoneRequest" }
+      responses:
+        "202": { description: Code sent }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/phone/verify:
+    post:
+      tags: [me]
+      operationId: verifyPhone
+      summary: Confirm the phone number with the SMS code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Me" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/identity/start:
+    post:
+      tags: [me]
+      operationId: startIdentityVerification
+      summary: Begin identity verification (BankID in CZ); returns the provider URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OidcStartRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/OidcStart" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/identity/callback:
+    post:
+      tags: [me]
+      operationId: finishIdentityVerification
+      summary: Finish identity verification with the code from the provider redirect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OidcCallbackRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Me" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/consents:
+    get:
+      tags: [me]
+      operationId: listConsents
+      summary: Consent history (append-only)
+      responses:
+        "200":
+          description: Consents, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Consent" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [me]
+      operationId: recordConsent
+      summary: Grant or withdraw a consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConsentInput" }
+      responses:
+        "201":
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Consent" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/gdpr-requests:
+    get:
+      tags: [me]
+      operationId: listGdprRequests
+      summary: My data export and erasure requests
+      responses:
+        "200":
+          description: Requests, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GdprRequest" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/data-exports:
+    post:
+      tags: [me]
+      operationId: requestDataExport
+      summary: Request a machine-readable export of my data (GDPR art. 15 and 20)
+      responses:
+        "202":
+          description: Export queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GdprRequest" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/data-exports/{requestId}/download:
+    get:
+      tags: [me]
+      operationId: getDataExportDownload
+      summary: Short-lived download URL of a finished export
+      parameters:
+        - { name: requestId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Download link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DownloadLink" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/erasure:
+    post:
+      tags: [me]
+      operationId: requestErasure
+      summary: Request account erasure (GDPR art. 17) after a grace period
+      responses:
+        "202":
+          description: Erasure scheduled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GdprRequest" }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [me]
+      operationId: cancelErasure
+      summary: Cancel a scheduled erasure during the grace period
+      responses:
+        "204": { description: Cancelled }
+        default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ orgs
+  /v1/orgs:
+    get:
+      tags: [orgs]
+      operationId: listMyOrgs
+      summary: Organizations I belong to, personal first
+      responses:
+        "200":
+          description: Memberships
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/OrgMembership" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [orgs]
+      operationId: createOrg
+      summary: Create a company organization; the caller becomes its owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrgInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrgMembership" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      tags: [orgs]
+      operationId: getOrg
+      summary: One organization and my role in it
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrgMembership" }
+        default: { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [orgs]
+      operationId: updateOrg
+      summary: Update organization details (owner, admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrgInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrgMembership" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/members:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      tags: [orgs]
+      operationId: listOrgMembers
+      summary: Members of an organization
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Member" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/members/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [orgs]
+      operationId: updateOrgMember
+      summary: Change a member's role (owner, admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoleInput" }
+      responses:
+        "204": { description: Updated }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [orgs]
+      operationId: removeOrgMember
+      summary: Remove a member, or leave the organization when userId is me
+      responses:
+        "204": { description: Removed }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      tags: [orgs]
+      operationId: listOrgInvitations
+      summary: Open invitations
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Invitation" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [orgs]
+      operationId: createOrgInvitation
+      summary: Invite someone by e-mail (owner, admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationInput" }
+      responses:
+        "201":
+          description: Invitation sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invitation" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/invitations/{invitationId}:
+    delete:
+      tags: [orgs]
+      operationId: revokeOrgInvitation
+      summary: Revoke an open invitation
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - { name: invitationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Revoked }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/audit:
+    get:
+      tags: [orgs]
+      operationId: listOrgAudit
+      summary: Audit log of an organization (owner, admin)
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Events, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/invitations/{token}:
+    get:
+      security: []
+      tags: [orgs]
+      operationId: getInvitation
+      summary: Preview an invitation before accepting it
+      parameters:
+        - $ref: "#/components/parameters/InvitationToken"
+      responses:
+        "200":
+          description: Invitation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvitationPreview" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/invitations/{token}/accept:
+    post:
+      tags: [orgs]
+      operationId: acceptInvitation
+      summary: Accept an invitation; the invitee e-mail must match my account
+      parameters:
+        - $ref: "#/components/parameters/InvitationToken"
+      responses:
+        "200":
+          description: Joined
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrgMembership" }
+        default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ jurisdictions
+  /v1/jurisdictions:
+    get:
+      security: []
+      tags: [jurisdictions]
+      operationId: listJurisdictions
+      summary: Active jurisdictions and their rules
+      responses:
+        "200":
+          description: Jurisdictions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Jurisdiction" }
+  /v1/jurisdictions/{code}:
+    get:
+      security: []
+      tags: [jurisdictions]
+      operationId: getJurisdiction
+      summary: One jurisdiction
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, pattern: "^[A-Z]{2}$" } }
+      responses:
+        "200":
+          description: Jurisdiction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Jurisdiction" }
+        default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ backoffice
+  /v1/backoffice/users:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListUsers
+      summary: Search users (staff)
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string, maxLength: 200 } }
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Users, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUserPage" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/users/{userId}:
+    get:
+      tags: [backoffice]
+      operationId: backofficeGetUser
+      summary: User detail with organizations (staff)
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUserDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/users/{userId}/impersonate:
+    post:
+      tags: [backoffice]
+      operationId: backofficeImpersonate
+      summary: Start a short audited session as the user (staff)
+      description: The session cannot change credentials, MFA or request erasure. Ends with POST /v1/auth/logout.
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImpersonateRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/audit:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListAudit
+      summary: Platform-wide audit log (staff)
+      parameters:
+        - { name: actor_id, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: org_id, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: entity, in: query, required: false, schema: { type: string, maxLength: 64 } }
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Events, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
+        default: { $ref: "#/components/responses/Problem" }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque session token from an AuthResult. The web app keeps it in an HttpOnly cookie on its own origin and forwards it server-side; the mobile app keeps it in secure storage.
+  parameters:
+    OrgId: { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
+    Provider: { name: provider, in: path, required: true, schema: { type: string, enum: [google, apple] } }
+    InvitationToken: { name: token, in: path, required: true, schema: { type: string, minLength: 20, maxLength: 128 } }
+    Before:
+      name: before
+      in: query
+      required: false
+      description: Cursor; return items with an id lower than this one.
+      schema: { type: string, format: uuid }
+    Limit: { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
   responses:
     Problem:
       description: Error
@@ -52,6 +777,21 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    AuthResult:
+      description: Session created, or a second factor is required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AuthResult" }
+    Me:
+      description: Current user
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Me" }
+    OidcStart:
+      description: Redirect the browser to authorization_url
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/OidcStart" }
   schemas:
     Health:
       type: object
@@ -104,3 +844,367 @@ components:
           type: string
         instance:
           type: string
+        code:
+          type: string
+          description: Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+          example: invalid_credentials
+    # --- auth
+    UserLocale: { type: string, enum: [cs, en] }
+    Email: { type: string, format: email, maxLength: 254 }
+    Password: { type: string, minLength: 10, maxLength: 200 }
+    ClientKind:
+      type: string
+      enum: [web, mobile]
+      default: web
+    RegisterRequest:
+      type: object
+      required: [email, password, display_name, accept_terms_version, accept_privacy_version]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        password: { $ref: "#/components/schemas/Password" }
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+        accept_terms_version: { type: string, minLength: 1, maxLength: 32 }
+        accept_privacy_version: { type: string, minLength: 1, maxLength: 32 }
+        marketing: { type: boolean, default: false }
+        client: { $ref: "#/components/schemas/ClientKind" }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        password: { type: string, minLength: 1, maxLength: 200 }
+        client: { $ref: "#/components/schemas/ClientKind" }
+    MfaRequest:
+      type: object
+      required: [mfa_token, code]
+      properties:
+        mfa_token: { type: string, minLength: 20, maxLength: 128 }
+        code:
+          type: string
+          minLength: 6
+          maxLength: 32
+          description: 6-digit TOTP code or a one-time recovery code.
+    MagicLinkRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 20, maxLength: 128 }
+        client: { $ref: "#/components/schemas/ClientKind" }
+    PasswordResetRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token: { type: string, minLength: 20, maxLength: 128 }
+        password: { $ref: "#/components/schemas/Password" }
+    AuthResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [authenticated, mfa_required]
+        session: { $ref: "#/components/schemas/SessionToken" }
+        mfa_token:
+          type: string
+          description: Present when status is mfa_required; valid for 5 minutes.
+    SessionToken:
+      type: object
+      required: [token, expires_at]
+      properties:
+        token: { type: string }
+        expires_at: { type: string, format: date-time }
+    AuthProvider:
+      type: object
+      required: [id, mock]
+      properties:
+        id: { type: string, enum: [google, apple] }
+        mock: { type: boolean, description: True when the provider is the local mock IdP. }
+    OidcStartRequest:
+      type: object
+      required: [redirect_uri]
+      properties:
+        redirect_uri: { type: string, format: uri, maxLength: 500, description: Must be on the deployment allowlist. }
+    OidcStart:
+      type: object
+      required: [authorization_url]
+      properties:
+        authorization_url: { type: string, format: uri }
+    OidcCallbackRequest:
+      type: object
+      required: [code, state, redirect_uri]
+      properties:
+        code: { type: string, minLength: 1, maxLength: 4096 }
+        state: { type: string, minLength: 20, maxLength: 128 }
+        redirect_uri: { type: string, format: uri, maxLength: 500 }
+        client: { $ref: "#/components/schemas/ClientKind" }
+    # --- me
+    VerificationLevel:
+      type: string
+      enum: [none, email, phone, identity]
+      description: none → email → phone → identity (BankID). Features require a minimum level.
+    Role:
+      type: string
+      enum: [owner, admin, agent, accountant, maintenance, viewer]
+    Me:
+      type: object
+      required: [id, email, email_verified, display_name, locale, phone_verified, verification_level, mfa_enabled, is_staff, created_at, organizations]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        email_verified: { type: boolean }
+        display_name: { type: string }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+        phone: { type: string }
+        phone_verified: { type: boolean }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        identity: { $ref: "#/components/schemas/VerifiedIdentity" }
+        mfa_enabled: { type: boolean }
+        recovery_codes_left: { type: integer }
+        has_password: { type: boolean }
+        is_staff: { type: boolean }
+        created_at: { type: string, format: date-time }
+        impersonator: { $ref: "#/components/schemas/UserRef" }
+        organizations:
+          type: array
+          items: { $ref: "#/components/schemas/OrgMembership" }
+    VerifiedIdentity:
+      type: object
+      required: [provider, verified_at]
+      properties:
+        provider: { type: string }
+        given_name: { type: string }
+        family_name: { type: string }
+        birthdate: { type: string, format: date }
+        verified_at: { type: string, format: date-time }
+    UserRef:
+      type: object
+      required: [id, email]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        display_name: { type: string }
+    UpdateMeRequest:
+      type: object
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+    ChangePasswordRequest:
+      type: object
+      required: [new_password]
+      properties:
+        current_password: { type: string, maxLength: 200, description: Required when the account already has a password. }
+        new_password: { $ref: "#/components/schemas/Password" }
+    SessionInfo:
+      type: object
+      required: [id, client, created_at, last_seen_at, current]
+      properties:
+        id: { type: string, format: uuid }
+        client: { type: string }
+        user_agent: { type: string }
+        ip: { type: string }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        current: { type: boolean }
+        impersonated: { type: boolean }
+    TotpSetup:
+      type: object
+      required: [secret, otpauth_uri]
+      properties:
+        secret: { type: string, description: Base32 secret for manual entry. }
+        otpauth_uri: { type: string, description: otpauth:// URI to render as a QR code. }
+    CodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 4, maxLength: 32 }
+    RecoveryCodes:
+      type: object
+      required: [recovery_codes]
+      properties:
+        recovery_codes:
+          type: array
+          items: { type: string }
+    PhoneRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, pattern: '^\+[1-9][0-9]{7,14}$', description: E.164 }
+    ConsentKind: { type: string, enum: [terms, privacy, marketing] }
+    ConsentInput:
+      type: object
+      required: [kind, version, granted]
+      properties:
+        kind: { $ref: "#/components/schemas/ConsentKind" }
+        version: { type: string, minLength: 1, maxLength: 32 }
+        granted: { type: boolean }
+    Consent:
+      type: object
+      required: [id, kind, version, granted, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/ConsentKind" }
+        version: { type: string }
+        granted: { type: boolean }
+        created_at: { type: string, format: date-time }
+    GdprRequest:
+      type: object
+      required: [id, kind, status, scheduled_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [export, erasure] }
+        status: { type: string, enum: [pending, processing, done, failed, cancelled, rejected] }
+        scheduled_at: { type: string, format: date-time }
+        detail: { type: string }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+    DownloadLink:
+      type: object
+      required: [url, expires_at]
+      properties:
+        url: { type: string, format: uri }
+        expires_at: { type: string, format: date-time }
+    # --- orgs
+    Organization:
+      type: object
+      required: [id, kind, name, jurisdiction_code, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [personal, company] }
+        name: { type: string }
+        registration_no: { type: string }
+        vat_no: { type: string }
+        jurisdiction_code: { type: string }
+        created_at: { type: string, format: date-time }
+    OrgMembership:
+      type: object
+      required: [organization, role]
+      properties:
+        organization: { $ref: "#/components/schemas/Organization" }
+        role: { $ref: "#/components/schemas/Role" }
+    OrgInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        registration_no: { type: string, pattern: '^[0-9]{6,10}$' }
+        vat_no: { type: string, maxLength: 20 }
+        jurisdiction_code: { type: string, pattern: '^[A-Z]{2}$' }
+    Member:
+      type: object
+      required: [user_id, email, display_name, role, verification_level, joined_at]
+      properties:
+        user_id: { type: string, format: uuid }
+        email: { type: string }
+        display_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        joined_at: { type: string, format: date-time }
+    RoleInput:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+    InvitationInput:
+      type: object
+      required: [email, role]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        role: { type: string, enum: [admin, agent, accountant, maintenance, viewer] }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+    Invitation:
+      type: object
+      required: [id, email, role, expires_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        expires_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    InvitationPreview:
+      type: object
+      required: [org_name, role, email, inviter_name, expires_at, status]
+      properties:
+        org_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        email: { type: string }
+        inviter_name: { type: string }
+        expires_at: { type: string, format: date-time }
+        status: { type: string, enum: [open, accepted, revoked, expired] }
+    AuditEvent:
+      type: object
+      required: [id, occurred_at, entity, action, diff]
+      properties:
+        id: { type: string, format: uuid }
+        occurred_at: { type: string, format: date-time }
+        actor_id: { type: string, format: uuid }
+        actor_email: { type: string }
+        impersonator_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        entity: { type: string }
+        entity_id: { type: string, format: uuid }
+        action: { type: string }
+        diff: { type: object, additionalProperties: true }
+    AuditPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEvent" }
+        next_before: { type: string, format: uuid }
+    # --- jurisdictions
+    Jurisdiction:
+      type: object
+      required: [code, name, currency, default_locale, deposit_max_months, notice_period_months, signature_provider, identity_provider, address_format, rules]
+      properties:
+        code: { type: string }
+        name: { type: object, additionalProperties: { type: string } }
+        currency: { type: string }
+        default_locale: { type: string }
+        deposit_max_months: { type: integer }
+        notice_period_months: { type: integer }
+        signature_provider: { type: string }
+        identity_provider: { type: string }
+        address_format: { type: object, additionalProperties: true }
+        rules: { type: object, additionalProperties: true }
+    # --- backoffice
+    AdminUser:
+      type: object
+      required: [id, email, display_name, verification_level, mfa_enabled, is_staff, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        display_name: { type: string }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        mfa_enabled: { type: boolean }
+        is_staff: { type: boolean }
+        pseudonymized: { type: boolean }
+        created_at: { type: string, format: date-time }
+    AdminUserPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AdminUser" }
+        next_before: { type: string, format: uuid }
+    AdminUserDetail:
+      type: object
+      required: [user, organizations]
+      properties:
+        user: { $ref: "#/components/schemas/AdminUser" }
+        organizations:
+          type: array
+          items: { $ref: "#/components/schemas/OrgMembership" }
+    ImpersonateRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 5, maxLength: 500, description: Stored in the audit log. }

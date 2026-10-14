@@ -55,6 +55,21 @@ String parameterToString(dynamic value) {
   if (value is DateTime) {
     return value.toUtc().toIso8601String();
   }
+  if (value is ClientKind) {
+    return ClientKindTypeTransformer().encode(value).toString();
+  }
+  if (value is ConsentKind) {
+    return ConsentKindTypeTransformer().encode(value).toString();
+  }
+  if (value is Role) {
+    return RoleTypeTransformer().encode(value).toString();
+  }
+  if (value is UserLocale) {
+    return UserLocaleTypeTransformer().encode(value).toString();
+  }
+  if (value is VerificationLevel) {
+    return VerificationLevelTypeTransformer().encode(value).toString();
+  }
   return value.toString();
 }
 

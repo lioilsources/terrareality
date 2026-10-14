@@ -44,13 +44,14 @@ Please follow the [installation procedure](#installation--usage) and then run th
 import 'package:terra_api/api.dart';
 
 
-final api_instance = SystemApi();
+final api_instance = AuthApi();
+final mfaRequest = MfaRequest(); // MfaRequest | 
 
 try {
-    final result = api_instance.getHealth();
+    final result = api_instance.completeMfa(mfaRequest);
     print(result);
 } catch (e) {
-    print('Exception when calling SystemApi->getHealth: $e\n');
+    print('Exception when calling AuthApi->completeMfa: $e\n');
 }
 
 ```
@@ -61,21 +62,122 @@ All URIs are relative to *http://localhost:8080*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*AuthApi* | [**completeMfa**](doc//AuthApi.md#completemfa) | **POST** /v1/auth/mfa | Complete a login that requires a second factor
+*AuthApi* | [**finishOidc**](doc//AuthApi.md#finishoidc) | **POST** /v1/auth/oidc/{provider}/callback | Finish a social login with the code from the provider redirect
+*AuthApi* | [**forgotPassword**](doc//AuthApi.md#forgotpassword) | **POST** /v1/auth/password/forgot | E-mail a password reset link
+*AuthApi* | [**listAuthProviders**](doc//AuthApi.md#listauthproviders) | **GET** /v1/auth/providers | Social login providers enabled on this deployment
+*AuthApi* | [**login**](doc//AuthApi.md#login) | **POST** /v1/auth/login | Log in with e-mail and password
+*AuthApi* | [**logout**](doc//AuthApi.md#logout) | **POST** /v1/auth/logout | Revoke the current session
+*AuthApi* | [**register**](doc//AuthApi.md#register) | **POST** /v1/auth/register | Create an account with e-mail and password
+*AuthApi* | [**requestMagicLink**](doc//AuthApi.md#requestmagiclink) | **POST** /v1/auth/magic-link | E-mail a one-time login link (creates the account if needed)
+*AuthApi* | [**resendEmailVerification**](doc//AuthApi.md#resendemailverification) | **POST** /v1/auth/email/resend | Send the verification e-mail again
+*AuthApi* | [**resetPassword**](doc//AuthApi.md#resetpassword) | **POST** /v1/auth/password/reset | Set a new password with a reset token; revokes all sessions
+*AuthApi* | [**startOidc**](doc//AuthApi.md#startoidc) | **POST** /v1/auth/oidc/{provider}/start | Begin a social login; returns the provider authorization URL
+*AuthApi* | [**verifyEmail**](doc//AuthApi.md#verifyemail) | **POST** /v1/auth/email/verify | Confirm an e-mail address with the token from the verification e-mail
+*AuthApi* | [**verifyMagicLink**](doc//AuthApi.md#verifymagiclink) | **POST** /v1/auth/magic-link/verify | Exchange a magic link token for a session
+*BackofficeApi* | [**backofficeGetUser**](doc//BackofficeApi.md#backofficegetuser) | **GET** /v1/backoffice/users/{userId} | User detail with organizations (staff)
+*BackofficeApi* | [**backofficeImpersonate**](doc//BackofficeApi.md#backofficeimpersonate) | **POST** /v1/backoffice/users/{userId}/impersonate | Start a short audited session as the user (staff)
+*BackofficeApi* | [**backofficeListAudit**](doc//BackofficeApi.md#backofficelistaudit) | **GET** /v1/backoffice/audit | Platform-wide audit log (staff)
+*BackofficeApi* | [**backofficeListUsers**](doc//BackofficeApi.md#backofficelistusers) | **GET** /v1/backoffice/users | Search users (staff)
+*JurisdictionsApi* | [**getJurisdiction**](doc//JurisdictionsApi.md#getjurisdiction) | **GET** /v1/jurisdictions/{code} | One jurisdiction
+*JurisdictionsApi* | [**listJurisdictions**](doc//JurisdictionsApi.md#listjurisdictions) | **GET** /v1/jurisdictions | Active jurisdictions and their rules
+*MeApi* | [**cancelErasure**](doc//MeApi.md#cancelerasure) | **DELETE** /v1/me/erasure | Cancel a scheduled erasure during the grace period
+*MeApi* | [**changePassword**](doc//MeApi.md#changepassword) | **POST** /v1/me/password | Change or set the password; revokes other sessions
+*MeApi* | [**disableTotp**](doc//MeApi.md#disabletotp) | **POST** /v1/me/mfa/totp/disable | Disable TOTP after confirming a current code
+*MeApi* | [**enableTotp**](doc//MeApi.md#enabletotp) | **POST** /v1/me/mfa/totp/enable | Confirm the TOTP secret with a code; returns one-time recovery codes
+*MeApi* | [**finishIdentityVerification**](doc//MeApi.md#finishidentityverification) | **POST** /v1/me/identity/callback | Finish identity verification with the code from the provider redirect
+*MeApi* | [**getDataExportDownload**](doc//MeApi.md#getdataexportdownload) | **GET** /v1/me/data-exports/{requestId}/download | Short-lived download URL of a finished export
+*MeApi* | [**getMe**](doc//MeApi.md#getme) | **GET** /v1/me | Current user, verification level and organizations
+*MeApi* | [**listConsents**](doc//MeApi.md#listconsents) | **GET** /v1/me/consents | Consent history (append-only)
+*MeApi* | [**listGdprRequests**](doc//MeApi.md#listgdprrequests) | **GET** /v1/me/gdpr-requests | My data export and erasure requests
+*MeApi* | [**listMySessions**](doc//MeApi.md#listmysessions) | **GET** /v1/me/sessions | Active sessions of the current user
+*MeApi* | [**recordConsent**](doc//MeApi.md#recordconsent) | **POST** /v1/me/consents | Grant or withdraw a consent
+*MeApi* | [**requestDataExport**](doc//MeApi.md#requestdataexport) | **POST** /v1/me/data-exports | Request a machine-readable export of my data (GDPR art. 15 and 20)
+*MeApi* | [**requestErasure**](doc//MeApi.md#requesterasure) | **POST** /v1/me/erasure | Request account erasure (GDPR art. 17) after a grace period
+*MeApi* | [**revokeMySession**](doc//MeApi.md#revokemysession) | **DELETE** /v1/me/sessions/{sessionId} | Revoke one of my sessions
+*MeApi* | [**setupTotp**](doc//MeApi.md#setuptotp) | **POST** /v1/me/mfa/totp/setup | Generate a new TOTP secret (not active until confirmed)
+*MeApi* | [**startIdentityVerification**](doc//MeApi.md#startidentityverification) | **POST** /v1/me/identity/start | Begin identity verification (BankID in CZ); returns the provider URL
+*MeApi* | [**startPhoneVerification**](doc//MeApi.md#startphoneverification) | **POST** /v1/me/phone | Send a verification code by SMS
+*MeApi* | [**updateMe**](doc//MeApi.md#updateme) | **PATCH** /v1/me | Update profile
+*MeApi* | [**verifyPhone**](doc//MeApi.md#verifyphone) | **POST** /v1/me/phone/verify | Confirm the phone number with the SMS code
+*OrgsApi* | [**acceptInvitation**](doc//OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/{token}/accept | Accept an invitation; the invitee e-mail must match my account
+*OrgsApi* | [**createOrg**](doc//OrgsApi.md#createorg) | **POST** /v1/orgs | Create a company organization; the caller becomes its owner
+*OrgsApi* | [**createOrgInvitation**](doc//OrgsApi.md#createorginvitation) | **POST** /v1/orgs/{orgId}/invitations | Invite someone by e-mail (owner, admin)
+*OrgsApi* | [**getInvitation**](doc//OrgsApi.md#getinvitation) | **GET** /v1/invitations/{token} | Preview an invitation before accepting it
+*OrgsApi* | [**getOrg**](doc//OrgsApi.md#getorg) | **GET** /v1/orgs/{orgId} | One organization and my role in it
+*OrgsApi* | [**listMyOrgs**](doc//OrgsApi.md#listmyorgs) | **GET** /v1/orgs | Organizations I belong to, personal first
+*OrgsApi* | [**listOrgAudit**](doc//OrgsApi.md#listorgaudit) | **GET** /v1/orgs/{orgId}/audit | Audit log of an organization (owner, admin)
+*OrgsApi* | [**listOrgInvitations**](doc//OrgsApi.md#listorginvitations) | **GET** /v1/orgs/{orgId}/invitations | Open invitations
+*OrgsApi* | [**listOrgMembers**](doc//OrgsApi.md#listorgmembers) | **GET** /v1/orgs/{orgId}/members | Members of an organization
+*OrgsApi* | [**removeOrgMember**](doc//OrgsApi.md#removeorgmember) | **DELETE** /v1/orgs/{orgId}/members/{userId} | Remove a member, or leave the organization when userId is me
+*OrgsApi* | [**revokeOrgInvitation**](doc//OrgsApi.md#revokeorginvitation) | **DELETE** /v1/orgs/{orgId}/invitations/{invitationId} | Revoke an open invitation
+*OrgsApi* | [**updateOrg**](doc//OrgsApi.md#updateorg) | **PATCH** /v1/orgs/{orgId} | Update organization details (owner, admin)
+*OrgsApi* | [**updateOrgMember**](doc//OrgsApi.md#updateorgmember) | **PATCH** /v1/orgs/{orgId}/members/{userId} | Change a member's role (owner, admin)
 *SystemApi* | [**getHealth**](doc//SystemApi.md#gethealth) | **GET** /healthz | Liveness and dependency health
 *SystemApi* | [**getVersion**](doc//SystemApi.md#getversion) | **GET** /v1/version | Build information
 
 
 ## Documentation For Models
 
+ - [AdminUser](doc//AdminUser.md)
+ - [AdminUserDetail](doc//AdminUserDetail.md)
+ - [AdminUserPage](doc//AdminUserPage.md)
+ - [AuditEvent](doc//AuditEvent.md)
+ - [AuditPage](doc//AuditPage.md)
+ - [AuthProvider](doc//AuthProvider.md)
+ - [AuthResult](doc//AuthResult.md)
+ - [ChangePasswordRequest](doc//ChangePasswordRequest.md)
+ - [ClientKind](doc//ClientKind.md)
+ - [CodeRequest](doc//CodeRequest.md)
+ - [Consent](doc//Consent.md)
+ - [ConsentInput](doc//ConsentInput.md)
+ - [ConsentKind](doc//ConsentKind.md)
+ - [DownloadLink](doc//DownloadLink.md)
+ - [GdprRequest](doc//GdprRequest.md)
  - [Health](doc//Health.md)
  - [HealthCheck](doc//HealthCheck.md)
+ - [ImpersonateRequest](doc//ImpersonateRequest.md)
+ - [Invitation](doc//Invitation.md)
+ - [InvitationInput](doc//InvitationInput.md)
+ - [InvitationPreview](doc//InvitationPreview.md)
+ - [Jurisdiction](doc//Jurisdiction.md)
+ - [LoginRequest](doc//LoginRequest.md)
+ - [MagicLinkRequest](doc//MagicLinkRequest.md)
+ - [Me](doc//Me.md)
+ - [Member](doc//Member.md)
+ - [MfaRequest](doc//MfaRequest.md)
+ - [OidcCallbackRequest](doc//OidcCallbackRequest.md)
+ - [OidcStart](doc//OidcStart.md)
+ - [OidcStartRequest](doc//OidcStartRequest.md)
+ - [OrgInput](doc//OrgInput.md)
+ - [OrgMembership](doc//OrgMembership.md)
+ - [Organization](doc//Organization.md)
+ - [PasswordResetRequest](doc//PasswordResetRequest.md)
+ - [PhoneRequest](doc//PhoneRequest.md)
  - [Problem](doc//Problem.md)
+ - [RecoveryCodes](doc//RecoveryCodes.md)
+ - [RegisterRequest](doc//RegisterRequest.md)
+ - [Role](doc//Role.md)
+ - [RoleInput](doc//RoleInput.md)
+ - [SessionInfo](doc//SessionInfo.md)
+ - [SessionToken](doc//SessionToken.md)
+ - [TokenRequest](doc//TokenRequest.md)
+ - [TotpSetup](doc//TotpSetup.md)
+ - [UpdateMeRequest](doc//UpdateMeRequest.md)
+ - [UserLocale](doc//UserLocale.md)
+ - [UserRef](doc//UserRef.md)
+ - [VerificationLevel](doc//VerificationLevel.md)
+ - [VerifiedIdentity](doc//VerifiedIdentity.md)
  - [Version](doc//Version.md)
 
 
 ## Documentation For Authorization
 
-Endpoints do not require authorization.
+
+Authentication schemes defined for the API:
+### bearerAuth
+
+- **Type**: HTTP Bearer authentication
 
 
 ## Author

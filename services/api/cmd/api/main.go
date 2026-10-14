@@ -11,10 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/api"
+	"github.com/terrareality/terrareality/services/api/internal/app"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
+	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
@@ -56,7 +59,21 @@ func run() error {
 		if err := db.Migrate(ctx, pool); err != nil {
 			return err
 		}
+		if err := jobs.MigrateRiver(ctx, pool); err != nil {
+			return err
+		}
 	}
+	deps, err := app.Build(cfg, log)
+	if err != nil {
+		return err
+	}
+	rc, err := jobs.NewInsertOnlyClient(pool)
+	if err != nil {
+		return err
+	}
+	accounts := &account.Service{Pool: pool, Box: deps.Box, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
+		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
+	orgs := &org.Service{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL}
 
 	httpClient := &http.Client{Timeout: 3 * time.Second}
 	checker := health.New(3 * time.Second)
@@ -70,8 +87,11 @@ func run() error {
 		return fmt.Errorf("TRUSTED_PROXIES: %w", err)
 	}
 	srv := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           api.NewRouter(api.NewServer(pool, checker), api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted}),
+		Addr: cfg.HTTPAddr,
+		Handler: api.NewRouter(
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
+				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

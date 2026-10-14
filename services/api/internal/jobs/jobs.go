@@ -15,6 +15,7 @@ import (
 	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/notify"
 )
 
 // HeartbeatKey is the app_meta key the worker refreshes; /healthz reads it.
@@ -48,18 +49,31 @@ func MigrateRiver(ctx context.Context, pool *pgxpool.Pool) error {
 	return err
 }
 
-// NewWorkerClient builds a River client that processes jobs.
-func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger) (*river.Client[pgx.Tx], error) {
+// WorkerDeps are the collaborators of job workers.
+type WorkerDeps struct {
+	Sender notify.Sender
+	GDPR   *GDPRWorker
+}
+
+// NewWorkerClient builds a River client that processes jobs. Completed jobs
+// are kept only briefly because message jobs carry one-time links.
+func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*river.Client[pgx.Tx], error) {
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &HeartbeatWorker{Q: db.New(pool)})
+	river.AddWorker(workers, &SendMessageWorker{Sender: deps.Sender})
+	river.AddWorker(workers, deps.GDPR)
+	river.AddWorker(workers, &CleanupWorker{Q: db.New(pool)})
 	return river.NewClient[pgx.Tx](riverpgxv5.New(pool), &river.Config{
-		Logger:  log,
-		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 20}},
-		Workers: workers,
+		Logger:                      log,
+		Queues:                      map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 20}},
+		Workers:                     workers,
+		CompletedJobRetentionPeriod: time.Hour,
 		PeriodicJobs: []*river.PeriodicJob{
 			river.NewPeriodicJob(river.PeriodicInterval(30*time.Second),
 				func() (river.JobArgs, *river.InsertOpts) { return HeartbeatArgs{}, nil },
 				&river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return CleanupArgs{}, nil }, nil),
 		},
 	})
 }

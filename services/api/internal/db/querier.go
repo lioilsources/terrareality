@@ -11,9 +11,90 @@ import (
 )
 
 type Querier interface {
+	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) (int64, error)
+	AddMembership(ctx context.Context, arg AddMembershipParams) error
+	// Accepts a TOTP step only once (replay protection).
+	AdvanceTOTPStep(ctx context.Context, arg AdvanceTOTPStepParams) (int64, error)
+	// Atomically marks a valid token as used and returns it.
+	ConsumeAuthToken(ctx context.Context, arg ConsumeAuthTokenParams) (AuthToken, error)
+	CountOwners(ctx context.Context, orgID uuid.UUID) (int64, error)
+	CountRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
+	CreateAuthToken(ctx context.Context, arg CreateAuthTokenParams) (AuthToken, error)
+	CreateGDPRRequest(ctx context.Context, arg CreateGDPRRequestParams) (GdprRequest, error)
+	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
+	CreateOAuthIdentity(ctx context.Context, arg CreateOAuthIdentityParams) error
+	// Queries on RLS tables run inside db.WithUser transactions unless noted.
+	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteExpiredAuthTokens(ctx context.Context) (int64, error)
+	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
+	DeleteOAuthIdentities(ctx context.Context, userID uuid.UUID) error
+	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
+	DisableTOTP(ctx context.Context, id uuid.UUID) error
+	EnableTOTP(ctx context.Context, arg EnableTOTPParams) error
+	GetActiveSession(ctx context.Context, tokenHash []byte) (GetActiveSessionRow, error)
 	GetAppMeta(ctx context.Context, key string) (AppMetum, error)
+	// Latest open code of a purpose for a user (phone codes are short, so they
+	// are looked up by user and compared in constant time).
+	GetAuthTokenForUser(ctx context.Context, arg GetAuthTokenForUserParams) (AuthToken, error)
+	GetGDPRRequest(ctx context.Context, id uuid.UUID) (GdprRequest, error)
+	GetIdentityVerification(ctx context.Context, userID uuid.UUID) (IdentityVerification, error)
+	// System context: the invitee is not a member yet.
+	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
+	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
+	GetMembership(ctx context.Context, arg GetMembershipParams) (Membership, error)
+	GetOAuthIdentity(ctx context.Context, arg GetOAuthIdentityParams) (OauthIdentity, error)
+	GetOpenAuthToken(ctx context.Context, arg GetOpenAuthTokenParams) (AuthToken, error)
+	GetOpenErasureRequest(ctx context.Context, userID uuid.UUID) (GdprRequest, error)
+	GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error)
+	GetPersonalOrganization(ctx context.Context, personalOwnerID *uuid.UUID) (Organization, error)
+	GetUser(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	IncrementAuthTokenAttempts(ctx context.Context, id uuid.UUID) (int32, error)
+	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	InsertConsent(ctx context.Context, arg InsertConsentParams) (Consent, error)
+	InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error
+	InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTokensParams) error
+	// System context: every organization (RLS tests and backoffice).
+	ListAllOrganizationIDs(ctx context.Context) ([]uuid.UUID, error)
+	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]ListAuditEventsRow, error)
+	// System context: GDPR export.
+	ListAuditEventsByActor(ctx context.Context, actorID *uuid.UUID) ([]AuditEvent, error)
+	ListConsents(ctx context.Context, userID uuid.UUID) ([]Consent, error)
+	ListGDPRRequests(ctx context.Context, userID uuid.UUID) ([]GdprRequest, error)
+	ListJurisdictions(ctx context.Context) ([]Jurisdiction, error)
+	ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error)
+	ListMyOrganizations(ctx context.Context, userID uuid.UUID) ([]ListMyOrganizationsRow, error)
+	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
+	// System context: used by GDPR erasure.
+	ListUserMemberships(ctx context.Context, userID uuid.UUID) ([]ListUserMembershipsRow, error)
+	ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Session, error)
+	MarkAuthTokenUsed(ctx context.Context, id uuid.UUID) error
+	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
+	MarkIdentityVerified(ctx context.Context, id uuid.UUID) error
+	MarkPhoneVerified(ctx context.Context, arg MarkPhoneVerifiedParams) error
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
+	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
+	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
+	RevokeOpenInvitationsForEmail(ctx context.Context, arg RevokeOpenInvitationsForEmailParams) error
+	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
+	RevokeUserSessions(ctx context.Context, arg RevokeUserSessionsParams) error
+	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error)
+	SetStaff(ctx context.Context, arg SetStaffParams) error
+	SetTOTPPending(ctx context.Context, arg SetTOTPPendingParams) error
+	SetUserPassword(ctx context.Context, arg SetUserPasswordParams) error
+	SetUserPhone(ctx context.Context, arg SetUserPhoneParams) error
+	SoftDeleteOrganization(ctx context.Context, id uuid.UUID) error
+	// Sliding expiry, written at most once per minute per session.
+	TouchSession(ctx context.Context, arg TouchSessionParams) error
+	UpdateGDPRRequest(ctx context.Context, arg UpdateGDPRRequestParams) error
+	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)
+	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error)
+	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpsertAppMeta(ctx context.Context, arg UpsertAppMetaParams) error
+	UpsertIdentityVerification(ctx context.Context, arg UpsertIdentityVerificationParams) (IdentityVerification, error)
+	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

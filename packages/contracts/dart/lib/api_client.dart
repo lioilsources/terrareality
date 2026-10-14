@@ -182,12 +182,104 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AdminUser':
+          return AdminUser.fromJson(value);
+        case 'AdminUserDetail':
+          return AdminUserDetail.fromJson(value);
+        case 'AdminUserPage':
+          return AdminUserPage.fromJson(value);
+        case 'AuditEvent':
+          return AuditEvent.fromJson(value);
+        case 'AuditPage':
+          return AuditPage.fromJson(value);
+        case 'AuthProvider':
+          return AuthProvider.fromJson(value);
+        case 'AuthResult':
+          return AuthResult.fromJson(value);
+        case 'ChangePasswordRequest':
+          return ChangePasswordRequest.fromJson(value);
+        case 'ClientKind':
+          return ClientKindTypeTransformer().decode(value);
+        case 'CodeRequest':
+          return CodeRequest.fromJson(value);
+        case 'Consent':
+          return Consent.fromJson(value);
+        case 'ConsentInput':
+          return ConsentInput.fromJson(value);
+        case 'ConsentKind':
+          return ConsentKindTypeTransformer().decode(value);
+        case 'DownloadLink':
+          return DownloadLink.fromJson(value);
+        case 'GdprRequest':
+          return GdprRequest.fromJson(value);
         case 'Health':
           return Health.fromJson(value);
         case 'HealthCheck':
           return HealthCheck.fromJson(value);
+        case 'ImpersonateRequest':
+          return ImpersonateRequest.fromJson(value);
+        case 'Invitation':
+          return Invitation.fromJson(value);
+        case 'InvitationInput':
+          return InvitationInput.fromJson(value);
+        case 'InvitationPreview':
+          return InvitationPreview.fromJson(value);
+        case 'Jurisdiction':
+          return Jurisdiction.fromJson(value);
+        case 'LoginRequest':
+          return LoginRequest.fromJson(value);
+        case 'MagicLinkRequest':
+          return MagicLinkRequest.fromJson(value);
+        case 'Me':
+          return Me.fromJson(value);
+        case 'Member':
+          return Member.fromJson(value);
+        case 'MfaRequest':
+          return MfaRequest.fromJson(value);
+        case 'OidcCallbackRequest':
+          return OidcCallbackRequest.fromJson(value);
+        case 'OidcStart':
+          return OidcStart.fromJson(value);
+        case 'OidcStartRequest':
+          return OidcStartRequest.fromJson(value);
+        case 'OrgInput':
+          return OrgInput.fromJson(value);
+        case 'OrgMembership':
+          return OrgMembership.fromJson(value);
+        case 'Organization':
+          return Organization.fromJson(value);
+        case 'PasswordResetRequest':
+          return PasswordResetRequest.fromJson(value);
+        case 'PhoneRequest':
+          return PhoneRequest.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
+        case 'RecoveryCodes':
+          return RecoveryCodes.fromJson(value);
+        case 'RegisterRequest':
+          return RegisterRequest.fromJson(value);
+        case 'Role':
+          return RoleTypeTransformer().decode(value);
+        case 'RoleInput':
+          return RoleInput.fromJson(value);
+        case 'SessionInfo':
+          return SessionInfo.fromJson(value);
+        case 'SessionToken':
+          return SessionToken.fromJson(value);
+        case 'TokenRequest':
+          return TokenRequest.fromJson(value);
+        case 'TotpSetup':
+          return TotpSetup.fromJson(value);
+        case 'UpdateMeRequest':
+          return UpdateMeRequest.fromJson(value);
+        case 'UserLocale':
+          return UserLocaleTypeTransformer().decode(value);
+        case 'UserRef':
+          return UserRef.fromJson(value);
+        case 'VerificationLevel':
+          return VerificationLevelTypeTransformer().decode(value);
+        case 'VerifiedIdentity':
+          return VerifiedIdentity.fromJson(value);
         case 'Version':
           return Version.fromJson(value);
         default:
