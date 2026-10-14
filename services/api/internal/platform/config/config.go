@@ -74,6 +74,14 @@ type Config struct {
 	ClamAVAddr   string // host:port of clamd; empty = scanning skipped
 	Flags        map[string]bool
 	SeedRuian    bool // load the embedded RÚIAN sample when the table is empty
+
+	// Messaging (M4).
+	CentrifugoTokenSecret string        // HMAC key for client tokens (same as Centrifugo's)
+	CentrifugoWSURL       string        // websocket URL for browsers and the app
+	MessageNotifyDelay    time.Duration // push/e-mail only if still unread after this
+	PushProvider          string        // mock | log | fcm
+	FCMCredentialsFile    string        // service account JSON (PUSH_PROVIDER=fcm)
+	FCMProject            string        // defaults to the project in the credentials
 }
 
 // Flag reports whether a feature flag is on.
@@ -132,8 +140,19 @@ func Load() (Config, error) {
 	c.ImgproxySalt = get("IMGPROXY_SALT", "6465762d696d6770726f78792d73616c74")
 	c.ClamAVAddr = get("CLAMAV_ADDR", "")
 	c.SeedRuian = MustBool("SEED_RUIAN_SAMPLE", devLike)
+	c.CentrifugoTokenSecret = get("CENTRIFUGO_TOKEN_SECRET", "")
+	if c.CentrifugoTokenSecret == "" && devLike {
+		c.CentrifugoTokenSecret = "dev-centrifugo-token-secret-change-me" // infra/dev/centrifugo/config.json
+	}
+	c.CentrifugoWSURL = get("CENTRIFUGO_WS_URL", "ws://localhost:8000/connection/websocket")
+	pushDefault := "log"
+	if devLike {
+		pushDefault = "mock"
+	}
+	c.PushProvider = get("PUSH_PROVIDER", pushDefault)
+	c.FCMCredentialsFile, c.FCMProject = get("FCM_CREDENTIALS_FILE", ""), get("FCM_PROJECT_ID", "")
 	// Feature flags: comma list, "-name" turns a default off.
-	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false}
+	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false, "ai.moderation": true}
 	for _, f := range splitList(get("FEATURE_FLAGS", "")) {
 		if strings.HasPrefix(f, "-") {
 			c.Flags[f[1:]] = false
@@ -153,6 +172,7 @@ func Load() (Config, error) {
 		{"SESSION_TTL_WEB", "720h", &c.SessionTTLWeb},
 		{"SESSION_TTL_MOBILE", "2160h", &c.SessionTTLMobile},
 		{"GDPR_ERASURE_GRACE", "720h", &c.ErasureGrace},
+		{"MESSAGE_NOTIFY_DELAY", "20s", &c.MessageNotifyDelay},
 	}
 	for _, d := range durations {
 		v, err := time.ParseDuration(get(d.key, d.def))
@@ -166,6 +186,9 @@ func Load() (Config, error) {
 	}
 	if len(c.SecretKey) < 32 {
 		return c, fmt.Errorf("APP_SECRET_KEY must be at least 32 characters")
+	}
+	if c.CentrifugoURL != "" && c.CentrifugoTokenSecret == "" {
+		return c, fmt.Errorf("CENTRIFUGO_TOKEN_SECRET is required with CENTRIFUGO_API_URL")
 	}
 	if c.MockIdP && !devLike && c.Env != "staging" {
 		return c, fmt.Errorf("MOCK_IDP is not allowed in %s", c.Env)

@@ -14,6 +14,7 @@ class PublicListing {
   /// Returns a new [PublicListing] instance.
   PublicListing({
     required this.id,
+    this.prescreen = const [],
     required this.title,
     required this.description,
     required this.rentAmount,
@@ -31,6 +32,9 @@ class PublicListing {
   });
 
   String id;
+
+  /// Questions to answer when contacting the landlord.
+  List<PrescreenQuestion> prescreen;
 
   I18nText title;
 
@@ -88,6 +92,7 @@ class PublicListing {
   @override
   bool operator ==(Object other) => identical(this, other) || other is PublicListing &&
     other.id == id &&
+    _deepEquality.equals(other.prescreen, prescreen) &&
     other.title == title &&
     other.description == description &&
     other.rentAmount == rentAmount &&
@@ -107,6 +112,7 @@ class PublicListing {
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (id.hashCode) +
+    (prescreen.hashCode) +
     (title.hashCode) +
     (description.hashCode) +
     (rentAmount.hashCode) +
@@ -123,11 +129,12 @@ class PublicListing {
     (publishedAt.hashCode);
 
   @override
-  String toString() => 'PublicListing[id=$id, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, unit=$unit, location=$location, areaNames=$areaNames, photos=$photos, publishedAt=$publishedAt]';
+  String toString() => 'PublicListing[id=$id, prescreen=$prescreen, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, unit=$unit, location=$location, areaNames=$areaNames, photos=$photos, publishedAt=$publishedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'id'] = this.id;
+      json[r'prescreen'] = this.prescreen;
       json[r'title'] = this.title;
       json[r'description'] = this.description;
       json[r'rent_amount'] = this.rentAmount;
@@ -181,6 +188,7 @@ class PublicListing {
 
       return PublicListing(
         id: mapValueOfType<String>(json, r'id')!,
+        prescreen: PrescreenQuestion.listFromJson(json[r'prescreen']),
         title: I18nText.fromJson(json[r'title'])!,
         description: I18nText.fromJson(json[r'description'])!,
         rentAmount: mapValueOfType<int>(json, r'rent_amount')!,
@@ -245,6 +253,7 @@ class PublicListing {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'id',
+    'prescreen',
     'title',
     'description',
     'rent_amount',

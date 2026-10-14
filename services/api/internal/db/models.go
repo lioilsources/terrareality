@@ -103,6 +103,24 @@ type Consent struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type Conversation struct {
+	ID               uuid.UUID  `json:"id"`
+	OrgID            uuid.UUID  `json:"org_id"`
+	ListingID        uuid.UUID  `json:"listing_id"`
+	SeekerID         uuid.UUID  `json:"seeker_id"`
+	PrescreenAnswers []byte     `json:"prescreen_answers"`
+	BlockedBy        *uuid.UUID `json:"blocked_by"`
+	BlockedAt        *time.Time `json:"blocked_at"`
+	LastMessageAt    time.Time  `json:"last_message_at"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
+type ConversationRead struct {
+	ConversationID uuid.UUID `json:"conversation_id"`
+	UserID         uuid.UUID `json:"user_id"`
+	LastReadAt     time.Time `json:"last_read_at"`
+}
+
 type FilterSchema struct {
 	Key       string    `json:"key"`
 	Type      string    `json:"type"`
@@ -214,6 +232,7 @@ type Listing struct {
 	UpdatedAt         time.Time   `json:"updated_at"`
 	PublishedAt       *time.Time  `json:"published_at"`
 	DeletedAt         *time.Time  `json:"deleted_at"`
+	Prescreen         []byte      `json:"prescreen"`
 }
 
 type ListingAggregate struct {
@@ -295,6 +314,68 @@ type Membership struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type Message struct {
+	ID             uuid.UUID  `json:"id"`
+	ConversationID uuid.UUID  `json:"conversation_id"`
+	SenderID       *uuid.UUID `json:"sender_id"`
+	Kind           string     `json:"kind"`
+	Body           string     `json:"body"`
+	Flags          []string   `json:"flags"`
+	RemovedAt      *time.Time `json:"removed_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type MessageAttachment struct {
+	ID             uuid.UUID  `json:"id"`
+	ConversationID uuid.UUID  `json:"conversation_id"`
+	MessageID      *uuid.UUID `json:"message_id"`
+	UploadedBy     *uuid.UUID `json:"uploaded_by"`
+	ObjectKey      string     `json:"object_key"`
+	Filename       string     `json:"filename"`
+	ContentType    string     `json:"content_type"`
+	SizeBytes      int64      `json:"size_bytes"`
+	AvStatus       string     `json:"av_status"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type ModerationCase struct {
+	ID             uuid.UUID  `json:"id"`
+	Source         string     `json:"source"`
+	ConversationID uuid.UUID  `json:"conversation_id"`
+	MessageID      *uuid.UUID `json:"message_id"`
+	ReporterID     *uuid.UUID `json:"reporter_id"`
+	ReportedID     *uuid.UUID `json:"reported_id"`
+	Reason         string     `json:"reason"`
+	Note           *string    `json:"note"`
+	Status         string     `json:"status"`
+	AiStatus       string     `json:"ai_status"`
+	AiSuggestion   []byte     `json:"ai_suggestion"`
+	AiModel        *string    `json:"ai_model"`
+	Decision       *string    `json:"decision"`
+	DecisionNote   *string    `json:"decision_note"`
+	DecidedBy      *uuid.UUID `json:"decided_by"`
+	DecidedAt      *time.Time `json:"decided_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type Notification struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Kind      string     `json:"kind"`
+	Data      []byte     `json:"data"`
+	Link      string     `json:"link"`
+	ReadAt    *time.Time `json:"read_at"`
+	EmailedAt *time.Time `json:"emailed_at"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type NotificationPreference struct {
+	UserID        uuid.UUID `json:"user_id"`
+	EmailMessages string    `json:"email_messages"`
+	PushMessages  bool      `json:"push_messages"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
 type OauthIdentity struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
@@ -326,6 +407,26 @@ type Property struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
+}
+
+type PushDevice struct {
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	Platform   string    `json:"platform"`
+	Token      string    `json:"token"`
+	Keys       []byte    `json:"keys"`
+	Label      string    `json:"label"`
+	CreatedAt  time.Time `json:"created_at"`
+	LastSeenAt time.Time `json:"last_seen_at"`
+}
+
+type ReplyTemplate struct {
+	ID        uuid.UUID `json:"id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type RuianPlace struct {
@@ -401,24 +502,25 @@ type Unit struct {
 }
 
 type User struct {
-	ID                 uuid.UUID  `json:"id"`
-	Email              string     `json:"email"`
-	EmailVerifiedAt    *time.Time `json:"email_verified_at"`
-	PasswordHash       *string    `json:"password_hash"`
-	DisplayName        string     `json:"display_name"`
-	Locale             string     `json:"locale"`
-	Phone              *string    `json:"phone"`
-	PhoneVerifiedAt    *time.Time `json:"phone_verified_at"`
-	IdentityVerifiedAt *time.Time `json:"identity_verified_at"`
-	TotpSecret         []byte     `json:"totp_secret"`
-	TotpPendingSecret  []byte     `json:"totp_pending_secret"`
-	TotpEnabledAt      *time.Time `json:"totp_enabled_at"`
-	TotpLastStep       int64      `json:"totp_last_step"`
-	IsStaff            bool       `json:"is_staff"`
-	PseudonymizedAt    *time.Time `json:"pseudonymized_at"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	VerificationLevel  *string    `json:"verification_level"`
+	ID                   uuid.UUID  `json:"id"`
+	Email                string     `json:"email"`
+	EmailVerifiedAt      *time.Time `json:"email_verified_at"`
+	PasswordHash         *string    `json:"password_hash"`
+	DisplayName          string     `json:"display_name"`
+	Locale               string     `json:"locale"`
+	Phone                *string    `json:"phone"`
+	PhoneVerifiedAt      *time.Time `json:"phone_verified_at"`
+	IdentityVerifiedAt   *time.Time `json:"identity_verified_at"`
+	TotpSecret           []byte     `json:"totp_secret"`
+	TotpPendingSecret    []byte     `json:"totp_pending_secret"`
+	TotpEnabledAt        *time.Time `json:"totp_enabled_at"`
+	TotpLastStep         int64      `json:"totp_last_step"`
+	IsStaff              bool       `json:"is_staff"`
+	PseudonymizedAt      *time.Time `json:"pseudonymized_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
+	VerificationLevel    *string    `json:"verification_level"`
+	MessagingSuspendedAt *time.Time `json:"messaging_suspended_at"`
 }
 
 type UserRecoveryCode struct {

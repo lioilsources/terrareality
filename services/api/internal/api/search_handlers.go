@@ -176,7 +176,7 @@ func (s *Server) GetPublicListing(ctx context.Context, r gen.GetPublicListingReq
 	if err := json.Unmarshal(row.Snapshot, &snap); err != nil {
 		return nil, err
 	}
-	out := gen.GetPublicListing200JSONResponse{Id: row.ListingID, Title: snap.Title, Description: snap.Description,
+	out := gen.GetPublicListing200JSONResponse{Id: row.ListingID, Prescreen: prescreenOf(row.Prescreen), Title: snap.Title, Description: snap.Description,
 		RentAmount: snap.RentAmount, DepositAmount: snap.DepositAmount, UtilitiesAmount: snap.UtilitiesAmount,
 		Currency: snap.Currency, MinTermMonths: snap.MinTermMonths, Attributes: snap.Attributes, PublishedAt: row.PublishedAt,
 		Photos: []gen.PhotoVariants{}, AreaNames: []string{}}

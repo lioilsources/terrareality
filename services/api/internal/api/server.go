@@ -23,6 +23,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
+	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
@@ -40,6 +41,7 @@ type Services struct {
 	Listings        *listing.Service
 	Engine          *search.Engine
 	Chat            *search.Chat
+	Messages        *messaging.Service
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per

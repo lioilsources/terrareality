@@ -27,12 +27,13 @@ const (
 	PermFinanceRead   Permission = "finance.read"
 	PermFinanceWrite  Permission = "finance.write"
 	PermMaintenance   Permission = "maintenance.write"
+	PermMessages      Permission = "messages.write" // answer seekers, reply templates
 )
 
 var grants = map[string][]Permission{
-	Owner:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance},
-	Admin:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance},
-	Agent:       {PermCatalogRead, PermCatalogWrite},
+	Owner:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages},
+	Admin:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages},
+	Agent:       {PermCatalogRead, PermCatalogWrite, PermMessages},
 	Accountant:  {PermCatalogRead, PermFinanceRead, PermFinanceWrite},
 	Maintenance: {PermCatalogRead, PermMaintenance},
 	Viewer:      {PermCatalogRead, PermFinanceRead},

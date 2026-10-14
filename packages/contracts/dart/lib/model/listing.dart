@@ -15,6 +15,7 @@ class Listing {
   Listing({
     required this.id,
     required this.orgId,
+    this.prescreen = const [],
     required this.status,
     required this.title,
     required this.description,
@@ -43,6 +44,8 @@ class Listing {
   String id;
 
   String orgId;
+
+  List<PrescreenQuestion> prescreen;
 
   ListingStatus status;
 
@@ -137,6 +140,7 @@ class Listing {
   bool operator ==(Object other) => identical(this, other) || other is Listing &&
     other.id == id &&
     other.orgId == orgId &&
+    _deepEquality.equals(other.prescreen, prescreen) &&
     other.status == status &&
     other.title == title &&
     other.description == description &&
@@ -166,6 +170,7 @@ class Listing {
     // ignore: unnecessary_parenthesis
     (id.hashCode) +
     (orgId.hashCode) +
+    (prescreen.hashCode) +
     (status.hashCode) +
     (title.hashCode) +
     (description.hashCode) +
@@ -191,12 +196,13 @@ class Listing {
     (updatedAt.hashCode);
 
   @override
-  String toString() => 'Listing[id=$id, orgId=$orgId, status=$status, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, locationPrecision=$locationPrecision, publishedVersion=$publishedVersion, publishedAt=$publishedAt, pendingReview=$pendingReview, unit=$unit, propertyId=$propertyId, address=$address, media=$media, suggestions=$suggestions, versions=$versions, depositMaxMonths=$depositMaxMonths, createdAt=$createdAt, updatedAt=$updatedAt]';
+  String toString() => 'Listing[id=$id, orgId=$orgId, prescreen=$prescreen, status=$status, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, locationPrecision=$locationPrecision, publishedVersion=$publishedVersion, publishedAt=$publishedAt, pendingReview=$pendingReview, unit=$unit, propertyId=$propertyId, address=$address, media=$media, suggestions=$suggestions, versions=$versions, depositMaxMonths=$depositMaxMonths, createdAt=$createdAt, updatedAt=$updatedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'id'] = this.id;
       json[r'org_id'] = this.orgId;
+      json[r'prescreen'] = this.prescreen;
       json[r'status'] = this.status;
       json[r'title'] = this.title;
       json[r'description'] = this.description;
@@ -272,6 +278,7 @@ class Listing {
       return Listing(
         id: mapValueOfType<String>(json, r'id')!,
         orgId: mapValueOfType<String>(json, r'org_id')!,
+        prescreen: PrescreenQuestion.listFromJson(json[r'prescreen']),
         status: ListingStatus.fromJson(json[r'status'])!,
         title: I18nText.fromJson(json[r'title'])!,
         description: I18nText.fromJson(json[r'description'])!,
@@ -344,6 +351,7 @@ class Listing {
   static const requiredKeys = <String>{
     'id',
     'org_id',
+    'prescreen',
     'status',
     'title',
     'description',

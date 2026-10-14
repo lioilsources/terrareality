@@ -61,8 +61,17 @@ String parameterToString(dynamic value) {
   if (value is ConsentKind) {
     return ConsentKindTypeTransformer().encode(value).toString();
   }
+  if (value is ConversationRole) {
+    return ConversationRoleTypeTransformer().encode(value).toString();
+  }
   if (value is ListingStatus) {
     return ListingStatusTypeTransformer().encode(value).toString();
+  }
+  if (value is MessageFlag) {
+    return MessageFlagTypeTransformer().encode(value).toString();
+  }
+  if (value is ModerationVerdict) {
+    return ModerationVerdictTypeTransformer().encode(value).toString();
   }
   if (value is Role) {
     return RoleTypeTransformer().encode(value).toString();

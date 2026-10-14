@@ -1245,6 +1245,374 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My conversations (as a seeker and for my organizations), newest first */
+        get: operations["listConversations"];
+        put?: never;
+        /** Contact the landlord of a published listing (reuses an existing conversation) */
+        post: operations["startConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversation with read receipts and pre-screening answers */
+        get: operations["getConversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Messages, newest first */
+        get: operations["listMessages"];
+        put?: never;
+        /** Send a message. Contact details are masked and flagged, never blocked. */
+        post: operations["sendMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the conversation read up to now (read receipt) */
+        post: operations["markConversationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Block or unblock the conversation */
+        put: operations["setConversationBlocked"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report the conversation or one message to the moderators */
+        post: operations["reportConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reserve an attachment and get a presigned upload URL (PUT the file there, then complete) */
+        post: operations["createAttachmentUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/attachments/{attachmentId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the uploaded file (type, size, malware) so it can be sent */
+        post: operations["completeAttachmentUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{conversationId}/realtime-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscription token for the conversation's realtime channel */
+        post: operations["conversationRealtimeToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/realtime/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connection token for Centrifugo; the connection joins the caller's user channel */
+        post: operations["realtimeToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/reply-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Reply templates of the organization */
+        get: operations["listReplyTemplates"];
+        put?: never;
+        /** Create a reply template */
+        post: operations["createReplyTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/reply-templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Update a reply template */
+        put: operations["updateReplyTemplate"];
+        post?: never;
+        /** Delete a reply template */
+        delete: operations["deleteReplyTemplate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/prescreen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the questions a seeker answers before the first message */
+        put: operations["setListingPrescreen"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Latest in-app notifications */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one notification (id) or all as read */
+        post: operations["markNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notification settings */
+        get: operations["getNotificationPreferences"];
+        /** Change notification settings */
+        put: operations["setNotificationPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/push-devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Registered push devices */
+        get: operations["listPushDevices"];
+        put?: never;
+        /** Register an FCM token or a web push subscription */
+        post: operations["registerPushDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/push-devices/{deviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unregister a push device */
+        delete: operations["deletePushDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open reports and automatic flags, oldest first */
+        get: operations["backofficeListModeration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/moderation/{caseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A case with the conversation transcript and the AI suggestion */
+        get: operations["backofficeGetModeration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/moderation/{caseId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve a case (human decision; the AI verdict is only a suggestion) */
+        post: operations["backofficeDecideModeration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1840,6 +2208,7 @@ export interface components {
             id: string;
             /** Format: uuid */
             org_id: string;
+            prescreen: components["schemas"]["PrescreenQuestion"][];
             status: components["schemas"]["ListingStatus"];
             title: components["schemas"]["I18nText"];
             description: components["schemas"]["I18nText"];
@@ -2063,6 +2432,8 @@ export interface components {
         PublicListing: {
             /** Format: uuid */
             id: string;
+            /** @description Questions to answer when contacting the landlord. */
+            prescreen: components["schemas"]["PrescreenQuestion"][];
             title: components["schemas"]["I18nText"];
             description: components["schemas"]["I18nText"];
             /** Format: int64 */
@@ -2126,6 +2497,254 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        PrescreenQuestion: {
+            /** @description Assigned by the server for new questions. */
+            id?: string;
+            text: {
+                cs?: string;
+                en?: string;
+            };
+            /** @enum {string} */
+            kind: "text" | "yes_no" | "number";
+            required: boolean;
+        };
+        PrescreenAnswer: {
+            id: string;
+            question: {
+                cs?: string;
+                en?: string;
+            };
+            /** @enum {string} */
+            kind: "text" | "yes_no" | "number";
+            answer: string;
+        };
+        /** @enum {string} */
+        ConversationRole: "seeker" | "owner";
+        Conversation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            listing_id: string;
+            /** Format: uuid */
+            org_id: string;
+            org_name: string;
+            /** Format: uuid */
+            seeker_id: string;
+            seeker_name: string;
+            listing_title: components["schemas"]["I18nText"];
+            cover_url?: string;
+            role: components["schemas"]["ConversationRole"];
+            /** Format: date-time */
+            last_message_at: string;
+            /** @description Preview of the latest message. */
+            last_message: string;
+            /** Format: uuid */
+            last_sender_id?: string;
+            unread: number;
+            blocked: boolean;
+            blocked_by_me: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ConversationDetail: {
+            conversation: components["schemas"]["Conversation"];
+            /**
+             * Format: date-time
+             * @description When the other side last read the conversation.
+             */
+            peer_read_at?: string;
+            prescreen: components["schemas"]["PrescreenAnswer"][];
+        };
+        Attachment: {
+            /** Format: uuid */
+            id: string;
+            filename: string;
+            content_type: string;
+            /** Format: int64 */
+            size_bytes: number;
+            /** @description Short-lived download URL. */
+            url: string;
+        };
+        AttachmentUpload: {
+            /** Format: uuid */
+            id: string;
+            upload_url: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        /** @enum {string} */
+        MessageFlag: "contact_phone" | "contact_email" | "contact_bank_account" | "advance_payment";
+        Message: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            conversation_id: string;
+            /** Format: uuid */
+            sender_id?: string;
+            /** @enum {string} */
+            kind: "text" | "prescreen" | "system";
+            /** @description Contact details are masked as [•••]. Empty when removed by a moderator. */
+            body: string;
+            flags: components["schemas"]["MessageFlag"][];
+            removed: boolean;
+            /** Format: date-time */
+            created_at: string;
+            attachments: components["schemas"]["Attachment"][];
+        };
+        MessageInput: {
+            body?: string;
+            attachment_ids?: string[];
+        };
+        StartConversation: {
+            /** Format: uuid */
+            listing_id: string;
+            body: string;
+            /** @description Question id -> answer (yes/no questions take "yes" or "no"). */
+            prescreen_answers?: {
+                [key: string]: string;
+            };
+        };
+        SentMessage: {
+            /** Format: uuid */
+            conversation_id: string;
+            message: components["schemas"]["Message"];
+        };
+        ReportInput: {
+            /** @enum {string} */
+            reason: "scam" | "advance_payment" | "harassment" | "discrimination" | "spam" | "other";
+            /** Format: uuid */
+            message_id?: string;
+            note?: string;
+        };
+        RealtimeToken: {
+            /** @description Centrifugo websocket URL. */
+            url: string;
+            token: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** @description The caller's user channel (joined automatically). */
+            channel: string;
+        };
+        SubscriptionToken: {
+            channel: string;
+            token: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        ReplyTemplateInput: {
+            title: string;
+            body: string;
+        };
+        ReplyTemplate: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            body: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        Notification: {
+            /** Format: uuid */
+            id: string;
+            /** @description message: data has conversation_id, sender, listing, preview, count. */
+            kind: string;
+            data: {
+                [key: string]: unknown;
+            };
+            link: string;
+            /** Format: date-time */
+            read_at?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        NotificationList: {
+            items: components["schemas"]["Notification"][];
+            unread: number;
+        };
+        NotificationPreferences: {
+            /**
+             * @description instant = one e-mail per unread conversation; daily = summary at 18:00.
+             * @enum {string}
+             */
+            email_messages: "instant" | "daily" | "off";
+            push_messages: boolean;
+        };
+        PushDeviceInput: {
+            /** @enum {string} */
+            platform: "fcm" | "apns" | "webpush";
+            /** @description FCM/APNs token or the web push endpoint URL. */
+            token: string;
+            /** @description Web push subscription keys. */
+            keys?: {
+                p256dh?: string;
+                auth?: string;
+            };
+            label?: string;
+        };
+        PushDevice: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            platform: "fcm" | "apns" | "webpush";
+            label: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_seen_at: string;
+        };
+        /** @enum {string} */
+        ModerationVerdict: "dismiss" | "warn" | "remove_message" | "suspend_user";
+        ModerationSuggestion: {
+            verdict: components["schemas"]["ModerationVerdict"];
+            reason: string;
+            /** Format: double */
+            confidence: number;
+            model?: string;
+        };
+        ModerationCase: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            source: "report" | "auto";
+            /** Format: uuid */
+            conversation_id: string;
+            /** Format: uuid */
+            message_id?: string;
+            reason: string;
+            note?: string;
+            /** @enum {string} */
+            status: "open" | "resolved";
+            reporter_name?: string;
+            reporter_email?: string;
+            /** Format: uuid */
+            reported_id?: string;
+            reported_name?: string;
+            reported_email?: string;
+            listing_title: components["schemas"]["I18nText"];
+            message_body: string;
+            /** @enum {string} */
+            ai_status: "pending" | "ready" | "failed" | "disabled";
+            ai_suggestion?: components["schemas"]["ModerationSuggestion"];
+            decision?: components["schemas"]["ModerationVerdict"];
+            decision_note?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        TranscriptMessage: {
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["ConversationRole"];
+            sender_name: string;
+            body: string;
+            flags: string[];
+            removed: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ModerationCaseDetail: {
+            case: components["schemas"]["ModerationCase"];
+            transcript: components["schemas"]["TranscriptMessage"][];
+        };
     };
     responses: {
         /** @description Error */
@@ -2182,6 +2801,7 @@ export interface components {
         Before: string;
         ListingId: string;
         MediaId: string;
+        ConversationId: string;
         Limit: number;
     };
     requestBodies: never;
@@ -3992,6 +4612,672 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listConversations: {
+        parameters: {
+            query?: {
+                /** @description Only this organization's inbox. */
+                org_id?: string;
+                /** @description seeker = only conversations I started. */
+                as?: "seeker";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartConversation"];
+            };
+        };
+        responses: {
+            /** @description Message sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentMessage"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMessages: {
+        parameters: {
+            query?: {
+                /** @description Return messages older than this time. */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Message sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentMessage"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    markConversationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setConversationBlocked: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    blocked: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reportConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportInput"];
+            };
+        };
+        responses: {
+            /** @description Report filed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createAttachmentUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    filename: string;
+                    /** @enum {string} */
+                    content_type: "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "application/pdf";
+                    /** Format: int64 */
+                    size_bytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload slot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentUpload"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    completeAttachmentUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ready to send */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    conversationRealtimeToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Token */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionToken"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    realtimeToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Token */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RealtimeToken"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listReplyTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Templates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyTemplate"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createReplyTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplyTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyTemplate"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateReplyTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplyTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyTemplate"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteReplyTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setListingPrescreen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrescreenQuestion"][];
+            };
+        };
+        responses: {
+            /** @description Saved questions (new ones get an id) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescreenQuestion"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notifications */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    markNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Marked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getNotificationPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferences"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setNotificationPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferences"];
+            };
+        };
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferences"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPushDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushDevice"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    registerPushDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushDeviceInput"];
+            };
+        };
+        responses: {
+            /** @description Registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushDevice"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deletePushDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListModeration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationCase"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeGetModeration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Case */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationCaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeDecideModeration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    decision: components["schemas"]["ModerationVerdict"];
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Resolved */
             204: {
                 headers: {
                     [name: string]: unknown;

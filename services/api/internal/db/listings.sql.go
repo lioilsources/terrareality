@@ -89,7 +89,7 @@ INSERT INTO listings (org_id, unit_id, title, description, rent_amount, currency
 VALUES ($1, $2, $3, $4, $5,
   $6, $7, $8, $9,
   $10, $11, $12, $13)
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen
 `
 
 type CreateListingParams struct {
@@ -146,6 +146,7 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		&i.UpdatedAt,
 		&i.PublishedAt,
 		&i.DeletedAt,
+		&i.Prescreen,
 	)
 	return i, err
 }
@@ -454,7 +455,7 @@ func (q *Queries) FindPropertyByRuian(ctx context.Context, arg FindPropertyByRui
 }
 
 const getListing = `-- name: GetListing :one
-SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
+SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type GetListingParams struct {
@@ -486,6 +487,7 @@ func (q *Queries) GetListing(ctx context.Context, arg GetListingParams) (Listing
 		&i.UpdatedAt,
 		&i.PublishedAt,
 		&i.DeletedAt,
+		&i.Prescreen,
 	)
 	return i, err
 }
@@ -838,7 +840,7 @@ func (q *Queries) ListListingVersions(ctx context.Context, listingID uuid.UUID) 
 }
 
 const listListings = `-- name: ListListings :many
-SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
+SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, l.prescreen, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
   coalesce((SELECT m.object_key FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), '')::text AS cover_key,
   coalesce((SELECT m.orientation FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), 1)::int AS cover_orientation,
   EXISTS (SELECT 1 FROM listing_versions v WHERE v.listing_id = l.id AND v.status = 'pending') AS pending_review
@@ -878,6 +880,7 @@ type ListListingsRow struct {
 	UpdatedAt         time.Time   `json:"updated_at"`
 	PublishedAt       *time.Time  `json:"published_at"`
 	DeletedAt         *time.Time  `json:"deleted_at"`
+	Prescreen         []byte      `json:"prescreen"`
 	UnitKind          string      `json:"unit_kind"`
 	UnitLabel         string      `json:"unit_label"`
 	AddressLabel      string      `json:"address_label"`
@@ -916,6 +919,7 @@ func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]L
 			&i.UpdatedAt,
 			&i.PublishedAt,
 			&i.DeletedAt,
+			&i.Prescreen,
 			&i.UnitKind,
 			&i.UnitLabel,
 			&i.AddressLabel,
@@ -1368,7 +1372,7 @@ UPDATE listings SET title = $1, description = $2, rent_amount = $3,
   available_from = $6, min_term_months = $7,
   attributes = $8, location_precision = $9
 WHERE id = $10 AND org_id = $11 AND deleted_at IS NULL
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen
 `
 
 type UpdateListingParams struct {
@@ -1421,6 +1425,7 @@ func (q *Queries) UpdateListing(ctx context.Context, arg UpdateListingParams) (L
 		&i.UpdatedAt,
 		&i.PublishedAt,
 		&i.DeletedAt,
+		&i.Prescreen,
 	)
 	return i, err
 }

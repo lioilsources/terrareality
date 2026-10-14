@@ -3,11 +3,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/smtp"
 	"os"
+	"time"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/ai"
@@ -17,6 +19,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
+	"github.com/terrareality/terrareality/services/api/internal/realtime"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
 	"github.com/terrareality/terrareality/services/api/internal/vision"
 )
@@ -33,6 +36,8 @@ type Deps struct {
 	Scanner  media.Scanner
 	Vision   *vision.Client
 	AI       ai.Assistant
+	RT       realtime.Publisher
+	Pusher   notify.Pusher
 }
 
 // Build creates adapters. Real providers are used when their credentials are
@@ -129,7 +134,40 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	if cfg.LLMBaseURL != "" {
 		d.AI = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel)
 	}
+
+	if cfg.CentrifugoURL != "" {
+		d.RT = realtime.NewCentrifugo(cfg.CentrifugoURL, cfg.CentrifugoKey)
+	} else {
+		log.Warn("CENTRIFUGO_API_URL not set, realtime events stay in memory")
+		d.RT = &realtime.Memory{}
+	}
+	d.Pusher = notify.PushLog{L: log}
+	switch cfg.PushProvider {
+	case "mock":
+		d.Pusher = notify.PushViaEmail{Email: email}
+	case "fcm":
+		creds, err := os.ReadFile(cfg.FCMCredentialsFile)
+		if err != nil {
+			return d, fmt.Errorf("FCM_CREDENTIALS_FILE: %w", err)
+		}
+		if d.Pusher, err = notify.NewFCM(context.Background(), cfg.FCMProject, creds, notify.PushLog{L: log}); err != nil {
+			return d, err
+		}
+	}
 	return d, nil
+}
+
+// Moderator returns the AI used for moderation verdicts.
+func (d Deps) Moderator() ai.Moderator {
+	if m, ok := d.AI.(ai.Moderator); ok {
+		return m
+	}
+	return ai.Mock{}
+}
+
+// Tokens signs Centrifugo client tokens.
+func Tokens(cfg config.Config) realtime.Tokens {
+	return realtime.Tokens{Secret: []byte(cfg.CentrifugoTokenSecret), TTL: time.Hour}
 }
 
 // ListingFlags maps feature flags onto the catalog service.

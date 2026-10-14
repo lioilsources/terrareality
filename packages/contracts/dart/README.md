@@ -76,12 +76,15 @@ Class | Method | HTTP request | Description
 *AuthApi* | [**verifyEmail**](doc//AuthApi.md#verifyemail) | **POST** /v1/auth/email/verify | Confirm an e-mail address with the token from the verification e-mail
 *AuthApi* | [**verifyMagicLink**](doc//AuthApi.md#verifymagiclink) | **POST** /v1/auth/magic-link/verify | Exchange a magic link token for a session
 *BackofficeApi* | [**backofficeDecideFilterProposal**](doc//BackofficeApi.md#backofficedecidefilterproposal) | **POST** /v1/backoffice/filter-proposals/{proposalId}/decision | Add the option to the schema or reject it (staff)
+*BackofficeApi* | [**backofficeDecideModeration**](doc//BackofficeApi.md#backofficedecidemoderation) | **POST** /v1/backoffice/moderation/{caseId}/decision | Resolve a case (human decision; the AI verdict is only a suggestion)
 *BackofficeApi* | [**backofficeDecideReview**](doc//BackofficeApi.md#backofficedecidereview) | **POST** /v1/backoffice/reviews/{versionId}/decision | Approve (publish) or reject a version (staff)
+*BackofficeApi* | [**backofficeGetModeration**](doc//BackofficeApi.md#backofficegetmoderation) | **GET** /v1/backoffice/moderation/{caseId} | A case with the conversation transcript and the AI suggestion
 *BackofficeApi* | [**backofficeGetReview**](doc//BackofficeApi.md#backofficegetreview) | **GET** /v1/backoffice/reviews/{versionId} | One submitted version with its snapshot (staff)
 *BackofficeApi* | [**backofficeGetUser**](doc//BackofficeApi.md#backofficegetuser) | **GET** /v1/backoffice/users/{userId} | User detail with organizations (staff)
 *BackofficeApi* | [**backofficeImpersonate**](doc//BackofficeApi.md#backofficeimpersonate) | **POST** /v1/backoffice/users/{userId}/impersonate | Start a short audited session as the user (staff)
 *BackofficeApi* | [**backofficeListAudit**](doc//BackofficeApi.md#backofficelistaudit) | **GET** /v1/backoffice/audit | Platform-wide audit log (staff)
 *BackofficeApi* | [**backofficeListFilterProposals**](doc//BackofficeApi.md#backofficelistfilterproposals) | **GET** /v1/backoffice/filter-proposals | New attribute options proposed by AI ingest (staff)
+*BackofficeApi* | [**backofficeListModeration**](doc//BackofficeApi.md#backofficelistmoderation) | **GET** /v1/backoffice/moderation | Open reports and automatic flags, oldest first
 *BackofficeApi* | [**backofficeListReviews**](doc//BackofficeApi.md#backofficelistreviews) | **GET** /v1/backoffice/reviews | Moderation queue of submitted listing versions (staff)
 *BackofficeApi* | [**backofficeListUsers**](doc//BackofficeApi.md#backofficelistusers) | **GET** /v1/backoffice/users | Search users (staff)
 *CatalogApi* | [**changeListingStatus**](doc//CatalogApi.md#changelistingstatus) | **POST** /v1/orgs/{orgId}/listings/{listingId}/status | Pause, resume, mark as rented or archive
@@ -103,23 +106,47 @@ Class | Method | HTTP request | Description
 *JurisdictionsApi* | [**listJurisdictions**](doc//JurisdictionsApi.md#listjurisdictions) | **GET** /v1/jurisdictions | Active jurisdictions and their rules
 *MeApi* | [**cancelErasure**](doc//MeApi.md#cancelerasure) | **DELETE** /v1/me/erasure | Cancel a scheduled erasure during the grace period
 *MeApi* | [**changePassword**](doc//MeApi.md#changepassword) | **POST** /v1/me/password | Change or set the password; revokes other sessions
+*MeApi* | [**deletePushDevice**](doc//MeApi.md#deletepushdevice) | **DELETE** /v1/me/push-devices/{deviceId} | Unregister a push device
 *MeApi* | [**disableTotp**](doc//MeApi.md#disabletotp) | **POST** /v1/me/mfa/totp/disable | Disable TOTP after confirming a current code
 *MeApi* | [**enableTotp**](doc//MeApi.md#enabletotp) | **POST** /v1/me/mfa/totp/enable | Confirm the TOTP secret with a code; returns one-time recovery codes
 *MeApi* | [**finishIdentityVerification**](doc//MeApi.md#finishidentityverification) | **POST** /v1/me/identity/callback | Finish identity verification with the code from the provider redirect
 *MeApi* | [**getDataExportDownload**](doc//MeApi.md#getdataexportdownload) | **GET** /v1/me/data-exports/{requestId}/download | Short-lived download URL of a finished export
 *MeApi* | [**getMe**](doc//MeApi.md#getme) | **GET** /v1/me | Current user, verification level and organizations
+*MeApi* | [**getNotificationPreferences**](doc//MeApi.md#getnotificationpreferences) | **GET** /v1/me/notification-preferences | Notification settings
 *MeApi* | [**listConsents**](doc//MeApi.md#listconsents) | **GET** /v1/me/consents | Consent history (append-only)
 *MeApi* | [**listGdprRequests**](doc//MeApi.md#listgdprrequests) | **GET** /v1/me/gdpr-requests | My data export and erasure requests
 *MeApi* | [**listMySessions**](doc//MeApi.md#listmysessions) | **GET** /v1/me/sessions | Active sessions of the current user
+*MeApi* | [**listNotifications**](doc//MeApi.md#listnotifications) | **GET** /v1/me/notifications | Latest in-app notifications
+*MeApi* | [**listPushDevices**](doc//MeApi.md#listpushdevices) | **GET** /v1/me/push-devices | Registered push devices
+*MeApi* | [**markNotificationsRead**](doc//MeApi.md#marknotificationsread) | **POST** /v1/me/notifications/read | Mark one notification (id) or all as read
 *MeApi* | [**recordConsent**](doc//MeApi.md#recordconsent) | **POST** /v1/me/consents | Grant or withdraw a consent
+*MeApi* | [**registerPushDevice**](doc//MeApi.md#registerpushdevice) | **POST** /v1/me/push-devices | Register an FCM token or a web push subscription
 *MeApi* | [**requestDataExport**](doc//MeApi.md#requestdataexport) | **POST** /v1/me/data-exports | Request a machine-readable export of my data (GDPR art. 15 and 20)
 *MeApi* | [**requestErasure**](doc//MeApi.md#requesterasure) | **POST** /v1/me/erasure | Request account erasure (GDPR art. 17) after a grace period
 *MeApi* | [**revokeMySession**](doc//MeApi.md#revokemysession) | **DELETE** /v1/me/sessions/{sessionId} | Revoke one of my sessions
+*MeApi* | [**setNotificationPreferences**](doc//MeApi.md#setnotificationpreferences) | **PUT** /v1/me/notification-preferences | Change notification settings
 *MeApi* | [**setupTotp**](doc//MeApi.md#setuptotp) | **POST** /v1/me/mfa/totp/setup | Generate a new TOTP secret (not active until confirmed)
 *MeApi* | [**startIdentityVerification**](doc//MeApi.md#startidentityverification) | **POST** /v1/me/identity/start | Begin identity verification (BankID in CZ); returns the provider URL
 *MeApi* | [**startPhoneVerification**](doc//MeApi.md#startphoneverification) | **POST** /v1/me/phone | Send a verification code by SMS
 *MeApi* | [**updateMe**](doc//MeApi.md#updateme) | **PATCH** /v1/me | Update profile
 *MeApi* | [**verifyPhone**](doc//MeApi.md#verifyphone) | **POST** /v1/me/phone/verify | Confirm the phone number with the SMS code
+*MessagingApi* | [**completeAttachmentUpload**](doc//MessagingApi.md#completeattachmentupload) | **POST** /v1/attachments/{attachmentId}/complete | Check the uploaded file (type, size, malware) so it can be sent
+*MessagingApi* | [**conversationRealtimeToken**](doc//MessagingApi.md#conversationrealtimetoken) | **POST** /v1/conversations/{conversationId}/realtime-token | Subscription token for the conversation's realtime channel
+*MessagingApi* | [**createAttachmentUpload**](doc//MessagingApi.md#createattachmentupload) | **POST** /v1/conversations/{conversationId}/attachments | Reserve an attachment and get a presigned upload URL (PUT the file there, then complete)
+*MessagingApi* | [**createReplyTemplate**](doc//MessagingApi.md#createreplytemplate) | **POST** /v1/orgs/{orgId}/reply-templates | Create a reply template
+*MessagingApi* | [**deleteReplyTemplate**](doc//MessagingApi.md#deletereplytemplate) | **DELETE** /v1/orgs/{orgId}/reply-templates/{templateId} | Delete a reply template
+*MessagingApi* | [**getConversation**](doc//MessagingApi.md#getconversation) | **GET** /v1/conversations/{conversationId} | Conversation with read receipts and pre-screening answers
+*MessagingApi* | [**listConversations**](doc//MessagingApi.md#listconversations) | **GET** /v1/conversations | My conversations (as a seeker and for my organizations), newest first
+*MessagingApi* | [**listMessages**](doc//MessagingApi.md#listmessages) | **GET** /v1/conversations/{conversationId}/messages | Messages, newest first
+*MessagingApi* | [**listReplyTemplates**](doc//MessagingApi.md#listreplytemplates) | **GET** /v1/orgs/{orgId}/reply-templates | Reply templates of the organization
+*MessagingApi* | [**markConversationRead**](doc//MessagingApi.md#markconversationread) | **POST** /v1/conversations/{conversationId}/read | Mark the conversation read up to now (read receipt)
+*MessagingApi* | [**realtimeToken**](doc//MessagingApi.md#realtimetoken) | **POST** /v1/realtime/token | Connection token for Centrifugo; the connection joins the caller's user channel
+*MessagingApi* | [**reportConversation**](doc//MessagingApi.md#reportconversation) | **POST** /v1/conversations/{conversationId}/reports | Report the conversation or one message to the moderators
+*MessagingApi* | [**sendMessage**](doc//MessagingApi.md#sendmessage) | **POST** /v1/conversations/{conversationId}/messages | Send a message. Contact details are masked and flagged, never blocked.
+*MessagingApi* | [**setConversationBlocked**](doc//MessagingApi.md#setconversationblocked) | **PUT** /v1/conversations/{conversationId}/block | Block or unblock the conversation
+*MessagingApi* | [**setListingPrescreen**](doc//MessagingApi.md#setlistingprescreen) | **PUT** /v1/orgs/{orgId}/listings/{listingId}/prescreen | Replace the questions a seeker answers before the first message
+*MessagingApi* | [**startConversation**](doc//MessagingApi.md#startconversation) | **POST** /v1/conversations | Contact the landlord of a published listing (reuses an existing conversation)
+*MessagingApi* | [**updateReplyTemplate**](doc//MessagingApi.md#updatereplytemplate) | **PUT** /v1/orgs/{orgId}/reply-templates/{templateId} | Update a reply template
 *OrgsApi* | [**acceptInvitation**](doc//OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/{token}/accept | Accept an invitation; the invitee e-mail must match my account
 *OrgsApi* | [**createOrg**](doc//OrgsApi.md#createorg) | **POST** /v1/orgs | Create a company organization; the caller becomes its owner
 *OrgsApi* | [**createOrgInvitation**](doc//OrgsApi.md#createorginvitation) | **POST** /v1/orgs/{orgId}/invitations | Invite someone by e-mail (owner, admin)
@@ -154,6 +181,8 @@ Class | Method | HTTP request | Description
  - [AdminUserPage](doc//AdminUserPage.md)
  - [Area](doc//Area.md)
  - [AreaAggregate](doc//AreaAggregate.md)
+ - [Attachment](doc//Attachment.md)
+ - [AttachmentUpload](doc//AttachmentUpload.md)
  - [AttrFilter](doc//AttrFilter.md)
  - [AttributeDef](doc//AttributeDef.md)
  - [AttributeGroup](doc//AttributeGroup.md)
@@ -163,6 +192,7 @@ Class | Method | HTTP request | Description
  - [AuditPage](doc//AuditPage.md)
  - [AuthProvider](doc//AuthProvider.md)
  - [AuthResult](doc//AuthResult.md)
+ - [BackofficeDecideModerationRequest](doc//BackofficeDecideModerationRequest.md)
  - [ChangeListingStatusRequest](doc//ChangeListingStatusRequest.md)
  - [ChangePasswordRequest](doc//ChangePasswordRequest.md)
  - [ChatRequest](doc//ChatRequest.md)
@@ -172,6 +202,10 @@ Class | Method | HTTP request | Description
  - [Consent](doc//Consent.md)
  - [ConsentInput](doc//ConsentInput.md)
  - [ConsentKind](doc//ConsentKind.md)
+ - [Conversation](doc//Conversation.md)
+ - [ConversationDetail](doc//ConversationDetail.md)
+ - [ConversationRole](doc//ConversationRole.md)
+ - [CreateAttachmentUploadRequest](doc//CreateAttachmentUploadRequest.md)
  - [DownloadLink](doc//DownloadLink.md)
  - [FacetCount](doc//FacetCount.md)
  - [FieldError](doc//FieldError.md)
@@ -197,14 +231,25 @@ Class | Method | HTTP request | Description
  - [LoginRequest](doc//LoginRequest.md)
  - [MagicLinkRequest](doc//MagicLinkRequest.md)
  - [MapPoint](doc//MapPoint.md)
+ - [MarkNotificationsReadRequest](doc//MarkNotificationsReadRequest.md)
  - [Me](doc//Me.md)
  - [Media](doc//Media.md)
  - [MediaUpdate](doc//MediaUpdate.md)
  - [MediaUpload](doc//MediaUpload.md)
  - [MediaUploadRequest](doc//MediaUploadRequest.md)
  - [Member](doc//Member.md)
+ - [Message](doc//Message.md)
+ - [MessageFlag](doc//MessageFlag.md)
+ - [MessageInput](doc//MessageInput.md)
  - [MfaRequest](doc//MfaRequest.md)
+ - [ModerationCase](doc//ModerationCase.md)
+ - [ModerationCaseDetail](doc//ModerationCaseDetail.md)
+ - [ModerationSuggestion](doc//ModerationSuggestion.md)
+ - [ModerationVerdict](doc//ModerationVerdict.md)
  - [MunicipalityStat](doc//MunicipalityStat.md)
+ - [Notification](doc//Notification.md)
+ - [NotificationList](doc//NotificationList.md)
+ - [NotificationPreferences](doc//NotificationPreferences.md)
  - [OidcCallbackRequest](doc//OidcCallbackRequest.md)
  - [OidcStart](doc//OidcStart.md)
  - [OidcStartRequest](doc//OidcStartRequest.md)
@@ -215,13 +260,25 @@ Class | Method | HTTP request | Description
  - [PhoneRequest](doc//PhoneRequest.md)
  - [PhotoVariants](doc//PhotoVariants.md)
  - [Place](doc//Place.md)
+ - [PrescreenAnswer](doc//PrescreenAnswer.md)
+ - [PrescreenAnswerQuestion](doc//PrescreenAnswerQuestion.md)
+ - [PrescreenQuestion](doc//PrescreenQuestion.md)
+ - [PrescreenQuestionText](doc//PrescreenQuestionText.md)
  - [Problem](doc//Problem.md)
  - [ProposalDecision](doc//ProposalDecision.md)
  - [PublicListing](doc//PublicListing.md)
  - [PublicListingLocation](doc//PublicListingLocation.md)
  - [PublicListingUnit](doc//PublicListingUnit.md)
+ - [PushDevice](doc//PushDevice.md)
+ - [PushDeviceInput](doc//PushDeviceInput.md)
+ - [PushDeviceInputKeys](doc//PushDeviceInputKeys.md)
+ - [RealtimeToken](doc//RealtimeToken.md)
  - [RecoveryCodes](doc//RecoveryCodes.md)
  - [RegisterRequest](doc//RegisterRequest.md)
+ - [ReplyTemplate](doc//ReplyTemplate.md)
+ - [ReplyTemplateInput](doc//ReplyTemplateInput.md)
+ - [ReportConversation201Response](doc//ReportConversation201Response.md)
+ - [ReportInput](doc//ReportInput.md)
  - [RequestSuggestionRequest](doc//RequestSuggestionRequest.md)
  - [ReviewDecision](doc//ReviewDecision.md)
  - [ReviewDetail](doc//ReviewDetail.md)
@@ -232,12 +289,17 @@ Class | Method | HTTP request | Description
  - [SavedSearchInput](doc//SavedSearchInput.md)
  - [SearchQuery](doc//SearchQuery.md)
  - [SearchResult](doc//SearchResult.md)
+ - [SentMessage](doc//SentMessage.md)
  - [SessionInfo](doc//SessionInfo.md)
  - [SessionToken](doc//SessionToken.md)
+ - [SetConversationBlockedRequest](doc//SetConversationBlockedRequest.md)
+ - [StartConversation](doc//StartConversation.md)
+ - [SubscriptionToken](doc//SubscriptionToken.md)
  - [Suggestion](doc//Suggestion.md)
  - [SuggestionDecision](doc//SuggestionDecision.md)
  - [TokenRequest](doc//TokenRequest.md)
  - [TotpSetup](doc//TotpSetup.md)
+ - [TranscriptMessage](doc//TranscriptMessage.md)
  - [UnitKind](doc//UnitKind.md)
  - [UpdateMeRequest](doc//UpdateMeRequest.md)
  - [UserLocale](doc//UserLocale.md)
