@@ -183,6 +183,9 @@ func (s *Service) Transition(ctx context.Context, p *auth.Principal, orgID, id u
 				return err
 			}
 		}
+		if err := s.index(ctx, q, id); err != nil {
+			return err
+		}
 		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "listing", EntityID: &id, Action: "listing." + to,
 			Diff: map[string]any{"status": []string{l.Status, to}}})
 	})
@@ -283,6 +286,9 @@ func (s *Service) Review(ctx context.Context, staff *auth.Principal, versionID u
 		}
 		if approve {
 			if err := q.PublishListingVersion(ctx, db.PublishListingVersionParams{ID: v.ListingID, PublishedVersion: &v.Version}); err != nil {
+				return err
+			}
+			if err := s.index(ctx, q, v.ListingID); err != nil {
 				return err
 			}
 		} else if l.Status == "review" {

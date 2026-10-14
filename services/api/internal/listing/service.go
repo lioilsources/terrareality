@@ -36,6 +36,12 @@ type Jobs interface {
 	RunSuggestion(ctx context.Context, tx pgx.Tx, suggestionID uuid.UUID) error
 }
 
+// SearchIndex keeps the public search index in sync (search.Indexer).
+type SearchIndex interface {
+	Index(ctx context.Context, q *db.Queries, listingID uuid.UUID) error
+	Remove(ctx context.Context, q *db.Queries, listingID uuid.UUID) error
+}
+
 // Flags switch AI features (plan section 5: everything AI behind a flag).
 type Flags struct {
 	AIAttributes bool
@@ -56,6 +62,14 @@ type Service struct {
 	Render     *notify.Renderer
 	Flags      Flags
 	WebBaseURL string
+	Search     SearchIndex // nil disables indexing (unit tests)
+}
+
+func (s *Service) index(ctx context.Context, q *db.Queries, id uuid.UUID) error {
+	if s.Search == nil {
+		return nil
+	}
+	return s.Search.Index(ctx, q, id)
 }
 
 var errListingNotFound = apperr.NotFound("listing_not_found", "listing not found")
@@ -141,6 +155,11 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 				Lat: place.Lat, Lng: place.Lng, Label: place.Label})
 			if err != nil {
 				return err
+			}
+			if path, err := q.AdminPathAt(ctx, db.AdminPathAtParams{Lat: place.Lat, Lng: place.Lng}); err == nil {
+				if err := q.SetAddressAdminPath(ctx, db.SetAddressAdminPathParams{ID: addrID, AdminPath: &path}); err != nil {
+					return err
+				}
 			}
 			kind := "apartment_building"
 			if in.UnitKind == "house" {

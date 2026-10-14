@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	pgxvec "github.com/pgvector/pgvector-go/pgx"
 	"github.com/pressly/goose/v3"
 
 	"github.com/terrareality/terrareality/services/api/migrations"
@@ -27,6 +28,13 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	}
 	cfg.MaxConnLifetime = time.Hour
 	cfg.MaxConnIdleTime = 10 * time.Minute
+	// pgvector types (embeddings); the extension exists from migration 00001.
+	// On a brand-new database the first connection precedes migrations, so a
+	// missing type is tolerated and registered on later connections.
+	cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_ = pgxvec.RegisterTypes(ctx, conn)
+		return nil
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create pool: %w", err)
