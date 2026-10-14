@@ -35,6 +35,11 @@ func TestSearchPerformance(t *testing.T) {
 	if _, err := search.Synthetic(ctx, pool, 50_000); err != nil {
 		t.Fatal(err)
 	}
+	var noVersion int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM listing_search s WHERE NOT EXISTS
+		(SELECT 1 FROM listing_versions v WHERE v.listing_id = s.listing_id AND v.version = s.version)`).Scan(&noVersion); err != nil || noVersion > 0 {
+		t.Fatalf("%d indexed listings without an approved version (%v)", noVersion, err)
+	}
 	schema, err := catalog.Load(ctx, db.New(pool))
 	if err != nil {
 		t.Fatal(err)

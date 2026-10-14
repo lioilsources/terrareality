@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,7 +20,13 @@ func Synthetic(ctx context.Context, pool *pgxpool.Pool, n int) (int, error) {
 	var have int
 	err := pool.QueryRow(ctx, `SELECT count(*) FROM listing_search s JOIN organizations o ON o.id = s.org_id
 		WHERE o.name = $1 AND o.kind = 'company'`, SyntheticOrg).Scan(&have)
-	if err != nil || have >= n {
+	if err != nil {
+		return 0, err
+	}
+	if have >= n {
+		// Data from before versions were generated.
+		_, err := pool.Exec(ctx, `WITH o AS (SELECT id FROM organizations WHERE name = $1 AND kind = 'company')
+			`+strings.Replace(syntheticVersionsSQL, "s.org_id = $1", "s.org_id IN (SELECT id FROM o)", 1), SyntheticOrg)
 		return 0, err
 	}
 	missing := n - have
@@ -53,7 +60,12 @@ func Synthetic(ctx context.Context, pool *pgxpool.Pool, n int) (int, error) {
 			AND NOT EXISTS (SELECT 1 FROM listing_search s WHERE s.listing_id = l.id)`, orgID); err != nil {
 			return err
 		}
-		_, err = tx.Exec(ctx, syntheticSQL, orgID, unitID, missing)
+		if _, err := tx.Exec(ctx, syntheticSQL, orgID, unitID, missing); err != nil {
+			return err
+		}
+		// Approved versions, so synthetic listings behave like real ones
+		// (public detail, reindex).
+		_, err = tx.Exec(ctx, syntheticVersionsSQL, orgID)
 		return err
 	})
 	if err != nil {
@@ -65,6 +77,20 @@ func Synthetic(ctx context.Context, pool *pgxpool.Pool, n int) (int, error) {
 	_, err = pool.Exec(ctx, "ANALYZE listing_search")
 	return missing, err
 }
+
+const syntheticVersionsSQL = `
+INSERT INTO listing_versions (listing_id, org_id, version, snapshot, status, reviewed_at)
+SELECT s.listing_id, s.org_id, 1, jsonb_build_object(
+    'title', s.title, 'description', jsonb_build_object('cs', 'Syntetický inzerát pro testy vyhledávání.', 'en', ''),
+    'rent_amount', s.rent_amount, 'currency', s.currency, 'attributes', s.attributes,
+    'location_precision', 'exact',
+    'unit', jsonb_build_object('kind', s.unit_kind, 'label', 'Synthetic', 'layout', s.layout, 'floor_area', s.floor_area),
+    'address', jsonb_build_object('label', coalesce(s.city_part, s.city), 'city', s.city, 'city_part', s.city_part,
+      'lat', ST_Y(s.location::geometry), 'lng', ST_X(s.location::geometry)),
+    'photos', '[]'::jsonb),
+  'approved', now()
+FROM listing_search s
+WHERE s.org_id = $1 AND NOT EXISTS (SELECT 1 FROM listing_versions v WHERE v.listing_id = s.listing_id)`
 
 const syntheticSQL = `
 WITH units AS (SELECT array_agg(id) AS ids FROM admin_units WHERE level = (SELECT max(level) FROM admin_units)),
