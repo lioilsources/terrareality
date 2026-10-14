@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
 )
@@ -221,25 +222,39 @@ func (e *Engine) Search(ctx context.Context, q Query, schema *catalog.Schema) (R
 		return Result{}, err
 	}
 	res := Result{Facets: map[string][]FacetValue{}}
-	// One snapshot of the data for all parts of the answer.
-	err = pgx.BeginTxFunc(ctx, e.Pool, pgx.TxOptions{AccessMode: pgx.ReadOnly, IsoLevel: pgx.RepeatableRead}, func(tx pgx.Tx) error {
-		where := b.sql()
-		if err := tx.QueryRow(ctx, "SELECT count(*), coalesce(min(rent_amount), 0), coalesce(max(rent_amount), 0) FROM listing_search s WHERE "+where,
-			b.args...).Scan(&res.Total, &res.RentMin, &res.RentMax); err != nil {
+	// The parts are independent read-only queries; running them on separate
+	// connections in parallel roughly halves latency on a multi-core database.
+	// They may see data a few milliseconds apart, which is fine for search.
+	var parts [5]Result
+	for i := range parts {
+		parts[i].Facets = map[string][]FacetValue{}
+	}
+	g, gctx := errgroup.WithContext(ctx)
+	run := func(i int, fn func(ctx context.Context, tx pgx.Tx, r *Result) error) {
+		g.Go(func() error {
+			return pgx.BeginTxFunc(gctx, e.Pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+				return fn(gctx, tx, &parts[i])
+			})
+		})
+	}
+	run(0, func(ctx context.Context, tx pgx.Tx, r *Result) error {
+		err := tx.QueryRow(ctx, "SELECT count(*), coalesce(min(rent_amount), 0), coalesce(max(rent_amount), 0) FROM listing_search s WHERE "+
+			b.sql(), b.args...).Scan(&r.Total, &r.RentMin, &r.RentMax)
+		if err != nil {
 			return fmt.Errorf("count: %w", err)
 		}
-		if err := e.items(ctx, tx, q, b, &res); err != nil {
-			return err
-		}
-		if err := e.facets(ctx, tx, q, schema, &res); err != nil {
-			return err
-		}
-		if err := e.areas(ctx, tx, q, b, &res); err != nil {
-			return err
-		}
-		return e.points(ctx, tx, b, &res)
+		return nil
 	})
-	return res, err
+	run(1, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.items(ctx, tx, q, b, r) })
+	run(2, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.facets(ctx, tx, q, schema, r) })
+	run(3, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.areas(ctx, tx, q, b, r) })
+	run(4, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.points(ctx, tx, b, r) })
+	if err := g.Wait(); err != nil {
+		return Result{}, err
+	}
+	res.Total, res.RentMin, res.RentMax = parts[0].Total, parts[0].RentMin, parts[0].RentMax
+	res.Items, res.Facets, res.Areas, res.Points = parts[1].Items, parts[2].Facets, parts[3].Areas, parts[4].Points
+	return res, nil
 }
 
 func (e *Engine) items(ctx context.Context, tx pgx.Tx, q Query, base *builder, res *Result) error {

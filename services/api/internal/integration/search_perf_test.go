@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -17,6 +18,9 @@ func ptr[T any](v T) *T { return &v }
 // Acceptance M3: p95 of search (items, facets, area aggregates and map
 // points) stays under 300 ms on 50 000 listings.
 func TestSearchPerformance(t *testing.T) {
+	if os.Getenv("SKIP_PERF") != "" {
+		t.Skip("SKIP_PERF set; CI runs this test alone in its own step")
+	}
 	pool := setup(t)
 	ctx := context.Background()
 	if err := catalog.Sync(ctx, db.New(pool)); err != nil {

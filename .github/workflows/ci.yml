@@ -37,6 +37,10 @@ jobs:
       - run: go vet ./...
       - run: go tool staticcheck ./...
       - run: go test -race ./...
+        env:
+          SKIP_PERF: "1"
+      - name: Search performance (M3 acceptance, 50k listings, runs alone)
+        run: go test -count=1 -run TestSearchPerformance -v ./internal/integration/
 
   web:
     runs-on: ubuntu-latest

@@ -26,6 +26,10 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
 	}
+	// pgx defaults to max(4, CPUs); a search runs five queries in parallel.
+	if cfg.MaxConns < 16 {
+		cfg.MaxConns = 16
+	}
 	cfg.MaxConnLifetime = time.Hour
 	cfg.MaxConnIdleTime = 10 * time.Minute
 	// pgvector types (embeddings); the extension exists from migration 00001.
