@@ -35,6 +35,12 @@ Temporal UI http://localhost:8233, Mailpit http://localhost:8025.
 password `terra-dev-password`. Verification e-mails, invitations and the SMS mock land in Mailpit.
 Google, Apple and BankID run against a local mock IdP until real credentials are configured.
 
+Catalog (M2): dev loads a small synthetic RÚIAN address sample (try "Dejvická" or "Korunní");
+import the full register with `cd services/api && go run ./cmd/terractl ruian import <ČÚZK zip>`.
+Photos go to SeaweedFS and are served through imgproxy (http://localhost:8081). AI suggestions use
+the offline mock unless `LLM_BASE_URL` points at the Spark gateway. Listings submitted for review
+appear at http://localhost:5173/backoffice/reviews for `staff@terra.local`.
+
 Mobile: `cd apps/mobile && flutter run` (iOS simulator reaches `localhost:8080`, Android emulator `10.0.2.2:8080`;
 override with `--dart-define=API_URL=...`).
 Live contract check of the Dart client against a running api:

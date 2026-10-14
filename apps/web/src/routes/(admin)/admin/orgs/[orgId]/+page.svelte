@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
-	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { fmtDate, fmtDateTime, invitableRoles, levelLabel, roleLabel } from '#lib/labels.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
@@ -19,7 +19,10 @@
 <svelte:head><title>{org.name} · {m.app_name()}</title></svelte:head>
 
 <div class="grid gap-6">
-	<h1 class="text-2xl font-semibold" data-testid="org-name">{org.name}</h1>
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<h1 class="text-2xl font-semibold" data-testid="org-name">{org.name}</h1>
+		<a href={localizeHref(`/admin/orgs/${org.id}/listings`)}>{m.nav_listings()} →</a>
+	</div>
 	{#if form?.error}<Alert kind="error">{form.error}</Alert>{/if}
 
 	{#if data.manage}

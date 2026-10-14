@@ -9,6 +9,8 @@ Hard rules (from the plan, section 0 and 6):
 - `packages/contracts/openapi.yaml` is the source of truth. Change it first, then `make gen`. Never edit
   generated files (`services/api/internal/api/gen`, `services/api/internal/db`, `packages/contracts/ts/schema.d.ts`,
   `packages/contracts/dart`).
+- Every org-scoped table enables row-level security with the `org_id IN (SELECT app_user_org_ids())`
+  policy (ADR 0004); owner-facing code reads and writes through `db.AsUser`.
 - Schema changes are new goose migrations in `services/api/migrations`; queries live in `services/api/queries` (sqlc).
 - External services only behind adapters with a mock implementation; `make dev` must work offline.
 - Legal questions go to `docs/legal-questions.md`, other open questions to `docs/open-questions.md`.

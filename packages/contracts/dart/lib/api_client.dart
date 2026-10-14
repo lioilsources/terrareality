@@ -294,6 +294,8 @@ class ApiClient {
           return PasswordResetRequest.fromJson(value);
         case 'PhoneRequest':
           return PhoneRequest.fromJson(value);
+        case 'PhotoVariants':
+          return PhotoVariants.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
         case 'ProposalDecision':

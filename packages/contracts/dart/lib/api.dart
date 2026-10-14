@@ -92,6 +92,7 @@ part 'model/org_membership.dart';
 part 'model/organization.dart';
 part 'model/password_reset_request.dart';
 part 'model/phone_request.dart';
+part 'model/photo_variants.dart';
 part 'model/problem.dart';
 part 'model/proposal_decision.dart';
 part 'model/recovery_codes.dart';

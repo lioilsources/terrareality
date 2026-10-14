@@ -66,7 +66,12 @@
 								]()}</span
 							>
 						</span>
-						<a href={localizeHref(`/admin/orgs/${o.organization.id}`)}>{m.org_open()}</a>
+						<span class="flex gap-3">
+							<a href={localizeHref(`/admin/orgs/${o.organization.id}/listings`)}
+								>{m.nav_listings()}</a
+							>
+							<a href={localizeHref(`/admin/orgs/${o.organization.id}`)}>{m.org_open()}</a>
+						</span>
 					</li>
 				{/each}
 			</ul>

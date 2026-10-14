@@ -22,7 +22,7 @@ class ReviewDetail {
 
   Map<String, Object> snapshot;
 
-  List<Map<String, String>> photos;
+  List<PhotoVariants> photos;
 
   @override
   bool operator ==(Object other) => identical(this, other) || other is ReviewDetail &&
@@ -69,7 +69,7 @@ class ReviewDetail {
       return ReviewDetail(
         item: ReviewItem.fromJson(json[r'item'])!,
         snapshot: mapCastOfType<String, Object>(json, r'snapshot')!,
-        photos: Map.listFromJson(json[r'photos']),
+        photos: PhotoVariants.listFromJson(json[r'photos']),
       );
     }
     return null;

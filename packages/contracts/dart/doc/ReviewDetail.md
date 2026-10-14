@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **item** | [**ReviewItem**](ReviewItem.md) |  | 
 **snapshot** | [**Map<String, Object>**](Object.md) |  | [default to const {}]
-**photos** | [**List<Map<String, String>>**](Map.md) |  | [default to const []]
+**photos** | [**List<PhotoVariants>**](PhotoVariants.md) |  | [default to const []]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

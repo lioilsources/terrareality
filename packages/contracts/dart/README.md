@@ -195,6 +195,7 @@ Class | Method | HTTP request | Description
  - [Organization](doc//Organization.md)
  - [PasswordResetRequest](doc//PasswordResetRequest.md)
  - [PhoneRequest](doc//PhoneRequest.md)
+ - [PhotoVariants](doc//PhotoVariants.md)
  - [Problem](doc//Problem.md)
  - [ProposalDecision](doc//ProposalDecision.md)
  - [RecoveryCodes](doc//RecoveryCodes.md)

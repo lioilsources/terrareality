@@ -23,6 +23,20 @@ export type GdprRequest = Schemas['GdprRequest'];
 export type SessionInfo = Schemas['SessionInfo'];
 export type AdminUser = Schemas['AdminUser'];
 export type Jurisdiction = Schemas['Jurisdiction'];
+export type Listing = Schemas['Listing'];
+export type ListingSummary = Schemas['ListingSummary'];
+export type ListingStatus = Schemas['ListingStatus'];
+export type ListingUpdate = Schemas['ListingUpdate'];
+export type Media = Schemas['Media'];
+export type Suggestion = Schemas['Suggestion'];
+export type AttributeSchema = Schemas['AttributeSchema'];
+export type AttributeDef = Schemas['AttributeDef'];
+export type AddressSuggestion = Schemas['AddressSuggestion'];
+export type UnitKind = Schemas['UnitKind'];
+export type ReviewItem = Schemas['ReviewItem'];
+export type FilterProposal = Schemas['FilterProposal'];
+export type FieldError = Schemas['FieldError'];
+export type I18nText = Schemas['I18nText'];
 export type ApiClient = Client<paths>;
 
 /** Create a client bound to the given API base URL. */

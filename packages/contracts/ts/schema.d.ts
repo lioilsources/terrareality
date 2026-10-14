@@ -1763,7 +1763,12 @@ export interface components {
             snapshot: {
                 [key: string]: unknown;
             };
-            photos: components["schemas"]["PhotoUrls"][];
+            photos: components["schemas"]["PhotoVariants"][];
+        };
+        PhotoVariants: {
+            thumb: string;
+            medium: string;
+            large: string;
         };
         ReviewDecision: {
             approve: boolean;

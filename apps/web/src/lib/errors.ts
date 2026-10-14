@@ -20,7 +20,13 @@ const byCode: Record<string, () => string> = {
 	impersonation_forbidden: m.err_impersonation_forbidden,
 	provider_unavailable: m.err_provider_unavailable,
 	email_required: m.err_email_required,
-	staff_mfa_required: m.err_staff_mfa_required
+	staff_mfa_required: m.err_staff_mfa_required,
+	invalid_fields: m.err_invalid_fields,
+	listing_locked: m.err_listing_locked,
+	unsupported_format: m.err_unsupported_format,
+	file_too_large: m.err_file_too_large,
+	feature_disabled: m.err_feature_disabled,
+	unknown_address: m.err_unknown_address
 };
 
 /** Translates an api problem into a user-facing message. */

@@ -62,6 +62,7 @@ doc/Organization.md
 doc/OrgsApi.md
 doc/PasswordResetRequest.md
 doc/PhoneRequest.md
+doc/PhotoVariants.md
 doc/Problem.md
 doc/ProposalDecision.md
 doc/RecoveryCodes.md
@@ -158,6 +159,7 @@ lib/model/org_membership.dart
 lib/model/organization.dart
 lib/model/password_reset_request.dart
 lib/model/phone_request.dart
+lib/model/photo_variants.dart
 lib/model/problem.dart
 lib/model/proposal_decision.dart
 lib/model/recovery_codes.dart

@@ -1780,7 +1780,14 @@ components:
         snapshot: { type: object, additionalProperties: true }
         photos:
           type: array
-          items: { $ref: "#/components/schemas/PhotoUrls" }
+          items: { $ref: "#/components/schemas/PhotoVariants" }
+    PhotoVariants:
+      type: object
+      required: [thumb, medium, large]
+      properties:
+        thumb: { type: string }
+        medium: { type: string }
+        large: { type: string }
     ReviewDecision:
       type: object
       required: [approve]

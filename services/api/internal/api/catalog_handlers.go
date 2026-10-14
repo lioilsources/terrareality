@@ -431,9 +431,10 @@ func (s *Server) BackofficeGetReview(ctx context.Context, r gen.BackofficeGetRev
 		SubmittedAt: v.SubmittedAt, Snapshot: v.Snapshot, OrgName: o.Name, SubmittedByEmail: email, PublishedVersion: l.PublishedVersion})
 	var snap listing.Snapshot
 	_ = json.Unmarshal(v.Snapshot, &snap)
-	photos := []gen.PhotoUrls{}
+	photos := []gen.PhotoVariants{}
 	for _, ph := range snap.Photos {
-		photos = append(photos, s.Listings.PhotoURLs(ph.Key, ph.Orientation))
+		u := s.Listings.PhotoURLs(ph.Key, ph.Orientation)
+		photos = append(photos, gen.PhotoVariants{Thumb: u["thumb"], Medium: u["medium"], Large: u["large"]})
 	}
 	return gen.BackofficeGetReview200JSONResponse{Item: item, Snapshot: objectOf(v.Snapshot), Photos: photos}, nil
 }
