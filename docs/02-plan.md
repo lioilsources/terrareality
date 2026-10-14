@@ -136,7 +136,26 @@ Acceptance: skupina 3 lidí podá jednu žádost se souhlasem všech; majitel vy
 - Hash chain: každý `lease_event` má `sha256(prev_hash || canonical_json(payload))`; endpoint pro ověření řetězu; export pro spor.
 Acceptance: E2E majitel + 2 spolubydlící: smlouva společný nájem → oba podepíší (mock) → vznikne kalendář s dělením 50/50 → QR → simulovaná bankovní transakce se spáruje → dluh 0; řetěz hashů ověřitelný; po 7 dnech bez platby workflow pošle eskalaci.
 
-### M7 – Promo, billing, Revolut, backoffice (týden 20–22)
+### M6b – Portfolio napříč městy a riziko nájmů (PRIORITA, týden 20–23; M7 a M8 se posouvají o 3 týdny)
+Kontext (zadání zákazníka 2026-10-15): v ČR je typické, že jeden subjekt (fyzická osoba, s.r.o., investor, rodina) má víc nájmů v různých městech a každý má jiný stupeň rizika (lokalita, nájemce, typ smlouvy). Majitel potřebuje jeden pohled na celé portfolio a vědět, kde hrozí výpadek příjmu. Z fáze 2 se sem předtahuje rent roll (bez rozúčtování a budov).
+Úkoly:
+- **Portfolio = organizace** (existuje z M1) napříč obcemi a kraji; volitelné skupiny/štítky nemovitostí (např. „Brno – investiční“, „Praha – vlastní“) a role `investor` (jen čtení) pro spolumajitele, banku nebo účetní.
+- **Rent roll**: tabulka a mapa všech jednotek a nájmů (obec, nájemce, nájem, splatnost, konec smlouvy, kauce, dluh, obsazenost), filtry podle města/kraje/skupiny, export CSV/XLSX.
+- **Riziko nájmu v0 (deterministické, vysvětlitelné, bez ML)**: `lease_risk(lease_id, score 0–100, band low|medium|high, factors jsonb, model_version, computed_at)`, přepočet jobem po každé platbě/eskalaci a denně. Faktory s vahami (konfigurovatelné per organizace):
+  - platební chování na smlouvě (zpoždění, počet eskalací D+7, aktuální dluh vs. měsíční nájem),
+  - krytí dluhu kaucí,
+  - Tenant Passport (úroveň ověření, doložený příjem ano/ne, ISIR záznam),
+  - smlouva (doba určitá končící do 90 dní = riziko vakance, výpověď, společný nájem s jedním neplatícím),
+  - lokalita z vlastních dat M3 (medián nájmu obce vs. sjednaný nájem, doba inzerce a obrátkovost v obci, podíl volných jednotek).
+  Chráněné údaje nájemce se nepoužívají; každé skóre ukazuje seznam faktorů a jejich podíl.
+- **Riziko portfolia**: vážené (podle měsíčního nájmu) a koncentrace (podíl příjmu v jedné obci, u jednoho nájemce, konce smluv ve stejném měsíci); očekávaný vs. přijatý příjem za měsíc a rozpad podle měst/krajů.
+- **Pravidla per město/skupina**: přepis výchozích pravidel jurisdikce (připomínky D-3/D+1/D+7, penále, výše kauce, výpovědní doba) pro rizikovější lokality; Temporal workflow čte pravidla ze smlouvy.
+- **Dashboard „Portfolio“** v adminu (web) a přehled ve Flutteru: karty měst s rizikem, seznam „vyžaduje pozornost“ (eskalace, rostoucí dluh, konec smlouvy bez prodloužení, vakance), trend 12 měsíců.
+- **AI shrnutí portfolia** jako návrh (co se zhoršilo a doporučené kroky); nikdy automatické sankce ani rozhodnutí o nájemci (ADR 0003, GDPR čl. 22).
+- **Transparentnost pro nájemce**: nájemce vidí faktory, které se týkají jeho smlouvy (platby, dluh), ne lokalitu ani váhy majitele.
+Acceptance: majitel se 3 nájmy v Praze, Brně a Ostravě s různou platební historií vidí v dashboardu rozdílná rizika s vysvětlením faktorů, vážené riziko a koncentraci portfolia, rozpad příjmu podle měst a seznam akcí; eskalace D+7 u jednoho nájmu zvýší jeho skóre do 1 h; investor (jen čtení) vidí portfolio, ale nemůže nic měnit; export rent rollu do CSV sedí s ledgery smluv.
+
+### M7 – Promo, billing, Revolut, backoffice (týden 23–25)
 Úkoly:
 - Promo produkty: topování (jednorázové, naplánované), zvýraznění, balíčky; řazení v search s transparentním štítkem.
 - Stripe Billing (karty) pro promo + budoucí předplatné; faktury s DPH CZ; webhooky.
@@ -144,7 +163,7 @@ Acceptance: E2E majitel + 2 spolubydlící: smlouva společný nájem → oba po
 - Backoffice: dashboard metrik, moderační fronty (inzeráty, zprávy, AI návrhy filter schémat, atributů), feature flags (tabulka + cache), správa šablon a katalogu, impersonace, audit log viewer.
 Acceptance: majitel zaplatí topování kartou, inzerát se posune, faktura přijde e-mailem; Revolut odkaz vytvořen pro obligation (sandbox).
 
-### M8 – Flutter v0 dokončení, produkce, launch (týden 22–26)
+### M8 – Flutter v0 dokončení, produkce, launch (týden 25–29)
 Úkoly:
 - Flutter: hledání s mapou (maplibre_gl), chat, žádost, prohlídky, nájemní portál, push; Admin funkce **ne** (web). TestFlight + interní Play track.
 - Hetzner: terraform (2 VM: app, db; object storage; firewall; snapshots), compose prod, Caddy TLS, WireGuard k Sparku, cloud LLM fallback (Claude přes gateway) za flagem, zálohy pgBackRest (RPO 1 h), restore test v runbooku.

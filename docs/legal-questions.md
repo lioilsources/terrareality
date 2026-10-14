@@ -55,3 +55,21 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
 - **Q-APP-3 Anti-discrimination.** Reject reasons come from a fixed list and protected data is not
   collected. Is that sufficient under the anti-discrimination act for the landlord's choice?
 
+## Leases (M6)
+
+- **Q-LEASE-1 Template review.** The four templates in `packages/attributes/templates/cz/` are drafts
+  (watermarked) and must be reviewed before M6 acceptance: mandatory terms (sections 2235 et seq. of
+  the Civil Code), the deposit clause and interest, joint tenancy (section 2270), house rules and the
+  room lease.
+- **Q-LEASE-2 Signature level.** Is a simple electronic signature with evidence (IP, time, document
+  hash, audit chain) sufficient for a residential lease, or should we require Bank iD SIGN (qualified)?
+- **Q-LEASE-3 Immutable event log vs. erasure.** Lease events and the ledger cannot be changed. After
+  an erasure request they keep names inside past payloads. Is retention for the limitation period
+  (3 years after the lease ends) the right basis, and must payloads avoid personal data?
+
+## Portfolio risk (M6b)
+
+- **Q-RISK-1 Profiling.** The lease risk score combines payment behaviour, passport facts and location
+  data. It informs the landlord and never decides automatically. Is it profiling under GDPR art. 4(4)
+  and 22, which information must tenants get (art. 13–15), and is a DPIA required?
+
