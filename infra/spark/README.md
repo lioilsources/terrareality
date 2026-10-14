@@ -9,8 +9,8 @@ endpoint is not used by apps without the owner's approval.
 | Use | Route | Status |
 |---|---|---|
 | Attribute extraction, listing texts, chat-first search (tool calling, JSON) | `openclaw-default` (Qwen3.6-35B-A3B, 64k context) | in use |
-| Listing embeddings (1024 dim, pgvector) | `shop-embed` (bge-m3) or a CPU sidecar | not running; waiting for the owner's decision. Until then `EMBEDDINGS_MODEL` stays empty and similar-listing features are off |
-| Photo tagging in `services/vision` | `vl` (Qwen2.5-VL-7B, ~22 GB) | not running; waiting for a decision when it may run. Vision stays in mock mode |
+| Listing embeddings (1024 dim, pgvector) | `shop-embed` (bge-m3); requests must send `"encoding_format": "float"` | on demand: stopped by default, the operator starts it for a batch (~10 s startup). `EMBEDDINGS_MODEL` stays empty for normal operation; similar listings use the attribute fallback |
+| Photo tagging in `services/vision` | `vl` (Qwen2.5-VL-7B, max 3 images per request, 16k context) | on demand: stopped by default (~4 min startup). Vision runs in mock mode otherwise |
 
 There are no `terra*` routes. Route changes are pull requests to the AiStack repo
 (`deploy/litellm_config.yaml`); deploying them (pull + LiteLLM restart on the Spark) is done by the
@@ -22,8 +22,11 @@ operator or the owner, never by this project.
   call fails. AI suggestions are River jobs with retries spanning about 7 hours, so they finish
   once the window opens. The UI shows "generating" meanwhile.
 - At most 4 parallel interactive requests from TerraReality.
-- Batch jobs (bulk extraction, tagging, embedding backfills) are announced to the operator first
-  (window, count, estimate), are resumable by id and stop at 06:57.
+- Batch jobs (bulk extraction, tagging, embedding backfills) are requested from the operator
+  (Director session) with the kind and size, e.g. "embed backfill 5 000 listings, ~20 min", only
+  in the 13:10–06:55 window. Wait for "running", send "done" afterwards. Jobs are resumable by id
+  and stop at 06:57. A permanently running embedding model (needed for query embeddings) is a
+  separate decision of the owner.
 - No own containers on the Spark without the owner's approval.
 
 Every AI output is a suggestion that a human approves (ADR 0003).
