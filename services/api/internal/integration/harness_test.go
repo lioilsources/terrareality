@@ -22,11 +22,13 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/api"
+	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/isir"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
@@ -126,6 +128,27 @@ func (r *recPusher) count(userID uuid.UUID) int {
 	return n
 }
 
+// recAppJobs records application jobs.
+type recAppJobs struct {
+	mu        sync.Mutex
+	summaries []uuid.UUID
+	reminders []time.Time
+}
+
+func (r *recAppJobs) SummarizeApplication(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.summaries = append(r.summaries, id)
+	return nil
+}
+
+func (r *recAppJobs) ViewingReminder(_ context.Context, _ pgx.Tx, _ uuid.UUID, at time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.reminders = append(r.reminders, at)
+	return nil
+}
+
 type env struct {
 	t        *testing.T
 	pool     *pgxpool.Pool
@@ -142,6 +165,8 @@ type env struct {
 	pusher   *recPusher
 	notifier *messaging.Notifier
 	verdicts *messaging.Verdicts
+	appJobs  *recAppJobs
+	summary  *applications.Summaries
 }
 
 func newEnv(t *testing.T) *env {
@@ -200,8 +225,12 @@ func newEnv(t *testing.T) *env {
 	e.notifier = &messaging.Notifier{Pool: pool, RT: e.rt, Pusher: e.pusher, Outbox: e.outbox, Render: render,
 		WebBaseURL: "http://web.test", Log: log}
 	e.verdicts = &messaging.Verdicts{Pool: pool, AI: ai.Mock{}, Enabled: true}
+	e.appJobs = &recAppJobs{}
+	e.summary = &applications.Summaries{Pool: pool, AI: ai.Mock{}, Enabled: true}
+	apps := &applications.Service{Pool: pool, RT: e.rt, Jobs: e.appJobs, Outbox: e.outbox, Render: render, Blob: e.blob,
+		Scanner: media.NoScanner{}, ISIR: isir.Mock{}, WebBaseURL: "http://web.test", Log: log}
 	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
-		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages}),
+		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e

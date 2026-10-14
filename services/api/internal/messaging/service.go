@@ -175,7 +175,7 @@ func (s *Service) Start(ctx context.Context, p *auth.Principal, listingID uuid.U
 	}
 	var questions []PrescreenQuestion
 	_ = json.Unmarshal(l.Prescreen, &questions)
-	stored, err := matchAnswers(questions, answers)
+	stored, err := MatchAnswers(questions, answers)
 	if err != nil {
 		return uuid.Nil, Message{}, err
 	}
@@ -210,8 +210,8 @@ func (s *Service) Start(ctx context.Context, p *auth.Principal, listingID uuid.U
 	return conv.ID, out, nil
 }
 
-// matchAnswers validates answers against the listing's questions.
-func matchAnswers(questions []PrescreenQuestion, answers map[string]string) ([]PrescreenAnswer, error) {
+// MatchAnswers validates answers against the listing's questions.
+func MatchAnswers(questions []PrescreenQuestion, answers map[string]string) ([]PrescreenAnswer, error) {
 	out := []PrescreenAnswer{}
 	fe := apperr.Unprocessable("prescreen_incomplete", "answer the landlord's required questions")
 	for _, q := range questions {

@@ -41,5 +41,25 @@
         "type": "int"
       }
     }
-  }
+  },
+  "applicationsTitle": "My applications",
+  "applicationsEmpty": "No applications yet.",
+  "applicationTitle": "Application",
+  "appPendingConsent": "Waiting for the group",
+  "appSubmitted": "Sent",
+  "appInvited": "Invited to a viewing",
+  "appAccepted": "Chosen",
+  "appRejected": "Not accepted",
+  "appWithdrawn": "Withdrawn",
+  "consent": "I agree to send this application",
+  "consentGiven": "Consent saved.",
+  "yourViewing": "Your viewing",
+  "cancelBooking": "Cancel",
+  "bookingCancelled": "Booking cancelled.",
+  "viewingSlots": "Viewing times",
+  "noSlots": "The landlord has not offered any times yet.",
+  "book": "Book",
+  "booked": "Viewing booked.",
+  "slotFull": "full",
+  "actionFailed": "That did not work."
 }

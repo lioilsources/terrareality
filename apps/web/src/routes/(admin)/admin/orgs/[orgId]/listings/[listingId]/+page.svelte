@@ -78,6 +78,9 @@
 			</h1>
 			<p class="text-sm text-[var(--muted)]">{l.address.label}</p>
 		</div>
+		<a href={localizeHref(`/admin/orgs/${l.org_id}/listings/${l.id}/zajemci`)} class="text-sm"
+			>{m.own_applicants()}</a
+		>
 		<a href={localizeHref(`/admin/orgs/${l.org_id}/listings/${l.id}/otazky`)} class="text-sm"
 			>{m.msg_prescreen_edit()} ({l.prescreen.length})</a
 		>

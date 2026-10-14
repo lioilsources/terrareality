@@ -34,7 +34,13 @@ const byCode: Record<string, () => string> = {
 	attachment_type: m.err_attachment_type,
 	attachment_size: m.err_attachment_size,
 	attachment_infected: m.err_attachment_infected,
-	message_empty: m.err_message_empty
+	message_empty: m.err_message_empty,
+	already_applied: m.err_already_applied,
+	slot_full: m.err_slot_full,
+	identity_required: m.err_identity_required,
+	invalid_reason: m.err_invalid_reason,
+	group_full: m.err_group_full,
+	budget_required: m.err_budget_required
 };
 
 /** Translates an api problem into a user-facing message. */

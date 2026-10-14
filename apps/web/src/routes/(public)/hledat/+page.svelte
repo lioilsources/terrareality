@@ -23,7 +23,7 @@
 				a.filter &&
 				(a.type === 'bool' || a.type === 'enum' || a.type === 'set') &&
 				a.key !== 'layout' &&
-				res?.facets[a.key]?.length
+				(res?.facets[a.key]?.length || page.url.searchParams.has(`a.${a.key}`))
 		)
 	);
 	const input =
@@ -42,6 +42,15 @@
 	}
 	const selected = (key: string, value: string) =>
 		page.url.searchParams.getAll(`a.${key}`).includes(value);
+	// Facet values with counts, plus selected values that have no match right
+	// now (a chosen filter must stay visible so it can be unchecked).
+	const facetOptions = (key: string) => {
+		const opts = [...(res?.facets[key] ?? [])];
+		for (const v of page.url.searchParams.getAll(`a.${key}`)) {
+			if (!opts.some((f) => f.value === v)) opts.push({ value: v, count: 0 });
+		}
+		return opts;
+	};
 	const optLabel = (key: string, value: string) => {
 		const a = data.schema.attributes.find((x) => x.key === key);
 		return t(a?.options.find((o) => o.value === value)?.label, locale) || value;
@@ -147,7 +156,7 @@
 							{m.yes()} ({n})</label
 						>
 					{:else}
-						{#each res?.facets[a.key] ?? [] as f (f.value)}
+						{#each facetOptions(a.key) as f (f.value)}
 							<label class="flex gap-2"
 								><input
 									type="checkbox"

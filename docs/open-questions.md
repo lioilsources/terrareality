@@ -56,3 +56,11 @@ follows until decided otherwise.
 - **OQ-16 Notification delay.** Push/e-mail wait `MESSAGE_NOTIFY_DELAY` (20 s) so that people who
   are chatting are not disturbed. Tune after launch with real response times.
 
+## M5
+
+- **OQ-17 ISIR usage terms.** The public ISIR_CUZK_WS service is queried by name and birth date
+  (`ISIR_MODE=live` outside dev). Confirm that automated checks for a rental platform fit its terms and
+  whether a rate limit applies; dev and tests use the mock.
+- **OQ-18 Roommate profile visibility.** Profiles are visible to all signed-in users. Alternative:
+  only to verified users (phone or BankID) to reduce scraping.
+

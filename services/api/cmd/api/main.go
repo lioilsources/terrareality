@@ -15,6 +15,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/app"
+	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
@@ -86,6 +87,8 @@ func run() error {
 	messages := &messaging.Service{Pool: pool, RT: deps.RT, Tokens: app.Tokens(cfg), WSURL: cfg.CentrifugoWSURL,
 		Jobs: jobs.MessagingJobs{Client: rc}, Blob: deps.Blob, Scanner: deps.Scanner, NotifyDelay: cfg.MessageNotifyDelay,
 		Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL, Log: log}
+	apps := &applications.Service{Pool: pool, RT: deps.RT, Jobs: jobs.ApplicationJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc},
+		Render: deps.Renderer, Blob: deps.Blob, Scanner: deps.Scanner, ISIR: app.ISIR(cfg), WebBaseURL: cfg.WebBaseURL, Log: log}
 	chat := &search.Chat{Pool: pool, Model: "rules"}
 	if cfg.LLMBaseURL != "" {
 		chat.LLM, chat.Model = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel), cfg.LLMModel
@@ -120,7 +123,7 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
 				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP}),
 		ReadHeaderTimeout: 10 * time.Second,

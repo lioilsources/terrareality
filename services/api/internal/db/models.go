@@ -65,6 +65,34 @@ type AppMetum struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type Application struct {
+	ID             uuid.UUID   `json:"id"`
+	ListingID      uuid.UUID   `json:"listing_id"`
+	OrgID          uuid.UUID   `json:"org_id"`
+	ApplicantID    uuid.UUID   `json:"applicant_id"`
+	GroupID        *uuid.UUID  `json:"group_id"`
+	Status         string      `json:"status"`
+	Message        string      `json:"message"`
+	Answers        []byte      `json:"answers"`
+	PreferredFrom  pgtype.Date `json:"preferred_from"`
+	DurationMonths *int32      `json:"duration_months"`
+	HouseholdSize  int32       `json:"household_size"`
+	RejectReason   *string     `json:"reject_reason"`
+	AiStatus       string      `json:"ai_status"`
+	AiSummary      []byte      `json:"ai_summary"`
+	AiModel        *string     `json:"ai_model"`
+	CreatedAt      time.Time   `json:"created_at"`
+	SubmittedAt    *time.Time  `json:"submitted_at"`
+	DecidedAt      *time.Time  `json:"decided_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
+}
+
+type ApplicationConsent struct {
+	ApplicationID uuid.UUID  `json:"application_id"`
+	UserID        uuid.UUID  `json:"user_id"`
+	ConsentedAt   *time.Time `json:"consented_at"`
+}
+
 type AuditEvent struct {
 	ID             uuid.UUID   `json:"id"`
 	OccurredAt     time.Time   `json:"occurred_at"`
@@ -167,6 +195,24 @@ type GdprRequest struct {
 	Detail      *string    `json:"detail"`
 	CreatedAt   time.Time  `json:"created_at"`
 	CompletedAt *time.Time `json:"completed_at"`
+}
+
+type GroupMember struct {
+	ID           uuid.UUID  `json:"id"`
+	GroupID      uuid.UUID  `json:"group_id"`
+	UserID       *uuid.UUID `json:"user_id"`
+	InvitedEmail string     `json:"invited_email"`
+	Role         string     `json:"role"`
+	JoinedAt     *time.Time `json:"joined_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
+type GroupMessage struct {
+	ID        uuid.UUID  `json:"id"`
+	GroupID   uuid.UUID  `json:"group_id"`
+	SenderID  *uuid.UUID `json:"sender_id"`
+	Body      string     `json:"body"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 type IdentityVerification struct {
@@ -429,6 +475,19 @@ type ReplyTemplate struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type RoommateProfile struct {
+	UserID    uuid.UUID   `json:"user_id"`
+	Active    bool        `json:"active"`
+	AdminPath pgtype.Text `json:"admin_path"`
+	AreaLabel string      `json:"area_label"`
+	BudgetMax int64       `json:"budget_max"`
+	MoveIn    pgtype.Date `json:"move_in"`
+	About     string      `json:"about"`
+	Lifestyle []string    `json:"lifestyle"`
+	HasRoom   bool        `json:"has_room"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
 type RuianPlace struct {
 	ID                int64       `json:"id"`
 	MunicipalityCode  int32       `json:"municipality_code"`
@@ -486,6 +545,23 @@ type Session struct {
 	RevokedAt      *time.Time  `json:"revoked_at"`
 }
 
+type TenantGroup struct {
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	CreatedBy *uuid.UUID `json:"created_by"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type TenantPassport struct {
+	UserID           uuid.UUID  `json:"user_id"`
+	IncomeKey        *string    `json:"income_key"`
+	IncomeFilename   *string    `json:"income_filename"`
+	IncomeUploadedAt *time.Time `json:"income_uploaded_at"`
+	IsirStatus       string     `json:"isir_status"`
+	IsirCheckedAt    *time.Time `json:"isir_checked_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
 type Unit struct {
 	ID         uuid.UUID  `json:"id"`
 	OrgID      uuid.UUID  `json:"org_id"`
@@ -529,4 +605,24 @@ type UserRecoveryCode struct {
 	CodeHash  []byte     `json:"code_hash"`
 	UsedAt    *time.Time `json:"used_at"`
 	CreatedAt time.Time  `json:"created_at"`
+}
+
+type ViewingBooking struct {
+	ID            uuid.UUID  `json:"id"`
+	SlotID        uuid.UUID  `json:"slot_id"`
+	ApplicationID uuid.UUID  `json:"application_id"`
+	BookedBy      *uuid.UUID `json:"booked_by"`
+	CancelledAt   *time.Time `json:"cancelled_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+type ViewingSlot struct {
+	ID          uuid.UUID `json:"id"`
+	OrgID       uuid.UUID `json:"org_id"`
+	ListingID   uuid.UUID `json:"listing_id"`
+	StartsAt    time.Time `json:"starts_at"`
+	DurationMin int32     `json:"duration_min"`
+	Capacity    int32     `json:"capacity"`
+	Note        string    `json:"note"`
+	CreatedAt   time.Time `json:"created_at"`
 }

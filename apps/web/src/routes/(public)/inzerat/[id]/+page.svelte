@@ -95,6 +95,11 @@
 				{l.location.address ?? m.listing_location_approx()}
 			</p>
 		</Card>
+		<a
+			href={localizeHref(`/inzerat/${l.id}/zadost`)}
+			class="rounded-lg bg-[var(--accent)] px-4 py-3 text-center font-medium text-white no-underline hover:opacity-90"
+			data-testid="apply">{m.app_apply()}</a
+		>
 		<Card title={m.msg_contact_title()} testid="contact">
 			{#if data.conversation}
 				<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_existing()}</p>

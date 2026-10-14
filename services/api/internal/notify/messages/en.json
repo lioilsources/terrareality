@@ -58,5 +58,37 @@
   "messaging_suspended": {
     "subject": "Messaging suspended",
     "text": "Hello,\n\nafter reviewing a reported conversation we suspended messaging for your account.{{if .Note}}\n\nModerator's note: {{.Note}}{{end}}\n\nIf you think this is a mistake, reply to this e-mail."
+  },
+  "group_invitation": {
+    "subject": "{{.Inviter}} invites you to the group “{{.Group}}”",
+    "text": "Hello,\n\n{{.Inviter}} invites you to the group “{{.Group}}” on TerraReality, so you can look for a home together and apply as one.\n\nAccept the invitation here:\n{{.Link}}"
+  },
+  "application_consent": {
+    "subject": "Confirm the group application: {{.Listing}}",
+    "text": "Hello,\n\n{{.Applicant}} prepared an application for “{{.Listing}}” on behalf of your group. The landlord sees it once every member confirms it.\n\nReview and confirm it here:\n{{.Link}}"
+  },
+  "application_received": {
+    "subject": "New rental application: {{.Listing}}",
+    "text": "Hello,\n\na new application arrived for “{{.Listing}}” (household of {{.Household}}).\n\nApplicants:\n{{.Link}}"
+  },
+  "application_invited": {
+    "subject": "Invitation to a viewing: {{.Listing}}",
+    "text": "Hello,\n\nthe landlord invites you to view “{{.Listing}}”. Pick a time here:\n{{.Link}}"
+  },
+  "application_accepted": {
+    "subject": "The landlord chose your application: {{.Listing}}",
+    "text": "Hello,\n\ncongratulations, the landlord chose your application for “{{.Listing}}”. The next step is the lease; they will contact you through TerraReality.\n\n{{.Link}}\n\nDo not send any money before signing the lease."
+  },
+  "application_rejected": {
+    "subject": "Answer to your application: {{.Listing}}",
+    "text": "Hello,\n\nthank you for your interest in “{{.Listing}}”. The landlord decided not to accept the application ({{.ReasonText}}).\n\nFind more homes on TerraReality.\n{{.Link}}"
+  },
+  "viewing_booked": {
+    "subject": "Viewing booked: {{.Listing}}, {{.When}}",
+    "text": "Hello,\n\nan applicant booked a viewing of “{{.Listing}}” on {{.When}}.\n\nApplicants and viewings:\n{{.Link}}"
+  },
+  "viewing_reminder": {
+    "subject": "Viewing reminder: {{.Listing}}, {{.When}}",
+    "text": "Hello,\n\na reminder of your viewing of “{{.Listing}}” ({{.City}}) on {{.When}}.{{if .Note}}\n\nNote from the landlord: {{.Note}}{{end}}\n\nDetails and cancellation:\n{{.Link}}\n\nDo not pay anything in advance at the viewing."
   }
 }

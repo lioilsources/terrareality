@@ -60,6 +60,8 @@ type WorkerDeps struct {
 	Messages    *MessageNotifyWorker
 	MsgDigest   *MessagesDigestWorker
 	Verdicts    *VerdictWorker
+	Summaries   *ApplicationSummaryWorker
+	Reminders   *ViewingReminderWorker
 }
 
 // NewWorkerClient builds a River client that processes jobs. Completed jobs
@@ -77,6 +79,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	river.AddWorker(workers, deps.Messages)
 	river.AddWorker(workers, deps.MsgDigest)
 	river.AddWorker(workers, deps.Verdicts)
+	river.AddWorker(workers, deps.Summaries)
+	river.AddWorker(workers, deps.Reminders)
 	prague, err := time.LoadLocation("Europe/Prague")
 	if err != nil {
 		prague = time.UTC
