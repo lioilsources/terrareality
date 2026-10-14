@@ -14,6 +14,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/isir"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
@@ -174,6 +175,23 @@ func (d Deps) Moderator() ai.Moderator {
 		return m
 	}
 	return ai.Mock{}
+}
+
+// Summarizer returns the AI used for application summaries.
+func (d Deps) Summarizer() ai.Summarizer {
+	if m, ok := d.AI.(ai.Summarizer); ok {
+		return m
+	}
+	return ai.Mock{}
+}
+
+// ISIR returns the insolvency register checker: the public web service in
+// production, the mock in dev/test unless ISIR_MODE=live.
+func ISIR(cfg config.Config) isir.Checker {
+	if cfg.ISIRMode == "live" {
+		return isir.NewClient(cfg.ISIRURL)
+	}
+	return isir.Mock{}
 }
 
 // Tokens signs Centrifugo client tokens.

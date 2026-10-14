@@ -43,15 +43,22 @@ Please follow the [installation procedure](#installation--usage) and then run th
 ```dart
 import 'package:terra_api/api.dart';
 
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
 
-final api_instance = AuthApi();
-final mfaRequest = MfaRequest(); // MfaRequest | 
+final api_instance = ApplicationsApi();
+final applicationId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final bookViewingRequest = BookViewingRequest(); // BookViewingRequest | 
 
 try {
-    final result = api_instance.completeMfa(mfaRequest);
+    final result = api_instance.bookViewing(applicationId, bookViewingRequest);
     print(result);
 } catch (e) {
-    print('Exception when calling AuthApi->completeMfa: $e\n');
+    print('Exception when calling ApplicationsApi->bookViewing: $e\n');
 }
 
 ```
@@ -62,6 +69,35 @@ All URIs are relative to *http://localhost:8080*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*ApplicationsApi* | [**bookViewing**](doc//ApplicationsApi.md#bookviewing) | **POST** /v1/applications/{applicationId}/bookings | Book a viewing slot (replaces an earlier booking of this application)
+*ApplicationsApi* | [**cancelViewing**](doc//ApplicationsApi.md#cancelviewing) | **DELETE** /v1/viewing-bookings/{bookingId} | Cancel a booked viewing
+*ApplicationsApi* | [**checkInsolvency**](doc//ApplicationsApi.md#checkinsolvency) | **POST** /v1/me/passport/insolvency-check | Check the insolvency register (needs a verified identity; once a day)
+*ApplicationsApi* | [**completeIncomeUpload**](doc//ApplicationsApi.md#completeincomeupload) | **POST** /v1/me/passport/income/complete | Check the uploaded income proof and attach it to the passport
+*ApplicationsApi* | [**consentApplication**](doc//ApplicationsApi.md#consentapplication) | **POST** /v1/applications/{applicationId}/consent | Consent to a group application; the last consent submits it
+*ApplicationsApi* | [**createApplication**](doc//ApplicationsApi.md#createapplication) | **POST** /v1/applications | Apply for a listing, alone or as a group (a group application waits for every member's consent)
+*ApplicationsApi* | [**createGroup**](doc//ApplicationsApi.md#creategroup) | **POST** /v1/groups | Create a tenant group and invite flatmates by e-mail
+*ApplicationsApi* | [**createIncomeUpload**](doc//ApplicationsApi.md#createincomeupload) | **POST** /v1/me/passport/income | Reserve an upload for an income proof (PUT the file, then complete)
+*ApplicationsApi* | [**createViewingSlot**](doc//ApplicationsApi.md#createviewingslot) | **POST** /v1/orgs/{orgId}/listings/{listingId}/viewing-slots | Offer a viewing slot
+*ApplicationsApi* | [**decideApplication**](doc//ApplicationsApi.md#decideapplication) | **POST** /v1/orgs/{orgId}/applications/{applicationId}/decision | Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
+*ApplicationsApi* | [**deleteIncomeProof**](doc//ApplicationsApi.md#deleteincomeproof) | **DELETE** /v1/me/passport/income | Remove my income proof
+*ApplicationsApi* | [**deleteViewingSlot**](doc//ApplicationsApi.md#deleteviewingslot) | **DELETE** /v1/orgs/{orgId}/viewing-slots/{slotId} | Remove a slot (its bookings are cancelled)
+*ApplicationsApi* | [**getApplication**](doc//ApplicationsApi.md#getapplication) | **GET** /v1/applications/{applicationId} | Application with consents, bookable viewing slots and my booking
+*ApplicationsApi* | [**getGroup**](doc//ApplicationsApi.md#getgroup) | **GET** /v1/groups/{groupId} | Group with members and chat (chat only for joined members)
+*ApplicationsApi* | [**getPassport**](doc//ApplicationsApi.md#getpassport) | **GET** /v1/me/passport | My Tenant Passport
+*ApplicationsApi* | [**getRoommateProfile**](doc//ApplicationsApi.md#getroommateprofile) | **GET** /v1/me/roommate-profile | My \"looking for a flatmate\" profile (404 when none)
+*ApplicationsApi* | [**inviteToGroup**](doc//ApplicationsApi.md#invitetogroup) | **POST** /v1/groups/{groupId}/invitations | Invite a flatmate by e-mail
+*ApplicationsApi* | [**joinGroup**](doc//ApplicationsApi.md#joingroup) | **POST** /v1/groups/{groupId}/join | Accept an invitation (consent to act as a member of the group)
+*ApplicationsApi* | [**leaveGroup**](doc//ApplicationsApi.md#leavegroup) | **POST** /v1/groups/{groupId}/leave | Leave a group
+*ApplicationsApi* | [**listListingApplications**](doc//ApplicationsApi.md#listlistingapplications) | **GET** /v1/orgs/{orgId}/listings/{listingId}/applications | Applicants of a listing, verified first, with passport facts and the AI summary
+*ApplicationsApi* | [**listListingRoommates**](doc//ApplicationsApi.md#listlistingroommates) | **GET** /v1/orgs/{orgId}/listings/{listingId}/roommates | Seekers who match a published room listing
+*ApplicationsApi* | [**listMyApplications**](doc//ApplicationsApi.md#listmyapplications) | **GET** /v1/applications | My applications, including my groups' applications
+*ApplicationsApi* | [**listMyGroups**](doc//ApplicationsApi.md#listmygroups) | **GET** /v1/groups | Groups I belong to or am invited to
+*ApplicationsApi* | [**listMyViewings**](doc//ApplicationsApi.md#listmyviewings) | **GET** /v1/me/viewings | My upcoming viewings
+*ApplicationsApi* | [**listRoommates**](doc//ApplicationsApi.md#listroommates) | **GET** /v1/roommates | Other seekers ranked by match with my profile
+*ApplicationsApi* | [**listViewingSlots**](doc//ApplicationsApi.md#listviewingslots) | **GET** /v1/orgs/{orgId}/listings/{listingId}/viewing-slots | Upcoming viewing slots with bookings
+*ApplicationsApi* | [**saveRoommateProfile**](doc//ApplicationsApi.md#saveroommateprofile) | **PUT** /v1/me/roommate-profile | Create or update my roommate profile
+*ApplicationsApi* | [**sendGroupMessage**](doc//ApplicationsApi.md#sendgroupmessage) | **POST** /v1/groups/{groupId}/messages | Post to the group chat
+*ApplicationsApi* | [**withdrawApplication**](doc//ApplicationsApi.md#withdrawapplication) | **POST** /v1/applications/{applicationId}/withdraw | Withdraw my application
 *AuthApi* | [**completeMfa**](doc//AuthApi.md#completemfa) | **POST** /v1/auth/mfa | Complete a login that requires a second factor
 *AuthApi* | [**finishOidc**](doc//AuthApi.md#finishoidc) | **POST** /v1/auth/oidc/{provider}/callback | Finish a social login with the code from the provider redirect
 *AuthApi* | [**forgotPassword**](doc//AuthApi.md#forgotpassword) | **POST** /v1/auth/password/forgot | E-mail a password reset link
@@ -180,6 +216,14 @@ Class | Method | HTTP request | Description
  - [AdminUser](doc//AdminUser.md)
  - [AdminUserDetail](doc//AdminUserDetail.md)
  - [AdminUserPage](doc//AdminUserPage.md)
+ - [Applicant](doc//Applicant.md)
+ - [ApplicantPerson](doc//ApplicantPerson.md)
+ - [Application](doc//Application.md)
+ - [ApplicationConsent](doc//ApplicationConsent.md)
+ - [ApplicationDetail](doc//ApplicationDetail.md)
+ - [ApplicationInput](doc//ApplicationInput.md)
+ - [ApplicationStatus](doc//ApplicationStatus.md)
+ - [ApplicationSummary](doc//ApplicationSummary.md)
  - [Area](doc//Area.md)
  - [AreaAggregate](doc//AreaAggregate.md)
  - [Attachment](doc//Attachment.md)
@@ -194,12 +238,14 @@ Class | Method | HTTP request | Description
  - [AuthProvider](doc//AuthProvider.md)
  - [AuthResult](doc//AuthResult.md)
  - [BackofficeDecideModerationRequest](doc//BackofficeDecideModerationRequest.md)
+ - [BookViewingRequest](doc//BookViewingRequest.md)
  - [ChangeListingStatusRequest](doc//ChangeListingStatusRequest.md)
  - [ChangePasswordRequest](doc//ChangePasswordRequest.md)
  - [ChatRequest](doc//ChatRequest.md)
  - [ChatResponse](doc//ChatResponse.md)
  - [ClientKind](doc//ClientKind.md)
  - [CodeRequest](doc//CodeRequest.md)
+ - [CompleteIncomeUploadRequest](doc//CompleteIncomeUploadRequest.md)
  - [Consent](doc//Consent.md)
  - [ConsentInput](doc//ConsentInput.md)
  - [ConsentKind](doc//ConsentKind.md)
@@ -207,12 +253,21 @@ Class | Method | HTTP request | Description
  - [ConversationDetail](doc//ConversationDetail.md)
  - [ConversationRole](doc//ConversationRole.md)
  - [CreateAttachmentUploadRequest](doc//CreateAttachmentUploadRequest.md)
+ - [CreateGroupRequest](doc//CreateGroupRequest.md)
+ - [CreateIncomeUpload201Response](doc//CreateIncomeUpload201Response.md)
+ - [CreateIncomeUploadRequest](doc//CreateIncomeUploadRequest.md)
+ - [CreateViewingSlotRequest](doc//CreateViewingSlotRequest.md)
+ - [DecideApplicationRequest](doc//DecideApplicationRequest.md)
  - [DownloadLink](doc//DownloadLink.md)
  - [FacetCount](doc//FacetCount.md)
  - [FieldError](doc//FieldError.md)
  - [FilterProposal](doc//FilterProposal.md)
  - [GdprRequest](doc//GdprRequest.md)
  - [GetPushConfig200Response](doc//GetPushConfig200Response.md)
+ - [Group](doc//Group.md)
+ - [GroupMember](doc//GroupMember.md)
+ - [GroupMessage](doc//GroupMessage.md)
+ - [GroupSummary](doc//GroupSummary.md)
  - [Health](doc//Health.md)
  - [HealthCheck](doc//HealthCheck.md)
  - [I18nText](doc//I18nText.md)
@@ -220,6 +275,7 @@ Class | Method | HTTP request | Description
  - [Invitation](doc//Invitation.md)
  - [InvitationInput](doc//InvitationInput.md)
  - [InvitationPreview](doc//InvitationPreview.md)
+ - [InviteToGroupRequest](doc//InviteToGroupRequest.md)
  - [Jurisdiction](doc//Jurisdiction.md)
  - [Listing](doc//Listing.md)
  - [ListingAddress](doc//ListingAddress.md)
@@ -258,6 +314,7 @@ Class | Method | HTTP request | Description
  - [OrgInput](doc//OrgInput.md)
  - [OrgMembership](doc//OrgMembership.md)
  - [Organization](doc//Organization.md)
+ - [Passport](doc//Passport.md)
  - [PasswordResetRequest](doc//PasswordResetRequest.md)
  - [PhoneRequest](doc//PhoneRequest.md)
  - [PhotoVariants](doc//PhotoVariants.md)
@@ -277,6 +334,7 @@ Class | Method | HTTP request | Description
  - [RealtimeToken](doc//RealtimeToken.md)
  - [RecoveryCodes](doc//RecoveryCodes.md)
  - [RegisterRequest](doc//RegisterRequest.md)
+ - [RejectReason](doc//RejectReason.md)
  - [ReplyTemplate](doc//ReplyTemplate.md)
  - [ReplyTemplateInput](doc//ReplyTemplateInput.md)
  - [ReportConversation201Response](doc//ReportConversation201Response.md)
@@ -287,10 +345,13 @@ Class | Method | HTTP request | Description
  - [ReviewItem](doc//ReviewItem.md)
  - [Role](doc//Role.md)
  - [RoleInput](doc//RoleInput.md)
+ - [RoommateMatch](doc//RoommateMatch.md)
+ - [RoommateProfile](doc//RoommateProfile.md)
  - [SavedSearch](doc//SavedSearch.md)
  - [SavedSearchInput](doc//SavedSearchInput.md)
  - [SearchQuery](doc//SearchQuery.md)
  - [SearchResult](doc//SearchResult.md)
+ - [SendGroupMessageRequest](doc//SendGroupMessageRequest.md)
  - [SentMessage](doc//SentMessage.md)
  - [SessionInfo](doc//SessionInfo.md)
  - [SessionToken](doc//SessionToken.md)
@@ -309,6 +370,9 @@ Class | Method | HTTP request | Description
  - [VerificationLevel](doc//VerificationLevel.md)
  - [VerifiedIdentity](doc//VerifiedIdentity.md)
  - [Version](doc//Version.md)
+ - [Viewing](doc//Viewing.md)
+ - [ViewingSlot](doc//ViewingSlot.md)
+ - [ViewingSlotBookingsInner](doc//ViewingSlotBookingsInner.md)
 
 
 ## Documentation For Authorization

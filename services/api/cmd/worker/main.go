@@ -13,6 +13,7 @@ import (
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/app"
+	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
@@ -63,8 +64,10 @@ func run() error {
 	gdpr := &jobs.GDPRWorker{}
 	mediaW, suggestW, digestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}, &jobs.DigestWorker{}
 	notifyW, msgDigestW, verdictW := &jobs.MessageNotifyWorker{}, &jobs.MessagesDigestWorker{}, &jobs.VerdictWorker{}
+	summaryW, reminderW := &jobs.ApplicationSummaryWorker{}, &jobs.ViewingReminderWorker{}
 	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
-		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW})
+		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW,
+		Summaries: summaryW, Reminders: reminderW})
 	if err != nil {
 		return err
 	}
@@ -80,6 +83,9 @@ func run() error {
 		Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL, Log: log}
 	notifyW.Runner, msgDigestW.Runner = notifier, notifier
 	verdictW.Runner = &messaging.Verdicts{Pool: pool, AI: deps.Moderator(), Enabled: cfg.Flag("ai.moderation")}
+	summaryW.Runner = &applications.Summaries{Pool: pool, AI: deps.Summarizer(), Enabled: cfg.Flag("ai.applications")}
+	reminderW.Runner = &applications.Reminders{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
+		Pusher: deps.Pusher, WebBaseURL: cfg.WebBaseURL}
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}

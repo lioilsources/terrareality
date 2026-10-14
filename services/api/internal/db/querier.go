@@ -14,15 +14,23 @@ import (
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) (int64, error)
 	AddFilterOption(ctx context.Context, arg AddFilterOptionParams) error
+	AddGroupMember(ctx context.Context, arg AddGroupMemberParams) (GroupMember, error)
 	AddMembership(ctx context.Context, arg AddMembershipParams) error
 	// Deepest administrative unit covering a point.
 	AdminPathAt(ctx context.Context, arg AdminPathAtParams) (string, error)
 	// Accepts a TOTP step only once (replay protection).
 	AdvanceTOTPStep(ctx context.Context, arg AdvanceTOTPStepParams) (int64, error)
+	// Applicant and joined group members with their passport facts (system
+	// context; callers check access first).
+	ApplicationPeople(ctx context.Context, id uuid.UUID) ([]ApplicationPeopleRow, error)
 	AssignAddressAdminPaths(ctx context.Context, onlyMissing pgtype.Bool) (int64, error)
 	AttachToMessage(ctx context.Context, arg AttachToMessageParams) (int64, error)
+	BookingForReminder(ctx context.Context, id uuid.UUID) (BookingForReminderRow, error)
 	// One unread notification per conversation and recipient; new messages update it.
 	BumpMessageNotification(ctx context.Context, arg BumpMessageNotificationParams) (Notification, error)
+	CancelApplicationBookings(ctx context.Context, applicationID uuid.UUID) error
+	CancelBooking(ctx context.Context, id uuid.UUID) (int64, error)
+	ClearPassportIncome(ctx context.Context, userID uuid.UUID) error
 	CompleteSuggestion(ctx context.Context, arg CompleteSuggestionParams) error
 	// Atomically marks a valid token as used and returns it.
 	ConsumeAuthToken(ctx context.Context, arg ConsumeAuthTokenParams) (AuthToken, error)
@@ -31,16 +39,22 @@ type Querier interface {
 	// RÚIAN ---------------------------------------------------------------------
 	CopyRuianStaging(ctx context.Context, arg []CopyRuianStagingParams) (int64, error)
 	CountAdminUnits(ctx context.Context) (int64, error)
+	CountMissingConsents(ctx context.Context, applicationID uuid.UUID) (int32, error)
 	CountOwners(ctx context.Context, orgID uuid.UUID) (int64, error)
 	CountReadyPhotos(ctx context.Context, listingID *uuid.UUID) (int64, error)
 	CountRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountRuianPlaces(ctx context.Context) (int64, error)
+	CountSlotBookings(ctx context.Context, slotID uuid.UUID) (int32, error)
 	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int32, error)
 	// Org-scoped queries run in db.AsUser transactions (row-level security).
 	CreateAddress(ctx context.Context, arg CreateAddressParams) (uuid.UUID, error)
 	CreateAuthToken(ctx context.Context, arg CreateAuthTokenParams) (AuthToken, error)
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (CreateConversationRow, error)
 	CreateGDPRRequest(ctx context.Context, arg CreateGDPRRequestParams) (GdprRequest, error)
+	// M5: groups, applications, roommate profiles, Tenant Passport, viewings.
+	// ---------------------------------------------------------------------------
+	// Groups (user context).
+	CreateGroup(ctx context.Context, arg CreateGroupParams) (TenantGroup, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
 	CreateListing(ctx context.Context, arg CreateListingParams) (Listing, error)
 	CreateListingVersion(ctx context.Context, arg CreateListingVersionParams) (ListingVersion, error)
@@ -59,6 +73,10 @@ type Querier interface {
 	CreateSuggestion(ctx context.Context, arg CreateSuggestionParams) (AiSuggestion, error)
 	CreateUnit(ctx context.Context, arg CreateUnitParams) (Unit, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	// ---------------------------------------------------------------------------
+	// Viewings.
+	CreateViewingSlot(ctx context.Context, arg CreateViewingSlotParams) (ViewingSlot, error)
+	DecideApplication(ctx context.Context, arg DecideApplicationParams) (int64, error)
 	DecideFilterProposal(ctx context.Context, arg DecideFilterProposalParams) (int64, error)
 	DecideModerationCase(ctx context.Context, arg DecideModerationCaseParams) (int64, error)
 	DecideSuggestion(ctx context.Context, arg DecideSuggestionParams) (int64, error)
@@ -67,12 +85,19 @@ type Querier interface {
 	DeleteMedia(ctx context.Context, arg DeleteMediaParams) (string, error)
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
 	DeleteOAuthIdentities(ctx context.Context, userID uuid.UUID) error
+	DeletePassport(ctx context.Context, userID uuid.UUID) (*string, error)
 	DeletePushDevice(ctx context.Context, arg DeletePushDeviceParams) (int64, error)
 	DeletePushDeviceByToken(ctx context.Context, arg DeletePushDeviceByTokenParams) error
 	DeletePushDeviceOfOthers(ctx context.Context, arg DeletePushDeviceOfOthersParams) error
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
 	DeleteReplyTemplate(ctx context.Context, arg DeleteReplyTemplateParams) (int64, error)
+	// ---------------------------------------------------------------------------
+	// GDPR erasure (system context).
+	DeleteRoommateProfile(ctx context.Context, userID uuid.UUID) error
 	DeleteSavedSearch(ctx context.Context, arg DeleteSavedSearchParams) (int64, error)
+	DeleteUserGroupMemberships(ctx context.Context, userID *uuid.UUID) error
+	DeleteUserPushDevices(ctx context.Context, userID uuid.UUID) error
+	DeleteViewingSlot(ctx context.Context, arg DeleteViewingSlotParams) (int64, error)
 	DigestNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
 	// Users with unread, not yet e-mailed notifications who chose a daily digest.
 	DigestRecipients(ctx context.Context) ([]DigestRecipientsRow, error)
@@ -87,6 +112,7 @@ type Querier interface {
 	GetActiveSession(ctx context.Context, tokenHash []byte) (GetActiveSessionRow, error)
 	GetAdminUnit(ctx context.Context, path string) (GetAdminUnitRow, error)
 	GetAppMeta(ctx context.Context, key string) (AppMetum, error)
+	GetApplication(ctx context.Context, id uuid.UUID) (GetApplicationRow, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (MessageAttachment, error)
 	// Latest open code of a purpose for a user (phone codes are short, so they
 	// are looked up by user and compared in constant time).
@@ -94,6 +120,8 @@ type Querier interface {
 	GetConversation(ctx context.Context, id uuid.UUID) (Conversation, error)
 	GetFilterProposal(ctx context.Context, id uuid.UUID) (FilterSchemaProposal, error)
 	GetGDPRRequest(ctx context.Context, id uuid.UUID) (GdprRequest, error)
+	GetGroup(ctx context.Context, id uuid.UUID) (TenantGroup, error)
+	GetGroupMember(ctx context.Context, arg GetGroupMemberParams) (GroupMember, error)
 	GetIdentityVerification(ctx context.Context, userID uuid.UUID) (IdentityVerification, error)
 	// Everything the search index needs about a published listing (system context).
 	GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSourceRow, error)
@@ -114,28 +142,46 @@ type Querier interface {
 	GetOpenAuthToken(ctx context.Context, arg GetOpenAuthTokenParams) (AuthToken, error)
 	GetOpenErasureRequest(ctx context.Context, userID uuid.UUID) (GdprRequest, error)
 	GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error)
+	// ---------------------------------------------------------------------------
+	// Tenant Passport.
+	GetPassport(ctx context.Context, userID uuid.UUID) (TenantPassport, error)
 	GetPersonalOrganization(ctx context.Context, personalOwnerID *uuid.UUID) (Organization, error)
 	GetProperty(ctx context.Context, arg GetPropertyParams) (GetPropertyRow, error)
 	GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error)
 	GetPublishedSnapshot(ctx context.Context, id uuid.UUID) (ListingVersion, error)
+	// ---------------------------------------------------------------------------
+	// Roommate profiles.
+	GetRoommateProfile(ctx context.Context, userID uuid.UUID) (GetRoommateProfileRow, error)
 	GetRuianPlace(ctx context.Context, id int64) (GetRuianPlaceRow, error)
 	GetSuggestion(ctx context.Context, arg GetSuggestionParams) (AiSuggestion, error)
 	GetUnit(ctx context.Context, arg GetUnitParams) (Unit, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GiveConsent(ctx context.Context, arg GiveConsentParams) (int64, error)
+	// Joined members (system context, realtime fan-out and notifications).
+	GroupMemberUserIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error)
 	IncrementAuthTokenAttempts(ctx context.Context, id uuid.UUID) (int32, error)
+	// ---------------------------------------------------------------------------
+	// Applications.
+	InsertApplication(ctx context.Context, arg InsertApplicationParams) (Application, error)
+	InsertApplicationConsent(ctx context.Context, arg InsertApplicationConsentParams) error
 	InsertAttachment(ctx context.Context, arg InsertAttachmentParams) (MessageAttachment, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	InsertBooking(ctx context.Context, arg InsertBookingParams) (ViewingBooking, error)
 	InsertConsent(ctx context.Context, arg InsertConsentParams) (Consent, error)
+	InsertGroupMessage(ctx context.Context, arg InsertGroupMessageParams) (GroupMessage, error)
 	InsertMessage(ctx context.Context, arg InsertMessageParams) (Message, error)
 	InsertNotification(ctx context.Context, arg InsertNotificationParams) (Notification, error)
 	InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error
 	InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTokensParams) error
+	JoinGroup(ctx context.Context, arg JoinGroupParams) (int64, error)
+	LeaveGroup(ctx context.Context, arg LeaveGroupParams) (int64, error)
 	ListAdminBySlug(ctx context.Context, slug string) ([]ListAdminBySlugRow, error)
 	// Children of a unit (or regions when path is empty) with simplified outlines.
 	ListAdminChildren(ctx context.Context, arg ListAdminChildrenParams) ([]ListAdminChildrenRow, error)
 	// System context: every organization (RLS tests and backoffice).
 	ListAllOrganizationIDs(ctx context.Context) ([]uuid.UUID, error)
+	ListApplicationConsents(ctx context.Context, applicationID uuid.UUID) ([]ListApplicationConsentsRow, error)
 	ListAttachments(ctx context.Context, messageIds []uuid.UUID) ([]MessageAttachment, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]ListAuditEventsRow, error)
 	// System context: GDPR export.
@@ -147,12 +193,18 @@ type Querier interface {
 	ListFilterProposals(ctx context.Context, status string) ([]FilterSchemaProposal, error)
 	ListFilterSchemas(ctx context.Context) ([]FilterSchema, error)
 	ListGDPRRequests(ctx context.Context, userID uuid.UUID) ([]GdprRequest, error)
+	ListGroupMembers(ctx context.Context, groupID uuid.UUID) ([]ListGroupMembersRow, error)
+	ListGroupMessages(ctx context.Context, groupID uuid.UUID) ([]ListGroupMessagesRow, error)
 	ListJurisdictions(ctx context.Context) ([]Jurisdiction, error)
+	// The landlord's applicant overview (RLS: organization members).
+	ListListingApplications(ctx context.Context, arg ListListingApplicationsParams) ([]ListListingApplicationsRow, error)
 	ListListingMedia(ctx context.Context, listingID *uuid.UUID) ([]Medium, error)
 	ListListingVersions(ctx context.Context, listingID uuid.UUID) ([]ListListingVersionsRow, error)
 	ListListings(ctx context.Context, arg ListListingsParams) ([]ListListingsRow, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error)
 	ListMessages(ctx context.Context, arg ListMessagesParams) ([]ListMessagesRow, error)
+	ListMyApplications(ctx context.Context, userID uuid.UUID) ([]ListMyApplicationsRow, error)
+	ListMyGroups(ctx context.Context, arg ListMyGroupsParams) ([]ListMyGroupsRow, error)
 	ListMyOrganizations(ctx context.Context, userID uuid.UUID) ([]ListMyOrganizationsRow, error)
 	ListNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
 	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
@@ -163,7 +215,11 @@ type Querier interface {
 	ListPushDevices(ctx context.Context, userID uuid.UUID) ([]PushDevice, error)
 	ListReads(ctx context.Context, conversationID uuid.UUID) ([]ConversationRead, error)
 	ListReplyTemplates(ctx context.Context, orgID uuid.UUID) ([]ReplyTemplate, error)
+	// Active profiles in an area (or anywhere), with public user facts.
+	ListRoommateProfiles(ctx context.Context, arg ListRoommateProfilesParams) ([]ListRoommateProfilesRow, error)
 	ListSavedSearches(ctx context.Context, userID uuid.UUID) ([]SavedSearch, error)
+	// Bookings of a listing's slots for the landlord (RLS: organization members).
+	ListSlotBookings(ctx context.Context, listingID uuid.UUID) ([]ListSlotBookingsRow, error)
 	ListSuggestions(ctx context.Context, listingID uuid.UUID) ([]AiSuggestion, error)
 	ListUnits(ctx context.Context, propertyID uuid.UUID) ([]Unit, error)
 	// System context: used by GDPR erasure.
@@ -172,6 +228,9 @@ type Querier interface {
 	// M4: conversations, messages, moderation and notifications.
 	// Published listing a seeker may contact (system context).
 	ListingForConversation(ctx context.Context, listingID uuid.UUID) (ListingForConversationRow, error)
+	// What roommate matching needs about a listing (system context).
+	ListingMatchFacts(ctx context.Context, listingID uuid.UUID) (ListingMatchFactsRow, error)
+	LockSlot(ctx context.Context, id uuid.UUID) (ViewingSlot, error)
 	MarkAuthTokenUsed(ctx context.Context, id uuid.UUID) error
 	MarkConversationNotificationsRead(ctx context.Context, arg MarkConversationNotificationsReadParams) error
 	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
@@ -190,8 +249,10 @@ type Querier interface {
 	ModerationTranscript(ctx context.Context, conversationID uuid.UUID) ([]ModerationTranscriptRow, error)
 	// Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
 	MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error)
+	MyViewings(ctx context.Context, userID uuid.UUID) ([]MyViewingsRow, error)
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
 	NextListingVersion(ctx context.Context, listingID uuid.UUID) (int32, error)
+	OrgMessagingMembers(ctx context.Context, orgID uuid.UUID) ([]OrgMessagingMembersRow, error)
 	PendingModerationAI(ctx context.Context) ([]uuid.UUID, error)
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
 	// System context (backoffice review).
@@ -199,6 +260,8 @@ type Querier interface {
 	// Only listings with an approved version (synthetic load-test rows have none).
 	PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error)
 	RefreshListingAggregates(ctx context.Context) error
+	RejectOtherApplications(ctx context.Context, arg RejectOtherApplicationsParams) ([]uuid.UUID, error)
+	RemoveGroupInvite(ctx context.Context, arg RemoveGroupInviteParams) (int64, error)
 	RemoveMessage(ctx context.Context, id uuid.UUID) error
 	ReviewListingVersion(ctx context.Context, arg ReviewListingVersionParams) (int64, error)
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
@@ -214,6 +277,7 @@ type Querier interface {
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error)
 	SeekerBlockedByOrg(ctx context.Context, arg SeekerBlockedByOrgParams) (bool, error)
 	SetAddressAdminPath(ctx context.Context, arg SetAddressAdminPathParams) error
+	SetApplicationAI(ctx context.Context, arg SetApplicationAIParams) error
 	SetAttachmentStatus(ctx context.Context, arg SetAttachmentStatusParams) error
 	SetConversationBlock(ctx context.Context, arg SetConversationBlockParams) error
 	SetListingAttributes(ctx context.Context, arg SetListingAttributesParams) error
@@ -224,6 +288,8 @@ type Querier interface {
 	SetMediaStatus(ctx context.Context, arg SetMediaStatusParams) error
 	SetMediaVision(ctx context.Context, arg SetMediaVisionParams) error
 	SetModerationAI(ctx context.Context, arg SetModerationAIParams) error
+	SetPassportISIR(ctx context.Context, arg SetPassportISIRParams) error
+	SetPassportIncome(ctx context.Context, arg SetPassportIncomeParams) error
 	SetStaff(ctx context.Context, arg SetStaffParams) error
 	SetTOTPPending(ctx context.Context, arg SetTOTPPendingParams) error
 	SetUserPassword(ctx context.Context, arg SetUserPasswordParams) error
@@ -231,10 +297,15 @@ type Querier interface {
 	// Fallback without embeddings: same kind, nearby, similar rent.
 	SimilarByAttributes(ctx context.Context, arg SimilarByAttributesParams) ([]uuid.UUID, error)
 	SimilarByEmbedding(ctx context.Context, arg SimilarByEmbeddingParams) ([]uuid.UUID, error)
+	// Upcoming slots with the number of active bookings (system context: the
+	// count must include other applicants' bookings).
+	SlotsWithAvailability(ctx context.Context, listingID uuid.UUID) ([]SlotsWithAvailabilityRow, error)
 	SoftDeleteListing(ctx context.Context, arg SoftDeleteListingParams) error
 	SoftDeleteOrganization(ctx context.Context, id uuid.UUID) error
+	SubmitApplication(ctx context.Context, id uuid.UUID) (int64, error)
 	SuspendMessaging(ctx context.Context, id uuid.UUID) error
 	SystemConversationSummary(ctx context.Context, id uuid.UUID) (SystemConversationSummaryRow, error)
+	SystemGetApplication(ctx context.Context, id uuid.UUID) (SystemGetApplicationRow, error)
 	SystemGetMedia(ctx context.Context, id uuid.UUID) (Medium, error)
 	// ---------------------------------------------------------------------------
 	// System context (worker, backoffice).
@@ -269,8 +340,10 @@ type Querier interface {
 	UpsertListingSearch(ctx context.Context, arg UpsertListingSearchParams) error
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertPushDevice(ctx context.Context, arg UpsertPushDeviceParams) (PushDevice, error)
+	UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateProfileParams) (uuid.UUID, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 	UserMessagingSuspended(ctx context.Context, id uuid.UUID) (bool, error)
+	WithdrawApplication(ctx context.Context, id uuid.UUID) (int64, error)
 	// Row-level security context: only versions of the caller's organizations.
 	WithdrawMyPendingVersions(ctx context.Context, pListing uuid.UUID) error
 	// System context, after the caller's access was checked.

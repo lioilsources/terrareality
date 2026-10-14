@@ -58,5 +58,37 @@
   "messaging_suspended": {
     "subject": "Posílání zpráv je pozastaveno",
     "text": "Dobrý den,\n\nna základě prověření nahlášené konverzace jsme vašemu účtu pozastavili posílání zpráv.{{if .Note}}\n\nPoznámka moderátora: {{.Note}}{{end}}\n\nPokud jde o omyl, odpovězte na tento e-mail."
+  },
+  "group_invitation": {
+    "subject": "{{.Inviter}} vás zve do skupiny „{{.Group}}“",
+    "text": "Dobrý den,\n\n{{.Inviter}} vás zve do skupiny „{{.Group}}“ na TerraReality, abyste spolu mohli hledat bydlení a podat společnou žádost.\n\nPozvánku přijmete zde:\n{{.Link}}"
+  },
+  "application_consent": {
+    "subject": "Potvrďte společnou žádost: {{.Listing}}",
+    "text": "Dobrý den,\n\n{{.Applicant}} připravil(a) za vaši skupinu žádost o pronájem „{{.Listing}}“. Pronajímatel ji uvidí, až ji potvrdí všichni členové skupiny.\n\nŽádost zkontrolujete a potvrdíte zde:\n{{.Link}}"
+  },
+  "application_received": {
+    "subject": "Nová žádost o pronájem: {{.Listing}}",
+    "text": "Dobrý den,\n\nk inzerátu „{{.Listing}}“ přišla nová žádost (domácnost {{.Household}} os.).\n\nPřehled zájemců:\n{{.Link}}"
+  },
+  "application_invited": {
+    "subject": "Pozvánka na prohlídku: {{.Listing}}",
+    "text": "Dobrý den,\n\npronajímatel vás zve na prohlídku „{{.Listing}}“. Termín si vyberte zde:\n{{.Link}}"
+  },
+  "application_accepted": {
+    "subject": "Pronajímatel vybral vaši žádost: {{.Listing}}",
+    "text": "Dobrý den,\n\ngratulujeme, pronajímatel vybral vaši žádost o pronájem „{{.Listing}}“. Dalším krokem je nájemní smlouva, ozve se vám přes TerraReality.\n\n{{.Link}}\n\nPřed podpisem smlouvy neposílejte žádné peníze."
+  },
+  "application_rejected": {
+    "subject": "Odpověď na vaši žádost: {{.Listing}}",
+    "text": "Dobrý den,\n\nděkujeme za zájem o „{{.Listing}}“. Pronajímatel se rozhodl žádost nepřijmout ({{.ReasonText}}).\n\nDalší nabídky najdete na TerraReality.\n{{.Link}}"
+  },
+  "viewing_booked": {
+    "subject": "Rezervace prohlídky: {{.Listing}}, {{.When}}",
+    "text": "Dobrý den,\n\nzájemce si zarezervoval prohlídku „{{.Listing}}“ na {{.When}}.\n\nPřehled zájemců a termínů:\n{{.Link}}"
+  },
+  "viewing_reminder": {
+    "subject": "Připomínka prohlídky: {{.Listing}}, {{.When}}",
+    "text": "Dobrý den,\n\npřipomínáme prohlídku „{{.Listing}}“ ({{.City}}) na {{.When}}.{{if .Note}}\n\nPoznámka pronajímatele: {{.Note}}{{end}}\n\nPodrobnosti a zrušení:\n{{.Link}}\n\nNa prohlídce nic neplaťte předem."
   }
 }

@@ -48,5 +48,25 @@
         "type": "int"
       }
     }
-  }
+  },
+  "applicationsTitle": "Moje žádosti",
+  "applicationsEmpty": "Zatím nemáte žádné žádosti.",
+  "applicationTitle": "Žádost",
+  "appPendingConsent": "Čeká na souhlas skupiny",
+  "appSubmitted": "Odesláno",
+  "appInvited": "Pozvánka na prohlídku",
+  "appAccepted": "Vybráno",
+  "appRejected": "Nepřijato",
+  "appWithdrawn": "Staženo",
+  "consent": "Souhlasím s podáním žádosti",
+  "consentGiven": "Souhlas uložen.",
+  "yourViewing": "Vaše prohlídka",
+  "cancelBooking": "Zrušit",
+  "bookingCancelled": "Rezervace zrušena.",
+  "viewingSlots": "Termíny prohlídek",
+  "noSlots": "Pronajímatel zatím nevypsal termíny.",
+  "book": "Rezervovat",
+  "booked": "Prohlídka je rezervovaná.",
+  "slotFull": "obsazeno",
+  "actionFailed": "Akce se nepovedla."
 }

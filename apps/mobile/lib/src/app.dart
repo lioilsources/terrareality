@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/gen/app_localizations.dart';
+import 'applications/applications_screen.dart';
 import 'auth/login_screen.dart';
 import 'messaging/conversations_screen.dart';
 import 'messaging/thread_screen.dart';
@@ -16,6 +17,11 @@ GoRouter createRouter() => GoRouter(
     GoRoute(
       path: '/zpravy/:id',
       builder: (_, s) => ThreadScreen(id: s.pathParameters['id']!),
+    ),
+    GoRoute(path: '/zadosti', builder: (_, _) => const ApplicationsScreen()),
+    GoRoute(
+      path: '/zadosti/:id',
+      builder: (_, s) => ApplicationScreen(id: s.pathParameters['id']!),
     ),
   ],
 );

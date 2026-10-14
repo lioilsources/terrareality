@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
+	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
@@ -42,6 +43,7 @@ type Services struct {
 	Engine          *search.Engine
 	Chat            *search.Chat
 	Messages        *messaging.Service
+	Applications    *applications.Service
 	VAPIDPublicKey  string // browser push subscriptions
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before

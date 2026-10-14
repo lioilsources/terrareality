@@ -1630,6 +1630,419 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Groups I belong to or am invited to */
+        get: operations["listMyGroups"];
+        put?: never;
+        /** Create a tenant group and invite flatmates by e-mail */
+        post: operations["createGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Group with members and chat (chat only for joined members) */
+        get: operations["getGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/groups/{groupId}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite a flatmate by e-mail */
+        post: operations["inviteToGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/groups/{groupId}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept an invitation (consent to act as a member of the group) */
+        post: operations["joinGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/groups/{groupId}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave a group */
+        post: operations["leaveGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/groups/{groupId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post to the group chat */
+        post: operations["sendGroupMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My applications, including my groups' applications */
+        get: operations["listMyApplications"];
+        put?: never;
+        /** Apply for a listing, alone or as a group (a group application waits for every member's consent) */
+        post: operations["createApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/applications/{applicationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Application with consents, bookable viewing slots and my booking */
+        get: operations["getApplication"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/applications/{applicationId}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consent to a group application; the last consent submits it */
+        post: operations["consentApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/applications/{applicationId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw my application */
+        post: operations["withdrawApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/applications/{applicationId}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Book a viewing slot (replaces an earlier booking of this application) */
+        post: operations["bookViewing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/viewing-bookings/{bookingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel a booked viewing */
+        delete: operations["cancelViewing"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/viewings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My upcoming viewings */
+        get: operations["listMyViewings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/roommate-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My "looking for a flatmate" profile (404 when none) */
+        get: operations["getRoommateProfile"];
+        /** Create or update my roommate profile */
+        put: operations["saveRoommateProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roommates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Other seekers ranked by match with my profile */
+        get: operations["listRoommates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Tenant Passport */
+        get: operations["getPassport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passport/income": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reserve an upload for an income proof (PUT the file, then complete) */
+        post: operations["createIncomeUpload"];
+        /** Remove my income proof */
+        delete: operations["deleteIncomeProof"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passport/income/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the uploaded income proof and attach it to the passport */
+        post: operations["completeIncomeUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passport/insolvency-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the insolvency register (needs a verified identity; once a day) */
+        post: operations["checkInsolvency"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Applicants of a listing, verified first, with passport facts and the AI summary */
+        get: operations["listListingApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/applications/{applicationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code */
+        post: operations["decideApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/viewing-slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Upcoming viewing slots with bookings */
+        get: operations["listViewingSlots"];
+        put?: never;
+        /** Offer a viewing slot */
+        post: operations["createViewingSlot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/viewing-slots/{slotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a slot (its bookings are cancelled) */
+        delete: operations["deleteViewingSlot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/roommates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seekers who match a published room listing */
+        get: operations["listListingRoommates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2762,6 +3175,203 @@ export interface components {
             case: components["schemas"]["ModerationCase"];
             transcript: components["schemas"]["TranscriptMessage"][];
         };
+        GroupSummary: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            /** @description False while the invitation is pending. */
+            joined: boolean;
+            members: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        GroupMember: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            user_id?: string;
+            invited_email: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            joined: boolean;
+            display_name: string;
+            verification_level: components["schemas"]["VerificationLevel"];
+        };
+        GroupMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sender_id?: string;
+            sender_name: string;
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Group: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            joined: boolean;
+            members: components["schemas"]["GroupMember"][];
+            messages: components["schemas"]["GroupMessage"][];
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @enum {string} */
+        ApplicationStatus: "pending_consent" | "submitted" | "invited" | "accepted" | "rejected" | "withdrawn";
+        /** @enum {string} */
+        RejectReason: "other_applicant_chosen" | "income_insufficient" | "move_in_mismatch" | "duration_mismatch" | "incomplete" | "listing_withdrawn" | "other";
+        ApplicationInput: {
+            /** Format: uuid */
+            listing_id: string;
+            /** Format: uuid */
+            group_id?: string;
+            message?: string;
+            prescreen_answers?: {
+                [key: string]: string;
+            };
+            /** Format: date */
+            preferred_from?: string;
+            duration_months?: number;
+            household_size?: number;
+        };
+        Application: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            listing_id: string;
+            /** Format: uuid */
+            org_id: string;
+            listing_title: components["schemas"]["I18nText"];
+            /** Format: uuid */
+            group_id?: string;
+            group_name?: string;
+            status: components["schemas"]["ApplicationStatus"];
+            reject_reason?: components["schemas"]["RejectReason"];
+            message?: string;
+            /** Format: date */
+            preferred_from?: string;
+            duration_months?: number;
+            household_size: number;
+            /** @description True when I am asked to consent (group application). */
+            consent_needed: boolean;
+            /** Format: date-time */
+            my_consent_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            submitted_at?: string;
+        };
+        ApplicationConsent: {
+            /** Format: uuid */
+            user_id: string;
+            display_name: string;
+            /** Format: date-time */
+            consented_at?: string;
+        };
+        ViewingSlot: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            starts_at: string;
+            duration_min: number;
+            capacity: number;
+            booked: number;
+            note: string;
+            /** @description Landlord view only. */
+            bookings: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                application_id: string;
+                applicant_name: string;
+                household_size: number;
+            }[];
+        };
+        Viewing: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            application_id: string;
+            /** Format: uuid */
+            listing_id: string;
+            listing_title: components["schemas"]["I18nText"];
+            city?: string;
+            /** Format: date-time */
+            starts_at: string;
+            duration_min: number;
+            note: string;
+        };
+        ApplicationDetail: {
+            application: components["schemas"]["Application"];
+            consents: components["schemas"]["ApplicationConsent"][];
+            slots: components["schemas"]["ViewingSlot"][];
+            booking?: components["schemas"]["Viewing"];
+        };
+        ApplicantPerson: {
+            /** Format: uuid */
+            user_id: string;
+            display_name: string;
+            verification_level: components["schemas"]["VerificationLevel"];
+            /** @description Short-lived download URL. */
+            income_proof_url?: string;
+            income_proof_name?: string;
+            /** @enum {string} */
+            insolvency: "unchecked" | "clear" | "record" | "error";
+        };
+        ApplicationSummary: {
+            summary: string;
+            strengths: string[];
+            gaps: string[];
+            model?: string;
+        };
+        Applicant: {
+            application: components["schemas"]["Application"];
+            applicant_name: string;
+            verification_level: components["schemas"]["VerificationLevel"];
+            people: components["schemas"]["ApplicantPerson"][];
+            prescreen?: components["schemas"]["PrescreenAnswer"][];
+            /** @enum {string} */
+            ai_status: "pending" | "ready" | "failed" | "disabled";
+            ai_summary?: components["schemas"]["ApplicationSummary"];
+        };
+        RoommateProfile: {
+            active: boolean;
+            /** @description Admin unit path (from /v1/areas); empty = anywhere. */
+            admin_path?: string;
+            area_label?: string;
+            /**
+             * Format: int64
+             * @description Monthly budget in minor units (CZK).
+             */
+            budget_max: number;
+            /** Format: date */
+            move_in?: string;
+            about?: string;
+            lifestyle: ("non_smoker" | "smoker" | "pets" | "no_pets" | "quiet" | "social" | "early_bird" | "night_owl" | "works_from_home" | "student" | "tidy" | "vegetarian")[];
+            /** @description Offers a room in their own flat. */
+            has_room: boolean;
+        };
+        RoommateMatch: {
+            /** Format: uuid */
+            user_id: string;
+            display_name: string;
+            verification_level: components["schemas"]["VerificationLevel"];
+            profile: components["schemas"]["RoommateProfile"];
+            score: number;
+        };
+        Passport: {
+            verification_level: components["schemas"]["VerificationLevel"];
+            income_proof_name?: string;
+            /** Format: date-time */
+            income_uploaded_at?: string;
+            /** @enum {string} */
+            insolvency: "unchecked" | "clear" | "record" | "error";
+            /** Format: date-time */
+            insolvency_checked_at?: string;
+        };
     };
     responses: {
         /** @description Error */
@@ -2818,6 +3428,8 @@ export interface components {
         Before: string;
         ListingId: string;
         MediaId: string;
+        GroupId: string;
+        ApplicationId: string;
         ConversationId: string;
         Limit: number;
     };
@@ -5324,6 +5936,715 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMyGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupSummary"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    invite?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    inviteToGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Invited */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    joinGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Joined */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    leaveGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Left */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    sendGroupMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMessage"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMyApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Applications */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Application"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    consentApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consented */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    withdrawApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    bookViewing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    slot_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Booked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelViewing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bookingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMyViewings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Viewings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Viewing"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRoommateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoommateProfile"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    saveRoommateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoommateProfile"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoommateProfile"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRoommates: {
+        parameters: {
+            query?: {
+                /** @description Admin unit path. */
+                area?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoommateMatch"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPassport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Passport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Passport"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createIncomeUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    content_type: "application/pdf" | "image/jpeg" | "image/png";
+                    /** Format: int64 */
+                    size_bytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload slot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        key: string;
+                        upload_url: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteIncomeProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    completeIncomeUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    filename: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Passport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Passport"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    checkInsolvency: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Passport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Passport"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listListingApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Applicants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Applicant"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    decideApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "invite" | "accept" | "reject";
+                    reason?: components["schemas"]["RejectReason"];
+                };
+            };
+        };
+        responses: {
+            /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listViewingSlots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Slots */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewingSlot"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createViewingSlot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: date-time */
+                    starts_at: string;
+                    /** @default 20 */
+                    duration_min?: number;
+                    /** @default 1 */
+                    capacity?: number;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewingSlot"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteViewingSlot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                slotId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listListingRoommates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoommateMatch"][];
+                };
             };
             default: components["responses"]["Problem"];
         };

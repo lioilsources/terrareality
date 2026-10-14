@@ -190,6 +190,22 @@ class ApiClient {
           return AdminUserDetail.fromJson(value);
         case 'AdminUserPage':
           return AdminUserPage.fromJson(value);
+        case 'Applicant':
+          return Applicant.fromJson(value);
+        case 'ApplicantPerson':
+          return ApplicantPerson.fromJson(value);
+        case 'Application':
+          return Application.fromJson(value);
+        case 'ApplicationConsent':
+          return ApplicationConsent.fromJson(value);
+        case 'ApplicationDetail':
+          return ApplicationDetail.fromJson(value);
+        case 'ApplicationInput':
+          return ApplicationInput.fromJson(value);
+        case 'ApplicationStatus':
+          return ApplicationStatusTypeTransformer().decode(value);
+        case 'ApplicationSummary':
+          return ApplicationSummary.fromJson(value);
         case 'Area':
           return Area.fromJson(value);
         case 'AreaAggregate':
@@ -218,6 +234,8 @@ class ApiClient {
           return AuthResult.fromJson(value);
         case 'BackofficeDecideModerationRequest':
           return BackofficeDecideModerationRequest.fromJson(value);
+        case 'BookViewingRequest':
+          return BookViewingRequest.fromJson(value);
         case 'ChangeListingStatusRequest':
           return ChangeListingStatusRequest.fromJson(value);
         case 'ChangePasswordRequest':
@@ -230,6 +248,8 @@ class ApiClient {
           return ClientKindTypeTransformer().decode(value);
         case 'CodeRequest':
           return CodeRequest.fromJson(value);
+        case 'CompleteIncomeUploadRequest':
+          return CompleteIncomeUploadRequest.fromJson(value);
         case 'Consent':
           return Consent.fromJson(value);
         case 'ConsentInput':
@@ -244,6 +264,16 @@ class ApiClient {
           return ConversationRoleTypeTransformer().decode(value);
         case 'CreateAttachmentUploadRequest':
           return CreateAttachmentUploadRequest.fromJson(value);
+        case 'CreateGroupRequest':
+          return CreateGroupRequest.fromJson(value);
+        case 'CreateIncomeUpload201Response':
+          return CreateIncomeUpload201Response.fromJson(value);
+        case 'CreateIncomeUploadRequest':
+          return CreateIncomeUploadRequest.fromJson(value);
+        case 'CreateViewingSlotRequest':
+          return CreateViewingSlotRequest.fromJson(value);
+        case 'DecideApplicationRequest':
+          return DecideApplicationRequest.fromJson(value);
         case 'DownloadLink':
           return DownloadLink.fromJson(value);
         case 'FacetCount':
@@ -256,6 +286,14 @@ class ApiClient {
           return GdprRequest.fromJson(value);
         case 'GetPushConfig200Response':
           return GetPushConfig200Response.fromJson(value);
+        case 'Group':
+          return Group.fromJson(value);
+        case 'GroupMember':
+          return GroupMember.fromJson(value);
+        case 'GroupMessage':
+          return GroupMessage.fromJson(value);
+        case 'GroupSummary':
+          return GroupSummary.fromJson(value);
         case 'Health':
           return Health.fromJson(value);
         case 'HealthCheck':
@@ -270,6 +308,8 @@ class ApiClient {
           return InvitationInput.fromJson(value);
         case 'InvitationPreview':
           return InvitationPreview.fromJson(value);
+        case 'InviteToGroupRequest':
+          return InviteToGroupRequest.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
         case 'Listing':
@@ -346,6 +386,8 @@ class ApiClient {
           return OrgMembership.fromJson(value);
         case 'Organization':
           return Organization.fromJson(value);
+        case 'Passport':
+          return Passport.fromJson(value);
         case 'PasswordResetRequest':
           return PasswordResetRequest.fromJson(value);
         case 'PhoneRequest':
@@ -384,6 +426,8 @@ class ApiClient {
           return RecoveryCodes.fromJson(value);
         case 'RegisterRequest':
           return RegisterRequest.fromJson(value);
+        case 'RejectReason':
+          return RejectReasonTypeTransformer().decode(value);
         case 'ReplyTemplate':
           return ReplyTemplate.fromJson(value);
         case 'ReplyTemplateInput':
@@ -404,6 +448,10 @@ class ApiClient {
           return RoleTypeTransformer().decode(value);
         case 'RoleInput':
           return RoleInput.fromJson(value);
+        case 'RoommateMatch':
+          return RoommateMatch.fromJson(value);
+        case 'RoommateProfile':
+          return RoommateProfile.fromJson(value);
         case 'SavedSearch':
           return SavedSearch.fromJson(value);
         case 'SavedSearchInput':
@@ -412,6 +460,8 @@ class ApiClient {
           return SearchQuery.fromJson(value);
         case 'SearchResult':
           return SearchResult.fromJson(value);
+        case 'SendGroupMessageRequest':
+          return SendGroupMessageRequest.fromJson(value);
         case 'SentMessage':
           return SentMessage.fromJson(value);
         case 'SessionInfo':
@@ -448,6 +498,12 @@ class ApiClient {
           return VerifiedIdentity.fromJson(value);
         case 'Version':
           return Version.fromJson(value);
+        case 'Viewing':
+          return Viewing.fromJson(value);
+        case 'ViewingSlot':
+          return ViewingSlot.fromJson(value);
+        case 'ViewingSlotBookingsInner':
+          return ViewingSlotBookingsInner.fromJson(value);
         default:
           dynamic match;
           if (value is List && (match = _regList.firstMatch(targetType)?.group(1)) != null) {

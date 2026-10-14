@@ -55,6 +55,9 @@ String parameterToString(dynamic value) {
   if (value is DateTime) {
     return value.toUtc().toIso8601String();
   }
+  if (value is ApplicationStatus) {
+    return ApplicationStatusTypeTransformer().encode(value).toString();
+  }
   if (value is ClientKind) {
     return ClientKindTypeTransformer().encode(value).toString();
   }
@@ -72,6 +75,9 @@ String parameterToString(dynamic value) {
   }
   if (value is ModerationVerdict) {
     return ModerationVerdictTypeTransformer().encode(value).toString();
+  }
+  if (value is RejectReason) {
+    return RejectReasonTypeTransformer().encode(value).toString();
   }
   if (value is Role) {
     return RoleTypeTransformer().encode(value).toString();

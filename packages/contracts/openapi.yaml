@@ -19,6 +19,7 @@ tags:
   - name: catalog
   - name: search
   - name: messaging
+  - name: applications
 security:
   - bearerAuth: []
 paths:
@@ -1641,6 +1642,456 @@ paths:
       responses:
         "204": { description: Resolved }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/groups:
+    get:
+      tags: [applications]
+      operationId: listMyGroups
+      summary: Groups I belong to or am invited to
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroupSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [applications]
+      operationId: createGroup
+      summary: Create a tenant group and invite flatmates by e-mail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                invite: { type: array, maxItems: 9, items: { type: string, format: email } }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Group" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/groups/{groupId}:
+    get:
+      tags: [applications]
+      operationId: getGroup
+      summary: Group with members and chat (chat only for joined members)
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Group" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/groups/{groupId}/invitations:
+    post:
+      tags: [applications]
+      operationId: inviteToGroup
+      summary: Invite a flatmate by e-mail
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "204": { description: Invited }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/groups/{groupId}/join:
+    post:
+      tags: [applications]
+      operationId: joinGroup
+      summary: Accept an invitation (consent to act as a member of the group)
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "204": { description: Joined }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/groups/{groupId}/leave:
+    post:
+      tags: [applications]
+      operationId: leaveGroup
+      summary: Leave a group
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      responses:
+        "204": { description: Left }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/groups/{groupId}/messages:
+    post:
+      tags: [applications]
+      operationId: sendGroupMessage
+      summary: Post to the group chat
+      parameters: [{ $ref: "#/components/parameters/GroupId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "201":
+          description: Sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupMessage" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/applications:
+    get:
+      tags: [applications]
+      operationId: listMyApplications
+      summary: My applications, including my groups' applications
+      responses:
+        "200":
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Application" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [applications]
+      operationId: createApplication
+      summary: Apply for a listing, alone or as a group (a group application waits for every member's consent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplicationInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/applications/{applicationId}:
+    get:
+      tags: [applications]
+      operationId: getApplication
+      summary: Application with consents, bookable viewing slots and my booking
+      parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+      responses:
+        "200":
+          description: Application
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/applications/{applicationId}/consent:
+    post:
+      tags: [applications]
+      operationId: consentApplication
+      summary: Consent to a group application; the last consent submits it
+      parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+      responses:
+        "204": { description: Consented }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/applications/{applicationId}/withdraw:
+    post:
+      tags: [applications]
+      operationId: withdrawApplication
+      summary: Withdraw my application
+      parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+      responses:
+        "204": { description: Withdrawn }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/applications/{applicationId}/bookings:
+    post:
+      tags: [applications]
+      operationId: bookViewing
+      summary: Book a viewing slot (replaces an earlier booking of this application)
+      parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slot_id]
+              properties:
+                slot_id: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Booked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/viewing-bookings/{bookingId}:
+    delete:
+      tags: [applications]
+      operationId: cancelViewing
+      summary: Cancel a booked viewing
+      parameters:
+        - { name: bookingId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Cancelled }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/viewings:
+    get:
+      tags: [applications]
+      operationId: listMyViewings
+      summary: My upcoming viewings
+      responses:
+        "200":
+          description: Viewings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Viewing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/roommate-profile:
+    get:
+      tags: [applications]
+      operationId: getRoommateProfile
+      summary: My "looking for a flatmate" profile (404 when none)
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoommateProfile" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [applications]
+      operationId: saveRoommateProfile
+      summary: Create or update my roommate profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoommateProfile" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoommateProfile" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/roommates:
+    get:
+      tags: [applications]
+      operationId: listRoommates
+      summary: Other seekers ranked by match with my profile
+      parameters:
+        - { name: area, in: query, required: false, description: Admin unit path., schema: { type: string } }
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoommateMatch" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/passport:
+    get:
+      tags: [applications]
+      operationId: getPassport
+      summary: My Tenant Passport
+      responses:
+        "200":
+          description: Passport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Passport" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/passport/income:
+    post:
+      tags: [applications]
+      operationId: createIncomeUpload
+      summary: Reserve an upload for an income proof (PUT the file, then complete)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_type, size_bytes]
+              properties:
+                content_type: { type: string, enum: [application/pdf, image/jpeg, image/png] }
+                size_bytes: { type: integer, format: int64, minimum: 1, maximum: 10485760 }
+      responses:
+        "201":
+          description: Upload slot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [key, upload_url]
+                properties:
+                  key: { type: string }
+                  upload_url: { type: string }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [applications]
+      operationId: deleteIncomeProof
+      summary: Remove my income proof
+      responses:
+        "204": { description: Removed }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/passport/income/complete:
+    post:
+      tags: [applications]
+      operationId: completeIncomeUpload
+      summary: Check the uploaded income proof and attach it to the passport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, filename]
+              properties:
+                key: { type: string, maxLength: 200 }
+                filename: { type: string, minLength: 1, maxLength: 255 }
+      responses:
+        "200":
+          description: Passport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Passport" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/passport/insolvency-check:
+    post:
+      tags: [applications]
+      operationId: checkInsolvency
+      summary: Check the insolvency register (needs a verified identity; once a day)
+      responses:
+        "200":
+          description: Passport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Passport" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/applications:
+    get:
+      tags: [applications]
+      operationId: listListingApplications
+      summary: Applicants of a listing, verified first, with passport facts and the AI summary
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      responses:
+        "200":
+          description: Applicants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Applicant" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/applications/{applicationId}/decision:
+    post:
+      tags: [applications]
+      operationId: decideApplication
+      summary: Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ApplicationId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [invite, accept, reject] }
+                reason: { $ref: "#/components/schemas/RejectReason" }
+      responses:
+        "204": { description: Decided }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/viewing-slots:
+    get:
+      tags: [applications]
+      operationId: listViewingSlots
+      summary: Upcoming viewing slots with bookings
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      responses:
+        "200":
+          description: Slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ViewingSlot" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [applications]
+      operationId: createViewingSlot
+      summary: Offer a viewing slot
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [starts_at]
+              properties:
+                starts_at: { type: string, format: date-time }
+                duration_min: { type: integer, minimum: 5, maximum: 240, default: 20 }
+                capacity: { type: integer, minimum: 1, maximum: 50, default: 1 }
+                note: { type: string, maxLength: 500 }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ViewingSlot" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/viewing-slots/{slotId}:
+    delete:
+      tags: [applications]
+      operationId: deleteViewingSlot
+      summary: Remove a slot (its bookings are cancelled)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: slotId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/roommates:
+    get:
+      tags: [applications]
+      operationId: listListingRoommates
+      summary: Seekers who match a published room listing
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoommateMatch" }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -1659,6 +2110,8 @@ components:
       schema: { type: string, format: uuid }
     ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
     MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
+    GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+    ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
     ConversationId: { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
   responses:
@@ -2805,3 +3258,187 @@ components:
       properties:
         case: { $ref: "#/components/schemas/ModerationCase" }
         transcript: { type: array, items: { $ref: "#/components/schemas/TranscriptMessage" } }
+    GroupSummary:
+      type: object
+      required: [id, name, role, joined, members, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        role: { type: string, enum: [admin, member] }
+        joined: { type: boolean, description: False while the invitation is pending. }
+        members: { type: integer }
+        created_at: { type: string, format: date-time }
+    GroupMember:
+      type: object
+      required: [id, invited_email, role, joined, display_name, verification_level]
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        invited_email: { type: string }
+        role: { type: string, enum: [admin, member] }
+        joined: { type: boolean }
+        display_name: { type: string }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+    GroupMessage:
+      type: object
+      required: [id, body, sender_name, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        sender_id: { type: string, format: uuid }
+        sender_name: { type: string }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+    Group:
+      type: object
+      required: [id, name, joined, members, messages, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        joined: { type: boolean }
+        members: { type: array, items: { $ref: "#/components/schemas/GroupMember" } }
+        messages: { type: array, items: { $ref: "#/components/schemas/GroupMessage" } }
+        created_at: { type: string, format: date-time }
+    ApplicationStatus: { type: string, enum: [pending_consent, submitted, invited, accepted, rejected, withdrawn] }
+    RejectReason:
+      type: string
+      enum: [other_applicant_chosen, income_insufficient, move_in_mismatch, duration_mismatch, incomplete, listing_withdrawn, other]
+    ApplicationInput:
+      type: object
+      required: [listing_id]
+      properties:
+        listing_id: { type: string, format: uuid }
+        group_id: { type: string, format: uuid }
+        message: { type: string, maxLength: 4000 }
+        prescreen_answers: { type: object, additionalProperties: { type: string, maxLength: 500 } }
+        preferred_from: { type: string, format: date }
+        duration_months: { type: integer, minimum: 1, maximum: 120 }
+        household_size: { type: integer, minimum: 1, maximum: 20 }
+    Application:
+      type: object
+      required: [id, listing_id, org_id, listing_title, status, household_size, created_at, consent_needed]
+      properties:
+        id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        listing_title: { $ref: "#/components/schemas/I18nText" }
+        group_id: { type: string, format: uuid }
+        group_name: { type: string }
+        status: { $ref: "#/components/schemas/ApplicationStatus" }
+        reject_reason: { $ref: "#/components/schemas/RejectReason" }
+        message: { type: string }
+        preferred_from: { type: string, format: date }
+        duration_months: { type: integer }
+        household_size: { type: integer }
+        consent_needed: { type: boolean, description: True when I am asked to consent (group application). }
+        my_consent_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        submitted_at: { type: string, format: date-time }
+    ApplicationConsent:
+      type: object
+      required: [user_id, display_name]
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string }
+        consented_at: { type: string, format: date-time }
+    ViewingSlot:
+      type: object
+      required: [id, starts_at, duration_min, capacity, booked, note, bookings]
+      properties:
+        id: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time }
+        duration_min: { type: integer }
+        capacity: { type: integer }
+        booked: { type: integer }
+        note: { type: string }
+        bookings:
+          type: array
+          description: Landlord view only.
+          items:
+            type: object
+            required: [id, application_id, applicant_name, household_size]
+            properties:
+              id: { type: string, format: uuid }
+              application_id: { type: string, format: uuid }
+              applicant_name: { type: string }
+              household_size: { type: integer }
+    Viewing:
+      type: object
+      required: [id, application_id, listing_id, listing_title, starts_at, duration_min, note]
+      properties:
+        id: { type: string, format: uuid }
+        application_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        listing_title: { $ref: "#/components/schemas/I18nText" }
+        city: { type: string }
+        starts_at: { type: string, format: date-time }
+        duration_min: { type: integer }
+        note: { type: string }
+    ApplicationDetail:
+      type: object
+      required: [application, consents, slots]
+      properties:
+        application: { $ref: "#/components/schemas/Application" }
+        consents: { type: array, items: { $ref: "#/components/schemas/ApplicationConsent" } }
+        slots: { type: array, items: { $ref: "#/components/schemas/ViewingSlot" } }
+        booking: { $ref: "#/components/schemas/Viewing" }
+    ApplicantPerson:
+      type: object
+      required: [user_id, display_name, verification_level, insolvency]
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        income_proof_url: { type: string, description: Short-lived download URL. }
+        income_proof_name: { type: string }
+        insolvency: { type: string, enum: [unchecked, clear, record, error] }
+    ApplicationSummary:
+      type: object
+      required: [summary, strengths, gaps]
+      properties:
+        summary: { type: string }
+        strengths: { type: array, items: { type: string } }
+        gaps: { type: array, items: { type: string } }
+        model: { type: string }
+    Applicant:
+      type: object
+      required: [application, applicant_name, verification_level, people, ai_status]
+      properties:
+        application: { $ref: "#/components/schemas/Application" }
+        applicant_name: { type: string }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        people: { type: array, items: { $ref: "#/components/schemas/ApplicantPerson" } }
+        prescreen: { type: array, items: { $ref: "#/components/schemas/PrescreenAnswer" } }
+        ai_status: { type: string, enum: [pending, ready, failed, disabled] }
+        ai_summary: { $ref: "#/components/schemas/ApplicationSummary" }
+    RoommateProfile:
+      type: object
+      required: [active, budget_max, lifestyle, has_room]
+      properties:
+        active: { type: boolean }
+        admin_path: { type: string, description: "Admin unit path (from /v1/areas); empty = anywhere." }
+        area_label: { type: string, maxLength: 120 }
+        budget_max: { type: integer, format: int64, minimum: 1, description: Monthly budget in minor units (CZK). }
+        move_in: { type: string, format: date }
+        about: { type: string, maxLength: 2000 }
+        lifestyle:
+          type: array
+          items: { type: string, enum: [non_smoker, smoker, pets, no_pets, quiet, social, early_bird, night_owl, works_from_home, student, tidy, vegetarian] }
+        has_room: { type: boolean, description: Offers a room in their own flat. }
+    RoommateMatch:
+      type: object
+      required: [user_id, display_name, verification_level, profile, score]
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string }
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        profile: { $ref: "#/components/schemas/RoommateProfile" }
+        score: { type: integer, minimum: 0, maximum: 100 }
+    Passport:
+      type: object
+      required: [verification_level, insolvency]
+      properties:
+        verification_level: { $ref: "#/components/schemas/VerificationLevel" }
+        income_proof_name: { type: string }
+        income_uploaded_at: { type: string, format: date-time }
+        insolvency: { type: string, enum: [unchecked, clear, record, error] }
+        insolvency_checked_at: { type: string, format: date-time }

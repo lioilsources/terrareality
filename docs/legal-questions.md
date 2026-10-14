@@ -45,3 +45,13 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
   report, with an AI suggestion as input (DSA art. 16-17 notice and statement of reasons for
   hosting services?). Which information must the affected user receive?
 
+## Applications and Tenant Passport (M5)
+
+- **Q-APP-1 Insolvency check.** We query ISIR for the applicant themselves, with their consent, and
+  show the landlord only "no record" / "record". Is this lawful processing, and must the result expire?
+- **Q-APP-2 Income proof.** Landlords can download the uploaded file while an application is open.
+  Retention after the application closes? Proposal: delete with the passport on request, and stop
+  sharing when the application is closed.
+- **Q-APP-3 Anti-discrimination.** Reject reasons come from a fixed list and protected data is not
+  collected. Is that sufficient under the anti-discrimination act for the landlord's choice?
+

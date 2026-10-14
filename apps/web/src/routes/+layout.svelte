@@ -12,8 +12,8 @@
 	const nav = $derived([
 		{ href: '/hledat', label: m.nav_search },
 		...(data.me ? [{ href: '/zpravy', label: m.nav_messages }] : []),
-		{ href: '/admin', label: m.nav_admin },
 		{ href: '/tenant', label: m.nav_tenant },
+		{ href: '/admin', label: m.nav_admin },
 		...(data.me?.is_staff ? [{ href: '/backoffice', label: m.nav_backoffice }] : [])
 	]);
 </script>

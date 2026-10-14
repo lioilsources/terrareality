@@ -239,6 +239,21 @@ func (s *Service) RunErasure(ctx context.Context, requestID uuid.UUID) error {
 		if err := q.DeleteRecoveryCodes(ctx, u.ID); err != nil {
 			return err
 		}
+		// Seeker data from M4/M5: profiles, passport (with the income file), devices, groups.
+		if err := q.DeleteRoommateProfile(ctx, u.ID); err != nil {
+			return err
+		}
+		if key, err := q.DeletePassport(ctx, u.ID); err == nil && key != nil && s.Blob != nil {
+			_ = s.Blob.Delete(ctx, *key)
+		} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err := q.DeleteUserPushDevices(ctx, u.ID); err != nil {
+			return err
+		}
+		if err := q.DeleteUserGroupMemberships(ctx, &u.ID); err != nil {
+			return err
+		}
 		// Identity verifications stay while contracts may need them (legal-questions.md, Q-GDPR-1).
 		if err := q.PseudonymizeUser(ctx, u.ID); err != nil {
 			return err
