@@ -17,6 +17,7 @@ tags:
   - name: jurisdictions
   - name: backoffice
   - name: catalog
+  - name: search
 security:
   - bearerAuth: []
 paths:
@@ -1060,6 +1061,148 @@ paths:
       responses:
         "204": { description: Decided }
         default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ search
+  /v1/search:
+    post:
+      security: []
+      tags: [search]
+      operationId: search
+      summary: Faceted search over published listings with map aggregates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchQuery" }
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResult" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/search/chat:
+    post:
+      security: []
+      tags: [search]
+      operationId: chatSearch
+      summary: Natural-language search – turns a message into filters and a map area, then searches
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatRequest" }
+      responses:
+        "200":
+          description: Applied filters, place, a short reply and the results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatResponse" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/areas:
+    get:
+      security: []
+      tags: [search]
+      operationId: listAreas
+      summary: Child administrative units with simplified outlines (regions when parent is empty)
+      parameters:
+        - { name: parent, in: query, required: false, schema: { type: string, maxLength: 300 } }
+      responses:
+        "200":
+          description: Areas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Area" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/listings/{listingId}:
+    get:
+      security: []
+      tags: [search]
+      operationId: getPublicListing
+      summary: Published listing (approved version only)
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: Listing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicListing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/listings/{listingId}/similar:
+    get:
+      security: []
+      tags: [search]
+      operationId: getSimilarListings
+      summary: Similar listings (embeddings when available, otherwise kind, price and distance)
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: Listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ListingCard" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/seo/municipalities:
+    get:
+      security: []
+      tags: [search]
+      operationId: listSeoMunicipalities
+      summary: Municipalities with at least one listing (static site pages)
+      parameters:
+        - { name: kind, in: query, required: false, schema: { $ref: "#/components/schemas/UnitKind" } }
+      responses:
+        "200":
+          description: Municipalities
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MunicipalityStat" }
+  /v1/me/saved-searches:
+    get:
+      tags: [search]
+      operationId: listSavedSearches
+      summary: My saved searches
+      responses:
+        "200":
+          description: Saved searches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SavedSearch" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [search]
+      operationId: createSavedSearch
+      summary: Save a search; new matching listings are e-mailed daily when notify is on
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SavedSearchInput" }
+      responses:
+        "201":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SavedSearch" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/saved-searches/{savedSearchId}:
+    delete:
+      tags: [search]
+      operationId: deleteSavedSearch
+      summary: Delete a saved search
+      parameters:
+        - { name: savedSearchId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -1813,3 +1956,178 @@ components:
         approve: { type: boolean }
         label: { $ref: "#/components/schemas/I18nText" }
         note: { type: string, maxLength: 2000 }
+    # --- search
+    AttrFilter:
+      type: object
+      properties:
+        values: { type: array, items: { type: string }, maxItems: 30 }
+        bool: { type: boolean }
+        min: { type: number, format: double }
+        max: { type: number, format: double }
+    SearchQuery:
+      type: object
+      properties:
+        text: { type: string, maxLength: 200 }
+        kinds: { type: array, items: { $ref: "#/components/schemas/UnitKind" } }
+        rent_min: { type: integer, format: int64, minimum: 0, description: Minor units. }
+        rent_max: { type: integer, format: int64, minimum: 0 }
+        area_min: { type: number, format: double, minimum: 0 }
+        area_max: { type: number, format: double, minimum: 0 }
+        layouts: { type: array, items: { type: string, maxLength: 10 }, maxItems: 20 }
+        admin_path: { type: string, maxLength: 300, pattern: '^[a-z0-9_.]*$' }
+        bbox:
+          type: array
+          items: { type: number, format: double }
+          minItems: 4
+          maxItems: 4
+          description: west, south, east, north
+        attributes: { type: object, additionalProperties: { $ref: "#/components/schemas/AttrFilter" } }
+        sort: { type: string, enum: [relevance, price_asc, price_desc, newest, area_desc] }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0, maximum: 10000 }
+    ListingCard:
+      type: object
+      required: [id, unit_kind, rent_amount, currency, title, city, lat, lng, published_at]
+      properties:
+        id: { type: string, format: uuid }
+        unit_kind: { $ref: "#/components/schemas/UnitKind" }
+        layout: { type: string }
+        rent_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        floor_area: { type: number, format: double }
+        title: { $ref: "#/components/schemas/I18nText" }
+        city: { type: string }
+        city_part: { type: string }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        cover_url: { type: string }
+        published_at: { type: string, format: date-time }
+    FacetCount:
+      type: object
+      required: [value, count]
+      properties:
+        value: { type: string }
+        count: { type: integer }
+    AreaAggregate:
+      type: object
+      required: [path, name, level, count, median_rent, lat, lng]
+      properties:
+        path: { type: string }
+        name: { type: string }
+        level: { type: integer }
+        count: { type: integer }
+        median_rent: { type: integer, format: int64 }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+    MapPoint:
+      type: object
+      required: [id, lat, lng, rent_amount]
+      properties:
+        id: { type: string, format: uuid }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        rent_amount: { type: integer, format: int64 }
+    SearchResult:
+      type: object
+      required: [total, items, facets, rent_min, rent_max, areas, points]
+      properties:
+        total: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/ListingCard" } }
+        facets: { type: object, additionalProperties: { type: array, items: { $ref: "#/components/schemas/FacetCount" } } }
+        rent_min: { type: integer, format: int64 }
+        rent_max: { type: integer, format: int64 }
+        areas: { type: array, items: { $ref: "#/components/schemas/AreaAggregate" } }
+        points: { type: array, items: { $ref: "#/components/schemas/MapPoint" }, description: Up to 2000 markers. }
+    Place:
+      type: object
+      required: [path, name, bbox]
+      properties:
+        path: { type: string }
+        name: { type: string }
+        bbox: { type: array, items: { type: number, format: double } }
+    ChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 500 }
+        query: { $ref: "#/components/schemas/SearchQuery" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
+    ChatResponse:
+      type: object
+      required: [query, reply, model, degraded, result]
+      properties:
+        query: { $ref: "#/components/schemas/SearchQuery" }
+        place: { $ref: "#/components/schemas/Place" }
+        reply: { type: string }
+        model: { type: string, description: LLM route or "rules" for the offline parser. }
+        degraded: { type: boolean, description: The LLM was unavailable and rules were used. }
+        result: { $ref: "#/components/schemas/SearchResult" }
+    Area:
+      type: object
+      required: [path, name, slug, level, lat, lng, geometry]
+      properties:
+        path: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        level: { type: integer }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        geometry: { type: object, additionalProperties: true, description: GeoJSON MultiPolygon (simplified). }
+    PublicListing:
+      type: object
+      required: [id, title, description, rent_amount, currency, attributes, unit, location, photos, published_at, area_names]
+      properties:
+        id: { type: string, format: uuid }
+        title: { $ref: "#/components/schemas/I18nText" }
+        description: { $ref: "#/components/schemas/I18nText" }
+        rent_amount: { type: integer, format: int64 }
+        deposit_amount: { type: integer, format: int64 }
+        utilities_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        available_from: { type: string, format: date }
+        min_term_months: { type: integer, format: int32 }
+        attributes: { type: object, additionalProperties: true }
+        unit:
+          type: object
+          required: [kind]
+          properties:
+            kind: { $ref: "#/components/schemas/UnitKind" }
+            layout: { type: string }
+            floor: { type: integer, format: int32 }
+            floor_area: { type: number, format: double }
+        location:
+          type: object
+          required: [lat, lng, precision]
+          properties:
+            lat: { type: number, format: double }
+            lng: { type: number, format: double }
+            precision: { type: string, enum: [exact, approximate] }
+            address: { type: string, description: Only when the owner chose the exact location. }
+        area_names: { type: array, items: { type: string }, description: From region to neighbourhood. }
+        photos: { type: array, items: { $ref: "#/components/schemas/PhotoVariants" } }
+        published_at: { type: string, format: date-time }
+    MunicipalityStat:
+      type: object
+      required: [name, slug, path, listings, median_rent]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        path: { type: string }
+        listings: { type: integer }
+        median_rent: { type: integer, format: int64 }
+    SavedSearchInput:
+      type: object
+      required: [name, query]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        query: { $ref: "#/components/schemas/SearchQuery" }
+        notify: { type: boolean, default: true }
+    SavedSearch:
+      type: object
+      required: [id, name, query, notify, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        query: { $ref: "#/components/schemas/SearchQuery" }
+        notify: { type: boolean }
+        created_at: { type: string, format: date-time }

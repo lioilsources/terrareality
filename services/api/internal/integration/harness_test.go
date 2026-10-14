@@ -32,6 +32,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
 	"github.com/terrareality/terrareality/services/api/internal/ruian"
+	"github.com/terrareality/terrareality/services/api/internal/search"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
 	"github.com/terrareality/terrareality/services/api/internal/vision"
 )
@@ -108,6 +109,9 @@ func newEnv(t *testing.T) *env {
 	if _, err := ruian.SeedSample(context.Background(), pool); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := search.SeedFromRuian(context.Background(), pool); err != nil {
+		t.Fatal(err)
+	}
 	e.vision = fakeVision(t)
 	img, err := media.NewImgproxy("http://img.test", "terra", "6b6579", "73616c74")
 	if err != nil {
@@ -130,9 +134,10 @@ func newEnv(t *testing.T) *env {
 	orgs := &org.Service{Pool: pool, Outbox: e.outbox, Render: render, WebBaseURL: "http://web.test"}
 	e.listings = &listing.Service{Pool: pool, Blob: e.blob, Img: img, Scanner: media.NoScanner{}, Vision: vision.New(e.vision.URL),
 		AI: ai.Mock{}, Jobs: e.jobs, Outbox: e.outbox, Render: render, WebBaseURL: "http://web.test",
-		Flags: listing.Flags{AIAttributes: true, AIText: true, Vision: true}}
+		Flags: listing.Flags{AIAttributes: true, AIText: true, Vision: true}, Search: search.Indexer{}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000}),
+	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
+		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e

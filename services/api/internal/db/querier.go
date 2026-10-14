@@ -146,6 +146,8 @@ type Querier interface {
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
 	// System context (backoffice review).
 	PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error
+	// Only listings with an approved version (synthetic load-test rows have none).
+	PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error)
 	RefreshListingAggregates(ctx context.Context) error
 	ReviewListingVersion(ctx context.Context, arg ReviewListingVersionParams) (int64, error)
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)

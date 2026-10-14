@@ -38,5 +38,9 @@
   "listing_rejected": {
     "subject": "Inzerát vrácen k úpravě: {{.Title}}",
     "text": "Dobrý den,\n\nváš inzerát „{{.Title}}“ (verze {{.Version}}) jsme vrátili k úpravě.{{if .Note}}\n\nDůvod: {{.Note}}{{end}}\n\nUpravte ho a odešlete znovu:\n{{.Link}}"
+  },
+  "saved_search_digest": {
+    "subject": "Nové nabídky pro „{{.Name}}“ ({{.Count}})",
+    "text": "Dobrý den,\n\nk vašemu uloženému hledání „{{.Name}}“ přibyly nové nabídky ({{.Count}}):\n\n{{.Items}}\n\nVšechny výsledky a nastavení upozornění:\n{{.Link}}"
   }
 }

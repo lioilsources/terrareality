@@ -39,7 +39,9 @@ type Query struct {
 	Attributes map[string]AttrFilter `json:"attributes,omitempty"`
 	Sort       string                `json:"sort,omitempty"` // relevance | price_asc | price_desc | newest | area_desc
 	Limit      int                   `json:"limit,omitempty"`
-	Offset     int                   `json:"offset,omitempty"`
+	// PublishedAfter limits to new listings (saved-search digests; not exposed in the API).
+	PublishedAfter *time.Time `json:"-"`
+	Offset         int        `json:"offset,omitempty"`
 }
 
 // Card is one result row.
@@ -121,6 +123,9 @@ func build(q Query, schema *catalog.Schema, skip string) (*builder, error) {
 	b := &builder{}
 	if t := strings.TrimSpace(q.Text); t != "" {
 		b.add("s.tsv @@ websearch_to_tsquery('simple', lower(unaccent(" + b.arg(t) + ")))")
+	}
+	if q.PublishedAfter != nil {
+		b.add("s.published_at > " + b.arg(*q.PublishedAfter))
 	}
 	if len(q.Kinds) > 0 {
 		b.add("s.unit_kind = ANY(" + b.arg(q.Kinds) + ")")
@@ -400,4 +405,33 @@ func (e *Engine) points(ctx context.Context, tx pgx.Tx, base *builder, res *Resu
 		res.Points = append(res.Points, p)
 	}
 	return rows.Err()
+}
+
+// Cards loads result cards by id, keeping the given order.
+func (e *Engine) Cards(ctx context.Context, ids []uuid.UUID) ([]Card, error) {
+	rows, err := e.Pool.Query(ctx, `SELECT s.listing_id, s.unit_kind, s.layout, s.rent_amount, s.currency, s.floor_area::float8, s.title,
+		s.city, s.city_part, ST_Y(s.location::geometry), ST_X(s.location::geometry), s.cover_key, s.cover_orientation, s.published_at
+		FROM listing_search s WHERE s.listing_id = ANY($1)`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	byID := map[uuid.UUID]Card{}
+	for rows.Next() {
+		var c Card
+		var title []byte
+		if err := rows.Scan(&c.ListingID, &c.UnitKind, &c.Layout, &c.RentAmount, &c.Currency, &c.FloorArea, &title, &c.City,
+			&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(title, &c.Title)
+		byID[c.ListingID] = c
+	}
+	out := make([]Card, 0, len(ids))
+	for _, id := range ids {
+		if c, ok := byID[id]; ok {
+			out = append(out, c)
+		}
+	}
+	return out, rows.Err()
 }

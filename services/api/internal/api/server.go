@@ -29,6 +29,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/httpx"
 	"github.com/terrareality/terrareality/services/api/internal/platform/ratelimit"
+	"github.com/terrareality/terrareality/services/api/internal/search"
 )
 
 // Services are the domain services behind the handlers.
@@ -37,6 +38,8 @@ type Services struct {
 	Orgs            *org.Service
 	IDP             *identity.Registry
 	Listings        *listing.Service
+	Engine          *search.Engine
+	Chat            *search.Chat
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per

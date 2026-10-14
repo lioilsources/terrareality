@@ -10,7 +10,7 @@
 	let { children, data }: LayoutProps = $props();
 
 	const nav = $derived([
-		{ href: '/', label: m.nav_search },
+		{ href: '/hledat', label: m.nav_search },
 		{ href: '/admin', label: m.nav_admin },
 		{ href: '/tenant', label: m.nav_tenant },
 		...(data.me?.is_staff ? [{ href: '/backoffice', label: m.nav_backoffice }] : [])

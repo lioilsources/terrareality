@@ -35,9 +35,9 @@ export default defineConfig(
 	},
 	{
 		rules: {
-			// Links are built with paraglide's localizeHref() and the app is served at
+			// Links and goto() targets are built with paraglide's localizeHref() and the app is served at
 			// the root (no paths.base), so resolve() would add nothing.
-			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true }]
+			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true, ignoreGoto: true }]
 		}
 	}
 );

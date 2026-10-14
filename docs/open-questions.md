@@ -33,3 +33,14 @@ follows until decided otherwise.
   Proposal: run clamd as a sidecar on the production VM (about 1 GB RAM for signatures).
 - **OQ-10 Removed photos of published listings** stay in storage until the next approved version;
   a cleanup job comes with M3 search.
+
+## M3
+
+- **OQ-11 Administrative boundaries source.** Overpass API was overloaded on 2026-10-14, so dev uses
+  outlines derived from address points. Proposal: import RÚIAN VFR boundaries (official, CC-BY) for
+  regions, municipalities, MOMC and parts of municipalities via `ogr2ogr` → GeoJSON with properties
+  code/level/name/parent → `terractl admin import`. Needs a one-off conversion script (M8).
+- **OQ-12 Basemap.** OpenFreeMap (free, no key, OSM data). For production traffic consider
+  self-hosted PMTiles of CZ on our object storage. Decide before launch (M8).
+- **OQ-13 Embeddings.** See OQ-7: bge-m3 location (Spark resident, CPU sidecar on the app VM, or a
+  time window). Until decided, similar listings use the attribute fallback.

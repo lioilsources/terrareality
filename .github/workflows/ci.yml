@@ -83,6 +83,7 @@ jobs:
           go build -o bin/ ./cmd/...
           bin/migrate up
           bin/terractl seed-dev
+          bin/terractl seed-search 500
           (bin/worker &) ; (bin/api &)
           for i in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 2; done
         env:
@@ -100,6 +101,10 @@ jobs:
         working-directory: apps/web
       - run: npx playwright test
         working-directory: apps/web
+        env:
+          API_URL: http://localhost:8080
+      - name: Static locality pages
+        run: ./scripts/check-site.sh
         env:
           API_URL: http://localhost:8080
 

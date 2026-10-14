@@ -41,6 +41,10 @@ Photos go to SeaweedFS and are served through imgproxy (http://localhost:8081). 
 the offline mock unless `LLM_BASE_URL` points at the Spark gateway. Listings submitted for review
 appear at http://localhost:5173/backoffice/reviews for `staff@terra.local`.
 
+Search (M3): http://localhost:5173/hledat – chat bar, filters with facets, map drill-down. Fill it
+with synthetic data: `cd services/api && go run ./cmd/terractl seed-search 2000`. Static locality
+pages: `npm run build -w site` (needs the api running) → `apps/site/dist/pronajem-bytu/<obec>/`.
+
 Mobile: `cd apps/mobile && flutter run` (iOS simulator reaches `localhost:8080`, Android emulator `10.0.2.2:8080`;
 override with `--dart-define=API_URL=...`).
 Live contract check of the Dart client against a running api:

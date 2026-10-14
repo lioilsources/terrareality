@@ -479,6 +479,33 @@ func (q *Queries) MunicipalitiesWithListings(ctx context.Context, kind *string) 
 	return items, nil
 }
 
+const publishedListingIDs = `-- name: PublishedListingIDs :many
+SELECT l.id FROM listings l
+JOIN listing_versions v ON v.listing_id = l.id AND v.version = l.published_version
+WHERE l.status = 'published' AND l.deleted_at IS NULL
+`
+
+// Only listings with an approved version (synthetic load-test rows have none).
+func (q *Queries) PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, publishedListingIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const refreshListingAggregates = `-- name: RefreshListingAggregates :exec
 REFRESH MATERIALIZED VIEW CONCURRENTLY listing_aggregates
 `

@@ -458,6 +458,24 @@ func (e OrganizationKind) Valid() bool {
 	}
 }
 
+// Defines values for PublicListingLocationPrecision.
+const (
+	PublicListingLocationPrecisionApproximate PublicListingLocationPrecision = "approximate"
+	PublicListingLocationPrecisionExact       PublicListingLocationPrecision = "exact"
+)
+
+// Valid indicates whether the value is a known member of the PublicListingLocationPrecision enum.
+func (e PublicListingLocationPrecision) Valid() bool {
+	switch e {
+	case PublicListingLocationPrecisionApproximate:
+		return true
+	case PublicListingLocationPrecisionExact:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Role.
 const (
 	RoleAccountant  Role = "accountant"
@@ -482,6 +500,33 @@ func (e Role) Valid() bool {
 	case RoleOwner:
 		return true
 	case RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchQuerySort.
+const (
+	AreaDesc  SearchQuerySort = "area_desc"
+	Newest    SearchQuerySort = "newest"
+	PriceAsc  SearchQuerySort = "price_asc"
+	PriceDesc SearchQuerySort = "price_desc"
+	Relevance SearchQuerySort = "relevance"
+)
+
+// Valid indicates whether the value is a known member of the SearchQuerySort enum.
+func (e SearchQuerySort) Valid() bool {
+	switch e {
+	case AreaDesc:
+		return true
+	case Newest:
+		return true
+	case PriceAsc:
+		return true
+	case PriceDesc:
+		return true
+	case Relevance:
 		return true
 	default:
 		return false
@@ -770,6 +815,37 @@ type AdminUserPage struct {
 	NextBefore *openapi_types.UUID `json:"next_before,omitempty"`
 }
 
+// Area defines model for Area.
+type Area struct {
+	// Geometry GeoJSON MultiPolygon (simplified).
+	Geometry map[string]interface{} `json:"geometry"`
+	Lat      float64                `json:"lat"`
+	Level    int                    `json:"level"`
+	Lng      float64                `json:"lng"`
+	Name     string                 `json:"name"`
+	Path     string                 `json:"path"`
+	Slug     string                 `json:"slug"`
+}
+
+// AreaAggregate defines model for AreaAggregate.
+type AreaAggregate struct {
+	Count      int     `json:"count"`
+	Lat        float64 `json:"lat"`
+	Level      int     `json:"level"`
+	Lng        float64 `json:"lng"`
+	MedianRent int64   `json:"median_rent"`
+	Name       string  `json:"name"`
+	Path       string  `json:"path"`
+}
+
+// AttrFilter defines model for AttrFilter.
+type AttrFilter struct {
+	Bool   *bool     `json:"bool,omitempty"`
+	Max    *float64  `json:"max,omitempty"`
+	Min    *float64  `json:"min,omitempty"`
+	Values *[]string `json:"values,omitempty"`
+}
+
 // AttributeDef defines model for AttributeDef.
 type AttributeDef struct {
 	AppliesTo []UnitKind        `json:"applies_to"`
@@ -858,6 +934,26 @@ type ChangePasswordRequest struct {
 	NewPassword     Password `json:"new_password"`
 }
 
+// ChatRequest defines model for ChatRequest.
+type ChatRequest struct {
+	Locale  *UserLocale  `json:"locale,omitempty"`
+	Message string       `json:"message"`
+	Query   *SearchQuery `json:"query,omitempty"`
+}
+
+// ChatResponse defines model for ChatResponse.
+type ChatResponse struct {
+	// Degraded The LLM was unavailable and rules were used.
+	Degraded bool `json:"degraded"`
+
+	// Model LLM route or "rules" for the offline parser.
+	Model  string       `json:"model"`
+	Place  *Place       `json:"place,omitempty"`
+	Query  SearchQuery  `json:"query"`
+	Reply  string       `json:"reply"`
+	Result SearchResult `json:"result"`
+}
+
 // ClientKind defines model for ClientKind.
 type ClientKind string
 
@@ -893,6 +989,12 @@ type DownloadLink struct {
 
 // Email defines model for Email.
 type Email = openapi_types.Email
+
+// FacetCount defines model for FacetCount.
+type FacetCount struct {
+	Count int    `json:"count"`
+	Value string `json:"value"`
+}
 
 // FieldError defines model for FieldError.
 type FieldError struct {
@@ -1053,6 +1155,23 @@ type ListingAddress struct {
 	PostalCode string  `json:"postal_code"`
 }
 
+// ListingCard defines model for ListingCard.
+type ListingCard struct {
+	City        string             `json:"city"`
+	CityPart    *string            `json:"city_part,omitempty"`
+	CoverUrl    *string            `json:"cover_url,omitempty"`
+	Currency    string             `json:"currency"`
+	FloorArea   *float64           `json:"floor_area,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Lat         float64            `json:"lat"`
+	Layout      *string            `json:"layout,omitempty"`
+	Lng         float64            `json:"lng"`
+	PublishedAt time.Time          `json:"published_at"`
+	RentAmount  int64              `json:"rent_amount"`
+	Title       I18nText           `json:"title"`
+	UnitKind    UnitKind           `json:"unit_kind"`
+}
+
 // ListingCreate defines model for ListingCreate.
 type ListingCreate struct {
 	Floor           *int32   `json:"floor,omitempty"`
@@ -1149,6 +1268,14 @@ type MagicLinkRequest struct {
 	Locale *UserLocale `json:"locale,omitempty"`
 }
 
+// MapPoint defines model for MapPoint.
+type MapPoint struct {
+	Id         openapi_types.UUID `json:"id"`
+	Lat        float64            `json:"lat"`
+	Lng        float64            `json:"lng"`
+	RentAmount int64              `json:"rent_amount"`
+}
+
 // Me defines model for Me.
 type Me struct {
 	CreatedAt         time.Time          `json:"created_at"`
@@ -1236,6 +1363,15 @@ type MfaRequest struct {
 	MfaToken string `json:"mfa_token"`
 }
 
+// MunicipalityStat defines model for MunicipalityStat.
+type MunicipalityStat struct {
+	Listings   int    `json:"listings"`
+	MedianRent int64  `json:"median_rent"`
+	Name       string `json:"name"`
+	Path       string `json:"path"`
+	Slug       string `json:"slug"`
+}
+
 // OidcCallbackRequest defines model for OidcCallbackRequest.
 type OidcCallbackRequest struct {
 	Client      *ClientKind `json:"client,omitempty"`
@@ -1308,6 +1444,13 @@ type PhotoVariants struct {
 	Thumb  string `json:"thumb"`
 }
 
+// Place defines model for Place.
+type Place struct {
+	Bbox []float64 `json:"bbox"`
+	Name string    `json:"name"`
+	Path string    `json:"path"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	// Code Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
@@ -1332,6 +1475,40 @@ type ProposalDecision struct {
 	Label   *I18nText `json:"label,omitempty"`
 	Note    *string   `json:"note,omitempty"`
 }
+
+// PublicListing defines model for PublicListing.
+type PublicListing struct {
+	// AreaNames From region to neighbourhood.
+	AreaNames     []string               `json:"area_names"`
+	Attributes    map[string]interface{} `json:"attributes"`
+	AvailableFrom *openapi_types.Date    `json:"available_from,omitempty"`
+	Currency      string                 `json:"currency"`
+	DepositAmount *int64                 `json:"deposit_amount,omitempty"`
+	Description   I18nText               `json:"description"`
+	Id            openapi_types.UUID     `json:"id"`
+	Location      struct {
+		// Address Only when the owner chose the exact location.
+		Address   *string                        `json:"address,omitempty"`
+		Lat       float64                        `json:"lat"`
+		Lng       float64                        `json:"lng"`
+		Precision PublicListingLocationPrecision `json:"precision"`
+	} `json:"location"`
+	MinTermMonths *int32          `json:"min_term_months,omitempty"`
+	Photos        []PhotoVariants `json:"photos"`
+	PublishedAt   time.Time       `json:"published_at"`
+	RentAmount    int64           `json:"rent_amount"`
+	Title         I18nText        `json:"title"`
+	Unit          struct {
+		Floor     *int32   `json:"floor,omitempty"`
+		FloorArea *float64 `json:"floor_area,omitempty"`
+		Kind      UnitKind `json:"kind"`
+		Layout    *string  `json:"layout,omitempty"`
+	} `json:"unit"`
+	UtilitiesAmount *int64 `json:"utilities_amount,omitempty"`
+}
+
+// PublicListingLocationPrecision defines model for PublicListing.Location.Precision.
+type PublicListingLocationPrecision string
 
 // RecoveryCodes defines model for RecoveryCodes.
 type RecoveryCodes struct {
@@ -1385,6 +1562,59 @@ type Role string
 // RoleInput defines model for RoleInput.
 type RoleInput struct {
 	Role Role `json:"role"`
+}
+
+// SavedSearch defines model for SavedSearch.
+type SavedSearch struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+	Notify    bool               `json:"notify"`
+	Query     SearchQuery        `json:"query"`
+}
+
+// SavedSearchInput defines model for SavedSearchInput.
+type SavedSearchInput struct {
+	Name   string      `json:"name"`
+	Notify *bool       `json:"notify,omitempty"`
+	Query  SearchQuery `json:"query"`
+}
+
+// SearchQuery defines model for SearchQuery.
+type SearchQuery struct {
+	AdminPath  *string                `json:"admin_path,omitempty"`
+	AreaMax    *float64               `json:"area_max,omitempty"`
+	AreaMin    *float64               `json:"area_min,omitempty"`
+	Attributes *map[string]AttrFilter `json:"attributes,omitempty"`
+
+	// Bbox west, south, east, north
+	Bbox    *[]float64  `json:"bbox,omitempty"`
+	Kinds   *[]UnitKind `json:"kinds,omitempty"`
+	Layouts *[]string   `json:"layouts,omitempty"`
+	Limit   *int        `json:"limit,omitempty"`
+	Offset  *int        `json:"offset,omitempty"`
+	RentMax *int64      `json:"rent_max,omitempty"`
+
+	// RentMin Minor units.
+	RentMin *int64           `json:"rent_min,omitempty"`
+	Sort    *SearchQuerySort `json:"sort,omitempty"`
+	Text    *string          `json:"text,omitempty"`
+}
+
+// SearchQuerySort defines model for SearchQuery.Sort.
+type SearchQuerySort string
+
+// SearchResult defines model for SearchResult.
+type SearchResult struct {
+	Areas  []AreaAggregate         `json:"areas"`
+	Facets map[string][]FacetCount `json:"facets"`
+	Items  []ListingCard           `json:"items"`
+
+	// Points Up to 2000 markers.
+	Points  []MapPoint `json:"points"`
+	RentMax int64      `json:"rent_max"`
+	RentMin int64      `json:"rent_min"`
+	Total   int        `json:"total"`
 }
 
 // SessionInfo defines model for SessionInfo.
@@ -1513,6 +1743,11 @@ type SearchAddressesParams struct {
 	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListAreasParams defines parameters for ListAreas.
+type ListAreasParams struct {
+	Parent *string `form:"parent,omitempty" json:"parent,omitempty"`
+}
+
 // FinishOidcParamsProvider defines parameters for FinishOidc.
 type FinishOidcParamsProvider string
 
@@ -1574,6 +1809,11 @@ type RequestSuggestionJSONBody struct {
 
 // RequestSuggestionJSONBodyKind defines parameters for RequestSuggestion.
 type RequestSuggestionJSONBodyKind string
+
+// ListSeoMunicipalitiesParams defines parameters for ListSeoMunicipalities.
+type ListSeoMunicipalitiesParams struct {
+	Kind *UnitKind `form:"kind,omitempty" json:"kind,omitempty"`
+}
 
 // VerifyEmailJSONRequestBody defines body for VerifyEmail for application/json ContentType.
 type VerifyEmailJSONRequestBody = TokenRequest
@@ -1641,6 +1881,9 @@ type StartPhoneVerificationJSONRequestBody = PhoneRequest
 // VerifyPhoneJSONRequestBody defines body for VerifyPhone for application/json ContentType.
 type VerifyPhoneJSONRequestBody = CodeRequest
 
+// CreateSavedSearchJSONRequestBody defines body for CreateSavedSearch for application/json ContentType.
+type CreateSavedSearchJSONRequestBody = SavedSearchInput
+
 // CreateOrgJSONRequestBody defines body for CreateOrg for application/json ContentType.
 type CreateOrgJSONRequestBody = OrgInput
 
@@ -1674,6 +1917,12 @@ type UpdateOrgMemberJSONRequestBody = RoleInput
 // DecideSuggestionJSONRequestBody defines body for DecideSuggestion for application/json ContentType.
 type DecideSuggestionJSONRequestBody = SuggestionDecision
 
+// SearchJSONRequestBody defines body for Search for application/json ContentType.
+type SearchJSONRequestBody = SearchQuery
+
+// ChatSearchJSONRequestBody defines body for ChatSearch for application/json ContentType.
+type ChatSearchJSONRequestBody = ChatRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetHealth Liveness and dependency health
@@ -1682,6 +1931,9 @@ type ServerInterface interface {
 	// SearchAddresses Autocomplete Czech addresses (RÚIAN)
 	// (GET /v1/addresses/search)
 	SearchAddresses(w http.ResponseWriter, r *http.Request, params SearchAddressesParams)
+	// ListAreas Child administrative units with simplified outlines (regions when parent is empty)
+	// (GET /v1/areas)
+	ListAreas(w http.ResponseWriter, r *http.Request, params ListAreasParams)
 	// GetAttributeSchema Listing attribute schema (catalog plus approved options)
 	// (GET /v1/attributes)
 	GetAttributeSchema(w http.ResponseWriter, r *http.Request)
@@ -1763,6 +2015,12 @@ type ServerInterface interface {
 	// GetJurisdiction One jurisdiction
 	// (GET /v1/jurisdictions/{code})
 	GetJurisdiction(w http.ResponseWriter, r *http.Request, code string)
+	// GetPublicListing Published listing (approved version only)
+	// (GET /v1/listings/{listingId})
+	GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId)
+	// GetSimilarListings Similar listings (embeddings when available, otherwise kind, price and distance)
+	// (GET /v1/listings/{listingId}/similar)
+	GetSimilarListings(w http.ResponseWriter, r *http.Request, listingId ListingId)
 	// GetMe Current user, verification level and organizations
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
@@ -1814,6 +2072,15 @@ type ServerInterface interface {
 	// VerifyPhone Confirm the phone number with the SMS code
 	// (POST /v1/me/phone/verify)
 	VerifyPhone(w http.ResponseWriter, r *http.Request)
+	// ListSavedSearches My saved searches
+	// (GET /v1/me/saved-searches)
+	ListSavedSearches(w http.ResponseWriter, r *http.Request)
+	// CreateSavedSearch Save a search; new matching listings are e-mailed daily when notify is on
+	// (POST /v1/me/saved-searches)
+	CreateSavedSearch(w http.ResponseWriter, r *http.Request)
+	// DeleteSavedSearch Delete a saved search
+	// (DELETE /v1/me/saved-searches/{savedSearchId})
+	DeleteSavedSearch(w http.ResponseWriter, r *http.Request, savedSearchId openapi_types.UUID)
 	// ListMySessions Active sessions of the current user
 	// (GET /v1/me/sessions)
 	ListMySessions(w http.ResponseWriter, r *http.Request)
@@ -1892,6 +2159,15 @@ type ServerInterface interface {
 	// DecideSuggestion Accept (all or selected attributes) or reject an AI suggestion
 	// (POST /v1/orgs/{orgId}/suggestions/{suggestionId}/decision)
 	DecideSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, suggestionId openapi_types.UUID)
+	// Search Faceted search over published listings with map aggregates
+	// (POST /v1/search)
+	Search(w http.ResponseWriter, r *http.Request)
+	// ChatSearch Natural-language search – turns a message into filters and a map area, then searches
+	// (POST /v1/search/chat)
+	ChatSearch(w http.ResponseWriter, r *http.Request)
+	// ListSeoMunicipalities Municipalities with at least one listing (static site pages)
+	// (GET /v1/seo/municipalities)
+	ListSeoMunicipalities(w http.ResponseWriter, r *http.Request, params ListSeoMunicipalitiesParams)
 	// GetVersion Build information
 	// (GET /v1/version)
 	GetVersion(w http.ResponseWriter, r *http.Request)
@@ -1910,6 +2186,12 @@ func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 // SearchAddresses Autocomplete Czech addresses (RÚIAN)
 // (GET /v1/addresses/search)
 func (_ Unimplemented) SearchAddresses(w http.ResponseWriter, r *http.Request, params SearchAddressesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListAreas Child administrative units with simplified outlines (regions when parent is empty)
+// (GET /v1/areas)
+func (_ Unimplemented) ListAreas(w http.ResponseWriter, r *http.Request, params ListAreasParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2075,6 +2357,18 @@ func (_ Unimplemented) GetJurisdiction(w http.ResponseWriter, r *http.Request, c
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetPublicListing Published listing (approved version only)
+// (GET /v1/listings/{listingId})
+func (_ Unimplemented) GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSimilarListings Similar listings (embeddings when available, otherwise kind, price and distance)
+// (GET /v1/listings/{listingId}/similar)
+func (_ Unimplemented) GetSimilarListings(w http.ResponseWriter, r *http.Request, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetMe Current user, verification level and organizations
 // (GET /v1/me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
@@ -2174,6 +2468,24 @@ func (_ Unimplemented) StartPhoneVerification(w http.ResponseWriter, r *http.Req
 // VerifyPhone Confirm the phone number with the SMS code
 // (POST /v1/me/phone/verify)
 func (_ Unimplemented) VerifyPhone(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSavedSearches My saved searches
+// (GET /v1/me/saved-searches)
+func (_ Unimplemented) ListSavedSearches(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSavedSearch Save a search; new matching listings are e-mailed daily when notify is on
+// (POST /v1/me/saved-searches)
+func (_ Unimplemented) CreateSavedSearch(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSavedSearch Delete a saved search
+// (DELETE /v1/me/saved-searches/{savedSearchId})
+func (_ Unimplemented) DeleteSavedSearch(w http.ResponseWriter, r *http.Request, savedSearchId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2333,6 +2645,24 @@ func (_ Unimplemented) DecideSuggestion(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Search Faceted search over published listings with map aggregates
+// (POST /v1/search)
+func (_ Unimplemented) Search(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ChatSearch Natural-language search – turns a message into filters and a map area, then searches
+// (POST /v1/search/chat)
+func (_ Unimplemented) ChatSearch(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSeoMunicipalities Municipalities with at least one listing (static site pages)
+// (GET /v1/seo/municipalities)
+func (_ Unimplemented) ListSeoMunicipalities(w http.ResponseWriter, r *http.Request, params ListSeoMunicipalitiesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetVersion Build information
 // (GET /v1/version)
 func (_ Unimplemented) GetVersion(w http.ResponseWriter, r *http.Request) {
@@ -2399,6 +2729,39 @@ func (siw *ServerInterfaceWrapper) SearchAddresses(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SearchAddresses(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAreas operation middleware
+func (siw *ServerInterfaceWrapper) ListAreas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAreasParams
+
+	// ------------- Optional query parameter "parent" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "parent", r.URL.Query(), &params.Parent, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "parent"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "parent", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAreas(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3041,6 +3404,58 @@ func (siw *ServerInterfaceWrapper) GetJurisdiction(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetPublicListing operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicListing(w, r, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSimilarListings operation middleware
+func (siw *ServerInterfaceWrapper) GetSimilarListings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSimilarListings(w, r, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
@@ -3282,6 +3697,60 @@ func (siw *ServerInterfaceWrapper) VerifyPhone(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.VerifyPhone(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSavedSearches operation middleware
+func (siw *ServerInterfaceWrapper) ListSavedSearches(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSavedSearches(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSavedSearch operation middleware
+func (siw *ServerInterfaceWrapper) CreateSavedSearch(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSavedSearch(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSavedSearch operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSavedSearch(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "savedSearchId" -------------
+	var savedSearchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "savedSearchId", chi.URLParam(r, "savedSearchId"), &savedSearchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "savedSearchId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSavedSearch(w, r, savedSearchId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4102,6 +4571,67 @@ func (siw *ServerInterfaceWrapper) DecideSuggestion(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// Search operation middleware
+func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Search(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChatSearch operation middleware
+func (siw *ServerInterfaceWrapper) ChatSearch(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChatSearch(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSeoMunicipalities operation middleware
+func (siw *ServerInterfaceWrapper) ListSeoMunicipalities(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSeoMunicipalitiesParams
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSeoMunicipalities(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetVersion operation middleware
 func (siw *ServerInterfaceWrapper) GetVersion(w http.ResponseWriter, r *http.Request) {
 
@@ -4448,6 +4978,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/backoffice/filter-proposals/{proposalId}/decision", wrapper.BackofficeDecideFilterProposal)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/search", wrapper.Search)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/search/chat", wrapper.ChatSearch)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/areas", wrapper.ListAreas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/listings/{listingId}", wrapper.GetPublicListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/listings/{listingId}/similar", wrapper.GetSimilarListings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/seo/municipalities", wrapper.ListSeoMunicipalities)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/me/saved-searches", wrapper.ListSavedSearches)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/me/saved-searches", wrapper.CreateSavedSearch)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/me/saved-searches/{savedSearchId}", wrapper.DeleteSavedSearch)
+	})
 
 	return r
 }
@@ -4525,6 +5082,45 @@ type SearchAddressesdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response SearchAddressesdefaultApplicationProblemPlusJSONResponse) VisitSearchAddressesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAreasRequestObject struct {
+	Params ListAreasParams
+}
+
+type ListAreasResponseObject interface {
+	VisitListAreasResponse(w http.ResponseWriter) error
+}
+
+type ListAreas200JSONResponse []Area
+
+func (response ListAreas200JSONResponse) VisitListAreasResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAreasdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListAreasdefaultApplicationProblemPlusJSONResponse) VisitListAreasResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -5489,6 +6085,84 @@ func (response GetJurisdictiondefaultApplicationProblemPlusJSONResponse) VisitGe
 	return err
 }
 
+type GetPublicListingRequestObject struct {
+	ListingId ListingId `json:"listingId"`
+}
+
+type GetPublicListingResponseObject interface {
+	VisitGetPublicListingResponse(w http.ResponseWriter) error
+}
+
+type GetPublicListing200JSONResponse PublicListing
+
+func (response GetPublicListing200JSONResponse) VisitGetPublicListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPublicListingdefaultApplicationProblemPlusJSONResponse) VisitGetPublicListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSimilarListingsRequestObject struct {
+	ListingId ListingId `json:"listingId"`
+}
+
+type GetSimilarListingsResponseObject interface {
+	VisitGetSimilarListingsResponse(w http.ResponseWriter) error
+}
+
+type GetSimilarListings200JSONResponse []ListingCard
+
+func (response GetSimilarListings200JSONResponse) VisitGetSimilarListingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSimilarListingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetSimilarListingsdefaultApplicationProblemPlusJSONResponse) VisitGetSimilarListingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetMeRequestObject struct {
 }
 
@@ -6110,6 +6784,116 @@ type VerifyPhonedefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response VerifyPhonedefaultApplicationProblemPlusJSONResponse) VisitVerifyPhoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSavedSearchesRequestObject struct {
+}
+
+type ListSavedSearchesResponseObject interface {
+	VisitListSavedSearchesResponse(w http.ResponseWriter) error
+}
+
+type ListSavedSearches200JSONResponse []SavedSearch
+
+func (response ListSavedSearches200JSONResponse) VisitListSavedSearchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSavedSearchesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListSavedSearchesdefaultApplicationProblemPlusJSONResponse) VisitListSavedSearchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSavedSearchRequestObject struct {
+	Body *CreateSavedSearchJSONRequestBody
+}
+
+type CreateSavedSearchResponseObject interface {
+	VisitCreateSavedSearchResponse(w http.ResponseWriter) error
+}
+
+type CreateSavedSearch201JSONResponse SavedSearch
+
+func (response CreateSavedSearch201JSONResponse) VisitCreateSavedSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSavedSearchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateSavedSearchdefaultApplicationProblemPlusJSONResponse) VisitCreateSavedSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSavedSearchRequestObject struct {
+	SavedSearchId openapi_types.UUID `json:"savedSearchId"`
+}
+
+type DeleteSavedSearchResponseObject interface {
+	VisitDeleteSavedSearchResponse(w http.ResponseWriter) error
+}
+
+type DeleteSavedSearch204Response struct {
+}
+
+func (response DeleteSavedSearch204Response) VisitDeleteSavedSearchResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSavedSearchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteSavedSearchdefaultApplicationProblemPlusJSONResponse) VisitDeleteSavedSearchResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -7129,6 +7913,106 @@ func (response DecideSuggestiondefaultApplicationProblemPlusJSONResponse) VisitD
 	return err
 }
 
+type SearchRequestObject struct {
+	Body *SearchJSONRequestBody
+}
+
+type SearchResponseObject interface {
+	VisitSearchResponse(w http.ResponseWriter) error
+}
+
+type Search200JSONResponse SearchResult
+
+func (response Search200JSONResponse) VisitSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SearchdefaultApplicationProblemPlusJSONResponse) VisitSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChatSearchRequestObject struct {
+	Body *ChatSearchJSONRequestBody
+}
+
+type ChatSearchResponseObject interface {
+	VisitChatSearchResponse(w http.ResponseWriter) error
+}
+
+type ChatSearch200JSONResponse ChatResponse
+
+func (response ChatSearch200JSONResponse) VisitChatSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChatSearchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ChatSearchdefaultApplicationProblemPlusJSONResponse) VisitChatSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSeoMunicipalitiesRequestObject struct {
+	Params ListSeoMunicipalitiesParams
+}
+
+type ListSeoMunicipalitiesResponseObject interface {
+	VisitListSeoMunicipalitiesResponse(w http.ResponseWriter) error
+}
+
+type ListSeoMunicipalities200JSONResponse []MunicipalityStat
+
+func (response ListSeoMunicipalities200JSONResponse) VisitListSeoMunicipalitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetVersionRequestObject struct {
 }
 
@@ -7175,6 +8059,9 @@ type StrictServerInterface interface {
 	// SearchAddresses Autocomplete Czech addresses (RÚIAN)
 	// (GET /v1/addresses/search)
 	SearchAddresses(ctx context.Context, request SearchAddressesRequestObject) (SearchAddressesResponseObject, error)
+	// ListAreas Child administrative units with simplified outlines (regions when parent is empty)
+	// (GET /v1/areas)
+	ListAreas(ctx context.Context, request ListAreasRequestObject) (ListAreasResponseObject, error)
 	// GetAttributeSchema Listing attribute schema (catalog plus approved options)
 	// (GET /v1/attributes)
 	GetAttributeSchema(ctx context.Context, request GetAttributeSchemaRequestObject) (GetAttributeSchemaResponseObject, error)
@@ -7256,6 +8143,12 @@ type StrictServerInterface interface {
 	// GetJurisdiction One jurisdiction
 	// (GET /v1/jurisdictions/{code})
 	GetJurisdiction(ctx context.Context, request GetJurisdictionRequestObject) (GetJurisdictionResponseObject, error)
+	// GetPublicListing Published listing (approved version only)
+	// (GET /v1/listings/{listingId})
+	GetPublicListing(ctx context.Context, request GetPublicListingRequestObject) (GetPublicListingResponseObject, error)
+	// GetSimilarListings Similar listings (embeddings when available, otherwise kind, price and distance)
+	// (GET /v1/listings/{listingId}/similar)
+	GetSimilarListings(ctx context.Context, request GetSimilarListingsRequestObject) (GetSimilarListingsResponseObject, error)
 	// GetMe Current user, verification level and organizations
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
@@ -7307,6 +8200,15 @@ type StrictServerInterface interface {
 	// VerifyPhone Confirm the phone number with the SMS code
 	// (POST /v1/me/phone/verify)
 	VerifyPhone(ctx context.Context, request VerifyPhoneRequestObject) (VerifyPhoneResponseObject, error)
+	// ListSavedSearches My saved searches
+	// (GET /v1/me/saved-searches)
+	ListSavedSearches(ctx context.Context, request ListSavedSearchesRequestObject) (ListSavedSearchesResponseObject, error)
+	// CreateSavedSearch Save a search; new matching listings are e-mailed daily when notify is on
+	// (POST /v1/me/saved-searches)
+	CreateSavedSearch(ctx context.Context, request CreateSavedSearchRequestObject) (CreateSavedSearchResponseObject, error)
+	// DeleteSavedSearch Delete a saved search
+	// (DELETE /v1/me/saved-searches/{savedSearchId})
+	DeleteSavedSearch(ctx context.Context, request DeleteSavedSearchRequestObject) (DeleteSavedSearchResponseObject, error)
 	// ListMySessions Active sessions of the current user
 	// (GET /v1/me/sessions)
 	ListMySessions(ctx context.Context, request ListMySessionsRequestObject) (ListMySessionsResponseObject, error)
@@ -7385,6 +8287,15 @@ type StrictServerInterface interface {
 	// DecideSuggestion Accept (all or selected attributes) or reject an AI suggestion
 	// (POST /v1/orgs/{orgId}/suggestions/{suggestionId}/decision)
 	DecideSuggestion(ctx context.Context, request DecideSuggestionRequestObject) (DecideSuggestionResponseObject, error)
+	// Search Faceted search over published listings with map aggregates
+	// (POST /v1/search)
+	Search(ctx context.Context, request SearchRequestObject) (SearchResponseObject, error)
+	// ChatSearch Natural-language search – turns a message into filters and a map area, then searches
+	// (POST /v1/search/chat)
+	ChatSearch(ctx context.Context, request ChatSearchRequestObject) (ChatSearchResponseObject, error)
+	// ListSeoMunicipalities Municipalities with at least one listing (static site pages)
+	// (GET /v1/seo/municipalities)
+	ListSeoMunicipalities(ctx context.Context, request ListSeoMunicipalitiesRequestObject) (ListSeoMunicipalitiesResponseObject, error)
 	// GetVersion Build information
 	// (GET /v1/version)
 	GetVersion(ctx context.Context, request GetVersionRequestObject) (GetVersionResponseObject, error)
@@ -7472,6 +8383,32 @@ func (sh *strictHandler) SearchAddresses(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SearchAddressesResponseObject); ok {
 		if err := validResponse.VisitSearchAddressesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAreas operation middleware
+func (sh *strictHandler) ListAreas(w http.ResponseWriter, r *http.Request, params ListAreasParams) {
+	var request ListAreasRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAreas(ctx, request.(ListAreasRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAreas")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAreasResponseObject); ok {
+		if err := validResponse.VisitListAreasResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -8244,6 +9181,58 @@ func (sh *strictHandler) GetJurisdiction(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// GetPublicListing operation middleware
+func (sh *strictHandler) GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId) {
+	var request GetPublicListingRequestObject
+
+	request.ListingId = listingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicListing(ctx, request.(GetPublicListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicListingResponseObject); ok {
+		if err := validResponse.VisitGetPublicListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSimilarListings operation middleware
+func (sh *strictHandler) GetSimilarListings(w http.ResponseWriter, r *http.Request, listingId ListingId) {
+	var request GetSimilarListingsRequestObject
+
+	request.ListingId = listingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSimilarListings(ctx, request.(GetSimilarListingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSimilarListings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSimilarListingsResponseObject); ok {
+		if err := validResponse.VisitGetSimilarListingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetMe operation middleware
 func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	var request GetMeRequestObject
@@ -8710,6 +9699,87 @@ func (sh *strictHandler) VerifyPhone(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(VerifyPhoneResponseObject); ok {
 		if err := validResponse.VisitVerifyPhoneResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSavedSearches operation middleware
+func (sh *strictHandler) ListSavedSearches(w http.ResponseWriter, r *http.Request) {
+	var request ListSavedSearchesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSavedSearches(ctx, request.(ListSavedSearchesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSavedSearches")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSavedSearchesResponseObject); ok {
+		if err := validResponse.VisitListSavedSearchesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateSavedSearch operation middleware
+func (sh *strictHandler) CreateSavedSearch(w http.ResponseWriter, r *http.Request) {
+	var request CreateSavedSearchRequestObject
+
+	var body CreateSavedSearchJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSavedSearch(ctx, request.(CreateSavedSearchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSavedSearch")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateSavedSearchResponseObject); ok {
+		if err := validResponse.VisitCreateSavedSearchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteSavedSearch operation middleware
+func (sh *strictHandler) DeleteSavedSearch(w http.ResponseWriter, r *http.Request, savedSearchId openapi_types.UUID) {
+	var request DeleteSavedSearchRequestObject
+
+	request.SavedSearchId = savedSearchId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSavedSearch(ctx, request.(DeleteSavedSearchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSavedSearch")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteSavedSearchResponseObject); ok {
+		if err := validResponse.VisitDeleteSavedSearchResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -9480,6 +10550,94 @@ func (sh *strictHandler) DecideSuggestion(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// Search operation middleware
+func (sh *strictHandler) Search(w http.ResponseWriter, r *http.Request) {
+	var request SearchRequestObject
+
+	var body SearchJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Search(ctx, request.(SearchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Search")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SearchResponseObject); ok {
+		if err := validResponse.VisitSearchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ChatSearch operation middleware
+func (sh *strictHandler) ChatSearch(w http.ResponseWriter, r *http.Request) {
+	var request ChatSearchRequestObject
+
+	var body ChatSearchJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChatSearch(ctx, request.(ChatSearchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChatSearch")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChatSearchResponseObject); ok {
+		if err := validResponse.VisitChatSearchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSeoMunicipalities operation middleware
+func (sh *strictHandler) ListSeoMunicipalities(w http.ResponseWriter, r *http.Request, params ListSeoMunicipalitiesParams) {
+	var request ListSeoMunicipalitiesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSeoMunicipalities(ctx, request.(ListSeoMunicipalitiesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSeoMunicipalities")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSeoMunicipalitiesResponseObject); ok {
+		if err := validResponse.VisitListSeoMunicipalitiesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetVersion operation middleware
 func (sh *strictHandler) GetVersion(w http.ResponseWriter, r *http.Request) {
 	var request GetVersionRequestObject
@@ -9509,154 +10667,181 @@ func (sh *strictHandler) GetVersion(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"5ZXPHz//ZwAAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

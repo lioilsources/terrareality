@@ -158,3 +158,9 @@ WHERE l.id = $1 AND l.deleted_at IS NULL;
 
 -- name: SetAddressAdminPath :exec
 UPDATE addresses SET admin_path = sqlc.narg(admin_path)::text::ltree WHERE id = sqlc.arg(id);
+
+-- name: PublishedListingIDs :many
+-- Only listings with an approved version (synthetic load-test rows have none).
+SELECT l.id FROM listings l
+JOIN listing_versions v ON v.listing_id = l.id AND v.version = l.published_version
+WHERE l.status = 'published' AND l.deleted_at IS NULL;

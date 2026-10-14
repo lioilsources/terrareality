@@ -236,6 +236,7 @@ type ListingSearch struct {
 	DepositAmount    *int64          `json:"deposit_amount"`
 	FloorArea        *float64        `json:"floor_area"`
 	Attributes       []byte          `json:"attributes"`
+	Facets           []string        `json:"facets"`
 	Title            []byte          `json:"title"`
 	Location         interface{}     `json:"location"`
 	AdminPath        pgtype.Text     `json:"admin_path"`
