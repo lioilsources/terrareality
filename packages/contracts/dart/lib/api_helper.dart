@@ -61,11 +61,11 @@ String parameterToString(dynamic value) {
   if (value is ConsentKind) {
     return ConsentKindTypeTransformer().encode(value).toString();
   }
-  if (value is Locale) {
-    return LocaleTypeTransformer().encode(value).toString();
-  }
   if (value is Role) {
     return RoleTypeTransformer().encode(value).toString();
+  }
+  if (value is UserLocale) {
+    return UserLocaleTypeTransformer().encode(value).toString();
   }
   if (value is VerificationLevel) {
     return VerificationLevelTypeTransformer().encode(value).toString();

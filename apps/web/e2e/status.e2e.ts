@@ -11,9 +11,7 @@ test('english locale is served under /en', async ({ page }) => {
 	await expect(page.getByText('Platform status')).toBeVisible();
 });
 
-test('route groups render placeholders', async ({ page }) => {
-	for (const path of ['/admin', '/tenant', '/backoffice']) {
-		await page.goto(path);
-		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-	}
+test('tenant area requires sign-in', async ({ page }) => {
+	await page.goto('/tenant');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Přihlášení');
 });

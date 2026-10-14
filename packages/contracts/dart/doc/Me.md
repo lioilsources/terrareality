@@ -12,7 +12,7 @@ Name | Type | Description | Notes
 **email** | **String** |  | 
 **emailVerified** | **bool** |  | 
 **displayName** | **String** |  | 
-**locale** | [**Locale**](Locale.md) |  | 
+**locale** | [**UserLocale**](UserLocale.md) |  | 
 **phone** | **String** |  | [optional] 
 **phoneVerified** | **bool** |  | 
 **verificationLevel** | [**VerificationLevel**](VerificationLevel.md) |  | 

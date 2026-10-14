@@ -21,7 +21,7 @@ func (s *Server) limit(ctx context.Context, key string) error {
 	return nil
 }
 
-func localeOf(l *gen.Locale) string {
+func localeOf(l *gen.UserLocale) string {
 	if l == nil {
 		return ""
 	}

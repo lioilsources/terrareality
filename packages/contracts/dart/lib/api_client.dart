@@ -226,8 +226,6 @@ class ApiClient {
           return InvitationPreview.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
-        case 'Locale':
-          return LocaleTypeTransformer().decode(value);
         case 'LoginRequest':
           return LoginRequest.fromJson(value);
         case 'MagicLinkRequest':
@@ -274,6 +272,8 @@ class ApiClient {
           return TotpSetup.fromJson(value);
         case 'UpdateMeRequest':
           return UpdateMeRequest.fromJson(value);
+        case 'UserLocale':
+          return UserLocaleTypeTransformer().decode(value);
         case 'UserRef':
           return UserRef.fromJson(value);
         case 'VerificationLevel':

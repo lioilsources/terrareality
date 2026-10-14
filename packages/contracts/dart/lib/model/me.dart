@@ -39,7 +39,7 @@ class Me {
 
   String displayName;
 
-  Locale locale;
+  UserLocale locale;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -199,7 +199,7 @@ class Me {
         email: mapValueOfType<String>(json, r'email')!,
         emailVerified: mapValueOfType<bool>(json, r'email_verified')!,
         displayName: mapValueOfType<String>(json, r'display_name')!,
-        locale: Locale.fromJson(json[r'locale'])!,
+        locale: UserLocale.fromJson(json[r'locale'])!,
         phone: mapValueOfType<String>(json, r'phone'),
         phoneVerified: mapValueOfType<bool>(json, r'phone_verified')!,
         verificationLevel: VerificationLevel.fromJson(json[r'verification_level'])!,

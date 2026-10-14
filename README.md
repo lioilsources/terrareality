@@ -31,6 +31,10 @@ make dev     # docker deps + api :8080 + worker + vision :8001 + web :5173 + sit
 Then open http://localhost:5173 (platform status), http://localhost:8080/healthz,
 Temporal UI http://localhost:8233, Mailpit http://localhost:8025.
 
+`make seed` creates dev accounts `staff@terra.local` (backoffice) and `owner@terra.local`, both with
+password `terra-dev-password`. Verification e-mails, invitations and the SMS mock land in Mailpit.
+Google, Apple and BankID run against a local mock IdP until real credentials are configured.
+
 Mobile: `cd apps/mobile && flutter run` (iOS simulator reaches `localhost:8080`, Android emulator `10.0.2.2:8080`;
 override with `--dart-define=API_URL=...`).
 Live contract check of the Dart client against a running api:

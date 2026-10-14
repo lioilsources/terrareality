@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **email** | **String** |  | 
 **password** | **String** |  | 
 **displayName** | **String** |  | 
-**locale** | [**Locale**](Locale.md) |  | [optional] 
+**locale** | [**UserLocale**](UserLocale.md) |  | [optional] 
 **acceptTermsVersion** | **String** |  | 
 **acceptPrivacyVersion** | **String** |  | 
 **marketing** | **bool** |  | [optional] [default to false]

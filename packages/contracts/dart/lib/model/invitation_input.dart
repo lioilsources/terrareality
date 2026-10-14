@@ -28,7 +28,7 @@ class InvitationInput {
   /// source code must fall back to having a nullable type.
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
-  Locale? locale;
+  UserLocale? locale;
 
   @override
   bool operator ==(Object other) => identical(this, other) || other is InvitationInput &&
@@ -79,7 +79,7 @@ class InvitationInput {
       return InvitationInput(
         email: mapValueOfType<String>(json, r'email')!,
         role: InvitationInputRoleEnum.fromJson(json[r'role'])!,
-        locale: Locale.fromJson(json[r'locale']),
+        locale: UserLocale.fromJson(json[r'locale']),
       );
     }
     return null;

@@ -35,7 +35,7 @@ class RegisterRequest {
   /// source code must fall back to having a nullable type.
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
-  Locale? locale;
+  UserLocale? locale;
 
   String acceptTermsVersion;
 
@@ -120,7 +120,7 @@ class RegisterRequest {
         email: mapValueOfType<String>(json, r'email')!,
         password: mapValueOfType<String>(json, r'password')!,
         displayName: mapValueOfType<String>(json, r'display_name')!,
-        locale: Locale.fromJson(json[r'locale']),
+        locale: UserLocale.fromJson(json[r'locale']),
         acceptTermsVersion: mapValueOfType<String>(json, r'accept_terms_version')!,
         acceptPrivacyVersion: mapValueOfType<String>(json, r'accept_privacy_version')!,
         marketing: mapValueOfType<bool>(json, r'marketing') ?? false,

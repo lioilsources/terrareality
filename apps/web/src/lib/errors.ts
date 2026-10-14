@@ -1,0 +1,30 @@
+import { m } from '#lib/paraglide/messages.js';
+import { isProblem } from '@terra/contracts';
+
+const byCode: Record<string, () => string> = {
+	invalid_credentials: m.err_invalid_credentials,
+	invalid_code: m.err_invalid_code,
+	invalid_token: m.err_invalid_token,
+	email_taken: m.err_email_taken,
+	email_not_verified: m.err_email_not_verified,
+	password_too_short: m.err_password_too_short,
+	password_too_weak: m.err_password_too_weak,
+	rate_limited: m.err_rate_limited,
+	validation_failed: m.err_validation_failed,
+	mfa_expired: m.err_mfa_expired,
+	already_member: m.err_already_member,
+	last_owner: m.err_last_owner,
+	insufficient_role: m.err_insufficient_role,
+	invitation_email_mismatch: m.err_invitation_email_mismatch,
+	identity_in_use: m.err_identity_in_use,
+	impersonation_forbidden: m.err_impersonation_forbidden,
+	provider_unavailable: m.err_provider_unavailable,
+	email_required: m.err_email_required,
+	staff_mfa_required: m.err_staff_mfa_required
+};
+
+/** Translates an api problem into a user-facing message. */
+export function errorMessage(error: unknown): string {
+	if (isProblem(error) && error.code && byCode[error.code]) return byCode[error.code]();
+	return m.err_generic();
+}

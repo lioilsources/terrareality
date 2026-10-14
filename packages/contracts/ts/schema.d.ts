@@ -847,7 +847,7 @@ export interface components {
             code?: string;
         };
         /** @enum {string} */
-        Locale: "cs" | "en";
+        UserLocale: "cs" | "en";
         /** Format: email */
         Email: string;
         Password: string;
@@ -860,7 +860,7 @@ export interface components {
             email: components["schemas"]["Email"];
             password: components["schemas"]["Password"];
             display_name: string;
-            locale?: components["schemas"]["Locale"];
+            locale?: components["schemas"]["UserLocale"];
             accept_terms_version: string;
             accept_privacy_version: string;
             /** @default false */
@@ -879,7 +879,7 @@ export interface components {
         };
         MagicLinkRequest: {
             email: components["schemas"]["Email"];
-            locale?: components["schemas"]["Locale"];
+            locale?: components["schemas"]["UserLocale"];
         };
         TokenRequest: {
             token: string;
@@ -938,7 +938,7 @@ export interface components {
             email: string;
             email_verified: boolean;
             display_name: string;
-            locale: components["schemas"]["Locale"];
+            locale: components["schemas"]["UserLocale"];
             phone?: string;
             phone_verified: boolean;
             verification_level: components["schemas"]["VerificationLevel"];
@@ -969,7 +969,7 @@ export interface components {
         };
         UpdateMeRequest: {
             display_name?: string;
-            locale?: components["schemas"]["Locale"];
+            locale?: components["schemas"]["UserLocale"];
         };
         ChangePasswordRequest: {
             /** @description Required when the account already has a password. */
@@ -1081,7 +1081,7 @@ export interface components {
             email: components["schemas"]["Email"];
             /** @enum {string} */
             role: "admin" | "agent" | "accountant" | "maintenance" | "viewer";
-            locale?: components["schemas"]["Locale"];
+            locale?: components["schemas"]["UserLocale"];
         };
         Invitation: {
             /** Format: uuid */

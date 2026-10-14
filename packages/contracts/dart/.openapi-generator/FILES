@@ -25,7 +25,6 @@ doc/InvitationInput.md
 doc/InvitationPreview.md
 doc/Jurisdiction.md
 doc/JurisdictionsApi.md
-doc/Locale.md
 doc/LoginRequest.md
 doc/MagicLinkRequest.md
 doc/Me.md
@@ -52,6 +51,7 @@ doc/SystemApi.md
 doc/TokenRequest.md
 doc/TotpSetup.md
 doc/UpdateMeRequest.md
+doc/UserLocale.md
 doc/UserRef.md
 doc/VerificationLevel.md
 doc/VerifiedIdentity.md
@@ -93,7 +93,6 @@ lib/model/invitation.dart
 lib/model/invitation_input.dart
 lib/model/invitation_preview.dart
 lib/model/jurisdiction.dart
-lib/model/locale.dart
 lib/model/login_request.dart
 lib/model/magic_link_request.dart
 lib/model/me.dart
@@ -117,6 +116,7 @@ lib/model/session_token.dart
 lib/model/token_request.dart
 lib/model/totp_setup.dart
 lib/model/update_me_request.dart
+lib/model/user_locale.dart
 lib/model/user_ref.dart
 lib/model/verification_level.dart
 lib/model/verified_identity.dart

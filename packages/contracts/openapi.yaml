@@ -849,7 +849,7 @@ components:
           description: Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
           example: invalid_credentials
     # --- auth
-    Locale: { type: string, enum: [cs, en] }
+    UserLocale: { type: string, enum: [cs, en] }
     Email: { type: string, format: email, maxLength: 254 }
     Password: { type: string, minLength: 10, maxLength: 200 }
     ClientKind:
@@ -863,7 +863,7 @@ components:
         email: { $ref: "#/components/schemas/Email" }
         password: { $ref: "#/components/schemas/Password" }
         display_name: { type: string, minLength: 1, maxLength: 120 }
-        locale: { $ref: "#/components/schemas/Locale" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
         accept_terms_version: { type: string, minLength: 1, maxLength: 32 }
         accept_privacy_version: { type: string, minLength: 1, maxLength: 32 }
         marketing: { type: boolean, default: false }
@@ -890,7 +890,7 @@ components:
       required: [email]
       properties:
         email: { $ref: "#/components/schemas/Email" }
-        locale: { $ref: "#/components/schemas/Locale" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
     TokenRequest:
       type: object
       required: [token]
@@ -960,7 +960,7 @@ components:
         email: { type: string }
         email_verified: { type: boolean }
         display_name: { type: string }
-        locale: { $ref: "#/components/schemas/Locale" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
         phone: { type: string }
         phone_verified: { type: boolean }
         verification_level: { $ref: "#/components/schemas/VerificationLevel" }
@@ -994,7 +994,7 @@ components:
       type: object
       properties:
         display_name: { type: string, minLength: 1, maxLength: 120 }
-        locale: { $ref: "#/components/schemas/Locale" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
     ChangePasswordRequest:
       type: object
       required: [new_password]
@@ -1117,7 +1117,7 @@ components:
       properties:
         email: { $ref: "#/components/schemas/Email" }
         role: { type: string, enum: [admin, agent, accountant, maintenance, viewer] }
-        locale: { $ref: "#/components/schemas/Locale" }
+        locale: { $ref: "#/components/schemas/UserLocale" }
     Invitation:
       type: object
       required: [id, email, role, expires_at, created_at]

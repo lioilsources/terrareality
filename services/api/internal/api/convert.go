@@ -70,7 +70,7 @@ func meDTO(v account.MeView) gen.Me {
 	hasPw := u.PasswordHash != nil
 	me := gen.Me{
 		Id: u.ID, Email: u.Email, EmailVerified: u.EmailVerifiedAt != nil, DisplayName: u.DisplayName,
-		Locale: gen.Locale(u.Locale), Phone: u.Phone, PhoneVerified: u.PhoneVerifiedAt != nil,
+		Locale: gen.UserLocale(u.Locale), Phone: u.Phone, PhoneVerified: u.PhoneVerifiedAt != nil,
 		VerificationLevel: level(u.VerificationLevel), MfaEnabled: u.TotpEnabledAt != nil, HasPassword: &hasPw,
 		IsStaff: u.IsStaff, CreatedAt: u.CreatedAt, Organizations: myOrgRows(v.Orgs),
 	}
