@@ -67,7 +67,8 @@ func TestLeaseAcceptance(t *testing.T) {
 	lpath := "/v1/orgs/" + orgID.String() + "/leases"
 
 	base := map[string]any{"template": "spolecny_najem", "starts_on": start, "ends_on": end, "rent_amount": 2_000_000,
-		"services_amount": 400_000, "deposit_amount": 4_000_000, "due_day": 15, "payee_iban": "CZ65 0800 0000 1920 0014 5399",
+		// Due day = today (capped at 28, then the start date applies), so the first month is due now on any date.
+		"services_amount": 400_000, "deposit_amount": 4_000_000, "due_day": min(today.Day(), 28), "payee_iban": "CZ65 0800 0000 1920 0014 5399",
 		"payee_name": "Lucie Pronajímatelka", "property_address": "Dejvická 12, Praha 6", "unit_label": "3+kk",
 		"clauses": []string{"no_smoking", "inventory"},
 		"parties": []map[string]any{{"name": "Anna Nováková", "email": anna, "role": "co_tenant"},
