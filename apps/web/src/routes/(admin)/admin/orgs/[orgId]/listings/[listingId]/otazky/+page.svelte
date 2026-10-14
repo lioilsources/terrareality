@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { untrack } from 'svelte';
 	import type { PrescreenQuestion } from '@terra/contracts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
@@ -10,7 +11,10 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-	let questions = $derived<PrescreenQuestion[]>(structuredClone(data.listing.prescreen));
+	// Editable copy; deep state so push/splice re-render.
+	let questions = $state<PrescreenQuestion[]>(
+		untrack(() => structuredClone(data.listing.prescreen))
+	);
 	const kinds = [
 		['text', m.msg_prescreen_kind_text],
 		['yes_no', m.msg_prescreen_kind_yes_no],

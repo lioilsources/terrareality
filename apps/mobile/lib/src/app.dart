@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/gen/app_localizations.dart';
 import 'applications/applications_screen.dart';
 import 'auth/login_screen.dart';
+import 'leases/leases_screen.dart';
 import 'messaging/conversations_screen.dart';
 import 'messaging/thread_screen.dart';
 import 'status/status_screen.dart';
@@ -19,6 +20,11 @@ GoRouter createRouter() => GoRouter(
       builder: (_, s) => ThreadScreen(id: s.pathParameters['id']!),
     ),
     GoRoute(path: '/zadosti', builder: (_, _) => const ApplicationsScreen()),
+    GoRoute(path: '/smlouvy', builder: (_, _) => const LeasesScreen()),
+    GoRoute(
+      path: '/smlouvy/:id',
+      builder: (_, s) => LeaseScreen(id: s.pathParameters['id']!),
+    ),
     GoRoute(
       path: '/zadosti/:id',
       builder: (_, s) => ApplicationScreen(id: s.pathParameters['id']!),

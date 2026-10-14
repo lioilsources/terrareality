@@ -64,3 +64,18 @@ follows until decided otherwise.
 - **OQ-18 Roommate profile visibility.** Profiles are visible to all signed-in users. Alternative:
   only to verified users (phone or BankID) to reduce scraping.
 
+## M6
+
+- **OQ-19 Bank iD SIGN.** Qualified e-signatures need a contract with Bank iD (SIGN product) and its
+  API documentation; the `SignatureProvider` interface is ready. Until then leases are signed with the
+  simple electronic signature (mock) or on paper. Is a simple signature with evidence acceptable for
+  residential leases in the pilot (see Q-LEASE-2)?
+- **OQ-20 Proration.** The first and last months are charged in full. Proposal: prorate by days and
+  let the landlord override per lease.
+- **OQ-21 Open banking provider.** GoCardless Bank Account Data is implemented; confirm the provider is
+  still onboarding new customers in CZ (alternatives: Salt Edge, Finbricks) and that the landlord's
+  consent flow fits our terms. The mock bank serves dev and E2E.
+- **OQ-22 Variable symbol per lease.** One code per lease plus the party's position as the specific
+  symbol. Some Czech banks do not pass the specific symbol through PSD2; such payments become
+  suggestions.
+

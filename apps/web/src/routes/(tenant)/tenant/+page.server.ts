@@ -1,9 +1,14 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const [apps, viewings] = await Promise.all([
+	const [apps, viewings, leases] = await Promise.all([
 		locals.api.GET('/v1/applications'),
-		locals.api.GET('/v1/me/viewings')
+		locals.api.GET('/v1/me/viewings'),
+		locals.api.GET('/v1/me/leases')
 	]);
-	return { applications: apps.data ?? [], viewings: viewings.data ?? [] };
+	return {
+		applications: apps.data ?? [],
+		viewings: viewings.data ?? [],
+		leases: leases.data ?? []
+	};
 };

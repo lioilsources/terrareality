@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -96,9 +97,18 @@ func run() error {
 	defer rc.Stop(context.Background())
 
 	if cfg.TemporalAddress != "" {
-		tc, err := client.Dial(client.Options{HostPort: cfg.TemporalAddress, Namespace: cfg.TemporalNS, Logger: log})
-		if err != nil {
-			return err
+		// The dev server may still be starting: retry for a minute.
+		var tc client.Client
+		for attempt := 1; ; attempt++ {
+			tc, err = client.Dial(client.Options{HostPort: cfg.TemporalAddress, Namespace: cfg.TemporalNS, Logger: log})
+			if err == nil {
+				break
+			}
+			if attempt == 30 || ctx.Err() != nil {
+				return err
+			}
+			log.Warn("waiting for Temporal", "err", err)
+			time.Sleep(2 * time.Second)
 		}
 		defer tc.Close()
 		w := worker.New(tc, workflows.TaskQueue, worker.Options{})

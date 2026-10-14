@@ -105,6 +105,13 @@
 						<p class="mt-1 text-[var(--muted)]">{m.own_ai_pending()}</p>
 					{/if}
 				</div>
+				{#if app.status === 'accepted'}
+					<a
+						href={localizeHref(`/admin/orgs/${l.org_id}/smlouvy/nova?application=${app.id}`)}
+						class="mt-4 inline-block rounded-lg bg-[var(--accent)] px-4 py-2 text-sm text-white no-underline"
+						>{m.lease_from_application()}</a
+					>
+				{/if}
 				{#if open(app.status)}
 					<div class="mt-4 flex flex-wrap items-end gap-2">
 						<form method="POST" action="?/decide" use:enhance>

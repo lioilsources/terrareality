@@ -1,0 +1,58 @@
+import { error as kitError, fail } from '@sveltejs/kit';
+import { errorMessage } from '#lib/errors.js';
+import { leaseFromForm } from '#lib/leasing.js';
+import { loadLease } from '#lib/server/leases.js';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ params, locals }) => {
+	const lease = await loadLease(locals.api, params.leaseId);
+	if (!lease || !lease.detail.landlord_view) kitError(404);
+	return lease;
+};
+
+export const actions: Actions = {
+	update: async ({ request, params, locals }) => {
+		const { error } = await locals.api.PUT('/v1/orgs/{orgId}/leases/{leaseId}', {
+			params: { path: { orgId: params.orgId, leaseId: params.leaseId } },
+			body: leaseFromForm(await request.formData())
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+	},
+	propose: async ({ params, locals }) => {
+		const { error } = await locals.api.POST('/v1/orgs/{orgId}/leases/{leaseId}/propose', {
+			params: { path: { orgId: params.orgId, leaseId: params.leaseId } }
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+	},
+	sign: async ({ params, locals }) => {
+		const { error } = await locals.api.POST('/v1/leases/{leaseId}/sign', {
+			params: { path: { leaseId: params.leaseId } },
+			body: { provider: 'mock' }
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+	},
+	paid: async ({ request, params, locals }) => {
+		const f = await request.formData();
+		const { error } = await locals.api.POST('/v1/orgs/{orgId}/obligation-shares/{shareId}/paid', {
+			params: { path: { orgId: params.orgId, shareId: String(f.get('share_id')) } },
+			body: {}
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+	},
+	notice: async ({ request, params, locals }) => {
+		const f = await request.formData();
+		const { data, error } = await locals.api.POST('/v1/leases/{leaseId}/notice', {
+			params: { path: { leaseId: params.leaseId } },
+			body: { delivered_on: String(f.get('delivered_on')) }
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+		return { endsOn: data.ends_on };
+	},
+	settle: async ({ params, locals }) => {
+		const { error } = await locals.api.POST('/v1/leases/{leaseId}/settlement', {
+			params: { path: { leaseId: params.leaseId } }
+		});
+		if (error) return fail(400, { error: errorMessage(error) });
+		return { settled: true };
+	}
+};

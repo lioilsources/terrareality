@@ -4,6 +4,7 @@
 	import { t } from '#lib/catalog.js';
 	import { fmtDateTime } from '#lib/labels.js';
 	import { statusLabel } from '#lib/applications.js';
+	import { stateLabel } from '#lib/leasing.js';
 	import Card from '#lib/components/Card.svelte';
 	import type { PageProps } from './$types';
 
@@ -30,6 +31,18 @@
 	{/each}
 </nav>
 <div class="grid gap-6 md:grid-cols-2">
+	{#if data.leases.length}
+		<Card title={m.lease_title()}>
+			<ul class="grid gap-2 text-sm" data-testid="my-leases">
+				{#each data.leases as l (l.id)}
+					<li>
+						<a href={localizeHref(`/smlouvy/${l.id}`)}>{l.property_address}</a>
+						· {l.org_name} · {stateLabel[l.state]()}
+					</li>
+				{/each}
+			</ul>
+		</Card>
+	{/if}
 	<Card title={m.app_mine()}>
 		{#if data.applications.length === 0}
 			<p class="text-sm text-[var(--muted)]">{m.app_empty()}</p>

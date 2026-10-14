@@ -34,6 +34,8 @@ jobs:
           go tool oapi-codegen -config oapi-codegen.yaml ../../packages/contracts/openapi.yaml
           sqlc generate
           git diff --exit-code -- internal/api/gen internal/db
+      - name: Install typst (lease documents)
+        run: curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
       - run: go vet ./...
       - run: go tool staticcheck ./...
       - run: go test -race ./...
@@ -80,7 +82,9 @@ jobs:
           node-version: 24
           cache: npm
       - name: Start dependencies
-        run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db centrifugo mailpit s3
+        run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db centrifugo mailpit s3 temporal
+      - name: Install typst (lease documents)
+        run: curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
       - name: Start api and worker
         run: |
           cd services/api
@@ -95,6 +99,7 @@ jobs:
           CENTRIFUGO_API_URL: http://localhost:8000/api
           CENTRIFUGO_API_KEY: dev-centrifugo-api-key
           MESSAGE_NOTIFY_DELAY: 2s
+          TEMPORAL_ADDRESS: localhost:7233
           MIGRATE_ON_START: "true"
           SMTP_ADDR: localhost:1025
           S3_ENDPOINT: localhost:8333
