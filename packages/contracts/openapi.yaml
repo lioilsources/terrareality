@@ -16,6 +16,7 @@ tags:
   - name: orgs
   - name: jurisdictions
   - name: backoffice
+  - name: catalog
 security:
   - bearerAuth: []
 paths:
@@ -753,6 +754,312 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AuditPage" }
         default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ catalog
+  /v1/attributes:
+    get:
+      security: []
+      tags: [catalog]
+      operationId: getAttributeSchema
+      summary: Listing attribute schema (catalog plus approved options)
+      responses:
+        "200":
+          description: Schema
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttributeSchema" }
+  /v1/addresses/search:
+    get:
+      security: []
+      tags: [catalog]
+      operationId: searchAddresses
+      summary: Autocomplete Czech addresses (RÚIAN)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 20, default: 8 } }
+      responses:
+        "200":
+          description: Matching address points
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AddressSuggestion" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+    get:
+      tags: [catalog]
+      operationId: listListings
+      summary: Listings of an organization
+      parameters:
+        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/ListingStatus" } }
+      responses:
+        "200":
+          description: Listings, recently edited first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ListingSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [catalog]
+      operationId: createListing
+      summary: Wizard step 1 – address and unit; creates a draft listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/ListingId"
+    get:
+      tags: [catalog]
+      operationId: getListing
+      summary: Listing with unit, address, photos, AI suggestions and versions
+      responses:
+        "200": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [catalog]
+      operationId: updateListing
+      summary: Save the working copy (withdraws a pending review)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingUpdate" }
+      responses:
+        "200": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/submit:
+    post:
+      tags: [catalog]
+      operationId: submitListing
+      summary: Send the working copy to moderation as a new version
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/status:
+    post:
+      tags: [catalog]
+      operationId: changeListingStatus
+      summary: Pause, resume, mark as rented or archive
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [published, paused, rented, archived] }
+      responses:
+        "200": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/duplicate:
+    post:
+      tags: [catalog]
+      operationId: duplicateListing
+      summary: Copy the listing onto a new unit in the same building (without photos)
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "201": { $ref: "#/components/responses/Listing" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/media:
+    post:
+      tags: [catalog]
+      operationId: createMediaUpload
+      summary: Reserve a photo and get a presigned upload URL (PUT the file there, then complete)
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MediaUploadRequest" }
+      responses:
+        "201":
+          description: Upload slot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MediaUpload" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/media/{mediaId}/complete:
+    post:
+      tags: [catalog]
+      operationId: completeMediaUpload
+      summary: Start processing (EXIF strip, malware scan, vision) after the upload
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/MediaId"
+      responses:
+        "200":
+          description: Photo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Media" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/media/{mediaId}:
+    parameters:
+      - $ref: "#/components/parameters/OrgId"
+      - $ref: "#/components/parameters/MediaId"
+    patch:
+      tags: [catalog]
+      operationId: updateMedia
+      summary: Change order and caption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MediaUpdate" }
+      responses:
+        "200":
+          description: Photo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Media" }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [catalog]
+      operationId: deleteMedia
+      summary: Remove a photo
+      responses:
+        "204": { description: Removed }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/suggestions:
+    post:
+      tags: [catalog]
+      operationId: requestSuggestion
+      summary: Ask the AI for attribute or text suggestions (generated in the background)
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [attributes, text] }
+      responses:
+        "202":
+          description: Suggestion is being generated; poll the listing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Suggestion" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/suggestions/{suggestionId}/decision:
+    post:
+      tags: [catalog]
+      operationId: decideSuggestion
+      summary: Accept (all or selected attributes) or reject an AI suggestion
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - { name: suggestionId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuggestionDecision" }
+      responses:
+        "200":
+          description: Decided
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Suggestion" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/reviews:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListReviews
+      summary: Moderation queue of submitted listing versions (staff)
+      responses:
+        "200":
+          description: Pending versions, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ReviewItem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/reviews/{versionId}:
+    get:
+      tags: [backoffice]
+      operationId: backofficeGetReview
+      summary: One submitted version with its snapshot (staff)
+      parameters:
+        - { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Version
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/reviews/{versionId}/decision:
+    post:
+      tags: [backoffice]
+      operationId: backofficeDecideReview
+      summary: Approve (publish) or reject a version (staff)
+      parameters:
+        - { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviewDecision" }
+      responses:
+        "204": { description: Decided }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/filter-proposals:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListFilterProposals
+      summary: New attribute options proposed by AI ingest (staff)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [pending, approved, rejected], default: pending } }
+      responses:
+        "200":
+          description: Proposals
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FilterProposal" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/filter-proposals/{proposalId}/decision:
+    post:
+      tags: [backoffice]
+      operationId: backofficeDecideFilterProposal
+      summary: Add the option to the schema or reject it (staff)
+      parameters:
+        - { name: proposalId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProposalDecision" }
+      responses:
+        "204": { description: Decided }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -769,6 +1076,8 @@ components:
       required: false
       description: Cursor; return items with an id lower than this one.
       schema: { type: string, format: uuid }
+    ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
+    MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
   responses:
     Problem:
@@ -787,6 +1096,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Me" }
+    Listing:
+      description: Listing
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Listing" }
     OidcStart:
       description: Redirect the browser to authorization_url
       content:
@@ -848,6 +1162,16 @@ components:
           type: string
           description: Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
           example: invalid_credentials
+        errors:
+          type: array
+          description: Field errors (code invalid_fields).
+          items: { $ref: "#/components/schemas/FieldError" }
+    FieldError:
+      type: object
+      required: [key, reason]
+      properties:
+        key: { type: string }
+        reason: { type: string }
     # --- auth
     UserLocale: { type: string, enum: [cs, en] }
     Email: { type: string, format: email, maxLength: 254 }
@@ -1208,3 +1532,284 @@ components:
       required: [reason]
       properties:
         reason: { type: string, minLength: 5, maxLength: 500, description: Stored in the audit log. }
+    # --- catalog
+    I18nText:
+      type: object
+      required: [cs, en]
+      properties:
+        cs: { type: string, maxLength: 10000 }
+        en: { type: string, maxLength: 10000 }
+    AttributeOption:
+      type: object
+      required: [value, label]
+      properties:
+        value: { type: string }
+        label: { $ref: "#/components/schemas/I18nText" }
+        source: { type: string, enum: [catalog, ingest] }
+    AttributeDef:
+      type: object
+      required: [key, type, group, label, filter, applies_to, options]
+      properties:
+        key: { type: string }
+        type: { type: string, enum: [bool, int, range, enum, set, text] }
+        group: { type: string }
+        label: { $ref: "#/components/schemas/I18nText" }
+        filter: { type: boolean }
+        unit: { type: string }
+        min: { type: number, format: double }
+        max: { type: number, format: double }
+        applies_to: { type: array, items: { $ref: "#/components/schemas/UnitKind" } }
+        options: { type: array, items: { $ref: "#/components/schemas/AttributeOption" } }
+    AttributeGroup:
+      type: object
+      required: [key, label]
+      properties:
+        key: { type: string }
+        label: { $ref: "#/components/schemas/I18nText" }
+    AttributeSchema:
+      type: object
+      required: [groups, attributes]
+      properties:
+        groups: { type: array, items: { $ref: "#/components/schemas/AttributeGroup" } }
+        attributes: { type: array, items: { $ref: "#/components/schemas/AttributeDef" } }
+    AddressSuggestion:
+      type: object
+      required: [ruian_id, label, municipality, postal_code, lat, lng]
+      properties:
+        ruian_id: { type: integer, format: int64 }
+        label: { type: string }
+        municipality: { type: string }
+        district: { type: string }
+        city_part: { type: string }
+        street: { type: string }
+        postal_code: { type: string }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+    UnitKind: { type: string, enum: [apartment, house, room, parking, storage, commercial] }
+    ListingStatus: { type: string, enum: [draft, review, published, paused, rented, archived] }
+    ListingCreate:
+      type: object
+      required: [ruian_id, unit_kind]
+      properties:
+        ruian_id: { type: integer, format: int64 }
+        unit_kind: { $ref: "#/components/schemas/UnitKind" }
+        unit_label: { type: string, maxLength: 120 }
+        floor: { type: integer, format: int32, minimum: -5, maximum: 100 }
+        floor_area: { type: number, format: double, minimum: 1, maximum: 100000 }
+        layout: { type: string, maxLength: 20 }
+        parent_unit_id: { type: string, format: uuid, description: Rooms only – an existing apartment at the same address. }
+        parent_layout: { type: string, maxLength: 20, description: Rooms only – layout of the apartment to create. }
+        parent_floor_area: { type: number, format: double, minimum: 1, maximum: 100000 }
+    ListingUpdate:
+      type: object
+      required: [title, description, attributes, location_precision]
+      properties:
+        title: { $ref: "#/components/schemas/I18nText" }
+        description: { $ref: "#/components/schemas/I18nText" }
+        rent_amount: { type: integer, format: int64, minimum: 0, description: Minor units (haléře). }
+        deposit_amount: { type: integer, format: int64, minimum: 0 }
+        utilities_amount: { type: integer, format: int64, minimum: 0 }
+        available_from: { type: string, format: date }
+        min_term_months: { type: integer, format: int32, minimum: 0, maximum: 120 }
+        attributes: { type: object, additionalProperties: true }
+        location_precision: { type: string, enum: [exact, approximate] }
+        unit_label: { type: string, minLength: 1, maxLength: 120 }
+        floor: { type: integer, format: int32, minimum: -5, maximum: 100 }
+        floor_area: { type: number, format: double, minimum: 1, maximum: 100000 }
+        layout: { type: string, maxLength: 20 }
+    ListingUnit:
+      type: object
+      required: [id, kind, label]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/UnitKind" }
+        label: { type: string }
+        floor: { type: integer, format: int32 }
+        floor_area: { type: number, format: double }
+        layout: { type: string }
+        parent_id: { type: string, format: uuid }
+        parent_label: { type: string }
+    ListingAddress:
+      type: object
+      required: [label, city, postal_code, lat, lng]
+      properties:
+        label: { type: string }
+        city: { type: string }
+        city_part: { type: string }
+        postal_code: { type: string }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+    PhotoUrls:
+      type: object
+      additionalProperties: { type: string }
+      description: Signed imgproxy URLs by variant (thumb 400px, medium 1024px, large 1920px).
+    Media:
+      type: object
+      required: [id, status, filename, content_type, position, caption, urls]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [uploading, processing, ready, rejected] }
+        rejection_reason: { type: string }
+        filename: { type: string }
+        content_type: { type: string }
+        width: { type: integer, format: int32 }
+        height: { type: integer, format: int32 }
+        position: { type: integer, format: int32 }
+        caption: { $ref: "#/components/schemas/I18nText" }
+        urls: { $ref: "#/components/schemas/PhotoUrls" }
+        room_type: { type: string }
+        tags: { type: array, items: { type: string } }
+    MediaUploadRequest:
+      type: object
+      required: [filename, content_type, size]
+      properties:
+        filename: { type: string, minLength: 1, maxLength: 255 }
+        content_type: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        size: { type: integer, format: int64, minimum: 1, maximum: 20971520 }
+    MediaUpload:
+      type: object
+      required: [media, upload_url, expires_at]
+      properties:
+        media: { $ref: "#/components/schemas/Media" }
+        upload_url: { type: string, description: Presigned PUT URL; send the file body with its Content-Type. }
+        expires_at: { type: string, format: date-time }
+    MediaUpdate:
+      type: object
+      required: [position, caption]
+      properties:
+        position: { type: integer, format: int32, minimum: 0, maximum: 1000 }
+        caption: { $ref: "#/components/schemas/I18nText" }
+    Suggestion:
+      type: object
+      required: [id, kind, status, payload, created_at]
+      description: AI output. Applied to the listing only after the owner accepts it.
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [attributes, text, photo_tags, privacy_blur] }
+        status: { type: string, enum: [generating, pending, accepted, partially_accepted, rejected, failed] }
+        media_id: { type: string, format: uuid }
+        payload: { type: object, additionalProperties: true }
+        model: { type: string }
+        error: { type: string }
+        created_at: { type: string, format: date-time }
+        decided_at: { type: string, format: date-time }
+    SuggestionDecision:
+      type: object
+      required: [accept]
+      properties:
+        accept: { type: boolean }
+        keys:
+          type: array
+          items: { type: string }
+          description: Attribute suggestions only – accept just these attributes.
+    ListingVersionInfo:
+      type: object
+      required: [id, version, status, submitted_at]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer, format: int32 }
+        status: { type: string, enum: [pending, approved, rejected, withdrawn] }
+        submitted_at: { type: string, format: date-time }
+        reviewed_at: { type: string, format: date-time }
+        review_note: { type: string }
+    ListingSummary:
+      type: object
+      required: [id, status, title, unit_kind, unit_label, address_label, currency, pending_review, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/ListingStatus" }
+        title: { $ref: "#/components/schemas/I18nText" }
+        unit_kind: { $ref: "#/components/schemas/UnitKind" }
+        unit_label: { type: string }
+        address_label: { type: string }
+        rent_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        cover_url: { type: string }
+        pending_review: { type: boolean }
+        published_version: { type: integer, format: int32 }
+        updated_at: { type: string, format: date-time }
+    Listing:
+      type: object
+      required: [id, org_id, status, title, description, currency, attributes, location_precision, pending_review,
+        unit, property_id, address, media, suggestions, versions, deposit_max_months, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/ListingStatus" }
+        title: { $ref: "#/components/schemas/I18nText" }
+        description: { $ref: "#/components/schemas/I18nText" }
+        rent_amount: { type: integer, format: int64 }
+        deposit_amount: { type: integer, format: int64 }
+        utilities_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        available_from: { type: string, format: date }
+        min_term_months: { type: integer, format: int32 }
+        attributes: { type: object, additionalProperties: true }
+        location_precision: { type: string, enum: [exact, approximate] }
+        published_version: { type: integer, format: int32 }
+        published_at: { type: string, format: date-time }
+        pending_review: { type: boolean }
+        unit: { $ref: "#/components/schemas/ListingUnit" }
+        property_id: { type: string, format: uuid }
+        address: { $ref: "#/components/schemas/ListingAddress" }
+        media: { type: array, items: { $ref: "#/components/schemas/Media" } }
+        suggestions: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
+        versions: { type: array, items: { $ref: "#/components/schemas/ListingVersionInfo" } }
+        deposit_max_months: { type: integer, description: Jurisdiction cap for the deposit in monthly rents. }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ReviewItem:
+      type: object
+      required: [version_id, listing_id, org_id, org_name, version, submitted_at, submitted_by_email, title, first_publication]
+      properties:
+        version_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        org_name: { type: string }
+        version: { type: integer, format: int32 }
+        submitted_at: { type: string, format: date-time }
+        submitted_by_email: { type: string }
+        title: { $ref: "#/components/schemas/I18nText" }
+        first_publication: { type: boolean }
+        cover_url: { type: string }
+    ReviewDetail:
+      type: object
+      required: [item, snapshot, photos]
+      properties:
+        item: { $ref: "#/components/schemas/ReviewItem" }
+        snapshot: { type: object, additionalProperties: true }
+        photos:
+          type: array
+          items: { $ref: "#/components/schemas/PhotoVariants" }
+    PhotoVariants:
+      type: object
+      required: [thumb, medium, large]
+      properties:
+        thumb: { type: string }
+        medium: { type: string }
+        large: { type: string }
+    ReviewDecision:
+      type: object
+      required: [approve]
+      properties:
+        approve: { type: boolean }
+        note: { type: string, maxLength: 2000, description: Shown to the owner; required when rejecting. }
+    FilterProposal:
+      type: object
+      required: [id, attribute_key, value, label, occurrences, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        attribute_key: { type: string }
+        value: { type: string }
+        label: { $ref: "#/components/schemas/I18nText" }
+        occurrences: { type: integer }
+        status: { type: string, enum: [pending, approved, rejected] }
+        example_listing_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+    ProposalDecision:
+      type: object
+      required: [approve]
+      properties:
+        approve: { type: boolean }
+        label: { $ref: "#/components/schemas/I18nText" }
+        note: { type: string, maxLength: 2000 }

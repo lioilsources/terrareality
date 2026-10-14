@@ -61,8 +61,14 @@ String parameterToString(dynamic value) {
   if (value is ConsentKind) {
     return ConsentKindTypeTransformer().encode(value).toString();
   }
+  if (value is ListingStatus) {
+    return ListingStatusTypeTransformer().encode(value).toString();
+  }
   if (value is Role) {
     return RoleTypeTransformer().encode(value).toString();
+  }
+  if (value is UnitKind) {
+    return UnitKindTypeTransformer().encode(value).toString();
   }
   if (value is UserLocale) {
     return UserLocaleTypeTransformer().encode(value).toString();

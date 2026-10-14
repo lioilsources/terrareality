@@ -21,6 +21,14 @@ func (s *Server) limit(ctx context.Context, key string) error {
 	return nil
 }
 
+// searchLimit throttles public autocomplete per client IP.
+func (s *Server) searchLimit(ctx context.Context) error {
+	if !s.addrLimit.Allow(auth.Meta(ctx).IP) {
+		return apperr.TooMany("too many requests, slow down")
+	}
+	return nil
+}
+
 func localeOf(l *gen.UserLocale) string {
 	if l == nil {
 		return ""

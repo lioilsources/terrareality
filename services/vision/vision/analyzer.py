@@ -7,7 +7,8 @@ import re
 import httpx
 
 from .config import Settings
-from .models import TAG_VOCABULARY, AnalyzeRequest, AnalyzeResponse
+from .images import fetch, to_data_url
+from .models import TAG_VOCABULARY, AnalyzeRequest, AnalyzeResponse, Region
 
 ROOMS = ("kitchen", "bathroom", "bedroom", "living_room", "hallway", "balcony", "exterior", "floor_plan")
 PRIVACY_TAGS = {"people_visible", "licence_plate_visible"}
@@ -16,8 +17,11 @@ PROMPT = """You label photos of rental flats for a listing platform.
 Return ONLY a JSON object with keys:
   "room_type": one of {rooms} or "other",
   "tags": array of zero or more of {tags},
-  "caption": one short sentence in {lang} describing the photo for a listing.
-Tag "people_visible" if any person or face is visible and "licence_plate_visible" if a car plate is readable."""
+  "caption": one short sentence in {lang} describing the photo for a listing,
+  "privacy_regions": array of {{"label": "face" | "licence_plate" | "person", "box": [x0, y0, x1, y1]}}
+    with coordinates as fractions 0..1 of the image width and height.
+Tag "people_visible" if any person or face is visible and "licence_plate_visible" if a car plate is readable,
+and give a box for each of them."""
 
 
 def mock_analyze(req: AnalyzeRequest) -> AnalyzeResponse:
@@ -38,11 +42,18 @@ def parse_model_output(text: str, model: str) -> AnalyzeResponse:
     if room not in ROOMS:
         room = "other"
     tags = sorted({t for t in data.get("tags", []) if t in TAG_VOCABULARY})
+    regions = []
+    for r in data.get("privacy_regions", []) or []:
+        try:
+            regions.append(Region(label=r.get("label", "other"), box=tuple(r.get("box", ()))))
+        except (ValueError, TypeError, AttributeError):
+            continue  # drop malformed boxes; the human reviewer still sees the tag
     return AnalyzeResponse(
         room_type=room,
         tags=tags,
         caption=str(data.get("caption", ""))[:300],
-        needs_privacy_review=bool(PRIVACY_TAGS & set(tags)),
+        needs_privacy_review=bool(PRIVACY_TAGS & set(tags)) or bool(regions),
+        regions=regions,
         model=model,
         mock=False,
     )
@@ -54,6 +65,8 @@ async def analyze(req: AnalyzeRequest, settings: Settings, client: httpx.AsyncCl
     prompt = PROMPT.format(
         rooms=", ".join(ROOMS), tags=", ".join(TAG_VOCABULARY), lang="Czech" if req.locale == "cs" else "English"
     )
+    # The Spark cannot reach our object storage, so the image travels inline.
+    image = to_data_url(await fetch(str(req.image_url), client, settings.request_timeout_s))
     body = {
         "model": settings.vision_model,
         "temperature": 0,
@@ -62,7 +75,7 @@ async def analyze(req: AnalyzeRequest, settings: Settings, client: httpx.AsyncCl
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": str(req.image_url)}},
+                    {"type": "image_url", "image_url": {"url": image}},
                 ],
             }
         ],

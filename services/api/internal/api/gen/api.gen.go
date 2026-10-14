@@ -23,6 +23,54 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AttributeDefType.
+const (
+	AttributeDefTypeBool  AttributeDefType = "bool"
+	AttributeDefTypeEnum  AttributeDefType = "enum"
+	AttributeDefTypeInt   AttributeDefType = "int"
+	AttributeDefTypeRange AttributeDefType = "range"
+	AttributeDefTypeSet   AttributeDefType = "set"
+	AttributeDefTypeText  AttributeDefType = "text"
+)
+
+// Valid indicates whether the value is a known member of the AttributeDefType enum.
+func (e AttributeDefType) Valid() bool {
+	switch e {
+	case AttributeDefTypeBool:
+		return true
+	case AttributeDefTypeEnum:
+		return true
+	case AttributeDefTypeInt:
+		return true
+	case AttributeDefTypeRange:
+		return true
+	case AttributeDefTypeSet:
+		return true
+	case AttributeDefTypeText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AttributeOptionSource.
+const (
+	Catalog AttributeOptionSource = "catalog"
+	Ingest  AttributeOptionSource = "ingest"
+)
+
+// Valid indicates whether the value is a known member of the AttributeOptionSource enum.
+func (e AttributeOptionSource) Valid() bool {
+	switch e {
+	case Catalog:
+		return true
+	case Ingest:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AuthProviderId.
 const (
 	AuthProviderIdApple  AuthProviderId = "apple"
@@ -98,6 +146,27 @@ func (e ConsentKind) Valid() bool {
 	}
 }
 
+// Defines values for FilterProposalStatus.
+const (
+	FilterProposalStatusApproved FilterProposalStatus = "approved"
+	FilterProposalStatusPending  FilterProposalStatus = "pending"
+	FilterProposalStatusRejected FilterProposalStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the FilterProposalStatus enum.
+func (e FilterProposalStatus) Valid() bool {
+	switch e {
+	case FilterProposalStatusApproved:
+		return true
+	case FilterProposalStatusPending:
+		return true
+	case FilterProposalStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GdprRequestKind.
 const (
 	Erasure GdprRequestKind = "erasure"
@@ -118,28 +187,28 @@ func (e GdprRequestKind) Valid() bool {
 
 // Defines values for GdprRequestStatus.
 const (
-	Cancelled  GdprRequestStatus = "cancelled"
-	Done       GdprRequestStatus = "done"
-	Failed     GdprRequestStatus = "failed"
-	Pending    GdprRequestStatus = "pending"
-	Processing GdprRequestStatus = "processing"
-	Rejected   GdprRequestStatus = "rejected"
+	GdprRequestStatusCancelled  GdprRequestStatus = "cancelled"
+	GdprRequestStatusDone       GdprRequestStatus = "done"
+	GdprRequestStatusFailed     GdprRequestStatus = "failed"
+	GdprRequestStatusPending    GdprRequestStatus = "pending"
+	GdprRequestStatusProcessing GdprRequestStatus = "processing"
+	GdprRequestStatusRejected   GdprRequestStatus = "rejected"
 )
 
 // Valid indicates whether the value is a known member of the GdprRequestStatus enum.
 func (e GdprRequestStatus) Valid() bool {
 	switch e {
-	case Cancelled:
+	case GdprRequestStatusCancelled:
 		return true
-	case Done:
+	case GdprRequestStatusDone:
 		return true
-	case Failed:
+	case GdprRequestStatusFailed:
 		return true
-	case Pending:
+	case GdprRequestStatusPending:
 		return true
-	case Processing:
+	case GdprRequestStatusProcessing:
 		return true
-	case Rejected:
+	case GdprRequestStatusRejected:
 		return true
 	default:
 		return false
@@ -214,22 +283,157 @@ func (e InvitationInputRole) Valid() bool {
 
 // Defines values for InvitationPreviewStatus.
 const (
-	Accepted InvitationPreviewStatus = "accepted"
-	Expired  InvitationPreviewStatus = "expired"
-	Open     InvitationPreviewStatus = "open"
-	Revoked  InvitationPreviewStatus = "revoked"
+	InvitationPreviewStatusAccepted InvitationPreviewStatus = "accepted"
+	InvitationPreviewStatusExpired  InvitationPreviewStatus = "expired"
+	InvitationPreviewStatusOpen     InvitationPreviewStatus = "open"
+	InvitationPreviewStatusRevoked  InvitationPreviewStatus = "revoked"
 )
 
 // Valid indicates whether the value is a known member of the InvitationPreviewStatus enum.
 func (e InvitationPreviewStatus) Valid() bool {
 	switch e {
-	case Accepted:
+	case InvitationPreviewStatusAccepted:
 		return true
-	case Expired:
+	case InvitationPreviewStatusExpired:
 		return true
-	case Open:
+	case InvitationPreviewStatusOpen:
 		return true
-	case Revoked:
+	case InvitationPreviewStatusRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListingLocationPrecision.
+const (
+	ListingLocationPrecisionApproximate ListingLocationPrecision = "approximate"
+	ListingLocationPrecisionExact       ListingLocationPrecision = "exact"
+)
+
+// Valid indicates whether the value is a known member of the ListingLocationPrecision enum.
+func (e ListingLocationPrecision) Valid() bool {
+	switch e {
+	case ListingLocationPrecisionApproximate:
+		return true
+	case ListingLocationPrecisionExact:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListingStatus.
+const (
+	ListingStatusArchived  ListingStatus = "archived"
+	ListingStatusDraft     ListingStatus = "draft"
+	ListingStatusPaused    ListingStatus = "paused"
+	ListingStatusPublished ListingStatus = "published"
+	ListingStatusRented    ListingStatus = "rented"
+	ListingStatusReview    ListingStatus = "review"
+)
+
+// Valid indicates whether the value is a known member of the ListingStatus enum.
+func (e ListingStatus) Valid() bool {
+	switch e {
+	case ListingStatusArchived:
+		return true
+	case ListingStatusDraft:
+		return true
+	case ListingStatusPaused:
+		return true
+	case ListingStatusPublished:
+		return true
+	case ListingStatusRented:
+		return true
+	case ListingStatusReview:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListingUpdateLocationPrecision.
+const (
+	ListingUpdateLocationPrecisionApproximate ListingUpdateLocationPrecision = "approximate"
+	ListingUpdateLocationPrecisionExact       ListingUpdateLocationPrecision = "exact"
+)
+
+// Valid indicates whether the value is a known member of the ListingUpdateLocationPrecision enum.
+func (e ListingUpdateLocationPrecision) Valid() bool {
+	switch e {
+	case ListingUpdateLocationPrecisionApproximate:
+		return true
+	case ListingUpdateLocationPrecisionExact:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListingVersionInfoStatus.
+const (
+	ListingVersionInfoStatusApproved  ListingVersionInfoStatus = "approved"
+	ListingVersionInfoStatusPending   ListingVersionInfoStatus = "pending"
+	ListingVersionInfoStatusRejected  ListingVersionInfoStatus = "rejected"
+	ListingVersionInfoStatusWithdrawn ListingVersionInfoStatus = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the ListingVersionInfoStatus enum.
+func (e ListingVersionInfoStatus) Valid() bool {
+	switch e {
+	case ListingVersionInfoStatusApproved:
+		return true
+	case ListingVersionInfoStatusPending:
+		return true
+	case ListingVersionInfoStatusRejected:
+		return true
+	case ListingVersionInfoStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MediaStatus.
+const (
+	MediaStatusProcessing MediaStatus = "processing"
+	MediaStatusReady      MediaStatus = "ready"
+	MediaStatusRejected   MediaStatus = "rejected"
+	MediaStatusUploading  MediaStatus = "uploading"
+)
+
+// Valid indicates whether the value is a known member of the MediaStatus enum.
+func (e MediaStatus) Valid() bool {
+	switch e {
+	case MediaStatusProcessing:
+		return true
+	case MediaStatusReady:
+		return true
+	case MediaStatusRejected:
+		return true
+	case MediaStatusUploading:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MediaUploadRequestContentType.
+const (
+	Imagejpeg MediaUploadRequestContentType = "image/jpeg"
+	Imagepng  MediaUploadRequestContentType = "image/png"
+	Imagewebp MediaUploadRequestContentType = "image/webp"
+)
+
+// Valid indicates whether the value is a known member of the MediaUploadRequestContentType enum.
+func (e MediaUploadRequestContentType) Valid() bool {
+	switch e {
+	case Imagejpeg:
+		return true
+	case Imagepng:
+		return true
+	case Imagewebp:
 		return true
 	default:
 		return false
@@ -278,6 +482,90 @@ func (e Role) Valid() bool {
 	case RoleOwner:
 		return true
 	case RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SuggestionKind.
+const (
+	SuggestionKindAttributes  SuggestionKind = "attributes"
+	SuggestionKindPhotoTags   SuggestionKind = "photo_tags"
+	SuggestionKindPrivacyBlur SuggestionKind = "privacy_blur"
+	SuggestionKindText        SuggestionKind = "text"
+)
+
+// Valid indicates whether the value is a known member of the SuggestionKind enum.
+func (e SuggestionKind) Valid() bool {
+	switch e {
+	case SuggestionKindAttributes:
+		return true
+	case SuggestionKindPhotoTags:
+		return true
+	case SuggestionKindPrivacyBlur:
+		return true
+	case SuggestionKindText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SuggestionStatus.
+const (
+	SuggestionStatusAccepted          SuggestionStatus = "accepted"
+	SuggestionStatusFailed            SuggestionStatus = "failed"
+	SuggestionStatusGenerating        SuggestionStatus = "generating"
+	SuggestionStatusPartiallyAccepted SuggestionStatus = "partially_accepted"
+	SuggestionStatusPending           SuggestionStatus = "pending"
+	SuggestionStatusRejected          SuggestionStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the SuggestionStatus enum.
+func (e SuggestionStatus) Valid() bool {
+	switch e {
+	case SuggestionStatusAccepted:
+		return true
+	case SuggestionStatusFailed:
+		return true
+	case SuggestionStatusGenerating:
+		return true
+	case SuggestionStatusPartiallyAccepted:
+		return true
+	case SuggestionStatusPending:
+		return true
+	case SuggestionStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UnitKind.
+const (
+	Apartment  UnitKind = "apartment"
+	Commercial UnitKind = "commercial"
+	House      UnitKind = "house"
+	Parking    UnitKind = "parking"
+	Room       UnitKind = "room"
+	Storage    UnitKind = "storage"
+)
+
+// Valid indicates whether the value is a known member of the UnitKind enum.
+func (e UnitKind) Valid() bool {
+	switch e {
+	case Apartment:
+		return true
+	case Commercial:
+		return true
+	case House:
+		return true
+	case Parking:
+		return true
+	case Room:
+		return true
+	case Storage:
 		return true
 	default:
 		return false
@@ -380,6 +668,82 @@ func (e StartOidcParamsProvider) Valid() bool {
 	}
 }
 
+// Defines values for BackofficeListFilterProposalsParamsStatus.
+const (
+	BackofficeListFilterProposalsParamsStatusApproved BackofficeListFilterProposalsParamsStatus = "approved"
+	BackofficeListFilterProposalsParamsStatusPending  BackofficeListFilterProposalsParamsStatus = "pending"
+	BackofficeListFilterProposalsParamsStatusRejected BackofficeListFilterProposalsParamsStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the BackofficeListFilterProposalsParamsStatus enum.
+func (e BackofficeListFilterProposalsParamsStatus) Valid() bool {
+	switch e {
+	case BackofficeListFilterProposalsParamsStatusApproved:
+		return true
+	case BackofficeListFilterProposalsParamsStatusPending:
+		return true
+	case BackofficeListFilterProposalsParamsStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChangeListingStatusJSONBodyStatus.
+const (
+	ChangeListingStatusJSONBodyStatusArchived  ChangeListingStatusJSONBodyStatus = "archived"
+	ChangeListingStatusJSONBodyStatusPaused    ChangeListingStatusJSONBodyStatus = "paused"
+	ChangeListingStatusJSONBodyStatusPublished ChangeListingStatusJSONBodyStatus = "published"
+	ChangeListingStatusJSONBodyStatusRented    ChangeListingStatusJSONBodyStatus = "rented"
+)
+
+// Valid indicates whether the value is a known member of the ChangeListingStatusJSONBodyStatus enum.
+func (e ChangeListingStatusJSONBodyStatus) Valid() bool {
+	switch e {
+	case ChangeListingStatusJSONBodyStatusArchived:
+		return true
+	case ChangeListingStatusJSONBodyStatusPaused:
+		return true
+	case ChangeListingStatusJSONBodyStatusPublished:
+		return true
+	case ChangeListingStatusJSONBodyStatusRented:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RequestSuggestionJSONBodyKind.
+const (
+	RequestSuggestionJSONBodyKindAttributes RequestSuggestionJSONBodyKind = "attributes"
+	RequestSuggestionJSONBodyKindText       RequestSuggestionJSONBodyKind = "text"
+)
+
+// Valid indicates whether the value is a known member of the RequestSuggestionJSONBodyKind enum.
+func (e RequestSuggestionJSONBodyKind) Valid() bool {
+	switch e {
+	case RequestSuggestionJSONBodyKindAttributes:
+		return true
+	case RequestSuggestionJSONBodyKindText:
+		return true
+	default:
+		return false
+	}
+}
+
+// AddressSuggestion defines model for AddressSuggestion.
+type AddressSuggestion struct {
+	CityPart     *string `json:"city_part,omitempty"`
+	District     *string `json:"district,omitempty"`
+	Label        string  `json:"label"`
+	Lat          float64 `json:"lat"`
+	Lng          float64 `json:"lng"`
+	Municipality string  `json:"municipality"`
+	PostalCode   string  `json:"postal_code"`
+	RuianId      int64   `json:"ruian_id"`
+	Street       *string `json:"street,omitempty"`
+}
+
 // AdminUser defines model for AdminUser.
 type AdminUser struct {
 	CreatedAt     time.Time          `json:"created_at"`
@@ -404,6 +768,45 @@ type AdminUserDetail struct {
 type AdminUserPage struct {
 	Items      []AdminUser         `json:"items"`
 	NextBefore *openapi_types.UUID `json:"next_before,omitempty"`
+}
+
+// AttributeDef defines model for AttributeDef.
+type AttributeDef struct {
+	AppliesTo []UnitKind        `json:"applies_to"`
+	Filter    bool              `json:"filter"`
+	Group     string            `json:"group"`
+	Key       string            `json:"key"`
+	Label     I18nText          `json:"label"`
+	Max       *float64          `json:"max,omitempty"`
+	Min       *float64          `json:"min,omitempty"`
+	Options   []AttributeOption `json:"options"`
+	Type      AttributeDefType  `json:"type"`
+	Unit      *string           `json:"unit,omitempty"`
+}
+
+// AttributeDefType defines model for AttributeDef.Type.
+type AttributeDefType string
+
+// AttributeGroup defines model for AttributeGroup.
+type AttributeGroup struct {
+	Key   string   `json:"key"`
+	Label I18nText `json:"label"`
+}
+
+// AttributeOption defines model for AttributeOption.
+type AttributeOption struct {
+	Label  I18nText               `json:"label"`
+	Source *AttributeOptionSource `json:"source,omitempty"`
+	Value  string                 `json:"value"`
+}
+
+// AttributeOptionSource defines model for AttributeOption.Source.
+type AttributeOptionSource string
+
+// AttributeSchema defines model for AttributeSchema.
+type AttributeSchema struct {
+	Attributes []AttributeDef   `json:"attributes"`
+	Groups     []AttributeGroup `json:"groups"`
 }
 
 // AuditEvent defines model for AuditEvent.
@@ -491,6 +894,27 @@ type DownloadLink struct {
 // Email defines model for Email.
 type Email = openapi_types.Email
 
+// FieldError defines model for FieldError.
+type FieldError struct {
+	Key    string `json:"key"`
+	Reason string `json:"reason"`
+}
+
+// FilterProposal defines model for FilterProposal.
+type FilterProposal struct {
+	AttributeKey     string               `json:"attribute_key"`
+	CreatedAt        time.Time            `json:"created_at"`
+	ExampleListingId *openapi_types.UUID  `json:"example_listing_id,omitempty"`
+	Id               openapi_types.UUID   `json:"id"`
+	Label            I18nText             `json:"label"`
+	Occurrences      int                  `json:"occurrences"`
+	Status           FilterProposalStatus `json:"status"`
+	Value            string               `json:"value"`
+}
+
+// FilterProposalStatus defines model for FilterProposal.Status.
+type FilterProposalStatus string
+
 // GdprRequest defines model for GdprRequest.
 type GdprRequest struct {
 	CompletedAt *time.Time         `json:"completed_at,omitempty"`
@@ -526,6 +950,12 @@ type HealthCheck struct {
 
 // HealthCheckStatus defines model for HealthCheck.Status.
 type HealthCheckStatus string
+
+// I18nText defines model for I18nText.
+type I18nText struct {
+	Cs string `json:"cs"`
+	En string `json:"en"`
+}
 
 // ImpersonateRequest defines model for ImpersonateRequest.
 type ImpersonateRequest struct {
@@ -579,6 +1009,133 @@ type Jurisdiction struct {
 	SignatureProvider  string                 `json:"signature_provider"`
 }
 
+// Listing defines model for Listing.
+type Listing struct {
+	Address       ListingAddress         `json:"address"`
+	Attributes    map[string]interface{} `json:"attributes"`
+	AvailableFrom *openapi_types.Date    `json:"available_from,omitempty"`
+	CreatedAt     time.Time              `json:"created_at"`
+	Currency      string                 `json:"currency"`
+	DepositAmount *int64                 `json:"deposit_amount,omitempty"`
+
+	// DepositMaxMonths Jurisdiction cap for the deposit in monthly rents.
+	DepositMaxMonths  int                      `json:"deposit_max_months"`
+	Description       I18nText                 `json:"description"`
+	Id                openapi_types.UUID       `json:"id"`
+	LocationPrecision ListingLocationPrecision `json:"location_precision"`
+	Media             []Media                  `json:"media"`
+	MinTermMonths     *int32                   `json:"min_term_months,omitempty"`
+	OrgId             openapi_types.UUID       `json:"org_id"`
+	PendingReview     bool                     `json:"pending_review"`
+	PropertyId        openapi_types.UUID       `json:"property_id"`
+	PublishedAt       *time.Time               `json:"published_at,omitempty"`
+	PublishedVersion  *int32                   `json:"published_version,omitempty"`
+	RentAmount        *int64                   `json:"rent_amount,omitempty"`
+	Status            ListingStatus            `json:"status"`
+	Suggestions       []Suggestion             `json:"suggestions"`
+	Title             I18nText                 `json:"title"`
+	Unit              ListingUnit              `json:"unit"`
+	UpdatedAt         time.Time                `json:"updated_at"`
+	UtilitiesAmount   *int64                   `json:"utilities_amount,omitempty"`
+	Versions          []ListingVersionInfo     `json:"versions"`
+}
+
+// ListingLocationPrecision defines model for Listing.LocationPrecision.
+type ListingLocationPrecision string
+
+// ListingAddress defines model for ListingAddress.
+type ListingAddress struct {
+	City       string  `json:"city"`
+	CityPart   *string `json:"city_part,omitempty"`
+	Label      string  `json:"label"`
+	Lat        float64 `json:"lat"`
+	Lng        float64 `json:"lng"`
+	PostalCode string  `json:"postal_code"`
+}
+
+// ListingCreate defines model for ListingCreate.
+type ListingCreate struct {
+	Floor           *int32   `json:"floor,omitempty"`
+	FloorArea       *float64 `json:"floor_area,omitempty"`
+	Layout          *string  `json:"layout,omitempty"`
+	ParentFloorArea *float64 `json:"parent_floor_area,omitempty"`
+
+	// ParentLayout Rooms only – layout of the apartment to create.
+	ParentLayout *string `json:"parent_layout,omitempty"`
+
+	// ParentUnitId Rooms only – an existing apartment at the same address.
+	ParentUnitId *openapi_types.UUID `json:"parent_unit_id,omitempty"`
+	RuianId      int64               `json:"ruian_id"`
+	UnitKind     UnitKind            `json:"unit_kind"`
+	UnitLabel    *string             `json:"unit_label,omitempty"`
+}
+
+// ListingStatus defines model for ListingStatus.
+type ListingStatus string
+
+// ListingSummary defines model for ListingSummary.
+type ListingSummary struct {
+	AddressLabel     string             `json:"address_label"`
+	CoverUrl         *string            `json:"cover_url,omitempty"`
+	Currency         string             `json:"currency"`
+	Id               openapi_types.UUID `json:"id"`
+	PendingReview    bool               `json:"pending_review"`
+	PublishedVersion *int32             `json:"published_version,omitempty"`
+	RentAmount       *int64             `json:"rent_amount,omitempty"`
+	Status           ListingStatus      `json:"status"`
+	Title            I18nText           `json:"title"`
+	UnitKind         UnitKind           `json:"unit_kind"`
+	UnitLabel        string             `json:"unit_label"`
+	UpdatedAt        time.Time          `json:"updated_at"`
+}
+
+// ListingUnit defines model for ListingUnit.
+type ListingUnit struct {
+	Floor       *int32              `json:"floor,omitempty"`
+	FloorArea   *float64            `json:"floor_area,omitempty"`
+	Id          openapi_types.UUID  `json:"id"`
+	Kind        UnitKind            `json:"kind"`
+	Label       string              `json:"label"`
+	Layout      *string             `json:"layout,omitempty"`
+	ParentId    *openapi_types.UUID `json:"parent_id,omitempty"`
+	ParentLabel *string             `json:"parent_label,omitempty"`
+}
+
+// ListingUpdate defines model for ListingUpdate.
+type ListingUpdate struct {
+	Attributes        map[string]interface{}         `json:"attributes"`
+	AvailableFrom     *openapi_types.Date            `json:"available_from,omitempty"`
+	DepositAmount     *int64                         `json:"deposit_amount,omitempty"`
+	Description       I18nText                       `json:"description"`
+	Floor             *int32                         `json:"floor,omitempty"`
+	FloorArea         *float64                       `json:"floor_area,omitempty"`
+	Layout            *string                        `json:"layout,omitempty"`
+	LocationPrecision ListingUpdateLocationPrecision `json:"location_precision"`
+	MinTermMonths     *int32                         `json:"min_term_months,omitempty"`
+
+	// RentAmount Minor units (haléře).
+	RentAmount      *int64   `json:"rent_amount,omitempty"`
+	Title           I18nText `json:"title"`
+	UnitLabel       *string  `json:"unit_label,omitempty"`
+	UtilitiesAmount *int64   `json:"utilities_amount,omitempty"`
+}
+
+// ListingUpdateLocationPrecision defines model for ListingUpdate.LocationPrecision.
+type ListingUpdateLocationPrecision string
+
+// ListingVersionInfo defines model for ListingVersionInfo.
+type ListingVersionInfo struct {
+	Id          openapi_types.UUID       `json:"id"`
+	ReviewNote  *string                  `json:"review_note,omitempty"`
+	ReviewedAt  *time.Time               `json:"reviewed_at,omitempty"`
+	Status      ListingVersionInfoStatus `json:"status"`
+	SubmittedAt time.Time                `json:"submitted_at"`
+	Version     int32                    `json:"version"`
+}
+
+// ListingVersionInfoStatus defines model for ListingVersionInfo.Status.
+type ListingVersionInfoStatus string
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Client   *ClientKind `json:"client,omitempty"`
@@ -613,6 +1170,52 @@ type Me struct {
 	// VerificationLevel none → email → phone → identity (BankID). Features require a minimum level.
 	VerificationLevel VerificationLevel `json:"verification_level"`
 }
+
+// Media defines model for Media.
+type Media struct {
+	Caption         I18nText           `json:"caption"`
+	ContentType     string             `json:"content_type"`
+	Filename        string             `json:"filename"`
+	Height          *int32             `json:"height,omitempty"`
+	Id              openapi_types.UUID `json:"id"`
+	Position        int32              `json:"position"`
+	RejectionReason *string            `json:"rejection_reason,omitempty"`
+	RoomType        *string            `json:"room_type,omitempty"`
+	Status          MediaStatus        `json:"status"`
+	Tags            *[]string          `json:"tags,omitempty"`
+
+	// Urls Signed imgproxy URLs by variant (thumb 400px, medium 1024px, large 1920px).
+	Urls  PhotoUrls `json:"urls"`
+	Width *int32    `json:"width,omitempty"`
+}
+
+// MediaStatus defines model for Media.Status.
+type MediaStatus string
+
+// MediaUpdate defines model for MediaUpdate.
+type MediaUpdate struct {
+	Caption  I18nText `json:"caption"`
+	Position int32    `json:"position"`
+}
+
+// MediaUpload defines model for MediaUpload.
+type MediaUpload struct {
+	ExpiresAt time.Time `json:"expires_at"`
+	Media     Media     `json:"media"`
+
+	// UploadUrl Presigned PUT URL; send the file body with its Content-Type.
+	UploadUrl string `json:"upload_url"`
+}
+
+// MediaUploadRequest defines model for MediaUploadRequest.
+type MediaUploadRequest struct {
+	ContentType MediaUploadRequestContentType `json:"content_type"`
+	Filename    string                        `json:"filename"`
+	Size        int64                         `json:"size"`
+}
+
+// MediaUploadRequestContentType defines model for MediaUploadRequest.ContentType.
+type MediaUploadRequestContentType string
 
 // Member defines model for Member.
 type Member struct {
@@ -695,19 +1298,39 @@ type PhoneRequest struct {
 	Phone string `json:"phone"`
 }
 
+// PhotoUrls Signed imgproxy URLs by variant (thumb 400px, medium 1024px, large 1920px).
+type PhotoUrls map[string]string
+
+// PhotoVariants defines model for PhotoVariants.
+type PhotoVariants struct {
+	Large  string `json:"large"`
+	Medium string `json:"medium"`
+	Thumb  string `json:"thumb"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	// Code Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
 	//
 	// Example: invalid_credentials
-	Code     *string `json:"code,omitempty"`
-	Detail   *string `json:"detail,omitempty"`
-	Instance *string `json:"instance,omitempty"`
-	Status   int     `json:"status"`
-	Title    string  `json:"title"`
+	Code   *string `json:"code,omitempty"`
+	Detail *string `json:"detail,omitempty"`
+
+	// Errors Field errors (code invalid_fields).
+	Errors   *[]FieldError `json:"errors,omitempty"`
+	Instance *string       `json:"instance,omitempty"`
+	Status   int           `json:"status"`
+	Title    string        `json:"title"`
 
 	// Type Example: about:blank
 	Type string `json:"type"`
+}
+
+// ProposalDecision defines model for ProposalDecision.
+type ProposalDecision struct {
+	Approve bool      `json:"approve"`
+	Label   *I18nText `json:"label,omitempty"`
+	Note    *string   `json:"note,omitempty"`
 }
 
 // RecoveryCodes defines model for RecoveryCodes.
@@ -725,6 +1348,35 @@ type RegisterRequest struct {
 	Locale               *UserLocale `json:"locale,omitempty"`
 	Marketing            *bool       `json:"marketing,omitempty"`
 	Password             Password    `json:"password"`
+}
+
+// ReviewDecision defines model for ReviewDecision.
+type ReviewDecision struct {
+	Approve bool `json:"approve"`
+
+	// Note Shown to the owner; required when rejecting.
+	Note *string `json:"note,omitempty"`
+}
+
+// ReviewDetail defines model for ReviewDetail.
+type ReviewDetail struct {
+	Item     ReviewItem             `json:"item"`
+	Photos   []PhotoVariants        `json:"photos"`
+	Snapshot map[string]interface{} `json:"snapshot"`
+}
+
+// ReviewItem defines model for ReviewItem.
+type ReviewItem struct {
+	CoverUrl         *string            `json:"cover_url,omitempty"`
+	FirstPublication bool               `json:"first_publication"`
+	ListingId        openapi_types.UUID `json:"listing_id"`
+	OrgId            openapi_types.UUID `json:"org_id"`
+	OrgName          string             `json:"org_name"`
+	SubmittedAt      time.Time          `json:"submitted_at"`
+	SubmittedByEmail string             `json:"submitted_by_email"`
+	Title            I18nText           `json:"title"`
+	Version          int32              `json:"version"`
+	VersionId        openapi_types.UUID `json:"version_id"`
 }
 
 // Role defines model for Role.
@@ -753,6 +1405,33 @@ type SessionToken struct {
 	Token     string    `json:"token"`
 }
 
+// Suggestion AI output. Applied to the listing only after the owner accepts it.
+type Suggestion struct {
+	CreatedAt time.Time              `json:"created_at"`
+	DecidedAt *time.Time             `json:"decided_at,omitempty"`
+	Error     *string                `json:"error,omitempty"`
+	Id        openapi_types.UUID     `json:"id"`
+	Kind      SuggestionKind         `json:"kind"`
+	MediaId   *openapi_types.UUID    `json:"media_id,omitempty"`
+	Model     *string                `json:"model,omitempty"`
+	Payload   map[string]interface{} `json:"payload"`
+	Status    SuggestionStatus       `json:"status"`
+}
+
+// SuggestionKind defines model for Suggestion.Kind.
+type SuggestionKind string
+
+// SuggestionStatus defines model for Suggestion.Status.
+type SuggestionStatus string
+
+// SuggestionDecision defines model for SuggestionDecision.
+type SuggestionDecision struct {
+	Accept bool `json:"accept"`
+
+	// Keys Attribute suggestions only – accept just these attributes.
+	Keys *[]string `json:"keys,omitempty"`
+}
+
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
 	Client *ClientKind `json:"client,omitempty"`
@@ -767,6 +1446,9 @@ type TotpSetup struct {
 	// Secret Base32 secret for manual entry.
 	Secret string `json:"secret"`
 }
+
+// UnitKind defines model for UnitKind.
+type UnitKind string
 
 // UpdateMeRequest defines model for UpdateMeRequest.
 type UpdateMeRequest struct {
@@ -813,11 +1495,23 @@ type InvitationToken = string
 // Limit defines model for Limit.
 type Limit = int
 
+// ListingId defines model for ListingId.
+type ListingId = openapi_types.UUID
+
+// MediaId defines model for MediaId.
+type MediaId = openapi_types.UUID
+
 // OrgId defines model for OrgId.
 type OrgId = openapi_types.UUID
 
 // Provider defines model for Provider.
 type Provider string
+
+// SearchAddressesParams defines parameters for SearchAddresses.
+type SearchAddressesParams struct {
+	Q     string `form:"q" json:"q"`
+	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // FinishOidcParamsProvider defines parameters for FinishOidc.
 type FinishOidcParamsProvider string
@@ -836,6 +1530,14 @@ type BackofficeListAuditParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// BackofficeListFilterProposalsParams defines parameters for BackofficeListFilterProposals.
+type BackofficeListFilterProposalsParams struct {
+	Status *BackofficeListFilterProposalsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// BackofficeListFilterProposalsParamsStatus defines parameters for BackofficeListFilterProposals.
+type BackofficeListFilterProposalsParamsStatus string
+
 // BackofficeListUsersParams defines parameters for BackofficeListUsers.
 type BackofficeListUsersParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -851,6 +1553,27 @@ type ListOrgAuditParams struct {
 	Before *Before `form:"before,omitempty" json:"before,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// ListListingsParams defines parameters for ListListings.
+type ListListingsParams struct {
+	Status *ListingStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ChangeListingStatusJSONBody defines parameters for ChangeListingStatus.
+type ChangeListingStatusJSONBody struct {
+	Status ChangeListingStatusJSONBodyStatus `json:"status"`
+}
+
+// ChangeListingStatusJSONBodyStatus defines parameters for ChangeListingStatus.
+type ChangeListingStatusJSONBodyStatus string
+
+// RequestSuggestionJSONBody defines parameters for RequestSuggestion.
+type RequestSuggestionJSONBody struct {
+	Kind RequestSuggestionJSONBodyKind `json:"kind"`
+}
+
+// RequestSuggestionJSONBodyKind defines parameters for RequestSuggestion.
+type RequestSuggestionJSONBodyKind string
 
 // VerifyEmailJSONRequestBody defines body for VerifyEmail for application/json ContentType.
 type VerifyEmailJSONRequestBody = TokenRequest
@@ -881,6 +1604,12 @@ type ResetPasswordJSONRequestBody = PasswordResetRequest
 
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
+
+// BackofficeDecideFilterProposalJSONRequestBody defines body for BackofficeDecideFilterProposal for application/json ContentType.
+type BackofficeDecideFilterProposalJSONRequestBody = ProposalDecision
+
+// BackofficeDecideReviewJSONRequestBody defines body for BackofficeDecideReview for application/json ContentType.
+type BackofficeDecideReviewJSONRequestBody = ReviewDecision
 
 // BackofficeImpersonateJSONRequestBody defines body for BackofficeImpersonate for application/json ContentType.
 type BackofficeImpersonateJSONRequestBody = ImpersonateRequest
@@ -921,14 +1650,41 @@ type UpdateOrgJSONRequestBody = OrgInput
 // CreateOrgInvitationJSONRequestBody defines body for CreateOrgInvitation for application/json ContentType.
 type CreateOrgInvitationJSONRequestBody = InvitationInput
 
+// CreateListingJSONRequestBody defines body for CreateListing for application/json ContentType.
+type CreateListingJSONRequestBody = ListingCreate
+
+// UpdateListingJSONRequestBody defines body for UpdateListing for application/json ContentType.
+type UpdateListingJSONRequestBody = ListingUpdate
+
+// CreateMediaUploadJSONRequestBody defines body for CreateMediaUpload for application/json ContentType.
+type CreateMediaUploadJSONRequestBody = MediaUploadRequest
+
+// ChangeListingStatusJSONRequestBody defines body for ChangeListingStatus for application/json ContentType.
+type ChangeListingStatusJSONRequestBody ChangeListingStatusJSONBody
+
+// RequestSuggestionJSONRequestBody defines body for RequestSuggestion for application/json ContentType.
+type RequestSuggestionJSONRequestBody RequestSuggestionJSONBody
+
+// UpdateMediaJSONRequestBody defines body for UpdateMedia for application/json ContentType.
+type UpdateMediaJSONRequestBody = MediaUpdate
+
 // UpdateOrgMemberJSONRequestBody defines body for UpdateOrgMember for application/json ContentType.
 type UpdateOrgMemberJSONRequestBody = RoleInput
+
+// DecideSuggestionJSONRequestBody defines body for DecideSuggestion for application/json ContentType.
+type DecideSuggestionJSONRequestBody = SuggestionDecision
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetHealth Liveness and dependency health
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// SearchAddresses Autocomplete Czech addresses (RÚIAN)
+	// (GET /v1/addresses/search)
+	SearchAddresses(w http.ResponseWriter, r *http.Request, params SearchAddressesParams)
+	// GetAttributeSchema Listing attribute schema (catalog plus approved options)
+	// (GET /v1/attributes)
+	GetAttributeSchema(w http.ResponseWriter, r *http.Request)
 	// ResendEmailVerification Send the verification e-mail again
 	// (POST /v1/auth/email/resend)
 	ResendEmailVerification(w http.ResponseWriter, r *http.Request)
@@ -971,6 +1727,21 @@ type ServerInterface interface {
 	// BackofficeListAudit Platform-wide audit log (staff)
 	// (GET /v1/backoffice/audit)
 	BackofficeListAudit(w http.ResponseWriter, r *http.Request, params BackofficeListAuditParams)
+	// BackofficeListFilterProposals New attribute options proposed by AI ingest (staff)
+	// (GET /v1/backoffice/filter-proposals)
+	BackofficeListFilterProposals(w http.ResponseWriter, r *http.Request, params BackofficeListFilterProposalsParams)
+	// BackofficeDecideFilterProposal Add the option to the schema or reject it (staff)
+	// (POST /v1/backoffice/filter-proposals/{proposalId}/decision)
+	BackofficeDecideFilterProposal(w http.ResponseWriter, r *http.Request, proposalId openapi_types.UUID)
+	// BackofficeListReviews Moderation queue of submitted listing versions (staff)
+	// (GET /v1/backoffice/reviews)
+	BackofficeListReviews(w http.ResponseWriter, r *http.Request)
+	// BackofficeGetReview One submitted version with its snapshot (staff)
+	// (GET /v1/backoffice/reviews/{versionId})
+	BackofficeGetReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID)
+	// BackofficeDecideReview Approve (publish) or reject a version (staff)
+	// (POST /v1/backoffice/reviews/{versionId}/decision)
+	BackofficeDecideReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID)
 	// BackofficeListUsers Search users (staff)
 	// (GET /v1/backoffice/users)
 	BackofficeListUsers(w http.ResponseWriter, r *http.Request, params BackofficeListUsersParams)
@@ -1073,6 +1844,42 @@ type ServerInterface interface {
 	// RevokeOrgInvitation Revoke an open invitation
 	// (DELETE /v1/orgs/{orgId}/invitations/{invitationId})
 	RevokeOrgInvitation(w http.ResponseWriter, r *http.Request, orgId OrgId, invitationId openapi_types.UUID)
+	// ListListings Listings of an organization
+	// (GET /v1/orgs/{orgId}/listings)
+	ListListings(w http.ResponseWriter, r *http.Request, orgId OrgId, params ListListingsParams)
+	// CreateListing Wizard step 1 – address and unit; creates a draft listing
+	// (POST /v1/orgs/{orgId}/listings)
+	CreateListing(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// GetListing Listing with unit, address, photos, AI suggestions and versions
+	// (GET /v1/orgs/{orgId}/listings/{listingId})
+	GetListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// UpdateListing Save the working copy (withdraws a pending review)
+	// (PUT /v1/orgs/{orgId}/listings/{listingId})
+	UpdateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// DuplicateListing Copy the listing onto a new unit in the same building (without photos)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/duplicate)
+	DuplicateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// CreateMediaUpload Reserve a photo and get a presigned upload URL (PUT the file there, then complete)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/media)
+	CreateMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// ChangeListingStatus Pause, resume, mark as rented or archive
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/status)
+	ChangeListingStatus(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// SubmitListing Send the working copy to moderation as a new version
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/submit)
+	SubmitListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// RequestSuggestion Ask the AI for attribute or text suggestions (generated in the background)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/suggestions)
+	RequestSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId)
+	// DeleteMedia Remove a photo
+	// (DELETE /v1/orgs/{orgId}/media/{mediaId})
+	DeleteMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId)
+	// UpdateMedia Change order and caption
+	// (PATCH /v1/orgs/{orgId}/media/{mediaId})
+	UpdateMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId)
+	// CompleteMediaUpload Start processing (EXIF strip, malware scan, vision) after the upload
+	// (POST /v1/orgs/{orgId}/media/{mediaId}/complete)
+	CompleteMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId)
 	// ListOrgMembers Members of an organization
 	// (GET /v1/orgs/{orgId}/members)
 	ListOrgMembers(w http.ResponseWriter, r *http.Request, orgId OrgId)
@@ -1082,6 +1889,9 @@ type ServerInterface interface {
 	// UpdateOrgMember Change a member's role (owner, admin)
 	// (PATCH /v1/orgs/{orgId}/members/{userId})
 	UpdateOrgMember(w http.ResponseWriter, r *http.Request, orgId OrgId, userId openapi_types.UUID)
+	// DecideSuggestion Accept (all or selected attributes) or reject an AI suggestion
+	// (POST /v1/orgs/{orgId}/suggestions/{suggestionId}/decision)
+	DecideSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, suggestionId openapi_types.UUID)
 	// GetVersion Build information
 	// (GET /v1/version)
 	GetVersion(w http.ResponseWriter, r *http.Request)
@@ -1094,6 +1904,18 @@ type Unimplemented struct{}
 // GetHealth Liveness and dependency health
 // (GET /healthz)
 func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SearchAddresses Autocomplete Czech addresses (RÚIAN)
+// (GET /v1/addresses/search)
+func (_ Unimplemented) SearchAddresses(w http.ResponseWriter, r *http.Request, params SearchAddressesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetAttributeSchema Listing attribute schema (catalog plus approved options)
+// (GET /v1/attributes)
+func (_ Unimplemented) GetAttributeSchema(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1178,6 +2000,36 @@ func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 // BackofficeListAudit Platform-wide audit log (staff)
 // (GET /v1/backoffice/audit)
 func (_ Unimplemented) BackofficeListAudit(w http.ResponseWriter, r *http.Request, params BackofficeListAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BackofficeListFilterProposals New attribute options proposed by AI ingest (staff)
+// (GET /v1/backoffice/filter-proposals)
+func (_ Unimplemented) BackofficeListFilterProposals(w http.ResponseWriter, r *http.Request, params BackofficeListFilterProposalsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BackofficeDecideFilterProposal Add the option to the schema or reject it (staff)
+// (POST /v1/backoffice/filter-proposals/{proposalId}/decision)
+func (_ Unimplemented) BackofficeDecideFilterProposal(w http.ResponseWriter, r *http.Request, proposalId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BackofficeListReviews Moderation queue of submitted listing versions (staff)
+// (GET /v1/backoffice/reviews)
+func (_ Unimplemented) BackofficeListReviews(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BackofficeGetReview One submitted version with its snapshot (staff)
+// (GET /v1/backoffice/reviews/{versionId})
+func (_ Unimplemented) BackofficeGetReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// BackofficeDecideReview Approve (publish) or reject a version (staff)
+// (POST /v1/backoffice/reviews/{versionId}/decision)
+func (_ Unimplemented) BackofficeDecideReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1385,6 +2237,78 @@ func (_ Unimplemented) RevokeOrgInvitation(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListListings Listings of an organization
+// (GET /v1/orgs/{orgId}/listings)
+func (_ Unimplemented) ListListings(w http.ResponseWriter, r *http.Request, orgId OrgId, params ListListingsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateListing Wizard step 1 – address and unit; creates a draft listing
+// (POST /v1/orgs/{orgId}/listings)
+func (_ Unimplemented) CreateListing(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetListing Listing with unit, address, photos, AI suggestions and versions
+// (GET /v1/orgs/{orgId}/listings/{listingId})
+func (_ Unimplemented) GetListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateListing Save the working copy (withdraws a pending review)
+// (PUT /v1/orgs/{orgId}/listings/{listingId})
+func (_ Unimplemented) UpdateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DuplicateListing Copy the listing onto a new unit in the same building (without photos)
+// (POST /v1/orgs/{orgId}/listings/{listingId}/duplicate)
+func (_ Unimplemented) DuplicateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateMediaUpload Reserve a photo and get a presigned upload URL (PUT the file there, then complete)
+// (POST /v1/orgs/{orgId}/listings/{listingId}/media)
+func (_ Unimplemented) CreateMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ChangeListingStatus Pause, resume, mark as rented or archive
+// (POST /v1/orgs/{orgId}/listings/{listingId}/status)
+func (_ Unimplemented) ChangeListingStatus(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SubmitListing Send the working copy to moderation as a new version
+// (POST /v1/orgs/{orgId}/listings/{listingId}/submit)
+func (_ Unimplemented) SubmitListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RequestSuggestion Ask the AI for attribute or text suggestions (generated in the background)
+// (POST /v1/orgs/{orgId}/listings/{listingId}/suggestions)
+func (_ Unimplemented) RequestSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteMedia Remove a photo
+// (DELETE /v1/orgs/{orgId}/media/{mediaId})
+func (_ Unimplemented) DeleteMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateMedia Change order and caption
+// (PATCH /v1/orgs/{orgId}/media/{mediaId})
+func (_ Unimplemented) UpdateMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CompleteMediaUpload Start processing (EXIF strip, malware scan, vision) after the upload
+// (POST /v1/orgs/{orgId}/media/{mediaId}/complete)
+func (_ Unimplemented) CompleteMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListOrgMembers Members of an organization
 // (GET /v1/orgs/{orgId}/members)
 func (_ Unimplemented) ListOrgMembers(w http.ResponseWriter, r *http.Request, orgId OrgId) {
@@ -1400,6 +2324,12 @@ func (_ Unimplemented) RemoveOrgMember(w http.ResponseWriter, r *http.Request, o
 // UpdateOrgMember Change a member's role (owner, admin)
 // (PATCH /v1/orgs/{orgId}/members/{userId})
 func (_ Unimplemented) UpdateOrgMember(w http.ResponseWriter, r *http.Request, orgId OrgId, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DecideSuggestion Accept (all or selected attributes) or reject an AI suggestion
+// (POST /v1/orgs/{orgId}/suggestions/{suggestionId}/decision)
+func (_ Unimplemented) DecideSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, suggestionId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1423,6 +2353,66 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SearchAddresses operation middleware
+func (siw *ServerInterfaceWrapper) SearchAddresses(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchAddressesParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchAddresses(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAttributeSchema operation middleware
+func (siw *ServerInterfaceWrapper) GetAttributeSchema(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAttributeSchema(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1714,6 +2704,131 @@ func (siw *ServerInterfaceWrapper) BackofficeListAudit(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.BackofficeListAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BackofficeListFilterProposals operation middleware
+func (siw *ServerInterfaceWrapper) BackofficeListFilterProposals(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params BackofficeListFilterProposalsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackofficeListFilterProposals(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BackofficeDecideFilterProposal operation middleware
+func (siw *ServerInterfaceWrapper) BackofficeDecideFilterProposal(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "proposalId" -------------
+	var proposalId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "proposalId", chi.URLParam(r, "proposalId"), &proposalId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "proposalId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackofficeDecideFilterProposal(w, r, proposalId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BackofficeListReviews operation middleware
+func (siw *ServerInterfaceWrapper) BackofficeListReviews(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackofficeListReviews(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BackofficeGetReview operation middleware
+func (siw *ServerInterfaceWrapper) BackofficeGetReview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "versionId" -------------
+	var versionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "versionId", chi.URLParam(r, "versionId"), &versionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "versionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackofficeGetReview(w, r, versionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BackofficeDecideReview operation middleware
+func (siw *ServerInterfaceWrapper) BackofficeDecideReview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "versionId" -------------
+	var versionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "versionId", chi.URLParam(r, "versionId"), &versionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "versionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackofficeDecideReview(w, r, versionId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2438,6 +3553,424 @@ func (siw *ServerInterfaceWrapper) RevokeOrgInvitation(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListListings operation middleware
+func (siw *ServerInterfaceWrapper) ListListings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListListingsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListListings(w, r, orgId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateListing operation middleware
+func (siw *ServerInterfaceWrapper) CreateListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateListing(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetListing operation middleware
+func (siw *ServerInterfaceWrapper) GetListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetListing(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateListing operation middleware
+func (siw *ServerInterfaceWrapper) UpdateListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateListing(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DuplicateListing operation middleware
+func (siw *ServerInterfaceWrapper) DuplicateListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DuplicateListing(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMediaUpload operation middleware
+func (siw *ServerInterfaceWrapper) CreateMediaUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMediaUpload(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangeListingStatus operation middleware
+func (siw *ServerInterfaceWrapper) ChangeListingStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeListingStatus(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitListing operation middleware
+func (siw *ServerInterfaceWrapper) SubmitListing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitListing(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestSuggestion operation middleware
+func (siw *ServerInterfaceWrapper) RequestSuggestion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "listingId" -------------
+	var listingId ListingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "listingId", chi.URLParam(r, "listingId"), &listingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestSuggestion(w, r, orgId, listingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMedia operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMedia(w, r, orgId, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMedia operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMedia(w, r, orgId, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteMediaUpload operation middleware
+func (siw *ServerInterfaceWrapper) CompleteMediaUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteMediaUpload(w, r, orgId, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrgMembers operation middleware
 func (siw *ServerInterfaceWrapper) ListOrgMembers(w http.ResponseWriter, r *http.Request) {
 
@@ -2525,6 +4058,41 @@ func (siw *ServerInterfaceWrapper) UpdateOrgMember(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateOrgMember(w, r, orgId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DecideSuggestion operation middleware
+func (siw *ServerInterfaceWrapper) DecideSuggestion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "suggestionId" -------------
+	var suggestionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "suggestionId", chi.URLParam(r, "suggestionId"), &suggestionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "suggestionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideSuggestion(w, r, orgId, suggestionId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2820,11 +4388,73 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/backoffice/audit", wrapper.BackofficeListAudit)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/attributes", wrapper.GetAttributeSchema)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/addresses/search", wrapper.SearchAddresses)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/listings", wrapper.ListListings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings", wrapper.CreateListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}", wrapper.GetListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}", wrapper.UpdateListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/submit", wrapper.SubmitListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/status", wrapper.ChangeListingStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/duplicate", wrapper.DuplicateListing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/media", wrapper.CreateMediaUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/media/{mediaId}/complete", wrapper.CompleteMediaUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/orgs/{orgId}/media/{mediaId}", wrapper.DeleteMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v1/orgs/{orgId}/media/{mediaId}", wrapper.UpdateMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/suggestions", wrapper.RequestSuggestion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/suggestions/{suggestionId}/decision", wrapper.DecideSuggestion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/backoffice/reviews", wrapper.BackofficeListReviews)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/backoffice/reviews/{versionId}", wrapper.BackofficeGetReview)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/backoffice/reviews/{versionId}/decision", wrapper.BackofficeDecideReview)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/backoffice/filter-proposals", wrapper.BackofficeListFilterProposals)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/backoffice/filter-proposals/{proposalId}/decision", wrapper.BackofficeDecideFilterProposal)
+	})
 
 	return r
 }
 
 type AuthResultJSONResponse AuthResult
+
+type ListingJSONResponse Listing
 
 type MeJSONResponse Me
 
@@ -2863,6 +4493,66 @@ func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAddressesRequestObject struct {
+	Params SearchAddressesParams
+}
+
+type SearchAddressesResponseObject interface {
+	VisitSearchAddressesResponse(w http.ResponseWriter) error
+}
+
+type SearchAddresses200JSONResponse []AddressSuggestion
+
+func (response SearchAddresses200JSONResponse) VisitSearchAddressesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAddressesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SearchAddressesdefaultApplicationProblemPlusJSONResponse) VisitSearchAddressesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAttributeSchemaRequestObject struct {
+}
+
+type GetAttributeSchemaResponseObject interface {
+	VisitGetAttributeSchemaResponse(w http.ResponseWriter) error
+}
+
+type GetAttributeSchema200JSONResponse AttributeSchema
+
+func (response GetAttributeSchema200JSONResponse) VisitGetAttributeSchemaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3348,6 +5038,190 @@ type BackofficeListAuditdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response BackofficeListAuditdefaultApplicationProblemPlusJSONResponse) VisitBackofficeListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeListFilterProposalsRequestObject struct {
+	Params BackofficeListFilterProposalsParams
+}
+
+type BackofficeListFilterProposalsResponseObject interface {
+	VisitBackofficeListFilterProposalsResponse(w http.ResponseWriter) error
+}
+
+type BackofficeListFilterProposals200JSONResponse []FilterProposal
+
+func (response BackofficeListFilterProposals200JSONResponse) VisitBackofficeListFilterProposalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeListFilterProposalsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response BackofficeListFilterProposalsdefaultApplicationProblemPlusJSONResponse) VisitBackofficeListFilterProposalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeDecideFilterProposalRequestObject struct {
+	ProposalId openapi_types.UUID `json:"proposalId"`
+	Body       *BackofficeDecideFilterProposalJSONRequestBody
+}
+
+type BackofficeDecideFilterProposalResponseObject interface {
+	VisitBackofficeDecideFilterProposalResponse(w http.ResponseWriter) error
+}
+
+type BackofficeDecideFilterProposal204Response struct {
+}
+
+func (response BackofficeDecideFilterProposal204Response) VisitBackofficeDecideFilterProposalResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type BackofficeDecideFilterProposaldefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response BackofficeDecideFilterProposaldefaultApplicationProblemPlusJSONResponse) VisitBackofficeDecideFilterProposalResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeListReviewsRequestObject struct {
+}
+
+type BackofficeListReviewsResponseObject interface {
+	VisitBackofficeListReviewsResponse(w http.ResponseWriter) error
+}
+
+type BackofficeListReviews200JSONResponse []ReviewItem
+
+func (response BackofficeListReviews200JSONResponse) VisitBackofficeListReviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeListReviewsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response BackofficeListReviewsdefaultApplicationProblemPlusJSONResponse) VisitBackofficeListReviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeGetReviewRequestObject struct {
+	VersionId openapi_types.UUID `json:"versionId"`
+}
+
+type BackofficeGetReviewResponseObject interface {
+	VisitBackofficeGetReviewResponse(w http.ResponseWriter) error
+}
+
+type BackofficeGetReview200JSONResponse ReviewDetail
+
+func (response BackofficeGetReview200JSONResponse) VisitBackofficeGetReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeGetReviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response BackofficeGetReviewdefaultApplicationProblemPlusJSONResponse) VisitBackofficeGetReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BackofficeDecideReviewRequestObject struct {
+	VersionId openapi_types.UUID `json:"versionId"`
+	Body      *BackofficeDecideReviewJSONRequestBody
+}
+
+type BackofficeDecideReviewResponseObject interface {
+	VisitBackofficeDecideReviewResponse(w http.ResponseWriter) error
+}
+
+type BackofficeDecideReview204Response struct {
+}
+
+func (response BackofficeDecideReview204Response) VisitBackofficeDecideReviewResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type BackofficeDecideReviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response BackofficeDecideReviewdefaultApplicationProblemPlusJSONResponse) VisitBackofficeDecideReviewResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -4627,6 +6501,485 @@ func (response RevokeOrgInvitationdefaultApplicationProblemPlusJSONResponse) Vis
 	return err
 }
 
+type ListListingsRequestObject struct {
+	OrgId  OrgId `json:"orgId"`
+	Params ListListingsParams
+}
+
+type ListListingsResponseObject interface {
+	VisitListListingsResponse(w http.ResponseWriter) error
+}
+
+type ListListings200JSONResponse []ListingSummary
+
+func (response ListListings200JSONResponse) VisitListListingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListListingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListListingsdefaultApplicationProblemPlusJSONResponse) VisitListListingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateListingRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *CreateListingJSONRequestBody
+}
+
+type CreateListingResponseObject interface {
+	VisitCreateListingResponse(w http.ResponseWriter) error
+}
+
+type CreateListing201JSONResponse struct{ ListingJSONResponse }
+
+func (response CreateListing201JSONResponse) VisitCreateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateListingdefaultApplicationProblemPlusJSONResponse) VisitCreateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetListingRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+}
+
+type GetListingResponseObject interface {
+	VisitGetListingResponse(w http.ResponseWriter) error
+}
+
+type GetListing200JSONResponse struct{ ListingJSONResponse }
+
+func (response GetListing200JSONResponse) VisitGetListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetListingdefaultApplicationProblemPlusJSONResponse) VisitGetListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateListingRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+	Body      *UpdateListingJSONRequestBody
+}
+
+type UpdateListingResponseObject interface {
+	VisitUpdateListingResponse(w http.ResponseWriter) error
+}
+
+type UpdateListing200JSONResponse struct{ ListingJSONResponse }
+
+func (response UpdateListing200JSONResponse) VisitUpdateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateListingdefaultApplicationProblemPlusJSONResponse) VisitUpdateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DuplicateListingRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+}
+
+type DuplicateListingResponseObject interface {
+	VisitDuplicateListingResponse(w http.ResponseWriter) error
+}
+
+type DuplicateListing201JSONResponse struct{ ListingJSONResponse }
+
+func (response DuplicateListing201JSONResponse) VisitDuplicateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DuplicateListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DuplicateListingdefaultApplicationProblemPlusJSONResponse) VisitDuplicateListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMediaUploadRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+	Body      *CreateMediaUploadJSONRequestBody
+}
+
+type CreateMediaUploadResponseObject interface {
+	VisitCreateMediaUploadResponse(w http.ResponseWriter) error
+}
+
+type CreateMediaUpload201JSONResponse MediaUpload
+
+func (response CreateMediaUpload201JSONResponse) VisitCreateMediaUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMediaUploaddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateMediaUploaddefaultApplicationProblemPlusJSONResponse) VisitCreateMediaUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeListingStatusRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+	Body      *ChangeListingStatusJSONRequestBody
+}
+
+type ChangeListingStatusResponseObject interface {
+	VisitChangeListingStatusResponse(w http.ResponseWriter) error
+}
+
+type ChangeListingStatus200JSONResponse struct{ ListingJSONResponse }
+
+func (response ChangeListingStatus200JSONResponse) VisitChangeListingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeListingStatusdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ChangeListingStatusdefaultApplicationProblemPlusJSONResponse) VisitChangeListingStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitListingRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+}
+
+type SubmitListingResponseObject interface {
+	VisitSubmitListingResponse(w http.ResponseWriter) error
+}
+
+type SubmitListing200JSONResponse struct{ ListingJSONResponse }
+
+func (response SubmitListing200JSONResponse) VisitSubmitListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitListingdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SubmitListingdefaultApplicationProblemPlusJSONResponse) VisitSubmitListingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestSuggestionRequestObject struct {
+	OrgId     OrgId     `json:"orgId"`
+	ListingId ListingId `json:"listingId"`
+	Body      *RequestSuggestionJSONRequestBody
+}
+
+type RequestSuggestionResponseObject interface {
+	VisitRequestSuggestionResponse(w http.ResponseWriter) error
+}
+
+type RequestSuggestion202JSONResponse Suggestion
+
+func (response RequestSuggestion202JSONResponse) VisitRequestSuggestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestSuggestiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RequestSuggestiondefaultApplicationProblemPlusJSONResponse) VisitRequestSuggestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMediaRequestObject struct {
+	OrgId   OrgId   `json:"orgId"`
+	MediaId MediaId `json:"mediaId"`
+}
+
+type DeleteMediaResponseObject interface {
+	VisitDeleteMediaResponse(w http.ResponseWriter) error
+}
+
+type DeleteMedia204Response struct {
+}
+
+func (response DeleteMedia204Response) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteMediadefaultApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaRequestObject struct {
+	OrgId   OrgId   `json:"orgId"`
+	MediaId MediaId `json:"mediaId"`
+	Body    *UpdateMediaJSONRequestBody
+}
+
+type UpdateMediaResponseObject interface {
+	VisitUpdateMediaResponse(w http.ResponseWriter) error
+}
+
+type UpdateMedia200JSONResponse Media
+
+func (response UpdateMedia200JSONResponse) VisitUpdateMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateMediadefaultApplicationProblemPlusJSONResponse) VisitUpdateMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteMediaUploadRequestObject struct {
+	OrgId   OrgId   `json:"orgId"`
+	MediaId MediaId `json:"mediaId"`
+}
+
+type CompleteMediaUploadResponseObject interface {
+	VisitCompleteMediaUploadResponse(w http.ResponseWriter) error
+}
+
+type CompleteMediaUpload200JSONResponse Media
+
+func (response CompleteMediaUpload200JSONResponse) VisitCompleteMediaUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteMediaUploaddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CompleteMediaUploaddefaultApplicationProblemPlusJSONResponse) VisitCompleteMediaUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListOrgMembersRequestObject struct {
 	OrgId OrgId `json:"orgId"`
 }
@@ -4735,6 +7088,47 @@ func (response UpdateOrgMemberdefaultApplicationProblemPlusJSONResponse) VisitUp
 	return err
 }
 
+type DecideSuggestionRequestObject struct {
+	OrgId        OrgId              `json:"orgId"`
+	SuggestionId openapi_types.UUID `json:"suggestionId"`
+	Body         *DecideSuggestionJSONRequestBody
+}
+
+type DecideSuggestionResponseObject interface {
+	VisitDecideSuggestionResponse(w http.ResponseWriter) error
+}
+
+type DecideSuggestion200JSONResponse Suggestion
+
+func (response DecideSuggestion200JSONResponse) VisitDecideSuggestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideSuggestiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DecideSuggestiondefaultApplicationProblemPlusJSONResponse) VisitDecideSuggestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetVersionRequestObject struct {
 }
 
@@ -4778,6 +7172,12 @@ type StrictServerInterface interface {
 	// GetHealth Liveness and dependency health
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// SearchAddresses Autocomplete Czech addresses (RÚIAN)
+	// (GET /v1/addresses/search)
+	SearchAddresses(ctx context.Context, request SearchAddressesRequestObject) (SearchAddressesResponseObject, error)
+	// GetAttributeSchema Listing attribute schema (catalog plus approved options)
+	// (GET /v1/attributes)
+	GetAttributeSchema(ctx context.Context, request GetAttributeSchemaRequestObject) (GetAttributeSchemaResponseObject, error)
 	// ResendEmailVerification Send the verification e-mail again
 	// (POST /v1/auth/email/resend)
 	ResendEmailVerification(ctx context.Context, request ResendEmailVerificationRequestObject) (ResendEmailVerificationResponseObject, error)
@@ -4820,6 +7220,21 @@ type StrictServerInterface interface {
 	// BackofficeListAudit Platform-wide audit log (staff)
 	// (GET /v1/backoffice/audit)
 	BackofficeListAudit(ctx context.Context, request BackofficeListAuditRequestObject) (BackofficeListAuditResponseObject, error)
+	// BackofficeListFilterProposals New attribute options proposed by AI ingest (staff)
+	// (GET /v1/backoffice/filter-proposals)
+	BackofficeListFilterProposals(ctx context.Context, request BackofficeListFilterProposalsRequestObject) (BackofficeListFilterProposalsResponseObject, error)
+	// BackofficeDecideFilterProposal Add the option to the schema or reject it (staff)
+	// (POST /v1/backoffice/filter-proposals/{proposalId}/decision)
+	BackofficeDecideFilterProposal(ctx context.Context, request BackofficeDecideFilterProposalRequestObject) (BackofficeDecideFilterProposalResponseObject, error)
+	// BackofficeListReviews Moderation queue of submitted listing versions (staff)
+	// (GET /v1/backoffice/reviews)
+	BackofficeListReviews(ctx context.Context, request BackofficeListReviewsRequestObject) (BackofficeListReviewsResponseObject, error)
+	// BackofficeGetReview One submitted version with its snapshot (staff)
+	// (GET /v1/backoffice/reviews/{versionId})
+	BackofficeGetReview(ctx context.Context, request BackofficeGetReviewRequestObject) (BackofficeGetReviewResponseObject, error)
+	// BackofficeDecideReview Approve (publish) or reject a version (staff)
+	// (POST /v1/backoffice/reviews/{versionId}/decision)
+	BackofficeDecideReview(ctx context.Context, request BackofficeDecideReviewRequestObject) (BackofficeDecideReviewResponseObject, error)
 	// BackofficeListUsers Search users (staff)
 	// (GET /v1/backoffice/users)
 	BackofficeListUsers(ctx context.Context, request BackofficeListUsersRequestObject) (BackofficeListUsersResponseObject, error)
@@ -4922,6 +7337,42 @@ type StrictServerInterface interface {
 	// RevokeOrgInvitation Revoke an open invitation
 	// (DELETE /v1/orgs/{orgId}/invitations/{invitationId})
 	RevokeOrgInvitation(ctx context.Context, request RevokeOrgInvitationRequestObject) (RevokeOrgInvitationResponseObject, error)
+	// ListListings Listings of an organization
+	// (GET /v1/orgs/{orgId}/listings)
+	ListListings(ctx context.Context, request ListListingsRequestObject) (ListListingsResponseObject, error)
+	// CreateListing Wizard step 1 – address and unit; creates a draft listing
+	// (POST /v1/orgs/{orgId}/listings)
+	CreateListing(ctx context.Context, request CreateListingRequestObject) (CreateListingResponseObject, error)
+	// GetListing Listing with unit, address, photos, AI suggestions and versions
+	// (GET /v1/orgs/{orgId}/listings/{listingId})
+	GetListing(ctx context.Context, request GetListingRequestObject) (GetListingResponseObject, error)
+	// UpdateListing Save the working copy (withdraws a pending review)
+	// (PUT /v1/orgs/{orgId}/listings/{listingId})
+	UpdateListing(ctx context.Context, request UpdateListingRequestObject) (UpdateListingResponseObject, error)
+	// DuplicateListing Copy the listing onto a new unit in the same building (without photos)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/duplicate)
+	DuplicateListing(ctx context.Context, request DuplicateListingRequestObject) (DuplicateListingResponseObject, error)
+	// CreateMediaUpload Reserve a photo and get a presigned upload URL (PUT the file there, then complete)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/media)
+	CreateMediaUpload(ctx context.Context, request CreateMediaUploadRequestObject) (CreateMediaUploadResponseObject, error)
+	// ChangeListingStatus Pause, resume, mark as rented or archive
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/status)
+	ChangeListingStatus(ctx context.Context, request ChangeListingStatusRequestObject) (ChangeListingStatusResponseObject, error)
+	// SubmitListing Send the working copy to moderation as a new version
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/submit)
+	SubmitListing(ctx context.Context, request SubmitListingRequestObject) (SubmitListingResponseObject, error)
+	// RequestSuggestion Ask the AI for attribute or text suggestions (generated in the background)
+	// (POST /v1/orgs/{orgId}/listings/{listingId}/suggestions)
+	RequestSuggestion(ctx context.Context, request RequestSuggestionRequestObject) (RequestSuggestionResponseObject, error)
+	// DeleteMedia Remove a photo
+	// (DELETE /v1/orgs/{orgId}/media/{mediaId})
+	DeleteMedia(ctx context.Context, request DeleteMediaRequestObject) (DeleteMediaResponseObject, error)
+	// UpdateMedia Change order and caption
+	// (PATCH /v1/orgs/{orgId}/media/{mediaId})
+	UpdateMedia(ctx context.Context, request UpdateMediaRequestObject) (UpdateMediaResponseObject, error)
+	// CompleteMediaUpload Start processing (EXIF strip, malware scan, vision) after the upload
+	// (POST /v1/orgs/{orgId}/media/{mediaId}/complete)
+	CompleteMediaUpload(ctx context.Context, request CompleteMediaUploadRequestObject) (CompleteMediaUploadResponseObject, error)
 	// ListOrgMembers Members of an organization
 	// (GET /v1/orgs/{orgId}/members)
 	ListOrgMembers(ctx context.Context, request ListOrgMembersRequestObject) (ListOrgMembersResponseObject, error)
@@ -4931,6 +7382,9 @@ type StrictServerInterface interface {
 	// UpdateOrgMember Change a member's role (owner, admin)
 	// (PATCH /v1/orgs/{orgId}/members/{userId})
 	UpdateOrgMember(ctx context.Context, request UpdateOrgMemberRequestObject) (UpdateOrgMemberResponseObject, error)
+	// DecideSuggestion Accept (all or selected attributes) or reject an AI suggestion
+	// (POST /v1/orgs/{orgId}/suggestions/{suggestionId}/decision)
+	DecideSuggestion(ctx context.Context, request DecideSuggestionRequestObject) (DecideSuggestionResponseObject, error)
 	// GetVersion Build information
 	// (GET /v1/version)
 	GetVersion(ctx context.Context, request GetVersionRequestObject) (GetVersionResponseObject, error)
@@ -4992,6 +7446,56 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SearchAddresses operation middleware
+func (sh *strictHandler) SearchAddresses(w http.ResponseWriter, r *http.Request, params SearchAddressesParams) {
+	var request SearchAddressesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchAddresses(ctx, request.(SearchAddressesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchAddresses")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SearchAddressesResponseObject); ok {
+		if err := validResponse.VisitSearchAddressesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAttributeSchema operation middleware
+func (sh *strictHandler) GetAttributeSchema(w http.ResponseWriter, r *http.Request) {
+	var request GetAttributeSchemaRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAttributeSchema(ctx, request.(GetAttributeSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAttributeSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAttributeSchemaResponseObject); ok {
+		if err := validResponse.VisitGetAttributeSchemaResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5404,6 +7908,148 @@ func (sh *strictHandler) BackofficeListAudit(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(BackofficeListAuditResponseObject); ok {
 		if err := validResponse.VisitBackofficeListAuditResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BackofficeListFilterProposals operation middleware
+func (sh *strictHandler) BackofficeListFilterProposals(w http.ResponseWriter, r *http.Request, params BackofficeListFilterProposalsParams) {
+	var request BackofficeListFilterProposalsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BackofficeListFilterProposals(ctx, request.(BackofficeListFilterProposalsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BackofficeListFilterProposals")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BackofficeListFilterProposalsResponseObject); ok {
+		if err := validResponse.VisitBackofficeListFilterProposalsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BackofficeDecideFilterProposal operation middleware
+func (sh *strictHandler) BackofficeDecideFilterProposal(w http.ResponseWriter, r *http.Request, proposalId openapi_types.UUID) {
+	var request BackofficeDecideFilterProposalRequestObject
+
+	request.ProposalId = proposalId
+
+	var body BackofficeDecideFilterProposalJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BackofficeDecideFilterProposal(ctx, request.(BackofficeDecideFilterProposalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BackofficeDecideFilterProposal")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BackofficeDecideFilterProposalResponseObject); ok {
+		if err := validResponse.VisitBackofficeDecideFilterProposalResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BackofficeListReviews operation middleware
+func (sh *strictHandler) BackofficeListReviews(w http.ResponseWriter, r *http.Request) {
+	var request BackofficeListReviewsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BackofficeListReviews(ctx, request.(BackofficeListReviewsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BackofficeListReviews")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BackofficeListReviewsResponseObject); ok {
+		if err := validResponse.VisitBackofficeListReviewsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BackofficeGetReview operation middleware
+func (sh *strictHandler) BackofficeGetReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID) {
+	var request BackofficeGetReviewRequestObject
+
+	request.VersionId = versionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BackofficeGetReview(ctx, request.(BackofficeGetReviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BackofficeGetReview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BackofficeGetReviewResponseObject); ok {
+		if err := validResponse.VisitBackofficeGetReviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BackofficeDecideReview operation middleware
+func (sh *strictHandler) BackofficeDecideReview(w http.ResponseWriter, r *http.Request, versionId openapi_types.UUID) {
+	var request BackofficeDecideReviewRequestObject
+
+	request.VersionId = versionId
+
+	var body BackofficeDecideReviewJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BackofficeDecideReview(ctx, request.(BackofficeDecideReviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BackofficeDecideReview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BackofficeDecideReviewResponseObject); ok {
+		if err := validResponse.VisitBackofficeDecideReviewResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -6348,6 +8994,371 @@ func (sh *strictHandler) RevokeOrgInvitation(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// ListListings operation middleware
+func (sh *strictHandler) ListListings(w http.ResponseWriter, r *http.Request, orgId OrgId, params ListListingsParams) {
+	var request ListListingsRequestObject
+
+	request.OrgId = orgId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListListings(ctx, request.(ListListingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListListings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListListingsResponseObject); ok {
+		if err := validResponse.VisitListListingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateListing operation middleware
+func (sh *strictHandler) CreateListing(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request CreateListingRequestObject
+
+	request.OrgId = orgId
+
+	var body CreateListingJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateListing(ctx, request.(CreateListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateListingResponseObject); ok {
+		if err := validResponse.VisitCreateListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetListing operation middleware
+func (sh *strictHandler) GetListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request GetListingRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetListing(ctx, request.(GetListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetListingResponseObject); ok {
+		if err := validResponse.VisitGetListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateListing operation middleware
+func (sh *strictHandler) UpdateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request UpdateListingRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	var body UpdateListingJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateListing(ctx, request.(UpdateListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateListingResponseObject); ok {
+		if err := validResponse.VisitUpdateListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DuplicateListing operation middleware
+func (sh *strictHandler) DuplicateListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request DuplicateListingRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DuplicateListing(ctx, request.(DuplicateListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DuplicateListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DuplicateListingResponseObject); ok {
+		if err := validResponse.VisitDuplicateListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateMediaUpload operation middleware
+func (sh *strictHandler) CreateMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request CreateMediaUploadRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	var body CreateMediaUploadJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateMediaUpload(ctx, request.(CreateMediaUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateMediaUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateMediaUploadResponseObject); ok {
+		if err := validResponse.VisitCreateMediaUploadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ChangeListingStatus operation middleware
+func (sh *strictHandler) ChangeListingStatus(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request ChangeListingStatusRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	var body ChangeListingStatusJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangeListingStatus(ctx, request.(ChangeListingStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangeListingStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChangeListingStatusResponseObject); ok {
+		if err := validResponse.VisitChangeListingStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SubmitListing operation middleware
+func (sh *strictHandler) SubmitListing(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request SubmitListingRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitListing(ctx, request.(SubmitListingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitListing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitListingResponseObject); ok {
+		if err := validResponse.VisitSubmitListingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RequestSuggestion operation middleware
+func (sh *strictHandler) RequestSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, listingId ListingId) {
+	var request RequestSuggestionRequestObject
+
+	request.OrgId = orgId
+	request.ListingId = listingId
+
+	var body RequestSuggestionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestSuggestion(ctx, request.(RequestSuggestionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestSuggestion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RequestSuggestionResponseObject); ok {
+		if err := validResponse.VisitRequestSuggestionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMedia operation middleware
+func (sh *strictHandler) DeleteMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	var request DeleteMediaRequestObject
+
+	request.OrgId = orgId
+	request.MediaId = mediaId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMedia(ctx, request.(DeleteMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMediaResponseObject); ok {
+		if err := validResponse.VisitDeleteMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMedia operation middleware
+func (sh *strictHandler) UpdateMedia(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	var request UpdateMediaRequestObject
+
+	request.OrgId = orgId
+	request.MediaId = mediaId
+
+	var body UpdateMediaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMedia(ctx, request.(UpdateMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMediaResponseObject); ok {
+		if err := validResponse.VisitUpdateMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CompleteMediaUpload operation middleware
+func (sh *strictHandler) CompleteMediaUpload(w http.ResponseWriter, r *http.Request, orgId OrgId, mediaId MediaId) {
+	var request CompleteMediaUploadRequestObject
+
+	request.OrgId = orgId
+	request.MediaId = mediaId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteMediaUpload(ctx, request.(CompleteMediaUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteMediaUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompleteMediaUploadResponseObject); ok {
+		if err := validResponse.VisitCompleteMediaUploadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListOrgMembers operation middleware
 func (sh *strictHandler) ListOrgMembers(w http.ResponseWriter, r *http.Request, orgId OrgId) {
 	var request ListOrgMembersRequestObject
@@ -6435,6 +9446,40 @@ func (sh *strictHandler) UpdateOrgMember(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// DecideSuggestion operation middleware
+func (sh *strictHandler) DecideSuggestion(w http.ResponseWriter, r *http.Request, orgId OrgId, suggestionId openapi_types.UUID) {
+	var request DecideSuggestionRequestObject
+
+	request.OrgId = orgId
+	request.SuggestionId = suggestionId
+
+	var body DecideSuggestionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DecideSuggestion(ctx, request.(DecideSuggestionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DecideSuggestion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DecideSuggestionResponseObject); ok {
+		if err := validResponse.VisitDecideSuggestionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetVersion operation middleware
 func (sh *strictHandler) GetVersion(w http.ResponseWriter, r *http.Request) {
 	var request GetVersionRequestObject
@@ -6464,103 +9509,154 @@ func (sh *strictHandler) GetVersion(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"+38FAAD//w==",
+	"7H3rcts4lvCroPRN1efUyJadTvri/uU4l/F89tif7fRuTTqrhkhIQpsE2AAoW+1K1f7aB9j9tfsG+xxT",
+	"+yLzJFu4kSAJ3iTKSarmV6yQxOWcg4NzP4+jgMYJJYgIPjp+HCWQwRgJxNSvV2hOGZJ/hYgHDCcCUzI6",
+	"Hp2mjFP2I2BIpIwALFDMwT0WSwAJwCGI6D1iQCwhAWKJOaAEHYzGIyy//S1FbD0ajwiM0eh4NNNTjEc8",
+	"WKIYyrnmlMVQjI5HaYrD0Xgk1ol8kwuGyWL06dN4dEZWWEC5mFt6h4j8SI2dQLHMhxbq2XjE0G8pZigc",
+	"HQuWInemGD6cI7IQy9Hx0fPvx6MYE/v7+aFv4nMcY5FNV9pKpB6644doDtNIjI5fHo7lZDhOYzn0oZpK",
+	"/zrK5sFEoAViZiIuMFmchTV7i7LnTftrh+QFCjGsnSU2T7eb45LV74Oy7fdwxegKh4jVTJHYx02zICJx",
+	"8WG0oHQRSXKESRKh0cfqfJ/kMDyhhCN1Rk5SsbxGXKFZniYiEFF/yhFwoKh08iunikrzCf/A0Hx0PPo/",
+	"k/z8TfRTPnGGVPMVD98N4hxTAgKGoEDhGFAGIOAooCQEcxgIygDmINtrTk2DLdCO51ld9kjS1mATXiDf",
+	"XKcpY4gIkHJ5asajSxwGNwKy4TCRj+iZ/hqFmKFAALFEYMboPZdMjwKYiiVl+Hc14TRl0UgT6SxCccPK",
+	"Ev3GH/ut0I7rWd8bxqjmJuZlRa5hyBDnN+ligbh+8VEekQQxgTVFB1isp4kBY4n8x6MQy78D/8MIzlBU",
+	"80QUTnNI05k6aOZNksYzjcVIE2qHN+OU4AAnMMJi7Z00oVzAaBrQEHmfsxRDMsVhYT5MxLcvRlWuPJYf",
+	"IuTb+CeXtXzIh7UAKS21uDANG73vnN/Q2a8oEHLWkzDG5D3X/K2EKc0CpmXYQoH2BY5RlV0q/CURXE81",
+	"d/QABcUQ+3FYApSfIY9HmE+5gPO5M8aM0ghBopA2h1NE4CxCof+FhKM0pGQd49/rXlkhhufm3EwjtNI0",
+	"13RMfnK+OFcflJGm9qL3XgKSd77iRpxNj12sNOLzNRIG0kWsUraAxLAP9R9KvmplVWxxgeTJ4EucyHnM",
+	"xJAxuJa/U0NCjTdPRmtl8Kivx6W1NW7vCi5QdXPZXjptyllPdUMEPYjpLBNR2wWFArrV9N4NCMHwLBXo",
+	"NZpX1684NuJTQTtv4j3B4v9hEvr2MMeR0GipUvmC0TTxHsQ7tG5mv03LOTv6ntyiB7XXGD505bWYdHyT",
+	"Jv0IN4P3pb64PFDSv3MpTQJJ6ROSbzJIFnIh6uF4xJH8TyE3+NHDnFKCO3BwCWDzscVDzssNzsYuLeTb",
+	"biSpdxalRaIaCJ/eTegxGldlAF9ZVm9y4jRlQQFTARQwoguFLClweHGyglGK2pGiX+u0o5tMdiqdXvvC",
+	"BuQp2YGHNhV1bDCcJoXKgKU9m9HH7sq9O09DLN6sjFhZ2nRg0VuBvNIWpvU3vn7e8d4Psb7zYRhiOSOM",
+	"rpx1aI2rsnBERJ30ph91nb3ra3GCGKcE9tgYDQKpafSTsyhbdBvfJ4e4M2YwGltMGlDX0sEgN29OUE94",
+	"9aZi6WrzpQ2EvTT18SimwV3VeHXLUgTul4govc1aB6TKLH9HNIARkF+Cs/DqIN9MdjH78KVmqttRbh0o",
+	"7kcKkMLar4prvGKIS81WLZMLKFIuFyi/sHP/CFYwwiGYUwZeghgTyRsOfJTItcGgDePGrqAtakrbkdO6",
+	"IJeKraTFQIq3RgLOQPGxDe1mPB+UTpfyDr+CnN9TFl6j31J5VVTVHa3vTxPzYhVu12a+HL8wCGhKBIAR",
+	"QzBcgyXkAAI7goSXYwRUlrkK/Ai6L0zZqI7b98q7LwzihUGEEdFyoms5HN2jmRVujj+YXzGd4RqaP6Uh",
+	"qgegUYSdLX/zvGD2fNGGRTWEd/2UcO/1s4mSumCQiDrtryPXvjOgbEKXWbSVzleIcf9V6Tv0aoL8o3zV",
+	"rSqgmfaMJKkHYI2b325X9Yg/akN87W4bNmip2VKvQCyWwkzC8AoGa3X42B1SBkMfMb+m9ySiMDzH5K4K",
+	"J/SQYIZ4L8JKWVQkHoZb7yv5zdidzbfjN1aGyoa2tgSXv7x84VnTW4yiUBvrOmsGDEHehVC1DmDe9q37",
+	"rVJmpKBGOYwaJOZp3VI2Od/oAcZJhKbGjTGwjNdbbzHiFgn0nn2Wv/JdmCASyumU/MHoCmkvhgSr9zLs",
+	"rOWoLRWhPi6pPsUFZ6trZTvvwoQ13A0SI30RuZEFMrN7bYrguxJfQQ8JZUpSZpCnzH8zSsSHadRzsU2Y",
+	"TxgNpNCkfoSUyAHmEGuDYABJgKKojS4aLpYMrYWVt2L5TwhGktlUELxEwR2vV9Caj4se9VSO4SgE+axV",
+	"ONE7CRW0YDDsIR6O7Trrt6YXUb0OLAf1+R4QCdZTrfV0MvR7NzPPjMPa6ruNyJuxnyqeeNk1fXjolUsR",
+	"6fRiWYDjSpz0LypTjutlyPzmKbklBZWCNzZit1QfQUQXJQn7pfF9Z7/blttwdeVRAMMInfVmkE0kjY6s",
+	"jNEItZ29a/lOo79CjVJYZyubyKFXI4Zm4GhamhZ75BmTenPrTt5zxM71m87eM/0yjLGULOECKcuu0d2g",
+	"+hFDeUCJ5KryQsToHrH2E1gAUDMYrhiSozYAYhi6kBMiVu9/o2xR/7A7uXi5WKICYmAQoESYm2lF79Rf",
+	"ei8dmFq2vpzsDJALWytRYwMr/HPKMA9x4D/JUDuspxa6Pe2Ltb5fI0D5ZVqjfk9zqva8klCOxTSGD9OY",
+	"ErGsER1xaOyYiWPYqtoYDMLrrubKB5WNEipwgKYJYpiGjStiaYR4b0ByvCBQpAw1bcRnLDCbcyBega8X",
+	"mjVb8q7EB+ZxmXTszn006ETIeMmvY0SMia5QpvOCq6EXqOEK4kiKGNM5o3GFtQwlh7ecAI0QGEsW3FFu",
+	"8p+JopzgnnYQwEQZMKXIYD6WEoT6NloDJmF8UDOVM2h3Ta+rBkmNsz9hKMDWepKrGzAQVvN7wLHEidf+",
+	"jEIMO1vcVSiez9geYzIViMUOSF1cfPPcC6DO/oex1Wim+QXoicrQZNvZHZOkswjzZU+SzL9yjFYdNqvM",
+	"wr1INb8cOxzrG/2y/CyLm+ruSnFirXy+bSzar3SXhK0Hu8O638tX5SdJ2Js7pAJHWLKpfnA1eOsOHbPU",
+	"n/R3Z2ROW52i2kWm6dtRkzUki6yhcOs4LNl7xCsnwQC7SP3ZvTKyJ7xIFg4Mau41h1kXcNNwMZ3k11A1",
+	"WM8v3zRG8T1toF5zHF4Ju9bGFfQPlTPAOlXwrcJqHlFtIahwlCw2+6gQm73/0kfiapgpZAj6t+8OdlgT",
+	"6+1AEa6pVr8Kjigfc4SKzQ07vRk0X0XJoUZpzAEl0Rr8/V//A+jXAJ1rJV+SV4yIAIKacOSKQ61+H/Jo",
+	"mdukcU5IAHrQiHVmhDrslsMYAXMe5dzt+na/kE+1yC4+FzfIS32UnbBCkkGrecaJHc3nbqD1m4qSFzI4",
+	"F1q10zwsu1Tl3zDlRvEzrirIgiVe1dis7SRpHEO2rlfO6tlJQFeITY3bpZ8IOqT08qXLFRtJAVsSZvXK",
+	"7y0m+C7myn2cL7WwgnGJegpXdfUi7nRNvjeyUVe+35+5VxjogN5oF1VNF7Rl1XWctevBsazfP1ODZ6I+",
+	"As/iQWGrLf5u10pxBx02uxsPB1Qyv3I5YyDlt4PWmu/g+WEbLkqsuCgyXGBCGZDMhYO9JYz+9t//85/o",
+	"WUEg6Ibxzfhw7V3fGGDRUcdqWnDpjPo1oDa1p+Ecu1pZTTxeu8SlWPiUUFFj0lbPB3TL+hzy49E9FsuQ",
+	"wXvidw6nsxiLvjpyH2HCx07zYJrc1+suxIsZusCk3ouvoshaA4TyWDPX79XJ0eNGwpVD5/rEE1mnQWNQ",
+	"3AVc4OAck7vaDe/aS+VdtXep6LPnZ6knU52sVBc/toS8EMy4cXidNbh3y7xC4Zl9vxSE3QUZ1zr0vjmx",
+	"bBMPZGsy2o5ysZIlJX7sqictOGRIaVVrZRTh0wjNhd/Ts/M8uRLFVRLnMv9OaVtbpNR1yUG7sIb30nGE",
+	"vUU5k6s7tRlIFXzNcYRqj+oS4cVSdNQ8ukrtUqTto8FKoEgg14YMjkeM0rh+i9W7Nk0iCn1BUCrGui0Q",
+	"TsBF8SjVOTfz1EUWtZ65qyUV9L188ZO87EMdArXRtZxdxhlyS4TgYGGcUZVZZi091ulEG1BlIw0U1IJe",
+	"4qNnUw27kSQwTFBu5ifr5B7TxGdNStW8CbwgKARX72/B++vzHwFHJFSmQolMMKPhWlcqkarCqUbq/u06",
+	"QQet1g1r7HcW0BoW7MCqIfKyyGPsKcMxXKDJrwlS6XPqR0Lyv+/RLPGeL5clFYKPX7YqJBz/jvxKSF68",
+	"5Ifvjl4+b69g4kKu/hypCf2AU4prBVhbiEe/Ukx6CmN9wm1SjjpnlO3iYrbz12axm2gd782bw8aLjDls",
+	"zSkpHsRv90O8wALcXt5eAfmKrlJCiYY1sCKMelZyGpQyE771cQw3dap3FZ/Coc5GGtfntlziMDiFUTSD",
+	"wd2gqpcnIefF4Q/ftp5TZkqPTFOGPfkM5YBL75WOtoad8cnpwUqLqgNjVp+lZBis1Ezpm6VRHaFxCQ3x",
+	"rUXQlgxNKRdghgAlNmYlomvtkIoieh9hLopuqC74qIS8tsGRLWpiNn91gmsyd2sChUBMrv5fPpzs//Xj",
+	"4/NPf/AxJd+dcXjYgRYXmAum4U5oecbD/R8+Pn47Pjr0T7qCwnzUbJYsp9PJtdbAxlG9GmtrdNDi8ne3",
+	"CdUtTNoQi3pZWtz2xoSO15GXbFqzLowOrzw3NE4gWXvFkfpY1irhNJBHd++Eue6qm2qNib7qaNvysdQ8",
+	"e5Wjeu7SP490PBrmorOXXKO97Uqq6fWLt1aLUp2pgyMlIzqn/uef//jhaP+Hj/r0fzc+euE7/WX1Qw1f",
+	"syyj2/UJkS3lJ2i9AMeLhNGHtVQOOJitwQoyDIkAe2KZxjPw4vAweRgDKeunMTg6fP5C/owgWyBw9MPz",
+	"w+ThmaMplJb4kx6L+0ppsIX/FOiZ/GqwXFE77evXspHGZjIvIPMqZF2kuBsBZxECMQyWmKB9qd2r/1Cp",
+	"Nlqsm8s/lEyzz3GIgGCQ8Eid6TFAB4sDgIlKVJ8GDCkTIIxUpIZJAVRaQ+WFnmljaj2eWFOVWalXy8Ge",
+	"Wq+dbC4fcYXLTiY9J0nTY6DAhAuVmdBsP2nwN9XYQB4dOMEZTcXxLILkrvUsGfXKOoQaou9t6udrx9dX",
+	"KXnE6ArVWF375lpaP1CRv7ayL7sI3xaujTJxSkPEfRKday7tY3mqCGaFgfxLkXcaqk+z1LkXU5MBPd0w",
+	"N9vmcCgPK998lE10lrIG3tPnufu0ojyn3C2kMIcRR2NfbNC2pR0qnqyK5u1F1riOFvx0tcLofsMzao9c",
+	"ibkv6T0BgipFht4TpAr6uvUzjO2YLKplMrY8r3oz/vJ38nC2itlqhDP5pvaZCNrdO1O8qj3cnBOY8CXt",
+	"m2zkKXMzcgbL1lkPkjPhv5ubQujmmHExVQFuASwVenL5dL9M+x7ZA435apv51fOvZuuG6lS9gzX6Bf+Z",
+	"tzeq4uR8W4C9E7fu5NE5cQAuvLyAyC/1Kua9lFVKslQnXQXfbZ9sqUevsUVsrC7X6semQpE/GiW/ygZM",
+	"jhLbucjzdOo6X3tSE+LHxZQjRPplbHDEphqd3fRlA7KSe7UweQ6IBoRkRdi3dwVlum43ZbbF+1Kscly8",
+	"/k7OAE1FkooDcKLqOIb2LjTHVUegw7lALL8igb6zOcDKzjdAuAcKcNg3Ub220sGG9TMKEWKqdKa5rKbK",
+	"V5sV7JnOopTVp7p1vTFiGtbEtiZwbd2K/ZJTKy7qBSKIQWF81HlsWJ76nEAmdc1oPS3kQ2cBY6aSx2Yl",
+	"O+xGWk1OOYk2CHdqfTX1oNDao/hmVSaBk5nkpFSoAcGvKVdZFByBnAIKGnE//cis07dNxSIGdZ0MaRXz",
+	"r1gkN0j4yrVSkcBULP0eAvPweDIB76/PJE9hiISSc3AAwf+/zjxenjp9AUOe4NZXkKNvngP9WBlcYkhS",
+	"GAFEBFu3+63NuOPCun1bzuLPXdZgM25G49GSplw7EmmsD9CdPlVcUAYX2r0bx4gFGEZeNqFjIC7qTYxb",
+	"KpcbxfdV4ZA/d0vZVgqnOPsyQWpDuqs3Lh5aH6NYdSJXiI1QgsDf/+3fgRpF/aXssuovG/MH9l5Bcnf2",
+	"+tkBeItUKn7WbwJAYAIDgPItHzjFC4kukZTpy0v9O4sk9EG2Ej5YAfEMM7G0oTWtOQFzGOOoAR8LvEKk",
+	"/nFjEQcb3rZ5Ao1TvMAdrAaX/ttiluJImCV40rHiGPsf6dNRlyDVnO7boXhzpuKYJYzzhVbm/ujTrTkK",
+	"UobFWtV2NltFkCF2kupYryIhXybwtxQBU/wUKEYP5ozGABKQl2U9ALdLBO7RDMAkAXcIJVK2A5jI1/4k",
+	"RHIpL82A0jusvL5YcCkJAsrwQr2kKrDeQxaq7zhiK8SUKfxHJTXqUp2VwdVmEDCM88CCQHdEkpvKob0U",
+	"ItHtPbBRfEoxT0oBVCuRiGEERuBPt7dX4OTqDNA5uEWMwWukWk/I3WKuQ6FMwVtds1uldDJ5b/1M5P++",
+	"o2YrgIt0xsfq1dt1gm7UzMbkryaVT15Dlv8fQ8BIXyjUEMfiZ7L3Swzv1JNfnh2AN9omL9/VTaRQKC/I",
+	"67en4IcXL78Dv9R1Rvnl4GeS6cDHI3dzcsOOMn08Ojw4OjjUJekRgQkeHY++OTg8+Eb7qnROymSpaor9",
+	"rgpv6ttXHiZdGCkcHY/eIWEqqpUa/zw/PBysz4yZwdvth61wgBSkQyQFWUQCjDTo9NqVzerl4TdPsJoT",
+	"ASIEuQDyRsiWs5a0lJJsNc5hHR1/+DgecZs/OjqX7BVxXtzP2uxkZINDP4z4mgsUjz7KwSaro4nJFUR8",
+	"whFkwbIWXzfq8Yl9XcspWU+zD/7WXb91bRPWJc2hd3ew7wvxdS2RdR+3JMOOfTfKXYKqsn+FOC6gCJYq",
+	"S1t/DRKKjYU126p/2mxDTjujeho6SQW11SrB6e8oWIKMOsDe9d/+6+zkL88cUrI9CHJaKmQh1p36cjOB",
+	"HR7/8lQ+PmCfNJ0tkySfK3/qI7BnIACSKOXApkcB07GiGVSpWE6UwDZRJcl1xC/lHpBdq+fKc+PKmVW4",
+	"Pff4IlQbLxIpzmAqdWfJAhvTTwaZGxsD7MY+ArSvRFy4gMoQamEgt+wFgPp4XQ8Atev1G1txTqs4r2i4",
+	"HoxOClr0p6KIJZnWpwqsX3jCNfS2twdvDRmeUjLHTIlZFsKGH6i4a4kGRxirwUozPiK60O1o/IhQKXI7",
+	"QkEh/a4TCg7bweo2/BsYG+d0IeVNBXqLDhICx1fZDGeTM1wLaPm8C9Wd08VC8pxUDHCer1XVQkU7xjxt",
+	"5fzm/cRwgYP9yFYTr2FjCrdZ5uGO6KiS2diJljys88QYL38EMLqHa57L04ICuKI4zHogSD3cbHVwOjNc",
+	"xQnxVocUSGCDPW0E5YWODHgOCEIhCp91RVpHDrxr1PXnwp+XBbx5CFR/DQCBgqXGieHBpnlol8Mzh/WQ",
+	"PzXy2MUc7urA5DkIXwHMLTwANOdALKGwNjJe7tfaDHiKw2DyaE1DnyaByUSox8ZbTDBfXuIwqKo/vr3l",
+	"r0yy9jta0Rgej75ciq8AoRqkEnE0wDAyWM0kGh0LaQWarKmQDeXvh2Ce5Uh4savyF75c5BbSK4bCrNOI",
+	"d2DEvkLKjlfAq+1szovYLKSYgPfX581otTLWZE7ZgjYg9K16fpWLZP8QOHoIHBbMQCqoQl1uHfGiPmhW",
+	"aHeNFW/WwKaanR0M6Pt+eNXuBgkAAUH3OdB1138DeyVTyMMjxXOpyUdWtOAtKDFHrN4gc465cNvD8dGT",
+	"2MHchnQdTGD56hrB6F4h2daBqXygc8swd5LLmoHHTMyxS8mlRumO+J1yycm0PQQzYJN4gJukNFb5mSzk",
+	"INCNnLS9liMSStnFo68fqA6oxdNjVrWbg1MOtO50Zo4+r0yosAAgyfhjb61cCk10PscBmqgOG7XH5VX2",
+	"oj44oS5j224Jzzp+upbqVie0f6y8RO+2I2UdML1G+W9feAdqEYZe6faVHd48V6b7rS3vre02Vd9OXyP/",
+	"lXx3LBkv4gKouM8BrChXERQSH/v3OHQ6toA9VXXF1cpzsvOSom6IvJ+YTBLekSqLrcc6emoKTZFKfhQn",
+	"zmvTNl1P414pNV3rdrEYKG2P97+ge8dHYLwAQGMPhWC2BidnQLdr3p4WlF6j/jwLP01CN8bNK3TlJPJa",
+	"RUaWQOWnkQQq36EhkXzCRq9eGyvakYpUybfaVNrT8BnCPXISau+IJgUbBmucR5SZPBCANyAHXdyvK0e4",
+	"Nm8/xRksppC0nj/NR4At7T4GNAqHZMYXNDRwAb+lKFUBGVn0fxaSbKffGBGTRzPEWfipA1LeIYOTTgcv",
+	"G3r7c7eja7aQeeRBsw2q2h6flwQ5+DOQySsP2aygQRC5AVv9PFjdhRpQyIv7AnipFjPAnik5/sxhoDCj",
+	"g95Yl1pbVy76nmv1uGPcS32cy9cuU4cxJhIYdXK1AtTgYrUOQFJ6Nt8Q0ZNH+U9nFi330eko61G/WO6c",
+	"IayeQautbo8jOQzQBQU0Ty7UlNwWaxMn8aveKHO7zKNTA0gIFcZuB5xCCGNw8fZEsxDFPIHpcHsA3pDQ",
+	"RFRcXd7cgpLPvmqPySnG6fL5pFQzPPf39Cv9klxJOUsQkEn2z5dU/is1bRRmyIeOYa4b5eGsaSWfPCqj",
+	"66emSDanUWpfj1H+qU7y2+n5r/bi9HAAZzNDG+jMrAASkEMYzNSdZnKmpBCOXXssZQveiJhJnr3lF820",
+	"P+VrwVGptHEVP39WlQSHkKR0kloBGTqmXvcZRdZyGqdcgBiKYAnitbWt1qLILQvV7G74c+HNp9BJC51Q",
+	"O2ilxRU2xswGAq8QKGze8QLoxpg5yIpA8sNu8hjQEDUynsJ+ulw1pkxX/UXTrZbdTk9AEUnNSBmcRUm1",
+	"8tciVFtwphOZ6jB0gUab3I4XaIADfmpC9+TFNy46lVTqmKLPYrHvfLexvA5VHofOBSjuzOYZ7sj5VE5j",
+	"HEroGASsenEgYXSOdcsiF2QZVUysa6+RB57al56C/ZnJunA+u67BtTczMFhiLihbgz2YJIiE+5RE62ce",
+	"+quJHAgoC+12dkODZnRdfKO793PIuX2I0VsfRAB4xyARUvexrVsAtP7oeqoOoYD76CGhzJThawryfQ0F",
+	"fKPerclSGARa78Kk6KYueffUArTVNxwkOFpritBTt09PRedSUJKQAnvvXl9dA8jEATh6qRju88Nn3aA7",
+	"eTRkrSyQ9J7Yyg11d00O7df27S4yQTbLF2u3sNtRMcceDNvnOjZpAHVSqpH7EV6hEFjAg/fX5xKxEMxV",
+	"pCIKDbbrkWlMCdoyESFtqyiF9UISoOiNebGLJVV/EQ1CyXosqTcHSxSmkdyTXgoIU4lXpQ0sGAwQ0E3i",
+	"uzNoRVO1G3u6w2/2k+1wSAZgo/DMHO5Z/+6ZqWwDG+GXE8siTNi+OYrNIoOz46cRGwogbhcd7NoGFx0u",
+	"DE81XFYyUwt6lsOjBr62CELn6G5bEKGSa/d1hWwPIvKa4OysPEVBl9ggRrsON10Cs58YL19qtHUpvtqP",
+	"GlNGBGACTv/6rCbquhhnXUJNPIcTQUUyCTGXIk49cl7rF26pSHYmkYdo2xBes8ohrgEzlG7BoZl9oFMz",
+	"VZJwljlnbC5tANbRqfXwfUO+NPAOGTbgFhj2XeNkKKzZ7FlVb0NizpR9MnHWEln5OfG3U+EdsMmzylZ+",
+	"TiYfZ7jcEVTzClveuhdZtSuVNJiKpeQgARSUAZgkQ+iXpkiJCWl3ob1HqJSflM00JQJH9ugUsxVL0HUr",
+	"CdekySkH345zCoqTfDlJBTmNazcnZUAlDUhmbybJcweoWCLmyx4ow9z2JGi4klVXgye4jwvdEzZNr5E8",
+	"Blgz2BB1D0rx+koKmq3BzcVNC1Q7pttemTJeXw7PfwrbtcOmdX003Wk7lzZvLm5artaMuJu0qYv1TX4G",
+	"dq9LuSV2O+hS2dqGcPcpbmuBogpSOfn9qY5xaQHl5NH8ZWJn6uwauoBABttOdqhs5IHtUB6eq5cXDlcp",
+	"QRKotvq1cFTlK22mx0u2eBpabOmi6ylAlL09BEFeFkKCzsAMRZQsgKDjPGlKmw4qruY6s5POALpki10p",
+	"hLYx2BP7A1qDAvTGB5EdTBIVMC2nCg5CHR4QwChCDMxQQGPEbcW+AvsohgTIX5NHyhZNEXfvkLCI+1yh",
+	"FeWGZAOEKLvQUxareA0YjZBUybGfsnvFpkiKDFVESqOn9ks5Ek+ITL3xcDiHbwGVOraRgz1F+WOgqv0/",
+	"63QCWjIL5SVwyRY1KYXdyOEfyXnt4lCWjkfnAJIidjfBqhOa1obbM+fVp7joiyF9bbe8u7oBmGCC3AAz",
+	"PijLaxYCCiF/OwmPzSb4LFKBi9YmNA6l7aoREeA0RlLena1tgOCWx2XymP/opFeUcbspj/QoIe5KvkI9",
+	"RDKy4oHrhg2T/9bMuc7tS5smEjfW/dOD3+ivnihP2E5qwNiBOVoYqAoOiIhoDZCONh/qYrIzeO4lbyHR",
+	"3bBPs4pdFXnUo+upBistYde8PQ7+Cf8OWQi4QAk40h09TIlNKcKnBIsfgS25B0HI4FzYFNKmYq/eIzd5",
+	"NH+1KEcuRvqa5IaDjK2Bq8xwEhBjC5ox0O3XxuDkrNAVRYLM5tUOScFdRFcDWE3uqahTj56E2vVUg5lZ",
+	"h8PpDVzpWp/3VDUcAQFN1mDPRgVKEjdlHoBO4Hi2FZFPwlRDssmZbF/JMfMkNPI5mc6phHqxP5agxncm",
+	"TxrAuic+hzECsxRHCiMKTTQV5vRtiRrVZqrBvaZ43oV86X3iDzDcFV52ULAt30b/IkdDr8BvwVCBhzyi",
+	"w9T0VQ0n5GGWlKLY8kLVG0sY4rp5d5pkoY57V+9vFbmpXhZiiRhSTSoIsKXhtyS1vKVYkyu3KBZ+4dRW",
+	"7BNT7ZlmUtZNd7SUm2I5RPdDgyxY4lWXjmi13aa/uKvlSu5Syso8jdEYxJDdAciB3jOgDJhNb0lKqg5E",
+	"g5NaPf+8V8nT3ui2Hn/hRhcUxHkVFNUuTd4teeegrVCQCXytWQFO14uv6kC3d3VsPblqiM3O7XAh027X",
+	"EY/LOXsKMAczJMknazf0I0hoFLlSyhCmWH6nRjw50+Wy89JZDEiwFrSJvbz1kZGHZjC4WzCakrD7jaTk",
+	"nMmj+qfF5PRa/b+6qkfdbDqxKoM2xI0tR7IX9tOqThcaMu2epRwwO5PQeqpNw03tLVSlcDFgjFZoyoUG",
+	"MBF92HCJhCdWLOtQQ/4p5HeXgL5eLOnCEgmjAeJcqVtv/vnsLZDcPZHiTHQPVXIJJGOwUiWSnjkdjVML",
+	"464YVf7MNu+RcXs+iedIz9UjNmSINA89UrP9c0vfUQP4C7WB6v0QkjVnyPhcF4Ne8lhelBGyVpyCJ/Ne",
+	"amx6Q/I6j9FgMBzvsJZNWyyDA/UdlDzLWu5vGtI7XOjBadZYRO34/3IdPLKJw80RoiaP+Y9u5e10/bZB",
+	"BHdf5J+zmi+xDJKnh/gTiyPNIvuA1fV0TZg9GEU6fDxShXyd9uWFenukaOtvuumcRrZ1Ho6fMkV0Z3DM",
+	"6k9WgfgqxZHUKeZ0+BYY2dCSfIuAyvtwFgcoNt/98FHStu4Yq89bcfGqLzcI0Wo0HqUsMl1tjycT9WBJ",
+	"uTj+/vD7QyWNmZkfs9OnVyDPpq1RLud0fsfI/aV4jPO7WBfFeeBU1nL+11LGp4+f/jcAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

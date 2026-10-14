@@ -75,10 +75,30 @@ Class | Method | HTTP request | Description
 *AuthApi* | [**startOidc**](doc//AuthApi.md#startoidc) | **POST** /v1/auth/oidc/{provider}/start | Begin a social login; returns the provider authorization URL
 *AuthApi* | [**verifyEmail**](doc//AuthApi.md#verifyemail) | **POST** /v1/auth/email/verify | Confirm an e-mail address with the token from the verification e-mail
 *AuthApi* | [**verifyMagicLink**](doc//AuthApi.md#verifymagiclink) | **POST** /v1/auth/magic-link/verify | Exchange a magic link token for a session
+*BackofficeApi* | [**backofficeDecideFilterProposal**](doc//BackofficeApi.md#backofficedecidefilterproposal) | **POST** /v1/backoffice/filter-proposals/{proposalId}/decision | Add the option to the schema or reject it (staff)
+*BackofficeApi* | [**backofficeDecideReview**](doc//BackofficeApi.md#backofficedecidereview) | **POST** /v1/backoffice/reviews/{versionId}/decision | Approve (publish) or reject a version (staff)
+*BackofficeApi* | [**backofficeGetReview**](doc//BackofficeApi.md#backofficegetreview) | **GET** /v1/backoffice/reviews/{versionId} | One submitted version with its snapshot (staff)
 *BackofficeApi* | [**backofficeGetUser**](doc//BackofficeApi.md#backofficegetuser) | **GET** /v1/backoffice/users/{userId} | User detail with organizations (staff)
 *BackofficeApi* | [**backofficeImpersonate**](doc//BackofficeApi.md#backofficeimpersonate) | **POST** /v1/backoffice/users/{userId}/impersonate | Start a short audited session as the user (staff)
 *BackofficeApi* | [**backofficeListAudit**](doc//BackofficeApi.md#backofficelistaudit) | **GET** /v1/backoffice/audit | Platform-wide audit log (staff)
+*BackofficeApi* | [**backofficeListFilterProposals**](doc//BackofficeApi.md#backofficelistfilterproposals) | **GET** /v1/backoffice/filter-proposals | New attribute options proposed by AI ingest (staff)
+*BackofficeApi* | [**backofficeListReviews**](doc//BackofficeApi.md#backofficelistreviews) | **GET** /v1/backoffice/reviews | Moderation queue of submitted listing versions (staff)
 *BackofficeApi* | [**backofficeListUsers**](doc//BackofficeApi.md#backofficelistusers) | **GET** /v1/backoffice/users | Search users (staff)
+*CatalogApi* | [**changeListingStatus**](doc//CatalogApi.md#changelistingstatus) | **POST** /v1/orgs/{orgId}/listings/{listingId}/status | Pause, resume, mark as rented or archive
+*CatalogApi* | [**completeMediaUpload**](doc//CatalogApi.md#completemediaupload) | **POST** /v1/orgs/{orgId}/media/{mediaId}/complete | Start processing (EXIF strip, malware scan, vision) after the upload
+*CatalogApi* | [**createListing**](doc//CatalogApi.md#createlisting) | **POST** /v1/orgs/{orgId}/listings | Wizard step 1 – address and unit; creates a draft listing
+*CatalogApi* | [**createMediaUpload**](doc//CatalogApi.md#createmediaupload) | **POST** /v1/orgs/{orgId}/listings/{listingId}/media | Reserve a photo and get a presigned upload URL (PUT the file there, then complete)
+*CatalogApi* | [**decideSuggestion**](doc//CatalogApi.md#decidesuggestion) | **POST** /v1/orgs/{orgId}/suggestions/{suggestionId}/decision | Accept (all or selected attributes) or reject an AI suggestion
+*CatalogApi* | [**deleteMedia**](doc//CatalogApi.md#deletemedia) | **DELETE** /v1/orgs/{orgId}/media/{mediaId} | Remove a photo
+*CatalogApi* | [**duplicateListing**](doc//CatalogApi.md#duplicatelisting) | **POST** /v1/orgs/{orgId}/listings/{listingId}/duplicate | Copy the listing onto a new unit in the same building (without photos)
+*CatalogApi* | [**getAttributeSchema**](doc//CatalogApi.md#getattributeschema) | **GET** /v1/attributes | Listing attribute schema (catalog plus approved options)
+*CatalogApi* | [**getListing**](doc//CatalogApi.md#getlisting) | **GET** /v1/orgs/{orgId}/listings/{listingId} | Listing with unit, address, photos, AI suggestions and versions
+*CatalogApi* | [**listListings**](doc//CatalogApi.md#listlistings) | **GET** /v1/orgs/{orgId}/listings | Listings of an organization
+*CatalogApi* | [**requestSuggestion**](doc//CatalogApi.md#requestsuggestion) | **POST** /v1/orgs/{orgId}/listings/{listingId}/suggestions | Ask the AI for attribute or text suggestions (generated in the background)
+*CatalogApi* | [**searchAddresses**](doc//CatalogApi.md#searchaddresses) | **GET** /v1/addresses/search | Autocomplete Czech addresses (RÚIAN)
+*CatalogApi* | [**submitListing**](doc//CatalogApi.md#submitlisting) | **POST** /v1/orgs/{orgId}/listings/{listingId}/submit | Send the working copy to moderation as a new version
+*CatalogApi* | [**updateListing**](doc//CatalogApi.md#updatelisting) | **PUT** /v1/orgs/{orgId}/listings/{listingId} | Save the working copy (withdraws a pending review)
+*CatalogApi* | [**updateMedia**](doc//CatalogApi.md#updatemedia) | **PATCH** /v1/orgs/{orgId}/media/{mediaId} | Change order and caption
 *JurisdictionsApi* | [**getJurisdiction**](doc//JurisdictionsApi.md#getjurisdiction) | **GET** /v1/jurisdictions/{code} | One jurisdiction
 *JurisdictionsApi* | [**listJurisdictions**](doc//JurisdictionsApi.md#listjurisdictions) | **GET** /v1/jurisdictions | Active jurisdictions and their rules
 *MeApi* | [**cancelErasure**](doc//MeApi.md#cancelerasure) | **DELETE** /v1/me/erasure | Cancel a scheduled erasure during the grace period
@@ -119,13 +139,19 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [AddressSuggestion](doc//AddressSuggestion.md)
  - [AdminUser](doc//AdminUser.md)
  - [AdminUserDetail](doc//AdminUserDetail.md)
  - [AdminUserPage](doc//AdminUserPage.md)
+ - [AttributeDef](doc//AttributeDef.md)
+ - [AttributeGroup](doc//AttributeGroup.md)
+ - [AttributeOption](doc//AttributeOption.md)
+ - [AttributeSchema](doc//AttributeSchema.md)
  - [AuditEvent](doc//AuditEvent.md)
  - [AuditPage](doc//AuditPage.md)
  - [AuthProvider](doc//AuthProvider.md)
  - [AuthResult](doc//AuthResult.md)
+ - [ChangeListingStatusRequest](doc//ChangeListingStatusRequest.md)
  - [ChangePasswordRequest](doc//ChangePasswordRequest.md)
  - [ClientKind](doc//ClientKind.md)
  - [CodeRequest](doc//CodeRequest.md)
@@ -133,17 +159,32 @@ Class | Method | HTTP request | Description
  - [ConsentInput](doc//ConsentInput.md)
  - [ConsentKind](doc//ConsentKind.md)
  - [DownloadLink](doc//DownloadLink.md)
+ - [FieldError](doc//FieldError.md)
+ - [FilterProposal](doc//FilterProposal.md)
  - [GdprRequest](doc//GdprRequest.md)
  - [Health](doc//Health.md)
  - [HealthCheck](doc//HealthCheck.md)
+ - [I18nText](doc//I18nText.md)
  - [ImpersonateRequest](doc//ImpersonateRequest.md)
  - [Invitation](doc//Invitation.md)
  - [InvitationInput](doc//InvitationInput.md)
  - [InvitationPreview](doc//InvitationPreview.md)
  - [Jurisdiction](doc//Jurisdiction.md)
+ - [Listing](doc//Listing.md)
+ - [ListingAddress](doc//ListingAddress.md)
+ - [ListingCreate](doc//ListingCreate.md)
+ - [ListingStatus](doc//ListingStatus.md)
+ - [ListingSummary](doc//ListingSummary.md)
+ - [ListingUnit](doc//ListingUnit.md)
+ - [ListingUpdate](doc//ListingUpdate.md)
+ - [ListingVersionInfo](doc//ListingVersionInfo.md)
  - [LoginRequest](doc//LoginRequest.md)
  - [MagicLinkRequest](doc//MagicLinkRequest.md)
  - [Me](doc//Me.md)
+ - [Media](doc//Media.md)
+ - [MediaUpdate](doc//MediaUpdate.md)
+ - [MediaUpload](doc//MediaUpload.md)
+ - [MediaUploadRequest](doc//MediaUploadRequest.md)
  - [Member](doc//Member.md)
  - [MfaRequest](doc//MfaRequest.md)
  - [OidcCallbackRequest](doc//OidcCallbackRequest.md)
@@ -154,15 +195,24 @@ Class | Method | HTTP request | Description
  - [Organization](doc//Organization.md)
  - [PasswordResetRequest](doc//PasswordResetRequest.md)
  - [PhoneRequest](doc//PhoneRequest.md)
+ - [PhotoVariants](doc//PhotoVariants.md)
  - [Problem](doc//Problem.md)
+ - [ProposalDecision](doc//ProposalDecision.md)
  - [RecoveryCodes](doc//RecoveryCodes.md)
  - [RegisterRequest](doc//RegisterRequest.md)
+ - [RequestSuggestionRequest](doc//RequestSuggestionRequest.md)
+ - [ReviewDecision](doc//ReviewDecision.md)
+ - [ReviewDetail](doc//ReviewDetail.md)
+ - [ReviewItem](doc//ReviewItem.md)
  - [Role](doc//Role.md)
  - [RoleInput](doc//RoleInput.md)
  - [SessionInfo](doc//SessionInfo.md)
  - [SessionToken](doc//SessionToken.md)
+ - [Suggestion](doc//Suggestion.md)
+ - [SuggestionDecision](doc//SuggestionDecision.md)
  - [TokenRequest](doc//TokenRequest.md)
  - [TotpSetup](doc//TotpSetup.md)
+ - [UnitKind](doc//UnitKind.md)
  - [UpdateMeRequest](doc//UpdateMeRequest.md)
  - [UserLocale](doc//UserLocale.md)
  - [UserRef](doc//UserRef.md)

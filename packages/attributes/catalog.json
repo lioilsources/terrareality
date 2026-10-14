@@ -1,0 +1,1962 @@
+{
+  "$schema": "./catalog.schema.json",
+  "version": 1,
+  "groups": [
+    {
+      "key": "basic",
+      "label": {
+        "cs": "Základní údaje",
+        "en": "Basics"
+      }
+    },
+    {
+      "key": "building",
+      "label": {
+        "cs": "Dům",
+        "en": "Building"
+      }
+    },
+    {
+      "key": "equipment",
+      "label": {
+        "cs": "Vybavení",
+        "en": "Equipment"
+      }
+    },
+    {
+      "key": "outdoor",
+      "label": {
+        "cs": "Venkovní prostory",
+        "en": "Outdoor"
+      }
+    },
+    {
+      "key": "parking",
+      "label": {
+        "cs": "Parkování a úložné prostory",
+        "en": "Parking and storage"
+      }
+    },
+    {
+      "key": "rules",
+      "label": {
+        "cs": "Podmínky nájmu",
+        "en": "Lease terms"
+      }
+    },
+    {
+      "key": "location",
+      "label": {
+        "cs": "Okolí",
+        "en": "Location"
+      }
+    },
+    {
+      "key": "room",
+      "label": {
+        "cs": "Spolubydlení",
+        "en": "Shared living"
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "key": "layout",
+      "type": "enum",
+      "group": "basic",
+      "label": {
+        "cs": "Dispozice",
+        "en": "Layout"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "1+kk",
+          "label": {
+            "cs": "1+kk",
+            "en": "1+kk"
+          }
+        },
+        {
+          "value": "1+1",
+          "label": {
+            "cs": "1+1",
+            "en": "1+1"
+          }
+        },
+        {
+          "value": "2+kk",
+          "label": {
+            "cs": "2+kk",
+            "en": "2+kk"
+          }
+        },
+        {
+          "value": "2+1",
+          "label": {
+            "cs": "2+1",
+            "en": "2+1"
+          }
+        },
+        {
+          "value": "3+kk",
+          "label": {
+            "cs": "3+kk",
+            "en": "3+kk"
+          }
+        },
+        {
+          "value": "3+1",
+          "label": {
+            "cs": "3+1",
+            "en": "3+1"
+          }
+        },
+        {
+          "value": "4+kk",
+          "label": {
+            "cs": "4+kk",
+            "en": "4+kk"
+          }
+        },
+        {
+          "value": "4+1",
+          "label": {
+            "cs": "4+1",
+            "en": "4+1"
+          }
+        },
+        {
+          "value": "5+kk",
+          "label": {
+            "cs": "5+kk",
+            "en": "5+kk"
+          }
+        },
+        {
+          "value": "5+1",
+          "label": {
+            "cs": "5+1",
+            "en": "5+1"
+          }
+        },
+        {
+          "value": "6+",
+          "label": {
+            "cs": "6+",
+            "en": "6+"
+          }
+        },
+        {
+          "value": "atypical",
+          "label": {
+            "cs": "atypická",
+            "en": "atypical"
+          }
+        }
+      ],
+      "applies_to": [
+        "apartment",
+        "house"
+      ],
+      "keywords": {
+        "cs": [],
+        "en": []
+      }
+    },
+    {
+      "key": "floor_area",
+      "type": "range",
+      "group": "basic",
+      "label": {
+        "cs": "Podlahová plocha",
+        "en": "Floor area"
+      },
+      "filter": true,
+      "unit": "m2",
+      "min": 5,
+      "max": 1000
+    },
+    {
+      "key": "floor",
+      "type": "int",
+      "group": "basic",
+      "label": {
+        "cs": "Podlaží",
+        "en": "Floor"
+      },
+      "filter": true,
+      "min": -2,
+      "max": 60
+    },
+    {
+      "key": "total_floors",
+      "type": "int",
+      "group": "basic",
+      "label": {
+        "cs": "Počet podlaží v domě",
+        "en": "Floors in building"
+      },
+      "filter": false,
+      "min": 1,
+      "max": 60
+    },
+    {
+      "key": "rooms_count",
+      "type": "int",
+      "group": "basic",
+      "label": {
+        "cs": "Počet pokojů",
+        "en": "Number of rooms"
+      },
+      "filter": true,
+      "min": 1,
+      "max": 20,
+      "applies_to": [
+        "apartment",
+        "house"
+      ]
+    },
+    {
+      "key": "bathrooms_count",
+      "type": "int",
+      "group": "basic",
+      "label": {
+        "cs": "Počet koupelen",
+        "en": "Number of bathrooms"
+      },
+      "filter": true,
+      "min": 0,
+      "max": 10
+    },
+    {
+      "key": "ceiling_height",
+      "type": "int",
+      "group": "basic",
+      "label": {
+        "cs": "Výška stropů",
+        "en": "Ceiling height"
+      },
+      "filter": false,
+      "unit": "cm",
+      "min": 200,
+      "max": 600
+    },
+    {
+      "key": "building_type",
+      "type": "enum",
+      "group": "building",
+      "label": {
+        "cs": "Typ stavby",
+        "en": "Building type"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "brick",
+          "label": {
+            "cs": "cihlová",
+            "en": "brick"
+          }
+        },
+        {
+          "value": "panel",
+          "label": {
+            "cs": "panelová",
+            "en": "prefab panel"
+          }
+        },
+        {
+          "value": "wood",
+          "label": {
+            "cs": "dřevostavba",
+            "en": "timber"
+          }
+        },
+        {
+          "value": "mixed",
+          "label": {
+            "cs": "smíšená",
+            "en": "mixed"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "cs": "jiná",
+            "en": "other"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "cihla",
+          "cihlový",
+          "panel",
+          "dřevostavba"
+        ],
+        "en": [
+          "brick",
+          "panel"
+        ]
+      }
+    },
+    {
+      "key": "building_condition",
+      "type": "enum",
+      "group": "building",
+      "label": {
+        "cs": "Stav objektu",
+        "en": "Building condition"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "new",
+          "label": {
+            "cs": "novostavba",
+            "en": "new build"
+          }
+        },
+        {
+          "value": "very_good",
+          "label": {
+            "cs": "velmi dobrý",
+            "en": "very good"
+          }
+        },
+        {
+          "value": "good",
+          "label": {
+            "cs": "dobrý",
+            "en": "good"
+          }
+        },
+        {
+          "value": "after_renovation",
+          "label": {
+            "cs": "po rekonstrukci",
+            "en": "renovated"
+          }
+        },
+        {
+          "value": "needs_renovation",
+          "label": {
+            "cs": "před rekonstrukcí",
+            "en": "needs renovation"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "novostavba",
+          "po rekonstrukci",
+          "rekonstrukce"
+        ],
+        "en": [
+          "new build",
+          "renovated"
+        ]
+      }
+    },
+    {
+      "key": "year_built",
+      "type": "int",
+      "group": "building",
+      "label": {
+        "cs": "Rok výstavby",
+        "en": "Year built"
+      },
+      "filter": false,
+      "min": 1500,
+      "max": 2100
+    },
+    {
+      "key": "energy_class",
+      "type": "enum",
+      "group": "building",
+      "label": {
+        "cs": "Energetická třída (PENB)",
+        "en": "Energy class (EPC)"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "A",
+          "label": {
+            "cs": "A",
+            "en": "A"
+          }
+        },
+        {
+          "value": "B",
+          "label": {
+            "cs": "B",
+            "en": "B"
+          }
+        },
+        {
+          "value": "C",
+          "label": {
+            "cs": "C",
+            "en": "C"
+          }
+        },
+        {
+          "value": "D",
+          "label": {
+            "cs": "D",
+            "en": "D"
+          }
+        },
+        {
+          "value": "E",
+          "label": {
+            "cs": "E",
+            "en": "E"
+          }
+        },
+        {
+          "value": "F",
+          "label": {
+            "cs": "F",
+            "en": "F"
+          }
+        },
+        {
+          "value": "G",
+          "label": {
+            "cs": "G",
+            "en": "G"
+          }
+        }
+      ]
+    },
+    {
+      "key": "elevator",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Výtah",
+        "en": "Elevator"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "výtah"
+        ],
+        "en": [
+          "elevator",
+          "lift"
+        ]
+      }
+    },
+    {
+      "key": "barrier_free",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Bezbariérový přístup",
+        "en": "Step-free access"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "bezbariérový"
+        ],
+        "en": [
+          "step-free",
+          "wheelchair"
+        ]
+      }
+    },
+    {
+      "key": "security_door",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Bezpečnostní dveře",
+        "en": "Security door"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "bezpečnostní dveře"
+        ],
+        "en": [
+          "security door"
+        ]
+      }
+    },
+    {
+      "key": "intercom",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Videotelefon",
+        "en": "Video intercom"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "videotelefon"
+        ],
+        "en": [
+          "intercom"
+        ]
+      }
+    },
+    {
+      "key": "reception",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Recepce / správce",
+        "en": "Reception / concierge"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "recepce",
+          "správce domu"
+        ],
+        "en": [
+          "reception",
+          "concierge"
+        ]
+      }
+    },
+    {
+      "key": "cctv",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Kamerový systém",
+        "en": "CCTV"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "kamerový"
+        ],
+        "en": [
+          "cctv"
+        ]
+      }
+    },
+    {
+      "key": "bike_storage",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Kolárna",
+        "en": "Bike storage"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "kolárna"
+        ],
+        "en": [
+          "bike storage",
+          "bicycle room"
+        ]
+      }
+    },
+    {
+      "key": "stroller_room",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Kočárkárna",
+        "en": "Stroller room"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "kočárkárna"
+        ],
+        "en": [
+          "stroller room"
+        ]
+      }
+    },
+    {
+      "key": "laundry_room",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Prádelna",
+        "en": "Laundry room"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "prádelna"
+        ],
+        "en": [
+          "laundry room"
+        ]
+      }
+    },
+    {
+      "key": "gym",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Posilovna v domě",
+        "en": "Gym in building"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "posilovna",
+          "fitness"
+        ],
+        "en": [
+          "gym"
+        ]
+      }
+    },
+    {
+      "key": "pool",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Bazén",
+        "en": "Swimming pool"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "bazén"
+        ],
+        "en": [
+          "pool"
+        ]
+      }
+    },
+    {
+      "key": "rooftop",
+      "type": "bool",
+      "group": "building",
+      "label": {
+        "cs": "Společná střešní terasa",
+        "en": "Shared rooftop"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "střešní terasa"
+        ],
+        "en": [
+          "rooftop"
+        ]
+      }
+    },
+    {
+      "key": "furnished",
+      "type": "enum",
+      "group": "equipment",
+      "label": {
+        "cs": "Vybavení",
+        "en": "Furnishing"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "no",
+          "label": {
+            "cs": "nevybaveno",
+            "en": "unfurnished"
+          }
+        },
+        {
+          "value": "partly",
+          "label": {
+            "cs": "částečně",
+            "en": "partly furnished"
+          }
+        },
+        {
+          "value": "full",
+          "label": {
+            "cs": "vybaveno",
+            "en": "furnished"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "zařízený",
+          "vybavený",
+          "nevybavený"
+        ],
+        "en": [
+          "furnished",
+          "unfurnished"
+        ]
+      }
+    },
+    {
+      "key": "kitchen_appliances",
+      "type": "set",
+      "group": "equipment",
+      "label": {
+        "cs": "Spotřebiče v kuchyni",
+        "en": "Kitchen appliances"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "fridge",
+          "label": {
+            "cs": "lednice",
+            "en": "fridge"
+          }
+        },
+        {
+          "value": "freezer",
+          "label": {
+            "cs": "mraznička",
+            "en": "freezer"
+          }
+        },
+        {
+          "value": "oven",
+          "label": {
+            "cs": "trouba",
+            "en": "oven"
+          }
+        },
+        {
+          "value": "induction",
+          "label": {
+            "cs": "indukční deska",
+            "en": "induction hob"
+          }
+        },
+        {
+          "value": "gas_hob",
+          "label": {
+            "cs": "plynová deska",
+            "en": "gas hob"
+          }
+        },
+        {
+          "value": "dishwasher",
+          "label": {
+            "cs": "myčka",
+            "en": "dishwasher"
+          }
+        },
+        {
+          "value": "microwave",
+          "label": {
+            "cs": "mikrovlnka",
+            "en": "microwave"
+          }
+        },
+        {
+          "value": "coffee_machine",
+          "label": {
+            "cs": "kávovar",
+            "en": "coffee machine"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "myčka",
+          "lednice",
+          "trouba",
+          "indukce",
+          "mikrovlnka"
+        ],
+        "en": [
+          "dishwasher",
+          "fridge",
+          "oven",
+          "induction",
+          "microwave"
+        ]
+      }
+    },
+    {
+      "key": "washing_machine",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Pračka",
+        "en": "Washing machine"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "pračka"
+        ],
+        "en": [
+          "washing machine",
+          "washer"
+        ]
+      }
+    },
+    {
+      "key": "dryer",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Sušička",
+        "en": "Dryer"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "sušička"
+        ],
+        "en": [
+          "dryer"
+        ]
+      }
+    },
+    {
+      "key": "air_conditioning",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Klimatizace",
+        "en": "Air conditioning"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "klimatizace"
+        ],
+        "en": [
+          "air conditioning",
+          "a/c"
+        ]
+      }
+    },
+    {
+      "key": "floor_heating",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Podlahové topení",
+        "en": "Underfloor heating"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "podlahové topení"
+        ],
+        "en": [
+          "underfloor heating",
+          "floor heating"
+        ]
+      }
+    },
+    {
+      "key": "fireplace",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Krb",
+        "en": "Fireplace"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "krb"
+        ],
+        "en": [
+          "fireplace"
+        ]
+      }
+    },
+    {
+      "key": "internet",
+      "type": "enum",
+      "group": "equipment",
+      "label": {
+        "cs": "Internet",
+        "en": "Internet"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "none",
+          "label": {
+            "cs": "bez připojení",
+            "en": "none"
+          }
+        },
+        {
+          "value": "available",
+          "label": {
+            "cs": "lze zřídit",
+            "en": "available"
+          }
+        },
+        {
+          "value": "included",
+          "label": {
+            "cs": "zavedený",
+            "en": "connected"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "internet",
+          "optika",
+          "wifi"
+        ],
+        "en": [
+          "internet",
+          "fibre",
+          "wifi"
+        ]
+      }
+    },
+    {
+      "key": "internet_speed",
+      "type": "int",
+      "group": "equipment",
+      "label": {
+        "cs": "Rychlost internetu",
+        "en": "Internet speed"
+      },
+      "filter": false,
+      "unit": "Mbit/s",
+      "min": 1,
+      "max": 10000
+    },
+    {
+      "key": "tv",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Televize",
+        "en": "TV"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "televize"
+        ],
+        "en": [
+          "tv"
+        ]
+      }
+    },
+    {
+      "key": "bathtub",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Vana",
+        "en": "Bathtub"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "vana"
+        ],
+        "en": [
+          "bathtub"
+        ]
+      }
+    },
+    {
+      "key": "shower",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Sprchový kout",
+        "en": "Shower"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "sprcha",
+          "sprchový kout"
+        ],
+        "en": [
+          "shower"
+        ]
+      }
+    },
+    {
+      "key": "separate_toilet",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Samostatné WC",
+        "en": "Separate toilet"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "samostatné wc",
+          "oddělené wc"
+        ],
+        "en": [
+          "separate toilet"
+        ]
+      }
+    },
+    {
+      "key": "walk_in_closet",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Šatna",
+        "en": "Walk-in closet"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "šatna"
+        ],
+        "en": [
+          "walk-in closet"
+        ]
+      }
+    },
+    {
+      "key": "blinds",
+      "type": "bool",
+      "group": "equipment",
+      "label": {
+        "cs": "Venkovní žaluzie",
+        "en": "External blinds"
+      },
+      "filter": false,
+      "keywords": {
+        "cs": [
+          "žaluzie",
+          "rolety"
+        ],
+        "en": [
+          "blinds",
+          "shutters"
+        ]
+      }
+    },
+    {
+      "key": "heating",
+      "type": "enum",
+      "group": "equipment",
+      "label": {
+        "cs": "Vytápění",
+        "en": "Heating"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "district",
+          "label": {
+            "cs": "dálkové (teplárna)",
+            "en": "district heating"
+          }
+        },
+        {
+          "value": "gas",
+          "label": {
+            "cs": "plynový kotel",
+            "en": "gas boiler"
+          }
+        },
+        {
+          "value": "electric",
+          "label": {
+            "cs": "elektrické",
+            "en": "electric"
+          }
+        },
+        {
+          "value": "heat_pump",
+          "label": {
+            "cs": "tepelné čerpadlo",
+            "en": "heat pump"
+          }
+        },
+        {
+          "value": "solid_fuel",
+          "label": {
+            "cs": "tuhá paliva",
+            "en": "solid fuel"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "cs": "jiné",
+            "en": "other"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "ústřední topení",
+          "plynový kotel",
+          "tepelné čerpadlo"
+        ],
+        "en": [
+          "heat pump",
+          "gas boiler",
+          "district heating"
+        ]
+      }
+    },
+    {
+      "key": "balcony",
+      "type": "bool",
+      "group": "outdoor",
+      "label": {
+        "cs": "Balkon",
+        "en": "Balcony"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "balkon",
+          "balkón"
+        ],
+        "en": [
+          "balcony"
+        ]
+      }
+    },
+    {
+      "key": "loggia",
+      "type": "bool",
+      "group": "outdoor",
+      "label": {
+        "cs": "Lodžie",
+        "en": "Loggia"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "lodžie",
+          "lodžii"
+        ],
+        "en": [
+          "loggia"
+        ]
+      }
+    },
+    {
+      "key": "terrace",
+      "type": "bool",
+      "group": "outdoor",
+      "label": {
+        "cs": "Terasa",
+        "en": "Terrace"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "terasa",
+          "terasou"
+        ],
+        "en": [
+          "terrace"
+        ]
+      }
+    },
+    {
+      "key": "garden",
+      "type": "bool",
+      "group": "outdoor",
+      "label": {
+        "cs": "Zahrada",
+        "en": "Garden"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "zahrada",
+          "zahradou",
+          "předzahrádka"
+        ],
+        "en": [
+          "garden"
+        ]
+      }
+    },
+    {
+      "key": "garden_area",
+      "type": "int",
+      "group": "outdoor",
+      "label": {
+        "cs": "Plocha zahrady",
+        "en": "Garden area"
+      },
+      "filter": false,
+      "unit": "m2",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "key": "view",
+      "type": "set",
+      "group": "outdoor",
+      "label": {
+        "cs": "Výhled",
+        "en": "View"
+      },
+      "filter": false,
+      "options": [
+        {
+          "value": "city",
+          "label": {
+            "cs": "na město",
+            "en": "city"
+          }
+        },
+        {
+          "value": "park",
+          "label": {
+            "cs": "do parku",
+            "en": "park"
+          }
+        },
+        {
+          "value": "river",
+          "label": {
+            "cs": "na řeku",
+            "en": "river"
+          }
+        },
+        {
+          "value": "courtyard",
+          "label": {
+            "cs": "do dvora",
+            "en": "courtyard"
+          }
+        },
+        {
+          "value": "castle",
+          "label": {
+            "cs": "na Hrad",
+            "en": "castle"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "výhled"
+        ],
+        "en": [
+          "view"
+        ]
+      }
+    },
+    {
+      "key": "orientation",
+      "type": "set",
+      "group": "outdoor",
+      "label": {
+        "cs": "Orientace oken",
+        "en": "Window orientation"
+      },
+      "filter": false,
+      "options": [
+        {
+          "value": "north",
+          "label": {
+            "cs": "sever",
+            "en": "north"
+          }
+        },
+        {
+          "value": "east",
+          "label": {
+            "cs": "východ",
+            "en": "east"
+          }
+        },
+        {
+          "value": "south",
+          "label": {
+            "cs": "jih",
+            "en": "south"
+          }
+        },
+        {
+          "value": "west",
+          "label": {
+            "cs": "západ",
+            "en": "west"
+          }
+        }
+      ]
+    },
+    {
+      "key": "parking",
+      "type": "enum",
+      "group": "parking",
+      "label": {
+        "cs": "Parkování",
+        "en": "Parking"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "none",
+          "label": {
+            "cs": "žádné",
+            "en": "none"
+          }
+        },
+        {
+          "value": "street",
+          "label": {
+            "cs": "na ulici",
+            "en": "street"
+          }
+        },
+        {
+          "value": "spot",
+          "label": {
+            "cs": "vyhrazené stání",
+            "en": "reserved spot"
+          }
+        },
+        {
+          "value": "garage",
+          "label": {
+            "cs": "garáž",
+            "en": "garage"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "parkování",
+          "garáž",
+          "garážové stání",
+          "parkovací stání"
+        ],
+        "en": [
+          "parking",
+          "garage"
+        ]
+      }
+    },
+    {
+      "key": "ev_charging",
+      "type": "bool",
+      "group": "parking",
+      "label": {
+        "cs": "Nabíječka pro elektromobil",
+        "en": "EV charger"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "nabíječka",
+          "wallbox"
+        ],
+        "en": [
+          "ev charger",
+          "wallbox"
+        ]
+      }
+    },
+    {
+      "key": "cellar",
+      "type": "bool",
+      "group": "parking",
+      "label": {
+        "cs": "Sklep",
+        "en": "Cellar"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "sklep",
+          "sklepní kóje"
+        ],
+        "en": [
+          "cellar",
+          "basement storage"
+        ]
+      }
+    },
+    {
+      "key": "storage_room",
+      "type": "bool",
+      "group": "parking",
+      "label": {
+        "cs": "Komora",
+        "en": "Storage room"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "komora",
+          "spíž"
+        ],
+        "en": [
+          "storage room",
+          "pantry"
+        ]
+      }
+    },
+    {
+      "key": "pets",
+      "type": "set",
+      "group": "rules",
+      "label": {
+        "cs": "Domácí mazlíčci",
+        "en": "Pets"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "cats",
+          "label": {
+            "cs": "kočky",
+            "en": "cats"
+          }
+        },
+        {
+          "value": "dogs_small",
+          "label": {
+            "cs": "malí psi",
+            "en": "small dogs"
+          }
+        },
+        {
+          "value": "dogs",
+          "label": {
+            "cs": "psi",
+            "en": "dogs"
+          }
+        },
+        {
+          "value": "small_animals",
+          "label": {
+            "cs": "malá zvířata",
+            "en": "small animals"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "mazlíček",
+          "pes",
+          "psa",
+          "kočka",
+          "zvířata"
+        ],
+        "en": [
+          "pet",
+          "dog",
+          "cat"
+        ]
+      }
+    },
+    {
+      "key": "smoking",
+      "type": "bool",
+      "group": "rules",
+      "label": {
+        "cs": "Kouření povoleno",
+        "en": "Smoking allowed"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "kuřák"
+        ],
+        "en": [
+          "smoking"
+        ]
+      }
+    },
+    {
+      "key": "suitable_for",
+      "type": "set",
+      "group": "rules",
+      "label": {
+        "cs": "Vhodné pro",
+        "en": "Suitable for"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "students",
+          "label": {
+            "cs": "studenty",
+            "en": "students"
+          }
+        },
+        {
+          "value": "families",
+          "label": {
+            "cs": "rodiny s dětmi",
+            "en": "families"
+          }
+        },
+        {
+          "value": "seniors",
+          "label": {
+            "cs": "seniory",
+            "en": "seniors"
+          }
+        },
+        {
+          "value": "couples",
+          "label": {
+            "cs": "páry",
+            "en": "couples"
+          }
+        },
+        {
+          "value": "expats",
+          "label": {
+            "cs": "cizince",
+            "en": "expats"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "studenty",
+          "rodinu",
+          "pár",
+          "cizince"
+        ],
+        "en": [
+          "students",
+          "family",
+          "couple",
+          "expats"
+        ]
+      }
+    },
+    {
+      "key": "max_occupants",
+      "type": "int",
+      "group": "rules",
+      "label": {
+        "cs": "Maximální počet osob",
+        "en": "Maximum occupants"
+      },
+      "filter": true,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "key": "residence_registration",
+      "type": "bool",
+      "group": "rules",
+      "label": {
+        "cs": "Možnost trvalého pobytu",
+        "en": "Residence registration possible"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "trvalý pobyt"
+        ],
+        "en": [
+          "residence registration"
+        ]
+      }
+    },
+    {
+      "key": "short_term_ok",
+      "type": "bool",
+      "group": "rules",
+      "label": {
+        "cs": "Kratší nájem než rok",
+        "en": "Lease under 12 months"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "krátkodobě"
+        ],
+        "en": [
+          "short term"
+        ]
+      }
+    },
+    {
+      "key": "utilities_included",
+      "type": "set",
+      "group": "rules",
+      "label": {
+        "cs": "Zahrnuto v ceně",
+        "en": "Included in rent"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "water",
+          "label": {
+            "cs": "voda",
+            "en": "water"
+          }
+        },
+        {
+          "value": "heating",
+          "label": {
+            "cs": "topení",
+            "en": "heating"
+          }
+        },
+        {
+          "value": "electricity",
+          "label": {
+            "cs": "elektřina",
+            "en": "electricity"
+          }
+        },
+        {
+          "value": "gas",
+          "label": {
+            "cs": "plyn",
+            "en": "gas"
+          }
+        },
+        {
+          "value": "internet",
+          "label": {
+            "cs": "internet",
+            "en": "internet"
+          }
+        },
+        {
+          "value": "waste",
+          "label": {
+            "cs": "odpad",
+            "en": "waste"
+          }
+        },
+        {
+          "value": "cleaning",
+          "label": {
+            "cs": "úklid společných prostor",
+            "en": "common area cleaning"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "včetně energií",
+          "včetně poplatků"
+        ],
+        "en": [
+          "utilities included",
+          "bills included"
+        ]
+      }
+    },
+    {
+      "key": "transport",
+      "type": "set",
+      "group": "location",
+      "label": {
+        "cs": "Doprava v blízkosti",
+        "en": "Public transport nearby"
+      },
+      "filter": true,
+      "options": [
+        {
+          "value": "metro",
+          "label": {
+            "cs": "metro",
+            "en": "metro"
+          }
+        },
+        {
+          "value": "tram",
+          "label": {
+            "cs": "tramvaj",
+            "en": "tram"
+          }
+        },
+        {
+          "value": "bus",
+          "label": {
+            "cs": "autobus",
+            "en": "bus"
+          }
+        },
+        {
+          "value": "train",
+          "label": {
+            "cs": "vlak",
+            "en": "train"
+          }
+        }
+      ],
+      "keywords": {
+        "cs": [
+          "metro",
+          "tramvaj",
+          "autobus",
+          "vlak"
+        ],
+        "en": [
+          "metro",
+          "tram",
+          "bus",
+          "train"
+        ]
+      }
+    },
+    {
+      "key": "metro_distance",
+      "type": "int",
+      "group": "location",
+      "label": {
+        "cs": "Vzdálenost k metru",
+        "en": "Distance to metro"
+      },
+      "filter": true,
+      "unit": "m",
+      "min": 0,
+      "max": 20000
+    },
+    {
+      "key": "quiet_area",
+      "type": "bool",
+      "group": "location",
+      "label": {
+        "cs": "Klidná lokalita",
+        "en": "Quiet area"
+      },
+      "filter": true,
+      "keywords": {
+        "cs": [
+          "klidná",
+          "klidné"
+        ],
+        "en": [
+          "quiet"
+        ]
+      }
+    },
+    {
+      "key": "amenities",
+      "type": "set",
+      "group": "location",
+      "label": {
+        "cs": "Občanská vybavenost",
+        "en": "Amenities nearby"
+      },
+      "filter": false,
+      "options": [
+        {
+          "value": "shop",
+          "label": {
+            "cs": "obchod",
+            "en": "shop"
+          }
+        },
+        {
+          "value": "school",
+          "label": {
+            "cs": "škola",
+            "en": "school"
+          }
+        },
+        {
+          "value": "kindergarten",
+          "label": {
+            "cs": "školka",
+            "en": "kindergarten"
+          }
+        },
+        {
+          "value": "park",
+          "label": {
+            "cs": "park",
+            "en": "park"
+          }
+        },
+        {
+          "value": "doctor",
+          "label": {
+            "cs": "lékař",
+            "en": "doctor"
+          }
+        },
+        {
+          "value": "restaurant",
+          "label": {
+            "cs": "restaurace",
+            "en": "restaurant"
+          }
+        }
+      ]
+    },
+    {
+      "key": "room_private_bathroom",
+      "type": "bool",
+      "group": "room",
+      "label": {
+        "cs": "Vlastní koupelna",
+        "en": "Private bathroom"
+      },
+      "filter": true,
+      "applies_to": [
+        "room"
+      ],
+      "keywords": {
+        "cs": [
+          "vlastní koupelna"
+        ],
+        "en": [
+          "private bathroom",
+          "ensuite"
+        ]
+      }
+    },
+    {
+      "key": "room_lockable",
+      "type": "bool",
+      "group": "room",
+      "label": {
+        "cs": "Uzamykatelný pokoj",
+        "en": "Lockable room"
+      },
+      "filter": true,
+      "applies_to": [
+        "room"
+      ],
+      "keywords": {
+        "cs": [
+          "uzamykatelný"
+        ],
+        "en": [
+          "lockable"
+        ]
+      }
+    },
+    {
+      "key": "flatmates",
+      "type": "int",
+      "group": "room",
+      "label": {
+        "cs": "Počet spolubydlících",
+        "en": "Number of flatmates"
+      },
+      "filter": true,
+      "applies_to": [
+        "room"
+      ],
+      "min": 0,
+      "max": 12
+    },
+    {
+      "key": "flatmate_gender",
+      "type": "enum",
+      "group": "room",
+      "label": {
+        "cs": "Spolubydlící",
+        "en": "Flatmates"
+      },
+      "filter": true,
+      "applies_to": [
+        "room"
+      ],
+      "options": [
+        {
+          "value": "any",
+          "label": {
+            "cs": "kdokoli",
+            "en": "anyone"
+          }
+        },
+        {
+          "value": "female",
+          "label": {
+            "cs": "jen ženy",
+            "en": "women only"
+          }
+        },
+        {
+          "value": "male",
+          "label": {
+            "cs": "jen muži",
+            "en": "men only"
+          }
+        }
+      ]
+    },
+    {
+      "key": "shared_spaces",
+      "type": "set",
+      "group": "room",
+      "label": {
+        "cs": "Sdílené prostory",
+        "en": "Shared spaces"
+      },
+      "filter": false,
+      "applies_to": [
+        "room"
+      ],
+      "options": [
+        {
+          "value": "kitchen",
+          "label": {
+            "cs": "kuchyň",
+            "en": "kitchen"
+          }
+        },
+        {
+          "value": "bathroom",
+          "label": {
+            "cs": "koupelna",
+            "en": "bathroom"
+          }
+        },
+        {
+          "value": "living_room",
+          "label": {
+            "cs": "obývací pokoj",
+            "en": "living room"
+          }
+        },
+        {
+          "value": "balcony",
+          "label": {
+            "cs": "balkon",
+            "en": "balcony"
+          }
+        }
+      ]
+    },
+    {
+      "key": "cleaning_rota",
+      "type": "bool",
+      "group": "room",
+      "label": {
+        "cs": "Rozpis úklidu",
+        "en": "Cleaning rota"
+      },
+      "filter": false,
+      "applies_to": [
+        "room"
+      ],
+      "keywords": {
+        "cs": [
+          "úklid se střídá"
+        ],
+        "en": [
+          "cleaning rota"
+        ]
+      }
+    }
+  ]
+}

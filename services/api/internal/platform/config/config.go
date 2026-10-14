@@ -65,7 +65,19 @@ type Config struct {
 	S3Region    string
 
 	RateBurst int // credential endpoint burst per client IP
+
+	// Catalog (M2).
+	LLMAPIKey    string
+	ImgproxyURL  string // browser-reachable imgproxy
+	ImgproxyKey  string // hex
+	ImgproxySalt string // hex
+	ClamAVAddr   string // host:port of clamd; empty = scanning skipped
+	Flags        map[string]bool
+	SeedRuian    bool // load the embedded RÚIAN sample when the table is empty
 }
+
+// Flag reports whether a feature flag is on.
+func (c Config) Flag(name string) bool { return c.Flags[name] }
 
 // Load reads the environment. It returns an error only for values that are
 // present but malformed; missing optional values fall back to dev defaults.
@@ -113,6 +125,22 @@ func Load() (Config, error) {
 	c.S3Bucket = get("S3_BUCKET", "terra")
 	c.S3UseSSL = MustBool("S3_USE_SSL", false)
 	c.S3Region = get("S3_REGION", "us-east-1")
+	c.LLMAPIKey = get("LLM_API_KEY", "not-needed")
+	c.ImgproxyURL = strings.TrimRight(get("IMGPROXY_URL", "http://localhost:8081"), "/")
+	// Dev defaults match infra/dev/docker-compose.yml.
+	c.ImgproxyKey = get("IMGPROXY_KEY", "6465762d696d6770726f78792d6b6579")
+	c.ImgproxySalt = get("IMGPROXY_SALT", "6465762d696d6770726f78792d73616c74")
+	c.ClamAVAddr = get("CLAMAV_ADDR", "")
+	c.SeedRuian = MustBool("SEED_RUIAN_SAMPLE", devLike)
+	// Feature flags: comma list, "-name" turns a default off.
+	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false}
+	for _, f := range splitList(get("FEATURE_FLAGS", "")) {
+		if strings.HasPrefix(f, "-") {
+			c.Flags[f[1:]] = false
+		} else {
+			c.Flags[f] = true
+		}
+	}
 	if n, err := strconv.Atoi(get("AUTH_RATE_BURST", "10")); err == nil {
 		c.RateBurst = n
 	}

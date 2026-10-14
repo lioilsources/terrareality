@@ -15,6 +15,7 @@ type Problem struct {
 	Detail   string `json:"detail,omitempty"`
 	Instance string `json:"instance,omitempty"`
 	Code     string `json:"code,omitempty"`
+	Errors   any    `json:"errors,omitempty"`
 }
 
 // WriteProblem writes p as application/problem+json.

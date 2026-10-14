@@ -19,3 +19,17 @@ follows until decided otherwise.
   add WebAuthn for staff in phase 2.
 - **OQ-6 Flutter sign-in screens.** The api supports bearer sessions for mobile; the Flutter login
   flow is scheduled with the other mobile screens (plan section 6.1: after the contract is stable).
+
+## M2
+
+- **OQ-7 Spark routes.** The gateway has no `terra`, `terra-embed` or `terra-vision` routes yet
+  (`infra/spark/README.md`). On 2026-10-14 `shop` and `vl` backends were down; the live AI test ran
+  against `dev` (Qwen 3.6). Proposal: add the three routes before the pilot; until then set
+  `LLM_MODEL=dev` for manual tests and keep the mock in CI.
+- **OQ-8 RÚIAN import.** Dev and tests use a 26-address synthetic sample. The full CZ data set
+  (about 3 million address points, ZIP of per-municipality CSVs from ČÚZK) is imported with
+  `terractl ruian import <file.zip>`; schedule a monthly refresh job in M3.
+- **OQ-9 ClamAV.** Scanning is skipped when `CLAMAV_ADDR` is empty (a warning is logged in prod).
+  Proposal: run clamd as a sidecar on the production VM (about 1 GB RAM for signatures).
+- **OQ-10 Removed photos of published listings** stay in storage until the next approved version;
+  a cleanup job comes with M3 search.
