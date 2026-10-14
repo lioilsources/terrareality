@@ -15,6 +15,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/app"
 	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
+	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/platform/buildinfo"
@@ -65,9 +66,10 @@ func run() error {
 	mediaW, suggestW, digestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}, &jobs.DigestWorker{}
 	notifyW, msgDigestW, verdictW := &jobs.MessageNotifyWorker{}, &jobs.MessagesDigestWorker{}, &jobs.VerdictWorker{}
 	summaryW, reminderW := &jobs.ApplicationSummaryWorker{}, &jobs.ViewingReminderWorker{}
+	startLeaseW, bankSyncW := &jobs.StartLeaseWorker{Log: log, Enabled: cfg.TemporalAddress != ""}, &jobs.BankSyncWorker{}
 	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
 		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW,
-		Summaries: summaryW, Reminders: reminderW})
+		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW})
 	if err != nil {
 		return err
 	}
@@ -86,6 +88,8 @@ func run() error {
 	summaryW.Runner = &applications.Summaries{Pool: pool, AI: deps.Summarizer(), Enabled: cfg.Flag("ai.applications")}
 	reminderW.Runner = &applications.Reminders{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
 		Pusher: deps.Pusher, WebBaseURL: cfg.WebBaseURL}
+	leases, _ := app.Leasing(cfg, deps, pool, jobs.LeaseJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
+	bankSyncW.Syncer = leases
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}
@@ -100,6 +104,9 @@ func run() error {
 		w := worker.New(tc, workflows.TaskQueue, worker.Options{})
 		w.RegisterWorkflow(workflows.Ping)
 		w.RegisterActivity(workflows.PingActivity)
+		w.RegisterWorkflow(workflows.LeaseLifecycle)
+		w.RegisterActivity(&leasing.Activities{S: leases})
+		startLeaseW.Temporal = tc
 		if err := w.Start(); err != nil {
 			return err
 		}

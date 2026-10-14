@@ -37,13 +37,15 @@ seed: ## Create dev accounts staff@terra.local and owner@terra.local (password t
 
 gen: ## Regenerate code from contracts (Go server, sqlc, TS + Dart clients, l10n, attribute catalog)
 	cp packages/attributes/catalog.json $(API)/internal/catalog/catalog.json
+	rm -rf $(API)/internal/leasing/templates && mkdir -p $(API)/internal/leasing/templates/cz
+	cp packages/attributes/templates/cz/*.typ $(API)/internal/leasing/templates/cz/
 	cd $(API) && go tool oapi-codegen -config oapi-codegen.yaml ../../packages/contracts/openapi.yaml
 	cd $(API) && sqlc generate
 	npm run gen
 	cd apps/mobile && flutter gen-l10n
 
 gen-check: gen ## Fail if generated code is out of date
-	git diff --exit-code -- $(API)/internal/api/gen $(API)/internal/db $(API)/internal/catalog/catalog.json packages/contracts/ts packages/contracts/dart
+	git diff --exit-code -- $(API)/internal/api/gen $(API)/internal/db $(API)/internal/catalog/catalog.json $(API)/internal/leasing/templates packages/contracts/ts packages/contracts/dart
 
 test: test-go test-web test-site test-mobile test-vision ## Run all unit/integration tests
 

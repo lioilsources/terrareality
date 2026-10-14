@@ -90,5 +90,37 @@
   "viewing_reminder": {
     "subject": "Viewing reminder: {{.Listing}}, {{.When}}",
     "text": "Hello,\n\na reminder of your viewing of “{{.Listing}}” ({{.City}}) on {{.When}}.{{if .Note}}\n\nNote from the landlord: {{.Note}}{{end}}\n\nDetails and cancellation:\n{{.Link}}\n\nDo not pay anything in advance at the viewing."
+  },
+  "lease_proposed": {
+    "subject": "Lease proposal {{.Code}}: {{.Address}}",
+    "text": "Hello,\n\nthe landlord sent you a lease proposal ({{.Address}}, code {{.Code}}). Read and sign it, or ask for changes:\n{{.Link}}\n\nDo not send any money before signing."
+  },
+  "lease_changes_requested": {
+    "subject": "Changes requested to lease {{.Code}}",
+    "text": "Hello,\n\nthe tenant asks for changes to lease {{.Code}} ({{.Address}}):\n\n“{{.Comment}}”\n\nEdit and resend the lease here:\n{{.Link}}"
+  },
+  "lease_signed": {
+    "subject": "Lease {{.Code}} is signed",
+    "text": "Hello,\n\nall parties signed lease {{.Code}} ({{.Address}}). The payment schedule and QR payments are here:\n{{.Link}}\n\nPay directly to the landlord's account with variable symbol {{.Code}}."
+  },
+  "lease_notice": {
+    "subject": "Notice given on lease {{.Code}}",
+    "text": "Hello,\n\nnotice was given on lease {{.Code}} ({{.Address}}). The lease ends on {{.EndsOn}}.\n\n{{.Link}}"
+  },
+  "payment_upcoming": {
+    "subject": "Payment due: {{.Amount}} by {{.Due}}",
+    "text": "Hello,\n\na payment of {{.Amount}} for {{.Address}} is due on {{.Due}} (variable symbol {{.Code}}). The QR payment is here:\n{{.Link}}\n\nIf you have already paid, please ignore this message."
+  },
+  "payment_overdue": {
+    "subject": "Payment overdue: {{.Amount}}",
+    "text": "Hello,\n\nwe have not seen the payment of {{.Amount}} due on {{.Due}} for {{.Address}} yet. Please pay as soon as possible (variable symbol {{.Code}}):\n{{.Link}}\n\nIf you have paid already, it will show once matched."
+  },
+  "payment_escalation": {
+    "subject": "Reminder: {{.Amount}} 7 days overdue",
+    "text": "Hello,\n\nthe payment of {{.Amount}} due on {{.Due}} for {{.Address}} is a week overdue. The landlord has been informed. Please pay now (variable symbol {{.Code}}) or talk to the landlord:\n{{.Link}}"
+  },
+  "payment_escalation_landlord": {
+    "subject": "Unpaid 7 days after due date: lease {{.Code}}",
+    "text": "Hello,\n\nfor lease {{.Code}} ({{.Address}}), {{.Count}} payments due on {{.Due}} are still unpaid after 7 days. We sent the tenants a reminder.\n\nPayments:\n{{.Link}}\n\nIf a payment arrived but was not matched, confirm it manually."
   }
 }

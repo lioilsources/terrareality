@@ -20,6 +20,7 @@ tags:
   - name: search
   - name: messaging
   - name: applications
+  - name: leasing
 security:
   - bearerAuth: []
 paths:
@@ -2092,6 +2093,360 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/RoommateMatch" }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [leasing]
+      operationId: listOrgLeases
+      summary: Leases of the organization
+      responses:
+        "200":
+          description: Leases
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LeaseSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [leasing]
+      operationId: createLease
+      summary: Draft a lease (from an accepted application, or with explicit parties)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeaseInput" }
+      responses:
+        "201":
+          description: Draft created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/{leaseId}:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { $ref: "#/components/parameters/LeaseId" }
+    put:
+      tags: [leasing]
+      operationId: updateLease
+      summary: Edit a draft or a lease in negotiation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeaseInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/{leaseId}/propose:
+    post:
+      tags: [leasing]
+      operationId: proposeLease
+      summary: Render the lease document and ask all parties to sign
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/LeaseId" }
+      responses:
+        "200":
+          description: Proposed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/me/leases:
+    get:
+      tags: [leasing]
+      operationId: listMyLeases
+      summary: Leases where I am a tenant
+      responses:
+        "200":
+          description: Leases
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LeaseSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}:
+    get:
+      tags: [leasing]
+      operationId: getLease
+      summary: Lease with parties, documents, signatures and the current debt
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      responses:
+        "200":
+          description: Lease
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/request-changes:
+    post:
+      tags: [leasing]
+      operationId: requestLeaseChanges
+      summary: Tenant asks the landlord to change the proposal
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comment]
+              properties:
+                comment: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "204": { description: Sent }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/sign:
+    post:
+      tags: [leasing]
+      operationId: signLease
+      summary: Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider: { type: string, enum: [mock, bankid_sign] }
+      responses:
+        "200":
+          description: Signed, or continue at the provider (redirect_url)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [signed]
+                properties:
+                  signed: { type: boolean }
+                  redirect_url: { type: string }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/obligations:
+    get:
+      tags: [leasing]
+      operationId: listLeaseObligations
+      summary: Payment schedule split between parties, with QR payments (SPAYD) for open shares
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      responses:
+        "200":
+          description: Obligations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ObligationShare" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/obligation-shares/{shareId}/qr:
+    get:
+      tags: [leasing]
+      operationId: getShareQR
+      summary: QR payment (QR Platba / SPAYD) of one open share as a PNG image
+      parameters:
+        - { name: shareId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: PNG image
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/obligation-shares/{shareId}/paid:
+    post:
+      tags: [leasing]
+      operationId: markSharePaid
+      summary: The landlord confirms a payment arrived ("přišlo")
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: shareId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: integer, format: int64, minimum: 1, description: Default is the open amount. }
+                paid_on: { type: string, format: date }
+      responses:
+        "204": { description: Recorded }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/ledger:
+    get:
+      tags: [leasing]
+      operationId: getLeaseLedger
+      summary: Double-entry ledger of the lease (JSON, or CSV with format=csv)
+      parameters:
+        - { $ref: "#/components/parameters/LeaseId" }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [json, csv] } }
+      responses:
+        "200":
+          description: Ledger
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LedgerEntry" }
+            text/csv:
+              schema: { type: string }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/events:
+    get:
+      tags: [leasing]
+      operationId: getLeaseEvents
+      summary: Hash-chained event log with its verification (export for disputes)
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseEventLog" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/notice:
+    post:
+      tags: [leasing]
+      operationId: giveLeaseNotice
+      summary: Give notice; the lease ends after the notice period
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [delivered_on]
+              properties:
+                delivered_on: { type: string, format: date }
+      responses:
+        "200":
+          description: Notice recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ends_on]
+                properties:
+                  ends_on: { type: string, format: date }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/settlement:
+    post:
+      tags: [leasing]
+      operationId: confirmLeaseSettlement
+      summary: Confirm the deposit settlement after the lease ended (all parties settle the lease)
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      responses:
+        "200":
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [settled]
+                properties:
+                  settled: { type: boolean }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/bank:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [leasing]
+      operationId: getBankOverview
+      summary: Linked accounts and recent incoming transactions with their match status
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [unmatched, matched, suggested, ignored] } }
+      responses:
+        "200":
+          description: Overview
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankOverview" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/bank/connections:
+    post:
+      tags: [leasing]
+      operationId: connectBank
+      summary: Link the landlord's account (open banking AIS, read only)
+      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [redirect_uri]
+              properties:
+                institution_id: { type: string, maxLength: 100 }
+                redirect_uri: { type: string, maxLength: 500 }
+      responses:
+        "201":
+          description: Connection (linked at once with the mock provider)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankLink" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/bank/connections/{connectionId}/finish:
+    post:
+      tags: [leasing]
+      operationId: finishBankConnection
+      summary: Complete linking after returning from the bank
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: connectionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Connection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankConnection" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/bank/sync:
+    post:
+      tags: [leasing]
+      operationId: syncBank
+      summary: Fetch and match new transactions now
+      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [new, matched, suggested]
+                properties:
+                  new: { type: integer }
+                  matched: { type: integer }
+                  suggested: { type: integer }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/bank/transactions/{transactionId}/match:
+    post:
+      tags: [leasing]
+      operationId: matchBankTransaction
+      summary: Confirm a suggested match or match manually; or ignore the transaction
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: transactionId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                share_id: { type: string, format: uuid }
+                ignore: { type: boolean }
+      responses:
+        "204": { description: Done }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -2110,6 +2465,7 @@ components:
       schema: { type: string, format: uuid }
     ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
     MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
+    LeaseId: { name: leaseId, in: path, required: true, schema: { type: string, format: uuid } }
     GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
     ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
     ConversationId: { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -3442,3 +3798,175 @@ components:
         income_uploaded_at: { type: string, format: date-time }
         insolvency: { type: string, enum: [unchecked, clear, record, error] }
         insolvency_checked_at: { type: string, format: date-time }
+    LeaseState: { type: string, enum: [draft, proposed, negotiating, signed, active, notice_given, terminated, settled, cancelled] }
+    LeaseTemplate: { type: string, enum: [byt_doba_urcita, byt_doba_neurcita, spolecny_najem, pokoj] }
+    LeasePartyInput:
+      type: object
+      required: [name, email, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email }
+        role: { type: string, enum: [tenant, co_tenant, subtenant, guarantor] }
+        share_bps: { type: integer, minimum: 0, maximum: 10000, description: "Payment share in basis points; all zero = equal shares." }
+    LeaseInput:
+      type: object
+      required: [template, starts_on, rent_amount, payee_iban, payee_name]
+      properties:
+        application_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        template: { $ref: "#/components/schemas/LeaseTemplate" }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        rent_amount: { type: integer, format: int64, minimum: 1 }
+        services_amount: { type: integer, format: int64, minimum: 0 }
+        deposit_amount: { type: integer, format: int64, minimum: 0 }
+        due_day: { type: integer, minimum: 1, maximum: 28, default: 15 }
+        notice_months: { type: integer, minimum: 1, maximum: 12, default: 3 }
+        payee_iban: { type: string, maxLength: 42 }
+        payee_name: { type: string, minLength: 1, maxLength: 200 }
+        clauses: { type: array, items: { type: string, enum: [pets_allowed, no_smoking, inventory, indexation, sublet_forbidden, early_termination] } }
+        property_address: { type: string, maxLength: 300 }
+        unit_label: { type: string, maxLength: 120 }
+        parties: { type: array, maxItems: 10, items: { $ref: "#/components/schemas/LeasePartyInput" } }
+    LeaseSummary:
+      type: object
+      required: [id, org_id, code, state, template, property_address, starts_on, rent_amount, currency, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        org_name: { type: string }
+        code: { type: integer, format: int64, description: Variable symbol of payments. }
+        state: { $ref: "#/components/schemas/LeaseState" }
+        template: { $ref: "#/components/schemas/LeaseTemplate" }
+        property_address: { type: string }
+        unit_label: { type: string }
+        tenant_names: { type: string }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        rent_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        created_at: { type: string, format: date-time }
+    LeaseParty:
+      type: object
+      required: [id, role, name, share_bps, position, me]
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, enum: [landlord, tenant, co_tenant, subtenant, guarantor] }
+        name: { type: string }
+        email: { type: string }
+        share_bps: { type: integer }
+        position: { type: integer, description: Specific symbol of this party's payments. }
+        me: { type: boolean }
+        signed_at: { type: string, format: date-time }
+        debt: { type: integer, format: int64, description: Due and unpaid amount today. }
+    LeaseDocument:
+      type: object
+      required: [id, kind, version, filename, sha256, url, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [draft, final, signed, scan, evidence] }
+        version: { type: integer }
+        filename: { type: string }
+        sha256: { type: string }
+        url: { type: string }
+        created_at: { type: string, format: date-time }
+    LeaseDetail:
+      type: object
+      required: [lease, parties, documents, landlord_view, payee_iban, payee_name, due_day, notice_months, deposit_amount, services_amount, clauses, total_debt]
+      properties:
+        lease: { $ref: "#/components/schemas/LeaseSummary" }
+        landlord_view: { type: boolean }
+        payee_iban: { type: string }
+        payee_name: { type: string }
+        due_day: { type: integer }
+        notice_months: { type: integer }
+        deposit_amount: { type: integer, format: int64 }
+        services_amount: { type: integer, format: int64 }
+        clauses: { type: array, items: { type: string } }
+        change_request: { type: string }
+        parties: { type: array, items: { $ref: "#/components/schemas/LeaseParty" } }
+        documents: { type: array, items: { $ref: "#/components/schemas/LeaseDocument" } }
+        total_debt: { type: integer, format: int64 }
+    ObligationShare:
+      type: object
+      required: [id, obligation_id, kind, period, due_on, amount, paid_amount, currency, party_id, party_name, mine, status]
+      properties:
+        id: { type: string, format: uuid, description: Share id. }
+        obligation_id: { type: string, format: uuid }
+        kind: { type: string, enum: [rent, services, deposit, oneoff] }
+        period: { type: string }
+        due_on: { type: string, format: date }
+        amount: { type: integer, format: int64 }
+        paid_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        party_id: { type: string, format: uuid }
+        party_name: { type: string }
+        mine: { type: boolean }
+        status: { type: string, enum: [open, paid, cancelled] }
+        spayd: { type: string, description: QR Platba payload for the open amount. }
+    LedgerEntry:
+      type: object
+      required: [posting_id, account, amount, memo, booked_on]
+      properties:
+        posting_id: { type: string, format: uuid }
+        account: { type: string, enum: [receivable, income, deposit_held, cash] }
+        party_name: { type: string }
+        amount: { type: integer, format: int64, description: "Debit positive, credit negative." }
+        memo: { type: string }
+        booked_on: { type: string, format: date }
+    LeaseEvent:
+      type: object
+      required: [seq, kind, payload, prev_hash, hash, created_at]
+      properties:
+        seq: { type: integer }
+        kind: { type: string }
+        payload: { type: object, additionalProperties: true }
+        prev_hash: { type: string }
+        hash: { type: string }
+        created_at: { type: string, format: date-time }
+    LeaseEventLog:
+      type: object
+      required: [events, valid, verified, head]
+      properties:
+        events: { type: array, items: { $ref: "#/components/schemas/LeaseEvent" } }
+        valid: { type: boolean }
+        verified: { type: integer, description: Events that verified before the first break. }
+        error: { type: string }
+        head: { type: string, description: Hash of the last event. }
+    BankConnection:
+      type: object
+      required: [id, provider, status, iban, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        provider: { type: string, enum: [gocardless, mock] }
+        status: { type: string, enum: [pending, linked, expired, error] }
+        iban: { type: string }
+        last_synced_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    BankLink:
+      type: object
+      required: [connection]
+      properties:
+        connection: { $ref: "#/components/schemas/BankConnection" }
+        link: { type: string, description: Open this URL to authorize access at the bank. }
+    BankTransaction:
+      type: object
+      required: [id, booked_on, amount, currency, variable_symbol, specific_symbol, counterparty_name, remittance, match_status, match_note]
+      properties:
+        id: { type: string, format: uuid }
+        booked_on: { type: string, format: date }
+        amount: { type: integer, format: int64 }
+        currency: { type: string }
+        variable_symbol: { type: string }
+        specific_symbol: { type: string }
+        counterparty_name: { type: string }
+        remittance: { type: string }
+        match_status: { type: string, enum: [unmatched, matched, suggested, ignored] }
+        share_id: { type: string, format: uuid }
+        match_note: { type: string }
+    BankOverview:
+      type: object
+      required: [connections, transactions]
+      properties:
+        connections: { type: array, items: { $ref: "#/components/schemas/BankConnection" } }
+        transactions: { type: array, items: { $ref: "#/components/schemas/BankTransaction" } }

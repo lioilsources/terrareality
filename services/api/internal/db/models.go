@@ -120,6 +120,39 @@ type AuthToken struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
+type BankConnection struct {
+	ID            uuid.UUID  `json:"id"`
+	OrgID         uuid.UUID  `json:"org_id"`
+	Provider      string     `json:"provider"`
+	InstitutionID string     `json:"institution_id"`
+	RequisitionID string     `json:"requisition_id"`
+	AccountID     string     `json:"account_id"`
+	Iban          string     `json:"iban"`
+	Status        string     `json:"status"`
+	LastSyncedAt  *time.Time `json:"last_synced_at"`
+	CreatedBy     *uuid.UUID `json:"created_by"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+type BankTransaction struct {
+	ID                  uuid.UUID   `json:"id"`
+	OrgID               uuid.UUID   `json:"org_id"`
+	ConnectionID        uuid.UUID   `json:"connection_id"`
+	ExternalID          string      `json:"external_id"`
+	BookedOn            pgtype.Date `json:"booked_on"`
+	Amount              int64       `json:"amount"`
+	Currency            string      `json:"currency"`
+	VariableSymbol      string      `json:"variable_symbol"`
+	SpecificSymbol      string      `json:"specific_symbol"`
+	CounterpartyName    string      `json:"counterparty_name"`
+	CounterpartyAccount string      `json:"counterparty_account"`
+	Remittance          string      `json:"remittance"`
+	MatchStatus         string      `json:"match_status"`
+	SplitID             *uuid.UUID  `json:"split_id"`
+	MatchNote           string      `json:"match_note"`
+	CreatedAt           time.Time   `json:"created_at"`
+}
+
 type Consent struct {
 	ID        uuid.UUID   `json:"id"`
 	UserID    uuid.UUID   `json:"user_id"`
@@ -255,6 +288,91 @@ type Jurisdiction struct {
 	Active             bool      `json:"active"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type Lease struct {
+	ID               uuid.UUID   `json:"id"`
+	OrgID            uuid.UUID   `json:"org_id"`
+	ListingID        *uuid.UUID  `json:"listing_id"`
+	ApplicationID    *uuid.UUID  `json:"application_id"`
+	Code             int64       `json:"code"`
+	JurisdictionCode string      `json:"jurisdiction_code"`
+	Currency         string      `json:"currency"`
+	State            string      `json:"state"`
+	Template         string      `json:"template"`
+	TemplateVersion  string      `json:"template_version"`
+	PropertyAddress  string      `json:"property_address"`
+	UnitLabel        string      `json:"unit_label"`
+	StartsOn         pgtype.Date `json:"starts_on"`
+	EndsOn           pgtype.Date `json:"ends_on"`
+	RentAmount       int64       `json:"rent_amount"`
+	ServicesAmount   int64       `json:"services_amount"`
+	DepositAmount    int64       `json:"deposit_amount"`
+	DueDay           int32       `json:"due_day"`
+	NoticeMonths     int32       `json:"notice_months"`
+	PayeeIban        string      `json:"payee_iban"`
+	PayeeName        string      `json:"payee_name"`
+	Clauses          []string    `json:"clauses"`
+	Terms            []byte      `json:"terms"`
+	ChangeRequest    *string     `json:"change_request"`
+	NoticeOn         pgtype.Date `json:"notice_on"`
+	WorkflowID       *string     `json:"workflow_id"`
+	CreatedBy        *uuid.UUID  `json:"created_by"`
+	CreatedAt        time.Time   `json:"created_at"`
+	UpdatedAt        time.Time   `json:"updated_at"`
+	SignedAt         *time.Time  `json:"signed_at"`
+}
+
+type LeaseDocument struct {
+	ID        uuid.UUID `json:"id"`
+	LeaseID   uuid.UUID `json:"lease_id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	Kind      string    `json:"kind"`
+	Version   int32     `json:"version"`
+	ObjectKey string    `json:"object_key"`
+	Filename  string    `json:"filename"`
+	Sha256    []byte    `json:"sha256"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type LeaseEvent struct {
+	ID        uuid.UUID `json:"id"`
+	LeaseID   uuid.UUID `json:"lease_id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	Seq       int32     `json:"seq"`
+	Kind      string    `json:"kind"`
+	Payload   []byte    `json:"payload"`
+	PrevHash  []byte    `json:"prev_hash"`
+	Hash      []byte    `json:"hash"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type LeaseParty struct {
+	ID             uuid.UUID  `json:"id"`
+	LeaseID        uuid.UUID  `json:"lease_id"`
+	OrgID          uuid.UUID  `json:"org_id"`
+	Role           string     `json:"role"`
+	UserID         *uuid.UUID `json:"user_id"`
+	Name           string     `json:"name"`
+	Email          *string    `json:"email"`
+	ShareBps       int32      `json:"share_bps"`
+	Position       int32      `json:"position"`
+	SettlementOkAt *time.Time `json:"settlement_ok_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type LedgerEntry struct {
+	ID        uuid.UUID   `json:"id"`
+	LeaseID   uuid.UUID   `json:"lease_id"`
+	OrgID     uuid.UUID   `json:"org_id"`
+	PostingID uuid.UUID   `json:"posting_id"`
+	Account   string      `json:"account"`
+	PartyID   *uuid.UUID  `json:"party_id"`
+	SplitID   *uuid.UUID  `json:"split_id"`
+	Amount    int64       `json:"amount"`
+	Memo      string      `json:"memo"`
+	BookedOn  pgtype.Date `json:"booked_on"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type Listing struct {
@@ -431,6 +549,16 @@ type OauthIdentity struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ObligationSplit struct {
+	ID           uuid.UUID `json:"id"`
+	ObligationID uuid.UUID `json:"obligation_id"`
+	LeaseID      uuid.UUID `json:"lease_id"`
+	OrgID        uuid.UUID `json:"org_id"`
+	PartyID      uuid.UUID `json:"party_id"`
+	Amount       int64     `json:"amount"`
+	PaidAmount   int64     `json:"paid_amount"`
+}
+
 type Organization struct {
 	ID               uuid.UUID  `json:"id"`
 	Kind             string     `json:"kind"`
@@ -442,6 +570,19 @@ type Organization struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	DeletedAt        *time.Time `json:"deleted_at"`
+}
+
+type PaymentObligation struct {
+	ID        uuid.UUID   `json:"id"`
+	LeaseID   uuid.UUID   `json:"lease_id"`
+	OrgID     uuid.UUID   `json:"org_id"`
+	Kind      string      `json:"kind"`
+	Period    string      `json:"period"`
+	DueOn     pgtype.Date `json:"due_on"`
+	Amount    int64       `json:"amount"`
+	Currency  string      `json:"currency"`
+	Status    string      `json:"status"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type Property struct {
@@ -543,6 +684,20 @@ type Session struct {
 	LastSeenAt     time.Time   `json:"last_seen_at"`
 	ExpiresAt      time.Time   `json:"expires_at"`
 	RevokedAt      *time.Time  `json:"revoked_at"`
+}
+
+type Signature struct {
+	ID         uuid.UUID  `json:"id"`
+	LeaseID    uuid.UUID  `json:"lease_id"`
+	OrgID      uuid.UUID  `json:"org_id"`
+	DocumentID uuid.UUID  `json:"document_id"`
+	PartyID    uuid.UUID  `json:"party_id"`
+	Provider   string     `json:"provider"`
+	Status     string     `json:"status"`
+	ExternalID *string    `json:"external_id"`
+	Evidence   []byte     `json:"evidence"`
+	SignedAt   *time.Time `json:"signed_at"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type TenantGroup struct {

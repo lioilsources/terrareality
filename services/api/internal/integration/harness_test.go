@@ -29,6 +29,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
+	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
@@ -149,6 +150,19 @@ func (r *recAppJobs) ViewingReminder(_ context.Context, _ pgx.Tx, _ uuid.UUID, a
 	return nil
 }
 
+// recLeaseJobs records lifecycle starts.
+type recLeaseJobs struct {
+	mu      sync.Mutex
+	started []uuid.UUID
+}
+
+func (r *recLeaseJobs) StartLifecycle(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.started = append(r.started, id)
+	return nil
+}
+
 type env struct {
 	t        *testing.T
 	pool     *pgxpool.Pool
@@ -167,6 +181,9 @@ type env struct {
 	verdicts *messaging.Verdicts
 	appJobs  *recAppJobs
 	summary  *applications.Summaries
+	leases   *leasing.Service
+	bank     *leasing.MockBank
+	leaseJob *recLeaseJobs
 }
 
 func newEnv(t *testing.T) *env {
@@ -229,8 +246,11 @@ func newEnv(t *testing.T) *env {
 	e.summary = &applications.Summaries{Pool: pool, AI: ai.Mock{}, Enabled: true}
 	apps := &applications.Service{Pool: pool, RT: e.rt, Jobs: e.appJobs, Outbox: e.outbox, Render: render, Blob: e.blob,
 		Scanner: media.NoScanner{}, ISIR: isir.Mock{}, WebBaseURL: "http://web.test", Log: log}
+	e.bank, e.leaseJob = &leasing.MockBank{}, &recLeaseJobs{}
+	e.leases = &leasing.Service{Pool: pool, Render: leasing.Typst{}, Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}},
+		Bank: e.bank, Blob: e.blob, Jobs: e.leaseJob, Outbox: e.outbox, Mail: render, WebBaseURL: "http://web.test", Log: log}
 	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
-		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps}),
+		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps, Leases: e.leases}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e
@@ -262,6 +282,22 @@ func (e *env) call(method, path, token string, body any, out any) int {
 			e.t.Fatalf("%s %s: decode %q: %v", method, path, raw, err)
 		}
 	}
+	return res.StatusCode
+}
+
+// callRaw performs a request and returns the raw body.
+func (e *env) callRaw(method, path, token string, out *[]byte) int {
+	e.t.Helper()
+	req, _ := http.NewRequest(method, e.srv.URL+path, nil)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer res.Body.Close()
+	*out, _ = io.ReadAll(res.Body)
 	return res.StatusCode
 }
 
