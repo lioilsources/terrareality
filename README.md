@@ -33,6 +33,8 @@ Temporal UI http://localhost:8233, Mailpit http://localhost:8025.
 
 Mobile: `cd apps/mobile && flutter run` (iOS simulator reaches `localhost:8080`, Android emulator `10.0.2.2:8080`;
 override with `--dart-define=API_URL=...`).
+Live contract check of the Dart client against a running api:
+`cd apps/mobile && flutter test test/live_api_test.dart --dart-define=LIVE_API_URL=http://localhost:8080`.
 
 ## Everyday commands
 
