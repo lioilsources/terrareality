@@ -96,3 +96,18 @@ follows until decided otherwise.
 - **OQ-26 Market factor quality.** The median rent compares a lease with all listings in the
   municipality regardless of size. Use rent per m² once units carry floor areas consistently?
 
+
+## Promo and billing (M7)
+
+- **OQ-27 Revolut payment status.** Payment links are created in the landlord's own Revolut merchant
+  account, but their status is not synced back. Options: a Revolut webhook per connected merchant, or bank
+  matching (M6), which already sees the transfer on the landlord's account. Proposal: rely on bank
+  matching in the pilot and add the Revolut webhook in phase 2.
+- **OQ-28 Stale pending orders.** An order stays `pending` when the owner abandons checkout or the Stripe
+  session cannot be created. Proposal: a worker job marks orders pending longer than 24 h as `failed`
+  (Stripe sessions expire within 24 h anyway).
+- **OQ-29 Invoice language.** Invoices and the order's listing title are in Czech. Owners using English
+  get Czech documents. Proposal: a bilingual (cs/en) invoice template, keeping Czech as the binding text.
+- **OQ-30 Refunds and credit notes.** Refunds and opravný daňový doklad (§ 42 ZDPH) are not implemented.
+  Proposal: phase 2, issued manually from the backoffice (refund in Stripe, credit note in the same
+  numbering series, promotion ended).

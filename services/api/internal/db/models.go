@@ -93,6 +93,23 @@ type ApplicationConsent struct {
 	ConsentedAt   *time.Time `json:"consented_at"`
 }
 
+type AttributeSuggestion struct {
+	ID               uuid.UUID  `json:"id"`
+	Key              string     `json:"key"`
+	Type             string     `json:"type"`
+	GroupKey         string     `json:"group_key"`
+	Label            []byte     `json:"label"`
+	Options          []byte     `json:"options"`
+	ExampleListingID *uuid.UUID `json:"example_listing_id"`
+	Occurrences      int32      `json:"occurrences"`
+	Model            *string    `json:"model"`
+	Status           string     `json:"status"`
+	Note             *string    `json:"note"`
+	DecidedBy        *uuid.UUID `json:"decided_by"`
+	DecidedAt        *time.Time `json:"decided_at"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
 type AuditEvent struct {
 	ID             uuid.UUID   `json:"id"`
 	OccurredAt     time.Time   `json:"occurred_at"`
@@ -180,6 +197,14 @@ type ConversationRead struct {
 	ConversationID uuid.UUID `json:"conversation_id"`
 	UserID         uuid.UUID `json:"user_id"`
 	LastReadAt     time.Time `json:"last_read_at"`
+}
+
+type FeatureFlag struct {
+	Key         string     `json:"key"`
+	Enabled     bool       `json:"enabled"`
+	Description string     `json:"description"`
+	UpdatedBy   *uuid.UUID `json:"updated_by"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 type FilterSchema struct {
@@ -272,6 +297,30 @@ type Invitation struct {
 	AcceptedBy *uuid.UUID `json:"accepted_by"`
 	RevokedAt  *time.Time `json:"revoked_at"`
 	CreatedAt  time.Time  `json:"created_at"`
+}
+
+type Invoice struct {
+	ID              uuid.UUID   `json:"id"`
+	OrgID           uuid.UUID   `json:"org_id"`
+	OrderID         uuid.UUID   `json:"order_id"`
+	Number          string      `json:"number"`
+	IssuedOn        pgtype.Date `json:"issued_on"`
+	TaxableSupplyOn pgtype.Date `json:"taxable_supply_on"`
+	NetAmount       int64       `json:"net_amount"`
+	VatAmount       int64       `json:"vat_amount"`
+	GrossAmount     int64       `json:"gross_amount"`
+	Currency        string      `json:"currency"`
+	VatRateBp       int32       `json:"vat_rate_bp"`
+	Buyer           []byte      `json:"buyer"`
+	Supplier        []byte      `json:"supplier"`
+	PdfKey          *string     `json:"pdf_key"`
+	SentAt          *time.Time  `json:"sent_at"`
+	CreatedAt       time.Time   `json:"created_at"`
+}
+
+type InvoiceCounter struct {
+	Year int32 `json:"year"`
+	Last int32 `json:"last"`
 }
 
 type Jurisdiction struct {
@@ -453,6 +502,8 @@ type ListingSearch struct {
 	Tsv              interface{}     `json:"tsv"`
 	Embedding        pgvector.Vector `json:"embedding"`
 	PublishedAt      time.Time       `json:"published_at"`
+	BoostedUntil     *time.Time      `json:"boosted_until"`
+	HighlightedUntil *time.Time      `json:"highlighted_until"`
 }
 
 type ListingVersion struct {
@@ -582,6 +633,34 @@ type ObligationSplit struct {
 	PaidAmount   int64     `json:"paid_amount"`
 }
 
+type Order struct {
+	ID              uuid.UUID  `json:"id"`
+	OrgID           uuid.UUID  `json:"org_id"`
+	ListingID       uuid.UUID  `json:"listing_id"`
+	ProductID       uuid.UUID  `json:"product_id"`
+	Kind            string     `json:"kind"`
+	DurationDays    int32      `json:"duration_days"`
+	CreatedBy       *uuid.UUID `json:"created_by"`
+	Status          string     `json:"status"`
+	NetAmount       int64      `json:"net_amount"`
+	VatAmount       int64      `json:"vat_amount"`
+	GrossAmount     int64      `json:"gross_amount"`
+	Currency        string     `json:"currency"`
+	VatRateBp       int32      `json:"vat_rate_bp"`
+	StartsAt        time.Time  `json:"starts_at"`
+	StripeSessionID *string    `json:"stripe_session_id"`
+	CreatedAt       time.Time  `json:"created_at"`
+	PaidAt          *time.Time `json:"paid_at"`
+}
+
+type OrgRevolutAccount struct {
+	OrgID       uuid.UUID  `json:"org_id"`
+	ApiKeyEnc   []byte     `json:"api_key_enc"`
+	Mode        string     `json:"mode"`
+	ConnectedAt time.Time  `json:"connected_at"`
+	ConnectedBy *uuid.UUID `json:"connected_by"`
+}
+
 type Organization struct {
 	ID               uuid.UUID  `json:"id"`
 	Kind             string     `json:"kind"`
@@ -593,6 +672,22 @@ type Organization struct {
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	DeletedAt        *time.Time `json:"deleted_at"`
+}
+
+type PaymentLink struct {
+	ID         uuid.UUID  `json:"id"`
+	OrgID      uuid.UUID  `json:"org_id"`
+	LeaseID    uuid.UUID  `json:"lease_id"`
+	ShareID    uuid.UUID  `json:"share_id"`
+	Provider   string     `json:"provider"`
+	ExternalID string     `json:"external_id"`
+	Url        string     `json:"url"`
+	Amount     int64      `json:"amount"`
+	Currency   string     `json:"currency"`
+	Status     string     `json:"status"`
+	ExpiresAt  *time.Time `json:"expires_at"`
+	CreatedBy  *uuid.UUID `json:"created_by"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type PaymentObligation struct {
@@ -642,6 +737,31 @@ type PortfolioSummary struct {
 	Input     []byte     `json:"input"`
 	CreatedBy *uuid.UUID `json:"created_by"`
 	CreatedAt time.Time  `json:"created_at"`
+}
+
+type PromoProduct struct {
+	ID           uuid.UUID `json:"id"`
+	Code         string    `json:"code"`
+	Kind         string    `json:"kind"`
+	DurationDays int32     `json:"duration_days"`
+	NetAmount    int64     `json:"net_amount"`
+	Currency     string    `json:"currency"`
+	VatRateBp    int32     `json:"vat_rate_bp"`
+	Name         []byte    `json:"name"`
+	Active       bool      `json:"active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type Promotion struct {
+	ID        uuid.UUID `json:"id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	ListingID uuid.UUID `json:"listing_id"`
+	OrderID   uuid.UUID `json:"order_id"`
+	Kind      string    `json:"kind"`
+	StartsAt  time.Time `json:"starts_at"`
+	EndsAt    time.Time `json:"ends_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Property struct {
@@ -763,6 +883,12 @@ type Signature struct {
 	Evidence   []byte     `json:"evidence"`
 	SignedAt   *time.Time `json:"signed_at"`
 	CreatedAt  time.Time  `json:"created_at"`
+}
+
+type StripeEvent struct {
+	ID         string    `json:"id"`
+	Type       string    `json:"type"`
+	ReceivedAt time.Time `json:"received_at"`
 }
 
 type TenantGroup struct {

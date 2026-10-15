@@ -27,11 +27,23 @@ type NewOption struct {
 	Label catalog.I18n `json:"label"`
 }
 
+// NewAttribute is an attribute the model found that the catalog lacks. It is
+// queued for staff (attribute_suggestions); nothing changes the catalog
+// until a developer adds an approved one to packages/attributes (ADR 0003).
+type NewAttribute struct {
+	Key     string           `json:"key"`
+	Type    string           `json:"type"` // bool | int | enum | set
+	Group   string           `json:"group"`
+	Label   catalog.I18n     `json:"label"`
+	Options []catalog.Option `json:"options,omitempty"`
+}
+
 // ExtractResult holds suggested attribute values.
 type ExtractResult struct {
-	Values     map[string]any `json:"values"`
-	NewOptions []NewOption    `json:"new_options,omitempty"`
-	Model      string         `json:"model"`
+	Values        map[string]any `json:"values"`
+	NewOptions    []NewOption    `json:"new_options,omitempty"`
+	NewAttributes []NewAttribute `json:"new_attributes,omitempty"`
+	Model         string         `json:"model"`
 }
 
 // DraftRequest carries structured facts for a listing text.

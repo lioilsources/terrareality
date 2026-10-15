@@ -22,6 +22,7 @@ tags:
   - name: applications
   - name: leasing
   - name: portfolio
+  - name: billing
 security:
   - bearerAuth: []
 paths:
@@ -2677,6 +2678,347 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/LeaseRisk" }
         default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ billing
+  /v1/promo-products:
+    get:
+      tags: [billing]
+      operationId: listPromoProducts
+      summary: Active promotion products (topování, zvýraznění, balíček) with net, VAT and gross prices
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromoProductList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/promotions/checkout:
+    post:
+      tags: [billing]
+      operationId: createPromoCheckout
+      summary: Order a promotion of a listing; pay by card on the returned Stripe Checkout page
+      description: >-
+        The order stays pending until the signed Stripe webhook confirms the payment. Stripe collects only
+        the platform's own fee for promotion; rent never goes through the platform (ADR 0002).
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromoCheckoutInput" }
+      responses:
+        "201":
+          description: Pending order and the checkout page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromoCheckout" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/listings/{listingId}/promotions:
+    get:
+      tags: [billing]
+      operationId: listPromotions
+      summary: Paid promotion periods of a listing (running, scheduled and past)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ListingId" }
+      responses:
+        "200":
+          description: Promotions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromotionList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/orders:
+    get:
+      tags: [billing]
+      operationId: listOrders
+      summary: Promotion orders of the organization
+      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/orders/{orderId}:
+    get:
+      tags: [billing]
+      operationId: getOrder
+      summary: One order (the checkout success page polls it until paid)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/OrderId" }
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/invoices:
+    get:
+      tags: [billing]
+      operationId: listInvoices
+      summary: Invoices (daňové doklady) issued to the organization
+      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvoiceList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/invoices/{invoiceId}/pdf:
+    get:
+      tags: [billing]
+      operationId: getInvoicePdf
+      summary: The invoice as a PDF
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/InvoiceId" }
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/webhooks/stripe:
+    post:
+      security: []
+      tags: [billing]
+      operationId: stripeWebhook
+      summary: Stripe events (checkout.session.completed and friends); verified by the Stripe-Signature header
+      description: The raw body is needed to verify the signature, so it is accepted as bytes. Events are processed once.
+      parameters:
+        - { name: Stripe-Signature, in: header, required: false, description: "Checked by the handler; a missing header is rejected with 400.", schema: { type: string, maxLength: 2000 } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "204": { description: Accepted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/revolut:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [billing]
+      operationId: getRevolutAccount
+      summary: The landlord's own Revolut Business merchant account (connection state only, never the key)
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevolutAccount" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [billing]
+      operationId: putRevolutAccount
+      summary: Connect the landlord's Revolut Business merchant API key (stored encrypted)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevolutAccountInput" }
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RevolutAccount" }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [billing]
+      operationId: deleteRevolutAccount
+      summary: Disconnect the Revolut account
+      responses:
+        "204": { description: Disconnected }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/obligation-shares/{shareId}/payment-link:
+    parameters:
+      - { name: shareId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [billing]
+      operationId: getPaymentLink
+      summary: The latest valid payment link of a share (404 when none)
+      responses:
+        "200":
+          description: Payment link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentLink" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [billing]
+      operationId: createPaymentLink
+      summary: Card payment link in the landlord's own Revolut merchant account (money goes landlord-direct)
+      description: >-
+        For the share's party and members of the owning organization. 409 when the organization has no
+        Revolut account; 404 when the payments.revolut flag is off. The platform never holds the money (ADR 0002).
+      responses:
+        "201":
+          description: Payment link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentLink" }
+        default: { $ref: "#/components/responses/Problem" }
+  # ------------------------------------------------------------------ backoffice (M7)
+  /v1/backoffice/metrics:
+    get:
+      tags: [backoffice]
+      operationId: backofficeGetMetrics
+      summary: Platform metrics for the dashboard (staff)
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackofficeMetrics" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/feature-flags:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListFeatureFlags
+      summary: Feature flags with their source (database row or config default) (staff)
+      responses:
+        "200":
+          description: Flags
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureFlagList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/feature-flags/{key}:
+    put:
+      tags: [backoffice]
+      operationId: backofficeSetFeatureFlag
+      summary: Turn a feature flag on or off (staff, audited)
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string, pattern: '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$', maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeatureFlagInput" }
+      responses:
+        "200":
+          description: Flag
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureFlag" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/promo-products:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListPromoProducts
+      summary: The promotion catalog including inactive products (staff)
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromoProductList" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [backoffice]
+      operationId: backofficeCreatePromoProduct
+      summary: Add a promotion product (staff, audited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromoProductInput" }
+      responses:
+        "201":
+          description: Product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromoProduct" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/promo-products/{productId}:
+    patch:
+      tags: [backoffice]
+      operationId: backofficeUpdatePromoProduct
+      summary: Change price, duration, name or availability of a product (staff, audited)
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromoProductPatch" }
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PromoProduct" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/attribute-suggestions:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListAttributeSuggestions
+      summary: New attributes proposed by AI ingest, waiting for a staff decision (ADR 0003)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, approved, rejected], default: open } }
+      responses:
+        "200":
+          description: Suggestions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttributeSuggestionList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/attribute-suggestions/{suggestionId}/decision:
+    post:
+      tags: [backoffice]
+      operationId: backofficeDecideAttributeSuggestion
+      summary: Approve or reject an AI-proposed attribute (staff, audited)
+      description: >-
+        A human decides (ADR 0003). Approval only records who approved it, when and the note; it does not change
+        the attribute catalog, which a developer then extends in packages/attributes. A suggestion can be decided once.
+      parameters:
+        - { name: suggestionId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AttributeSuggestionDecision" }
+      responses:
+        "200":
+          description: Decided suggestion
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AttributeSuggestion" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/templates:
+    get:
+      tags: [backoffice]
+      operationId: backofficeListTemplates
+      summary: Contract templates bundled with this release and their legal review state (staff)
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContractTemplateList" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/backoffice/templates/{name}/preview:
+    get:
+      tags: [backoffice]
+      operationId: backofficePreviewTemplate
+      summary: Render a template with sample data as a PDF (staff)
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9_-]+$', maxLength: 100 } }
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -2694,6 +3036,8 @@ components:
       description: Cursor; return items with an id lower than this one.
       schema: { type: string, format: uuid }
     ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
+    OrderId: { name: orderId, in: path, required: true, schema: { type: string, format: uuid } }
+    InvoiceId: { name: invoiceId, in: path, required: true, schema: { type: string, format: uuid } }
     MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
     LeaseId: { name: leaseId, in: path, required: true, schema: { type: string, format: uuid } }
     PortfolioGroupId: { name: portfolioGroupId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -3471,7 +3815,7 @@ components:
         offset: { type: integer, minimum: 0, maximum: 10000 }
     ListingCard:
       type: object
-      required: [id, unit_kind, rent_amount, currency, title, city, lat, lng, published_at]
+      required: [id, unit_kind, rent_amount, currency, title, city, lat, lng, published_at, promoted, highlighted]
       properties:
         id: { type: string, format: uuid }
         unit_kind: { $ref: "#/components/schemas/UnitKind" }
@@ -3486,6 +3830,8 @@ components:
         lng: { type: number, format: double }
         cover_url: { type: string }
         published_at: { type: string, format: date-time }
+        promoted: { type: boolean, default: false, description: "Paid top placement running now; the card shows a transparent \"Promoted\" label." }
+        highlighted: { type: boolean, default: false, description: Paid visual highlight running now. }
     FacetCount:
       type: object
       required: [value, count]
@@ -4452,3 +4798,243 @@ components:
         actions: { type: array, items: { type: string } }
         model: { type: string }
         created_at: { type: string, format: date-time }
+    # --- billing (M7)
+    PromoProductKind:
+      type: string
+      enum: [top, highlight, bundle]
+      description: top = boost in search order (topování), highlight = visual highlight (zvýraznění), bundle = both.
+    PromoProduct:
+      type: object
+      required: [id, code, kind, duration_days, net_amount, vat_rate_bp, vat_amount, gross_amount, currency, name, active]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        kind: { $ref: "#/components/schemas/PromoProductKind" }
+        duration_days: { type: integer }
+        net_amount: { type: integer, format: int64, description: Net price in minor units. }
+        vat_rate_bp: { type: integer, description: "VAT rate in basis points (2100 = 21 %)." }
+        vat_amount: { type: integer, format: int64 }
+        gross_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        name: { $ref: "#/components/schemas/I18nText" }
+        active: { type: boolean }
+    PromoProductList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/PromoProduct" } }
+    PromoProductInput:
+      type: object
+      required: [code, kind, duration_days, net_amount, name]
+      properties:
+        code: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 60 }
+        kind: { $ref: "#/components/schemas/PromoProductKind" }
+        duration_days: { type: integer, minimum: 1, maximum: 365 }
+        net_amount: { type: integer, format: int64, minimum: 0 }
+        currency: { type: string, minLength: 3, maxLength: 3, default: CZK }
+        vat_rate_bp: { type: integer, minimum: 0, maximum: 10000, default: 2100 }
+        name: { $ref: "#/components/schemas/I18nText" }
+        active: { type: boolean, default: true }
+    PromoProductPatch:
+      type: object
+      properties:
+        net_amount: { type: integer, format: int64, minimum: 0 }
+        active: { type: boolean }
+        name: { $ref: "#/components/schemas/I18nText" }
+        duration_days: { type: integer, minimum: 1, maximum: 365 }
+    PromoCheckoutInput:
+      type: object
+      required: [product_code, success_url, cancel_url]
+      properties:
+        product_code: { type: string, maxLength: 60 }
+        starts_at: { type: string, format: date-time, description: Scheduled start; now when absent. }
+        success_url: { type: string, format: uri, maxLength: 500, description: Must be on the deployment allowlist. }
+        cancel_url: { type: string, format: uri, maxLength: 500, description: Must be on the deployment allowlist. }
+    PromoCheckout:
+      type: object
+      required: [order_id, checkout_url]
+      properties:
+        order_id: { type: string, format: uuid }
+        checkout_url: { type: string, format: uri }
+    Promotion:
+      type: object
+      required: [id, listing_id, kind, starts_at, ends_at, order_id, active]
+      properties:
+        id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        kind: { type: string, enum: [top, highlight] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        order_id: { type: string, format: uuid }
+        active: { type: boolean, description: Running right now. }
+    PromotionList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Promotion" } }
+    OrderStatus:
+      type: string
+      enum: [pending, paid, failed, canceled]
+    Order:
+      type: object
+      required: [id, listing_id, listing_title, product_code, status, net_amount, vat_amount, gross_amount, currency, starts_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        listing_title: { type: string, description: In the caller's locale. }
+        product_code: { type: string }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        net_amount: { type: integer, format: int64 }
+        vat_amount: { type: integer, format: int64 }
+        gross_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        starts_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        paid_at: { type: string, format: date-time }
+        invoice_id: { type: string, format: uuid }
+    OrderList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Order" } }
+    Invoice:
+      type: object
+      required: [id, number, order_id, issued_on, taxable_supply_on, net_amount, vat_amount, gross_amount, currency, vat_rate_bp]
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: string, description: "TR-YYYY-000001" }
+        order_id: { type: string, format: uuid }
+        issued_on: { type: string, format: date }
+        taxable_supply_on: { type: string, format: date, description: Datum uskutečnění zdanitelného plnění. }
+        net_amount: { type: integer, format: int64 }
+        vat_amount: { type: integer, format: int64 }
+        gross_amount: { type: integer, format: int64 }
+        currency: { type: string }
+        vat_rate_bp: { type: integer }
+        sent_at: { type: string, format: date-time }
+    InvoiceList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
+    RevolutMode:
+      type: string
+      enum: [sandbox, live]
+    RevolutAccount:
+      type: object
+      required: [connected]
+      properties:
+        connected: { type: boolean }
+        mode: { $ref: "#/components/schemas/RevolutMode" }
+        connected_at: { type: string, format: date-time }
+    RevolutAccountInput:
+      type: object
+      required: [api_key, mode]
+      properties:
+        api_key: { type: string, minLength: 10, maxLength: 500, description: "Merchant API secret key; stored encrypted, never returned." }
+        mode: { $ref: "#/components/schemas/RevolutMode" }
+    PaymentLink:
+      type: object
+      required: [id, share_id, provider, url, amount, currency, status, created_at]
+      description: A card payment order in the landlord's own merchant account; the money goes landlord-direct (ADR 0002).
+      properties:
+        id: { type: string, format: uuid }
+        share_id: { type: string, format: uuid }
+        provider: { type: string, enum: [revolut] }
+        url: { type: string, format: uri }
+        amount: { type: integer, format: int64 }
+        currency: { type: string }
+        status: { type: string, enum: [created, paid, expired] }
+        expires_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    # --- backoffice (M7)
+    Money:
+      type: object
+      required: [gross_amount, currency]
+      properties:
+        gross_amount: { type: integer, format: int64 }
+        currency: { type: string }
+    BackofficeMetrics:
+      type: object
+      required: [users, orgs, listings_published, listings_promoted, applications_30d, leases_signed_30d, moderation_open,
+        attribute_suggestions_open, revenue_30d, orders_paid_30d]
+      properties:
+        users: { type: integer, format: int64 }
+        orgs: { type: integer, format: int64 }
+        listings_published: { type: integer, format: int64 }
+        listings_promoted: { type: integer, format: int64 }
+        applications_30d: { type: integer, format: int64 }
+        leases_signed_30d: { type: integer, format: int64 }
+        moderation_open: { type: integer, format: int64, description: Open message moderation cases plus listing versions waiting for review. }
+        attribute_suggestions_open: { type: integer, format: int64 }
+        revenue_30d: { $ref: "#/components/schemas/Money" }
+        orders_paid_30d: { type: integer, format: int64 }
+    FeatureFlag:
+      type: object
+      required: [key, enabled, description, source]
+      properties:
+        key: { type: string }
+        enabled: { type: boolean }
+        description: { type: string }
+        source: { type: string, enum: [db, default] }
+        updated_at: { type: string, format: date-time }
+    FeatureFlagList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/FeatureFlag" } }
+    FeatureFlagInput:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+        description: { type: string, maxLength: 500 }
+    AttributeSuggestion:
+      type: object
+      required: [id, key, type, group_key, label, options, occurrences, status, created_at]
+      description: An attribute the catalog does not have yet, proposed by AI ingest (a suggestion, ADR 0003).
+      properties:
+        id: { type: string, format: uuid }
+        key: { type: string }
+        type: { type: string, enum: [bool, int, range, enum, set, text] }
+        group_key: { type: string }
+        label: { $ref: "#/components/schemas/I18nText" }
+        options:
+          type: array
+          items:
+            type: object
+            required: [value, label]
+            properties:
+              value: { type: string }
+              label: { $ref: "#/components/schemas/I18nText" }
+        example_listing_id: { type: string, format: uuid }
+        occurrences: { type: integer }
+        model: { type: string }
+        status: { type: string, enum: [open, approved, rejected] }
+        note: { type: string }
+        decided_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    AttributeSuggestionList:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AttributeSuggestion" } }
+    AttributeSuggestionDecision:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve, reject] }
+        note: { type: string, maxLength: 2000 }
+    ContractTemplate:
+      type: object
+      required: [name, title, reviewed]
+      properties:
+        name: { type: string }
+        title: { type: string }
+        reviewed: { type: boolean, description: Reviewed by a lawyer for this version. }
+    ContractTemplateList:
+      type: object
+      required: [version, items]
+      properties:
+        version: { type: string }
+        items: { type: array, items: { $ref: "#/components/schemas/ContractTemplate" } }

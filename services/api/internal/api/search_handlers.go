@@ -70,7 +70,8 @@ func (s *Server) runSearch(ctx context.Context, q search.Query) (gen.SearchResul
 func (s *Server) card(c search.Card) gen.ListingCard {
 	out := gen.ListingCard{Id: c.ListingID, UnitKind: gen.UnitKind(c.UnitKind), Layout: c.Layout, RentAmount: c.RentAmount,
 		Currency: c.Currency, FloorArea: c.FloorArea, Title: gen.I18nText{Cs: c.Title["cs"], En: c.Title["en"]},
-		City: c.City, CityPart: c.CityPart, Lat: c.Lat, Lng: c.Lng, PublishedAt: c.PublishedAt}
+		City: c.City, CityPart: c.CityPart, Lat: c.Lat, Lng: c.Lng, PublishedAt: c.PublishedAt,
+		Promoted: c.Promoted, Highlighted: c.Highlighted}
 	if c.CoverKey != nil {
 		u := s.Listings.PhotoURLs(*c.CoverKey, c.CoverOrientation)["thumb"]
 		out.CoverUrl = &u

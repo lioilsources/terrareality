@@ -813,18 +813,25 @@ func (q *Queries) UpsertAdminUnit(ctx context.Context, arg UpsertAdminUnitParams
 const upsertListingSearch = `-- name: UpsertListingSearch :exec
 
 INSERT INTO listing_search (listing_id, org_id, version, unit_kind, layout, rent_amount, currency, deposit_amount,
-  floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at)
+  floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at,
+  boosted_until, highlighted_until)
 VALUES ($1, $2, $3, $4, $5,
   $6, $7, $8, $9::numeric,
   $10, $11,
   ST_SetSRID(ST_MakePoint($12::float8, $13::float8), 4326)::geography,
   $14::text::ltree, $15, $16, $17,
-  $18, to_tsvector('simple', lower(unaccent($19::text))), $20)
+  $18, to_tsvector('simple', lower(unaccent($19::text))), $20,
+  -- Promotion windows (M7) survive re-indexing and unpublish/republish.
+  (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = $1 AND p.kind = 'top'
+    AND p.starts_at <= now() AND p.ends_at > now()),
+  (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = $1 AND p.kind = 'highlight'
+    AND p.starts_at <= now() AND p.ends_at > now()))
 ON CONFLICT (listing_id) DO UPDATE SET version = EXCLUDED.version, unit_kind = EXCLUDED.unit_kind, layout = EXCLUDED.layout,
   rent_amount = EXCLUDED.rent_amount, currency = EXCLUDED.currency, deposit_amount = EXCLUDED.deposit_amount,
   floor_area = EXCLUDED.floor_area, attributes = EXCLUDED.attributes, title = EXCLUDED.title, location = EXCLUDED.location,
   admin_path = EXCLUDED.admin_path, city = EXCLUDED.city, city_part = EXCLUDED.city_part, cover_key = EXCLUDED.cover_key,
-  cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at
+  cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at,
+  boosted_until = EXCLUDED.boosted_until, highlighted_until = EXCLUDED.highlighted_until
 `
 
 type UpsertListingSearchParams struct {

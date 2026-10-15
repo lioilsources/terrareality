@@ -95,6 +95,19 @@ type Config struct {
 	BankProvider      string // mock | gocardless
 	GoCardlessID      string
 	GoCardlessKey     string
+
+	// Billing (M7): Stripe for platform services only (ADR 0002), Revolut
+	// Business merchant links landlord-direct, supplier data for invoices.
+	StripeMode          string // mock | live (default mock without STRIPE_SECRET_KEY; never mock in prod)
+	StripeSecretKey     string
+	StripeWebhookSecret string
+	RevolutMode         string // mock | live (default mock in dev/test)
+	RevolutAPIURL       string // Merchant API base (sandbox by default)
+	PlatformLegalName   string
+	PlatformICO         string
+	PlatformDIC         string
+	PlatformAddress     string
+	PlatformIBAN        string
 }
 
 // Flag reports whether a feature flag is on.
@@ -179,8 +192,28 @@ func Load() (Config, error) {
 		bankDefault = "gocardless"
 	}
 	c.BankProvider = get("BANK_PROVIDER", bankDefault)
-	// Feature flags: comma list, "-name" turns a default off.
-	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false, "ai.moderation": true, "ai.applications": true}
+	c.StripeSecretKey = get("STRIPE_SECRET_KEY", "")
+	c.StripeWebhookSecret = get("STRIPE_WEBHOOK_SECRET", "whsec_dev")
+	stripeDefault := "mock"
+	if c.StripeSecretKey != "" {
+		stripeDefault = "live"
+	}
+	c.StripeMode = get("STRIPE_MODE", stripeDefault)
+	revolutDefault := "live"
+	if devLike {
+		revolutDefault = "mock"
+	}
+	c.RevolutMode = get("REVOLUT_MODE", revolutDefault)
+	c.RevolutAPIURL = get("REVOLUT_API_URL", "https://sandbox-merchant.revolut.com")
+	c.PlatformLegalName = get("PLATFORM_LEGAL_NAME", "TerraReality s.r.o. (dev)")
+	c.PlatformICO = get("PLATFORM_ICO", "00000000")
+	c.PlatformDIC = get("PLATFORM_DIC", "CZ00000000")
+	c.PlatformAddress = get("PLATFORM_ADDRESS", "Václavské náměstí 1, 110 00 Praha 1")
+	c.PlatformIBAN = get("PLATFORM_IBAN", "CZ6508000000192000145399")
+	// Feature flag defaults: comma list, "-name" turns a default off. Rows in
+	// the feature_flags table (backoffice) override these (internal/flags).
+	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false, "ai.moderation": true, "ai.applications": true,
+		"payments.revolut": devLike} // on in dev/test; staging/prod switch it on in the backoffice
 	for _, f := range splitList(get("FEATURE_FLAGS", "")) {
 		if strings.HasPrefix(f, "-") {
 			c.Flags[f[1:]] = false
@@ -220,6 +253,21 @@ func Load() (Config, error) {
 	}
 	if c.BankProvider == "mock" && c.Env == "prod" {
 		return c, fmt.Errorf("BANK_PROVIDER=mock is not allowed in prod")
+	}
+	if c.StripeMode != "mock" && c.StripeMode != "live" {
+		return c, fmt.Errorf("STRIPE_MODE must be mock|live, got %q", c.StripeMode)
+	}
+	if c.Env == "prod" && (c.StripeMode == "mock" || c.StripeSecretKey == "") {
+		return c, fmt.Errorf("STRIPE_SECRET_KEY is required in prod (STRIPE_MODE=mock is not allowed)")
+	}
+	if c.StripeMode == "live" && (c.StripeSecretKey == "" || c.StripeWebhookSecret == "" || c.StripeWebhookSecret == "whsec_dev") && !devLike {
+		return c, fmt.Errorf("STRIPE_MODE=live needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET")
+	}
+	if c.RevolutMode != "mock" && c.RevolutMode != "live" {
+		return c, fmt.Errorf("REVOLUT_MODE must be mock|live, got %q", c.RevolutMode)
+	}
+	if c.RevolutMode == "mock" && c.Env == "prod" {
+		return c, fmt.Errorf("REVOLUT_MODE=mock is not allowed in prod")
 	}
 	if c.MockIdP && !devLike && c.Env != "staging" {
 		return c, fmt.Errorf("MOCK_IDP is not allowed in %s", c.Env)

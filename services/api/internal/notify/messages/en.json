@@ -122,5 +122,9 @@
   "payment_escalation_landlord": {
     "subject": "Unpaid 7 days after due date: lease {{.Code}}",
     "text": "Hello,\n\nfor lease {{.Code}} ({{.Address}}), {{.Count}} payments due on {{.Due}} are still unpaid after 7 days. We sent the tenants a reminder.\n\nPayments:\n{{.Link}}\n\nIf a payment arrived but was not matched, confirm it manually."
+  },
+  "invoice_issued": {
+    "subject": "Invoice {{.Number}} for {{.Product}}",
+    "text": "Hello,\n\nthank you for paying {{.Amount}} for {{.Product}} on the listing “{{.Listing}}”. We issued the tax invoice {{.Number}} (paid by card).\n\nYour invoices are in the billing overview:\n{{.Link}}"
   }
 }

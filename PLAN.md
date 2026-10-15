@@ -2,14 +2,16 @@
 
 Plán a acceptance kritéria: `docs/02-plan.md`. Tento soubor říká, kde jsme a kde začít.
 
-| Milník                                 | Stav                  | Commit / PR                                                |
-| -------------------------------------- | --------------------- | ---------------------------------------------------------- |
-| M1–M5                                  | hotovo, v `main`      | PR #1–#5                                                   |
-| **M6 Leasing**                         | **hotovo, v `main`**  | merge `b9e01c9` (PR #6), poslední commit větve `01efa27`   |
-| **M6b Portfolio a riziko**             | hotovo, čeká na merge | PR #7, větev `m6b-portfolio`, commity `f02001f`, `17a3812` |
-| M7 Promo, billing, Revolut, backoffice | další na řadě         | –                                                          |
+| Milník                                     | Stav                 | Commit / PR                                              |
+| ------------------------------------------ | -------------------- | -------------------------------------------------------- |
+| M1–M5                                      | hotovo, v `main`     | PR #1–#5                                                 |
+| **M6 Leasing**                             | **hotovo, v `main`** | merge `b9e01c9` (PR #6), poslední commit větve `01efa27` |
+| **M6b Portfolio a riziko**                 | **hotovo, v `main`** | merge `f981a07` (PR #7)                                  |
+| **M7 Promo, billing, Revolut, backoffice** | hotovo, čeká na PR   | větev `m7-promo-billing`                                 |
+| M8 Flutter v0, produkce, launch            | další na řadě        | –                                                        |
 
 U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` lokálně i v CI.
+U M7 prošly lokálně `make test`, `make lint` a `make e2e` (18/18); CI poběží s PR.
 
 ## M6 – co se změnilo oproti plánu
 
@@ -40,6 +42,22 @@ U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` loká
 - **Shrnutí od AI:** bez nastaveného LLM se použije shrnutí z pravidel (`mock-rules`).
 - Detaily rozhodnutí jsou v ADR 0010.
 
+## M7 – co se změnilo oproti plánu
+
+- **Promo produkty** (`top_7d`, `top_30d`, `highlight_30d`, balíček) jsou globální katalog v `promo_products`, ceny bez DPH, DPH 21 % se počítá při objednávce.
+  - Objednávka si kopíruje cenu, typ a délku, takže pozdější úprava katalogu nemění koupené.
+  - Topování lze naplánovat (`starts_at`); job `promo_recompute` každých 5 min spouští a ukončuje okna.
+- **Vyhledávání:** topované inzeráty jsou první jen u výchozího řazení a relevance; explicitní řazení (cena, plocha, nejnovější) zůstává, štítek „Topováno“ se ukáže vždy.
+- **Stripe:** jediný zdroj pravdy o platbě je podepsaný webhook (`stripe_events` pro idempotenci). Zaplacení, propagace, přepočet search a faktura jsou jedna transakce.
+  - Hlavička `Stripe-Signature` je v kontraktu nepovinná (generátor u povinné vyráběl kód, který neprošel staticcheckem); chybějící podpis odmítne handler kódem 400.
+  - Návratové URL musí mít origin z `WEB_BASE_URL` nebo z `OIDC_REDIRECT_ALLOWLIST` (E2E běží na :4173).
+- **Faktury:** číslování `TR-YYYY-NNNNNN` bez mezer (`invoice_counters`), PDF přes Typst v jobu `invoice_delivery`. E-mail obsahuje odkaz na stránku fakturace, ne přílohu (outbox přílohy neumí, PDF vyžaduje přihlášení).
+- **Revolut:** majitel připojí vlastní Revolut Business merchant klíč (šifrovaný), platební odkaz vzniká na obligation share, peníze jdou přímo majiteli (ADR 0002). Flag `payments.revolut` (v dev zapnutý, staging/prod se zapíná v backoffice).
+- **Feature flagy** jsou v tabulce `feature_flags` s cache 30 s; výchozí hodnoty a `FEATURE_FLAGS` z configu zůstávají jako fallback. Změny jsou auditované.
+- **Backoffice:** dashboard metrik, flagy, ceník propagace, fronta AI návrhů nových atributů (`attribute_suggestions`; schválení jen označí návrh, katalog v `packages/attributes` mění vývojář – ADR 0003), přehled a náhled šablon smluv.
+- **SvelteKit 3:** přesměrování na platební stránku jiného originu potřebuje `redirect(303, url, { external: true })`.
+- Detaily rozhodnutí jsou v ADR 0011.
+
 ## Otevřené body
 
 - **Právní** (`docs/legal-questions.md`):
@@ -47,7 +65,8 @@ U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` loká
   - Q-LEASE-2 úroveň podpisu;
   - Q-LEASE-3 neměnný log vs. výmaz;
   - **Q-RISK-1** profilace a DPIA před ukázáním skóre mimo pilot;
-  - Q-STR-1/2 krátkodobé pobyty.
+  - Q-STR-1/2 krátkodobé pobyty;
+  - **Q-BILL-1..3** daňový doklad § 29 vs. zjednodušený, reverse charge/OSS pro EU kupce, souhlas s e-fakturou.
 - **Produktové** (`docs/open-questions.md`):
   - OQ-19 Bank iD SIGN;
   - OQ-20 poměrná část nájmu;
@@ -56,33 +75,31 @@ U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` loká
   - OQ-23 segment krátkodobých pobytů s úklidem (scope §5c.1);
   - OQ-24 úroky z prodlení a penále;
   - OQ-25 kalibrace vah a hranic pásem rizika;
-  - OQ-26 tržní faktor za m².
+  - OQ-26 tržní faktor za m²;
+  - OQ-27 stav platby Revolut (webhook vs. párování z banky);
+  - OQ-28 úklid nezaplacených objednávek;
+  - OQ-29 jazyk faktur;
+  - OQ-30 dobropisy a refundace.
 - **Technické:**
   - XLSX export používá novou závislost `github.com/xuri/excelize/v2`.
   - Dev data: smlouvy z dřívějších E2E běhů v dev DB se lokalizují až při přepočtu.
+  - M7: stav Revolut odkazu se nesynchronizuje (zůstává `created`); selhané vytvoření Stripe session nechá objednávku `pending`; `listing_title` u objednávky je vždy česky.
+  - M7: AI mock navrhuje nový atribut `sauna`, když text inzerátu obsahuje slovo „sauna“ (pro testy fronty návrhů).
 
-## Kde začít M7
+## Kde začít M8
 
-1. Mergnout PR #7. Pak `git checkout main && git pull && git checkout -b m7-promo-billing`.
-2. Přečíst sekci M7 v `docs/02-plan.md`. Acceptance:
-   - majitel zaplatí topování kartou, inzerát se posune výš, faktura přijde e-mailem;
-   - pro obligation vznikne odkaz Revolut (sandbox).
-3. První krok je kontrakt a schéma:
-   - doplnit `packages/contracts/openapi.yaml` (promo produkty, objednávky, faktury, Stripe webhook, Revolut odkaz na `obligation-shares/{id}`) a spustit `make gen`;
-   - migrace `services/api/migrations/00009_billing.sql`: `promo_products`, `promotions` (inzerát, typ, od–do), `orders`, `invoices`, `payment_links`, vše s RLS přes `app_user_org_ids()`.
-4. **Adaptéry vždy s mockem**, aby `make dev` fungovalo offline:
-   - `internal/billing` se `StripeClient` (Checkout + webhook se signaturou) a `MockStripe`;
-   - `RevolutMerchant` a `MockRevolut` pro odkaz na platbu nájmu jako druhou volbu po QR.
-   - Platforma dál nedrží peníze nájemců (ADR 0002). Stripe slouží jen k platbě za služby platformy.
-5. **Řazení ve vyhledávání:** topování napojit do `services/api/internal/search/query.go` (sestavení `ORDER BY`, ř. ~265). Topovaný výsledek musí mít transparentní štítek, `listing_search` potřebuje sloupec `boosted_until`.
-6. **Faktury:** PDF přes Typst (stejně jako smlouvy, `internal/leasing/render.go`), DPH CZ, e-mail přes outbox (`notify`).
-7. **Backoffice** je hotový zčásti v `apps/web/src/routes/(backoffice)/backoffice`: audit, filtry, moderace, recenze, uživatelé, impersonace.
-   - Chybí dashboard metrik, fronta AI návrhů atributů a správa šablon a katalogu.
-   - Feature flagy jsou zatím v `platform/config` (`Config.Flags`, ř. ~183). Přesunout je do tabulky s cache a editací v backoffice.
-8. Postup jako u předchozích milníků:
-   - E2E `apps/web/e2e/billing.e2e.ts` s mock Stripe a mock Revolut;
-   - integrační test v `services/api/internal/integration`;
-   - ADR 0011;
-   - na konci `make test lint gen-check e2e`, PR a CI.
+1. Otevřít PR z `m7-promo-billing`, počkat na CI a mergnout. Pak `git checkout main && git pull && git checkout -b m8-launch`.
+2. Přečíst sekci M8 v `docs/02-plan.md`. Acceptance:
+   - launch checklist v `docs/runbooks/launch.md` splněn;
+   - produkční E2E smoke test;
+   - restore ze zálohy ověřen.
+3. Pořadí práce:
+   - **Flutter:** hledání s mapou (maplibre_gl), chat, žádost, prohlídky, nájemní portál, push. Admin funkce zůstávají na webu. Pozor na `xcodebuild` (memory `terrareality-dev-env-quirks.md`), ověřovat přes `flutter test`.
+   - **Hetzner:** terraform (app + db VM, object storage, firewall, snapshoty), compose prod, Caddy TLS, WireGuard ke Sparku, pgBackRest (RPO 1 h) a restore test v runbooku.
+   - **Produkční konfigurace M7:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MODE=live`, `REVOLUT_MODE=live`, `PLATFORM_*` údaje dodavatele; prod bez Stripe klíče nenastartuje. Flag `payments.revolut` zapnout v backoffice.
+   - **Observabilita:** Grafana + Loki + Tempo, Sentry (web, Flutter), uptime, alerty na SLO.
+   - **Bezpečnost:** OWASP ASVS L2, CSP, dependency scan; penetrační test zajišťuje zákazník.
+   - **Právní:** podmínky, GDPR, DPA s partnery (včetně Stripe a Revolut), DSA kontaktní bod, cookie lišta; vyřešit Q-BILL-1..3 před ostrou fakturací.
+   - **Seed Praha:** adresy a hranice, onboarding 20 pilotních majitelů, Astro stránky.
 
 Pasti prostředí (staré procesy na :8080, `source .env` u ručně spuštěného API, migrace i na `terra_test`) jsou v memory `terrareality-dev-env-quirks.md`.

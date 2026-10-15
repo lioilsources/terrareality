@@ -84,6 +84,11 @@
 		<a href={localizeHref(`/admin/orgs/${l.org_id}/listings/${l.id}/otazky`)} class="text-sm"
 			>{m.msg_prescreen_edit()} ({l.prescreen.length})</a
 		>
+		<a
+			href={localizeHref(`/admin/orgs/${l.org_id}/listings/${l.id}/propagace`)}
+			class="text-sm"
+			data-testid="listing-promo-link">{m.billing_promo_title()}</a
+		>
 		<span class="rounded bg-[var(--border)]/60 px-3 py-1 text-sm" data-testid="listing-status"
 			>{statusLabel[l.status]()}{l.pending_review && l.status !== 'review'
 				? ` · ${m.pending_review()}`

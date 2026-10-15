@@ -2560,6 +2560,349 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/promo-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active promotion products (topování, zvýraznění, balíček) with net, VAT and gross prices */
+        get: operations["listPromoProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/promotions/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Order a promotion of a listing; pay by card on the returned Stripe Checkout page
+         * @description The order stays pending until the signed Stripe webhook confirms the payment. Stripe collects only the platform's own fee for promotion; rent never goes through the platform (ADR 0002).
+         */
+        post: operations["createPromoCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/listings/{listingId}/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paid promotion periods of a listing (running, scheduled and past) */
+        get: operations["listPromotions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Promotion orders of the organization */
+        get: operations["listOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One order (the checkout success page polls it until paid) */
+        get: operations["getOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoices (daňové doklady) issued to the organization */
+        get: operations["listInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/invoices/{invoiceId}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The invoice as a PDF */
+        get: operations["getInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe events (checkout.session.completed and friends); verified by the Stripe-Signature header
+         * @description The raw body is needed to verify the signature, so it is accepted as bytes. Events are processed once.
+         */
+        post: operations["stripeWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/revolut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** The landlord's own Revolut Business merchant account (connection state only, never the key) */
+        get: operations["getRevolutAccount"];
+        /** Connect the landlord's Revolut Business merchant API key (stored encrypted) */
+        put: operations["putRevolutAccount"];
+        post?: never;
+        /** Disconnect the Revolut account */
+        delete: operations["deleteRevolutAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/obligation-shares/{shareId}/payment-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        /** The latest valid payment link of a share (404 when none) */
+        get: operations["getPaymentLink"];
+        put?: never;
+        /**
+         * Card payment link in the landlord's own Revolut merchant account (money goes landlord-direct)
+         * @description For the share's party and members of the owning organization. 409 when the organization has no Revolut account; 404 when the payments.revolut flag is off. The platform never holds the money (ADR 0002).
+         */
+        post: operations["createPaymentLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Platform metrics for the dashboard (staff) */
+        get: operations["backofficeGetMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/feature-flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feature flags with their source (database row or config default) (staff) */
+        get: operations["backofficeListFeatureFlags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/feature-flags/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn a feature flag on or off (staff, audited) */
+        put: operations["backofficeSetFeatureFlag"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/promo-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The promotion catalog including inactive products (staff) */
+        get: operations["backofficeListPromoProducts"];
+        put?: never;
+        /** Add a promotion product (staff, audited) */
+        post: operations["backofficeCreatePromoProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/promo-products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change price, duration, name or availability of a product (staff, audited) */
+        patch: operations["backofficeUpdatePromoProduct"];
+        trace?: never;
+    };
+    "/v1/backoffice/attribute-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** New attributes proposed by AI ingest, waiting for a staff decision (ADR 0003) */
+        get: operations["backofficeListAttributeSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/attribute-suggestions/{suggestionId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject an AI-proposed attribute (staff, audited)
+         * @description A human decides (ADR 0003). Approval only records who approved it, when and the note; it does not change the attribute catalog, which a developer then extends in packages/attributes. A suggestion can be decided once.
+         */
+        post: operations["backofficeDecideAttributeSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract templates bundled with this release and their legal review state (staff) */
+        get: operations["backofficeListTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/templates/{name}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Render a template with sample data as a PDF (staff) */
+        get: operations["backofficePreviewTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3304,6 +3647,16 @@ export interface components {
             cover_url?: string;
             /** Format: date-time */
             published_at: string;
+            /**
+             * @description Paid top placement running now; the card shows a transparent "Promoted" label.
+             * @default false
+             */
+            promoted: boolean;
+            /**
+             * @description Paid visual highlight running now.
+             * @default false
+             */
+            highlighted: boolean;
         };
         FacetCount: {
             value: string;
@@ -4377,6 +4730,278 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        /**
+         * @description top = boost in search order (topování), highlight = visual highlight (zvýraznění), bundle = both.
+         * @enum {string}
+         */
+        PromoProductKind: "top" | "highlight" | "bundle";
+        PromoProduct: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            kind: components["schemas"]["PromoProductKind"];
+            duration_days: number;
+            /**
+             * Format: int64
+             * @description Net price in minor units.
+             */
+            net_amount: number;
+            /** @description VAT rate in basis points (2100 = 21 %). */
+            vat_rate_bp: number;
+            /** Format: int64 */
+            vat_amount: number;
+            /** Format: int64 */
+            gross_amount: number;
+            currency: string;
+            name: components["schemas"]["I18nText"];
+            active: boolean;
+        };
+        PromoProductList: {
+            items: components["schemas"]["PromoProduct"][];
+        };
+        PromoProductInput: {
+            code: string;
+            kind: components["schemas"]["PromoProductKind"];
+            duration_days: number;
+            /** Format: int64 */
+            net_amount: number;
+            /** @default CZK */
+            currency: string;
+            /** @default 2100 */
+            vat_rate_bp: number;
+            name: components["schemas"]["I18nText"];
+            /** @default true */
+            active: boolean;
+        };
+        PromoProductPatch: {
+            /** Format: int64 */
+            net_amount?: number;
+            active?: boolean;
+            name?: components["schemas"]["I18nText"];
+            duration_days?: number;
+        };
+        PromoCheckoutInput: {
+            product_code: string;
+            /**
+             * Format: date-time
+             * @description Scheduled start; now when absent.
+             */
+            starts_at?: string;
+            /**
+             * Format: uri
+             * @description Must be on the deployment allowlist.
+             */
+            success_url: string;
+            /**
+             * Format: uri
+             * @description Must be on the deployment allowlist.
+             */
+            cancel_url: string;
+        };
+        PromoCheckout: {
+            /** Format: uuid */
+            order_id: string;
+            /** Format: uri */
+            checkout_url: string;
+        };
+        Promotion: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            listing_id: string;
+            /** @enum {string} */
+            kind: "top" | "highlight";
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string;
+            /** Format: uuid */
+            order_id: string;
+            /** @description Running right now. */
+            active: boolean;
+        };
+        PromotionList: {
+            items: components["schemas"]["Promotion"][];
+        };
+        /** @enum {string} */
+        OrderStatus: "pending" | "paid" | "failed" | "canceled";
+        Order: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            listing_id: string;
+            /** @description In the caller's locale. */
+            listing_title: string;
+            product_code: string;
+            status: components["schemas"]["OrderStatus"];
+            /** Format: int64 */
+            net_amount: number;
+            /** Format: int64 */
+            vat_amount: number;
+            /** Format: int64 */
+            gross_amount: number;
+            currency: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            paid_at?: string;
+            /** Format: uuid */
+            invoice_id?: string;
+        };
+        OrderList: {
+            items: components["schemas"]["Order"][];
+        };
+        Invoice: {
+            /** Format: uuid */
+            id: string;
+            /** @description TR-YYYY-000001 */
+            number: string;
+            /** Format: uuid */
+            order_id: string;
+            /** Format: date */
+            issued_on: string;
+            /**
+             * Format: date
+             * @description Datum uskutečnění zdanitelného plnění.
+             */
+            taxable_supply_on: string;
+            /** Format: int64 */
+            net_amount: number;
+            /** Format: int64 */
+            vat_amount: number;
+            /** Format: int64 */
+            gross_amount: number;
+            currency: string;
+            vat_rate_bp: number;
+            /** Format: date-time */
+            sent_at?: string;
+        };
+        InvoiceList: {
+            items: components["schemas"]["Invoice"][];
+        };
+        /** @enum {string} */
+        RevolutMode: "sandbox" | "live";
+        RevolutAccount: {
+            connected: boolean;
+            mode?: components["schemas"]["RevolutMode"];
+            /** Format: date-time */
+            connected_at?: string;
+        };
+        RevolutAccountInput: {
+            /** @description Merchant API secret key; stored encrypted, never returned. */
+            api_key: string;
+            mode: components["schemas"]["RevolutMode"];
+        };
+        /** @description A card payment order in the landlord's own merchant account; the money goes landlord-direct (ADR 0002). */
+        PaymentLink: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            share_id: string;
+            /** @enum {string} */
+            provider: "revolut";
+            /** Format: uri */
+            url: string;
+            /** Format: int64 */
+            amount: number;
+            currency: string;
+            /** @enum {string} */
+            status: "created" | "paid" | "expired";
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Money: {
+            /** Format: int64 */
+            gross_amount: number;
+            currency: string;
+        };
+        BackofficeMetrics: {
+            /** Format: int64 */
+            users: number;
+            /** Format: int64 */
+            orgs: number;
+            /** Format: int64 */
+            listings_published: number;
+            /** Format: int64 */
+            listings_promoted: number;
+            /** Format: int64 */
+            applications_30d: number;
+            /** Format: int64 */
+            leases_signed_30d: number;
+            /**
+             * Format: int64
+             * @description Open message moderation cases plus listing versions waiting for review.
+             */
+            moderation_open: number;
+            /** Format: int64 */
+            attribute_suggestions_open: number;
+            revenue_30d: components["schemas"]["Money"];
+            /** Format: int64 */
+            orders_paid_30d: number;
+        };
+        FeatureFlag: {
+            key: string;
+            enabled: boolean;
+            description: string;
+            /** @enum {string} */
+            source: "db" | "default";
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        FeatureFlagList: {
+            items: components["schemas"]["FeatureFlag"][];
+        };
+        FeatureFlagInput: {
+            enabled: boolean;
+            description?: string;
+        };
+        /** @description An attribute the catalog does not have yet, proposed by AI ingest (a suggestion, ADR 0003). */
+        AttributeSuggestion: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            /** @enum {string} */
+            type: "bool" | "int" | "range" | "enum" | "set" | "text";
+            group_key: string;
+            label: components["schemas"]["I18nText"];
+            options: {
+                value: string;
+                label: components["schemas"]["I18nText"];
+            }[];
+            /** Format: uuid */
+            example_listing_id?: string;
+            occurrences: number;
+            model?: string;
+            /** @enum {string} */
+            status: "open" | "approved" | "rejected";
+            note?: string;
+            /** Format: date-time */
+            decided_at?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AttributeSuggestionList: {
+            items: components["schemas"]["AttributeSuggestion"][];
+        };
+        AttributeSuggestionDecision: {
+            /** @enum {string} */
+            decision: "approve" | "reject";
+            note?: string;
+        };
+        ContractTemplate: {
+            name: string;
+            title: string;
+            /** @description Reviewed by a lawyer for this version. */
+            reviewed: boolean;
+        };
+        ContractTemplateList: {
+            version: string;
+            items: components["schemas"]["ContractTemplate"][];
+        };
     };
     responses: {
         /** @description Error */
@@ -4432,6 +5057,8 @@ export interface components {
         /** @description Cursor; return items with an id lower than this one. */
         Before: string;
         ListingId: string;
+        OrderId: string;
+        InvoiceId: string;
         MediaId: string;
         LeaseId: string;
         PortfolioGroupId: string;
@@ -8573,6 +9200,552 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeaseRisk"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPromoProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoProductList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPromoCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoCheckoutInput"];
+            };
+        };
+        responses: {
+            /** @description Pending order and the checkout page */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCheckout"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPromotions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Promotions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invoices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                invoiceId: components["parameters"]["InvoiceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    stripeWebhook: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Checked by the handler; a missing header is rejected with 400. */
+                "Stripe-Signature"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRevolutAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevolutAccount"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    putRevolutAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevolutAccountInput"];
+            };
+        };
+        responses: {
+            /** @description Account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevolutAccount"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteRevolutAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLink"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPaymentLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment link */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLink"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeGetMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Metrics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackofficeMetrics"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListFeatureFlags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Flags */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlagList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeSetFeatureFlag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureFlagInput"];
+            };
+        };
+        responses: {
+            /** @description Flag */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureFlag"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListPromoProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoProductList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeCreatePromoProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoProductInput"];
+            };
+        };
+        responses: {
+            /** @description Product */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoProduct"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeUpdatePromoProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoProductPatch"];
+            };
+        };
+        responses: {
+            /** @description Product */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoProduct"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListAttributeSuggestions: {
+        parameters: {
+            query?: {
+                status?: "open" | "approved" | "rejected";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suggestions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributeSuggestionList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeDecideAttributeSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                suggestionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttributeSuggestionDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided suggestion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributeSuggestion"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficeListTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Templates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    backofficePreviewTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
             default: components["responses"]["Problem"];

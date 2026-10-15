@@ -19,7 +19,18 @@ import (
 type Summaries struct {
 	Pool    *pgxpool.Pool
 	AI      ai.Summarizer
-	Enabled bool // feature flag ai.applications
+	Enabled bool // feature flag ai.applications when Flags is nil (tests)
+	// Flags is the live flag store (backoffice-editable); it overrides Enabled.
+	Flags interface {
+		Enabled(ctx context.Context, key string) bool
+	}
+}
+
+func (s *Summaries) enabled(ctx context.Context) bool {
+	if s.Flags != nil {
+		return s.Flags.Enabled(ctx, "ai.applications")
+	}
+	return s.Enabled
 }
 
 type answer struct {
@@ -37,7 +48,7 @@ func (s *Summaries) Summarize(ctx context.Context, id uuid.UUID, final bool) err
 	if err != nil || a.AiStatus != "pending" {
 		return err
 	}
-	if !s.Enabled {
+	if !s.enabled(ctx) {
 		return q.SetApplicationAI(ctx, db.SetApplicationAIParams{ID: id, AiStatus: "disabled"})
 	}
 	people, err := q.ApplicationPeople(ctx, id)

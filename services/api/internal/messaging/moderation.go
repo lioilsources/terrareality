@@ -138,7 +138,18 @@ func orEmpty(b []byte) []byte {
 type Verdicts struct {
 	Pool    *pgxpool.Pool
 	AI      ai.Moderator
-	Enabled bool // feature flag ai.moderation
+	Enabled bool // feature flag ai.moderation when Flags is nil (tests)
+	// Flags is the live flag store (backoffice-editable); it overrides Enabled.
+	Flags interface {
+		Enabled(ctx context.Context, key string) bool
+	}
+}
+
+func (v *Verdicts) enabled(ctx context.Context) bool {
+	if v.Flags != nil {
+		return v.Flags.Enabled(ctx, "ai.moderation")
+	}
+	return v.Enabled
 }
 
 // Suggest stores a suggested verdict for a case. final marks the last retry:
@@ -152,7 +163,7 @@ func (v *Verdicts) Suggest(ctx context.Context, id uuid.UUID, final bool) error 
 	if err != nil || c.AiStatus != "pending" {
 		return err
 	}
-	if !v.Enabled {
+	if !v.enabled(ctx) {
 		return q.SetModerationAI(ctx, db.SetModerationAIParams{ID: id, AiStatus: "disabled"})
 	}
 	conv, err := q.GetConversation(ctx, c.ConversationID)

@@ -24,8 +24,10 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
+	"github.com/terrareality/terrareality/services/api/internal/billing"
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/flags"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
@@ -186,6 +188,9 @@ type env struct {
 	bank     *leasing.MockBank
 	leaseJob *recLeaseJobs
 	risk     *portfolio.Scorer
+	flags    *flags.Store
+	billing  *billing.Service
+	stripe   *billing.MockStripe
 }
 
 func newEnv(t *testing.T) *env {
@@ -252,11 +257,24 @@ func newEnv(t *testing.T) *env {
 	e.leases = &leasing.Service{Pool: pool, Render: leasing.Typst{}, Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}},
 		Bank: e.bank, Blob: e.blob, Jobs: e.leaseJob, Outbox: e.outbox, Mail: render, WebBaseURL: "http://web.test", Log: log}
 	e.risk = &portfolio.Scorer{Pool: pool}
+	// Flag defaults as in config; "test.m7_flag" exists only for the flag tests.
+	e.flags = flags.New(pool, map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true,
+		"ai.moderation": true, "ai.applications": true, "payments.revolut": true, "test.m7_flag": false})
 	folio := &portfolio.Service{Pool: pool, Scorer: e.risk, AI: ai.Mock{}}
-	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
+	// Billing: mock Stripe delivers its signed webhook in-process; invoices are
+	// delivered inline after commit (no job queue), so the e-mail lands in
+	// the memory outbox.
+	e.billing = &billing.Service{Pool: pool, Box: box, Blob: e.blob, Outbox: e.outbox, Mail: render,
+		Revolut: billing.NewMockRevolut(e.srv.URL), WebBaseURL: "http://web.test", Flags: e.flags, Log: log,
+		Supplier: billing.Party{Name: "TerraReality s.r.o.", ICO: "12345678", DIC: "CZ12345678", Address: "Praha"}}
+	e.stripe = billing.NewMockStripe(e.srv.URL, "whsec_test")
+	e.stripe.Deliver = e.billing.HandleWebhook
+	e.billing.Stripe = e.stripe
+	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000, Flags: e.flags,
 		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps, Leases: e.leases,
-		Portfolio: folio}),
-		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
+		Portfolio: folio, Billing: e.billing}),
+		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks),
+			MockStripe: e.stripe.Handler()})
 	mux.Handle("/", h)
 	return e
 }

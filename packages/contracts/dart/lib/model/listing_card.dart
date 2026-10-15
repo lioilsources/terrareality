@@ -26,6 +26,8 @@ class ListingCard {
     required this.lng,
     this.coverUrl,
     required this.publishedAt,
+    this.promoted = false,
+    this.highlighted = false,
   });
 
   String id;
@@ -78,6 +80,12 @@ class ListingCard {
 
   DateTime publishedAt;
 
+  /// Paid top placement running now; the card shows a transparent \"Promoted\" label.
+  bool promoted;
+
+  /// Paid visual highlight running now.
+  bool highlighted;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is ListingCard &&
     other.id == id &&
@@ -92,7 +100,9 @@ class ListingCard {
     other.lat == lat &&
     other.lng == lng &&
     other.coverUrl == coverUrl &&
-    other.publishedAt == publishedAt;
+    other.publishedAt == publishedAt &&
+    other.promoted == promoted &&
+    other.highlighted == highlighted;
 
   @override
   int get hashCode =>
@@ -109,10 +119,12 @@ class ListingCard {
     (lat.hashCode) +
     (lng.hashCode) +
     (coverUrl == null ? 0 : coverUrl!.hashCode) +
-    (publishedAt.hashCode);
+    (publishedAt.hashCode) +
+    (promoted.hashCode) +
+    (highlighted.hashCode);
 
   @override
-  String toString() => 'ListingCard[id=$id, unitKind=$unitKind, layout=$layout, rentAmount=$rentAmount, currency=$currency, floorArea=$floorArea, title=$title, city=$city, cityPart=$cityPart, lat=$lat, lng=$lng, coverUrl=$coverUrl, publishedAt=$publishedAt]';
+  String toString() => 'ListingCard[id=$id, unitKind=$unitKind, layout=$layout, rentAmount=$rentAmount, currency=$currency, floorArea=$floorArea, title=$title, city=$city, cityPart=$cityPart, lat=$lat, lng=$lng, coverUrl=$coverUrl, publishedAt=$publishedAt, promoted=$promoted, highlighted=$highlighted]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -145,6 +157,8 @@ class ListingCard {
       json[r'cover_url'] = null;
     }
       json[r'published_at'] = this.publishedAt.toUtc().toIso8601String();
+      json[r'promoted'] = this.promoted;
+      json[r'highlighted'] = this.highlighted;
     return json;
   }
 
@@ -180,6 +194,8 @@ class ListingCard {
         lng: mapValueOfType<double>(json, r'lng')!,
         coverUrl: mapValueOfType<String>(json, r'cover_url'),
         publishedAt: mapDateTime(json, r'published_at', r'')!,
+        promoted: mapValueOfType<bool>(json, r'promoted')!,
+        highlighted: mapValueOfType<bool>(json, r'highlighted')!,
       );
     }
     return null;
@@ -236,6 +252,8 @@ class ListingCard {
     'lat',
     'lng',
     'published_at',
+    'promoted',
+    'highlighted',
   };
 }
 

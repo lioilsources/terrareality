@@ -61,6 +61,7 @@ func run() error {
 	}
 
 	deps, err := app.Build(cfg, log)
+	fl := app.Flags(cfg, pool)
 	if err != nil {
 		return err
 	}
@@ -70,16 +71,18 @@ func run() error {
 	summaryW, reminderW := &jobs.ApplicationSummaryWorker{}, &jobs.ViewingReminderWorker{}
 	startLeaseW, bankSyncW := &jobs.StartLeaseWorker{Log: log, Enabled: cfg.TemporalAddress != ""}, &jobs.BankSyncWorker{}
 	riskW := &jobs.LeaseRiskWorker{Scorer: &portfolio.Scorer{Pool: pool}}
+	promoW, invoiceW := &jobs.PromoRecomputeWorker{}, &jobs.InvoiceDeliveryWorker{}
 	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
 		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW,
-		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW, LeaseRisk: riskW})
+		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW, LeaseRisk: riskW,
+		Promos: promoW, Invoices: invoiceW})
 	if err != nil {
 		return err
 	}
 	gdpr.Runner = &account.Service{Pool: pool, Box: deps.Box, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
 		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
 	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
-		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(cfg),
+		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(fl),
 		WebBaseURL: cfg.WebBaseURL, Search: search.Indexer{}}
 	mediaW.Runner, suggestW.Runner = listings, listings
 	digestW.Runner = &search.Digest{Engine: &search.Engine{Pool: pool}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
@@ -87,12 +90,14 @@ func run() error {
 	notifier := &messaging.Notifier{Pool: pool, RT: deps.RT, Pusher: deps.Pusher, Outbox: jobs.Outbox{Client: rc},
 		Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL, Log: log}
 	notifyW.Runner, msgDigestW.Runner = notifier, notifier
-	verdictW.Runner = &messaging.Verdicts{Pool: pool, AI: deps.Moderator(), Enabled: cfg.Flag("ai.moderation")}
-	summaryW.Runner = &applications.Summaries{Pool: pool, AI: deps.Summarizer(), Enabled: cfg.Flag("ai.applications")}
+	verdictW.Runner = &messaging.Verdicts{Pool: pool, AI: deps.Moderator(), Flags: fl}
+	summaryW.Runner = &applications.Summaries{Pool: pool, AI: deps.Summarizer(), Flags: fl}
 	reminderW.Runner = &applications.Reminders{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
 		Pusher: deps.Pusher, WebBaseURL: cfg.WebBaseURL}
 	leases, _ := app.Leasing(cfg, deps, pool, jobs.LeaseJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	bankSyncW.Syncer = leases
+	bill := app.Billing(cfg, deps, pool, fl, jobs.BillingJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
+	promoW.Runner, invoiceW.Runner = bill.Service, bill.Service
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}

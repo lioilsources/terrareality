@@ -122,5 +122,9 @@
   "payment_escalation_landlord": {
     "subject": "Nezaplaceno 7 dní po splatnosti: smlouva {{.Code}}",
     "text": "Dobrý den,\n\nu smlouvy {{.Code}} ({{.Address}}) zůstává po 7 dnech od splatnosti {{.Due}} nezaplaceno {{.Count}} plateb. Nájemcům jsme poslali upomínku.\n\nPřehled plateb:\n{{.Link}}\n\nPokud platba přišla a nespárovala se, potvrďte ji ručně."
+  },
+  "invoice_issued": {
+    "subject": "Faktura {{.Number}} za {{.Product}}",
+    "text": "Dobrý den,\n\nděkujeme za platbu {{.Amount}} za {{.Product}} k inzerátu „{{.Listing}}“. Vystavili jsme daňový doklad {{.Number}} (platba kartou, uhrazeno).\n\nFaktury najdete v přehledu fakturace:\n{{.Link}}"
   }
 }

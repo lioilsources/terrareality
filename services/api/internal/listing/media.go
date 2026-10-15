@@ -132,7 +132,7 @@ func (s *Service) ProcessMedia(ctx context.Context, mediaID uuid.UUID) error {
 		Width: &w, Height: &h, Orientation: int32(info.Orientation), AvStatus: status, ContentType: info.ContentType}); err != nil {
 		return err
 	}
-	if s.Flags.Vision && s.Vision.Enabled() && m.ListingID != nil {
+	if s.Flags.vision(ctx) && s.Vision.Enabled() && m.ListingID != nil {
 		// Vision failures never block the photo; the owner can still use it.
 		_ = s.analyzePhoto(ctx, q, m)
 	}
