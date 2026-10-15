@@ -106,7 +106,7 @@
 							<span class="text-sm text-[var(--muted)]"
 								>{c.region} · {m.pf_city_leases({
 									count: c.leases
-								})}{#if c.vacant}{' · '}{m.pf_city_vacant({
+								})}{#if c.vacant}<span> · </span>{m.pf_city_vacant({
 										count: c.vacant
 									})}{/if}</span
 							>
@@ -117,7 +117,7 @@
 								>{m.pf_this_month()}: {kc(c.received, locale)} / {kc(
 									c.expected,
 									locale
-								)}{#if c.debt}{' · '}{m.pf_debt()} {kc(c.debt, locale)}{/if}</span
+								)}{#if c.debt}<span> · </span>{m.pf_debt()} {kc(c.debt, locale)}{/if}</span
 							>
 						</li>
 					{/each}
@@ -227,7 +227,7 @@
 								<span>{a.label}</span>
 							{/if}
 							<span class="text-xs text-[var(--muted)]"
-								>{a.city}{#if a.date}{' · '}{fmtDate(a.date, locale)}{/if}</span
+								>{a.city}{#if a.date}<span> · </span>{fmtDate(a.date, locale)}{/if}</span
 							>
 						</li>
 					{/each}
