@@ -20,6 +20,7 @@ import (
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/jobs"
+	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/org"
@@ -89,6 +90,7 @@ func run() error {
 		Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL, Log: log}
 	apps := &applications.Service{Pool: pool, RT: deps.RT, Jobs: jobs.ApplicationJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc},
 		Render: deps.Renderer, Blob: deps.Blob, Scanner: deps.Scanner, ISIR: app.ISIR(cfg), WebBaseURL: cfg.WebBaseURL, Log: log}
+	leases, mockBank := app.Leasing(cfg, deps, pool, jobs.LeaseJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	chat := &search.Chat{Pool: pool, Model: "rules"}
 	if cfg.LLMBaseURL != "" {
 		chat.LLM, chat.Model = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel), cfg.LLMModel
@@ -123,9 +125,9 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
-				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP}),
+				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank)}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -162,4 +164,12 @@ func centrifugoHealth(apiURL string) string {
 		return apiURL[:len(apiURL)-len(suffix)] + "/health"
 	}
 	return apiURL + "/health"
+}
+
+// devBank exposes the mock bank's transaction injection in dev/test.
+func devBank(cfg config.Config, leases *leasing.Service, mock *leasing.MockBank) http.Handler {
+	if mock == nil || (cfg.Env != "dev" && cfg.Env != "test") {
+		return nil
+	}
+	return leases.DevBankHandler(mock)
 }

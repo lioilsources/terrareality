@@ -186,6 +186,72 @@ func (e AuthResultStatus) Valid() bool {
 	}
 }
 
+// Defines values for BankConnectionProvider.
+const (
+	BankConnectionProviderGocardless BankConnectionProvider = "gocardless"
+	BankConnectionProviderMock       BankConnectionProvider = "mock"
+)
+
+// Valid indicates whether the value is a known member of the BankConnectionProvider enum.
+func (e BankConnectionProvider) Valid() bool {
+	switch e {
+	case BankConnectionProviderGocardless:
+		return true
+	case BankConnectionProviderMock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BankConnectionStatus.
+const (
+	BankConnectionStatusError   BankConnectionStatus = "error"
+	BankConnectionStatusExpired BankConnectionStatus = "expired"
+	BankConnectionStatusLinked  BankConnectionStatus = "linked"
+	BankConnectionStatusPending BankConnectionStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the BankConnectionStatus enum.
+func (e BankConnectionStatus) Valid() bool {
+	switch e {
+	case BankConnectionStatusError:
+		return true
+	case BankConnectionStatusExpired:
+		return true
+	case BankConnectionStatusLinked:
+		return true
+	case BankConnectionStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BankTransactionMatchStatus.
+const (
+	BankTransactionMatchStatusIgnored   BankTransactionMatchStatus = "ignored"
+	BankTransactionMatchStatusMatched   BankTransactionMatchStatus = "matched"
+	BankTransactionMatchStatusSuggested BankTransactionMatchStatus = "suggested"
+	BankTransactionMatchStatusUnmatched BankTransactionMatchStatus = "unmatched"
+)
+
+// Valid indicates whether the value is a known member of the BankTransactionMatchStatus enum.
+func (e BankTransactionMatchStatus) Valid() bool {
+	switch e {
+	case BankTransactionMatchStatusIgnored:
+		return true
+	case BankTransactionMatchStatusMatched:
+		return true
+	case BankTransactionMatchStatusSuggested:
+		return true
+	case BankTransactionMatchStatusUnmatched:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientKind.
 const (
 	Mobile ClientKind = "mobile"
@@ -432,6 +498,201 @@ func (e InvitationPreviewStatus) Valid() bool {
 	case InvitationPreviewStatusOpen:
 		return true
 	case InvitationPreviewStatusRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeaseDocumentKind.
+const (
+	LeaseDocumentKindDraft    LeaseDocumentKind = "draft"
+	LeaseDocumentKindEvidence LeaseDocumentKind = "evidence"
+	LeaseDocumentKindFinal    LeaseDocumentKind = "final"
+	LeaseDocumentKindScan     LeaseDocumentKind = "scan"
+	LeaseDocumentKindSigned   LeaseDocumentKind = "signed"
+)
+
+// Valid indicates whether the value is a known member of the LeaseDocumentKind enum.
+func (e LeaseDocumentKind) Valid() bool {
+	switch e {
+	case LeaseDocumentKindDraft:
+		return true
+	case LeaseDocumentKindEvidence:
+		return true
+	case LeaseDocumentKindFinal:
+		return true
+	case LeaseDocumentKindScan:
+		return true
+	case LeaseDocumentKindSigned:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeaseInputClauses.
+const (
+	EarlyTermination LeaseInputClauses = "early_termination"
+	Indexation       LeaseInputClauses = "indexation"
+	Inventory        LeaseInputClauses = "inventory"
+	NoSmoking        LeaseInputClauses = "no_smoking"
+	PetsAllowed      LeaseInputClauses = "pets_allowed"
+	SubletForbidden  LeaseInputClauses = "sublet_forbidden"
+)
+
+// Valid indicates whether the value is a known member of the LeaseInputClauses enum.
+func (e LeaseInputClauses) Valid() bool {
+	switch e {
+	case EarlyTermination:
+		return true
+	case Indexation:
+		return true
+	case Inventory:
+		return true
+	case NoSmoking:
+		return true
+	case PetsAllowed:
+		return true
+	case SubletForbidden:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeasePartyRole.
+const (
+	LeasePartyRoleCoTenant  LeasePartyRole = "co_tenant"
+	LeasePartyRoleGuarantor LeasePartyRole = "guarantor"
+	LeasePartyRoleLandlord  LeasePartyRole = "landlord"
+	LeasePartyRoleSubtenant LeasePartyRole = "subtenant"
+	LeasePartyRoleTenant    LeasePartyRole = "tenant"
+)
+
+// Valid indicates whether the value is a known member of the LeasePartyRole enum.
+func (e LeasePartyRole) Valid() bool {
+	switch e {
+	case LeasePartyRoleCoTenant:
+		return true
+	case LeasePartyRoleGuarantor:
+		return true
+	case LeasePartyRoleLandlord:
+		return true
+	case LeasePartyRoleSubtenant:
+		return true
+	case LeasePartyRoleTenant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeasePartyInputRole.
+const (
+	LeasePartyInputRoleCoTenant  LeasePartyInputRole = "co_tenant"
+	LeasePartyInputRoleGuarantor LeasePartyInputRole = "guarantor"
+	LeasePartyInputRoleSubtenant LeasePartyInputRole = "subtenant"
+	LeasePartyInputRoleTenant    LeasePartyInputRole = "tenant"
+)
+
+// Valid indicates whether the value is a known member of the LeasePartyInputRole enum.
+func (e LeasePartyInputRole) Valid() bool {
+	switch e {
+	case LeasePartyInputRoleCoTenant:
+		return true
+	case LeasePartyInputRoleGuarantor:
+		return true
+	case LeasePartyInputRoleSubtenant:
+		return true
+	case LeasePartyInputRoleTenant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeaseState.
+const (
+	LeaseStateActive      LeaseState = "active"
+	LeaseStateCancelled   LeaseState = "cancelled"
+	LeaseStateDraft       LeaseState = "draft"
+	LeaseStateNegotiating LeaseState = "negotiating"
+	LeaseStateNoticeGiven LeaseState = "notice_given"
+	LeaseStateProposed    LeaseState = "proposed"
+	LeaseStateSettled     LeaseState = "settled"
+	LeaseStateSigned      LeaseState = "signed"
+	LeaseStateTerminated  LeaseState = "terminated"
+)
+
+// Valid indicates whether the value is a known member of the LeaseState enum.
+func (e LeaseState) Valid() bool {
+	switch e {
+	case LeaseStateActive:
+		return true
+	case LeaseStateCancelled:
+		return true
+	case LeaseStateDraft:
+		return true
+	case LeaseStateNegotiating:
+		return true
+	case LeaseStateNoticeGiven:
+		return true
+	case LeaseStateProposed:
+		return true
+	case LeaseStateSettled:
+		return true
+	case LeaseStateSigned:
+		return true
+	case LeaseStateTerminated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeaseTemplate.
+const (
+	BytDobaNeurcita LeaseTemplate = "byt_doba_neurcita"
+	BytDobaUrcita   LeaseTemplate = "byt_doba_urcita"
+	Pokoj           LeaseTemplate = "pokoj"
+	SpolecnyNajem   LeaseTemplate = "spolecny_najem"
+)
+
+// Valid indicates whether the value is a known member of the LeaseTemplate enum.
+func (e LeaseTemplate) Valid() bool {
+	switch e {
+	case BytDobaNeurcita:
+		return true
+	case BytDobaUrcita:
+		return true
+	case Pokoj:
+		return true
+	case SpolecnyNajem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerEntryAccount.
+const (
+	Cash        LedgerEntryAccount = "cash"
+	DepositHeld LedgerEntryAccount = "deposit_held"
+	Income      LedgerEntryAccount = "income"
+	Receivable  LedgerEntryAccount = "receivable"
+)
+
+// Valid indicates whether the value is a known member of the LedgerEntryAccount enum.
+func (e LedgerEntryAccount) Valid() bool {
+	switch e {
+	case Cash:
+		return true
+	case DepositHeld:
+		return true
+	case Income:
+		return true
+	case Receivable:
 		return true
 	default:
 		return false
@@ -717,6 +978,51 @@ func (e NotificationPreferencesEmailMessages) Valid() bool {
 	case Instant:
 		return true
 	case Off:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ObligationShareKind.
+const (
+	Deposit  ObligationShareKind = "deposit"
+	Oneoff   ObligationShareKind = "oneoff"
+	Rent     ObligationShareKind = "rent"
+	Services ObligationShareKind = "services"
+)
+
+// Valid indicates whether the value is a known member of the ObligationShareKind enum.
+func (e ObligationShareKind) Valid() bool {
+	switch e {
+	case Deposit:
+		return true
+	case Oneoff:
+		return true
+	case Rent:
+		return true
+	case Services:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ObligationShareStatus.
+const (
+	ObligationShareStatusCancelled ObligationShareStatus = "cancelled"
+	ObligationShareStatusOpen      ObligationShareStatus = "open"
+	ObligationShareStatusPaid      ObligationShareStatus = "paid"
+)
+
+// Valid indicates whether the value is a known member of the ObligationShareStatus enum.
+func (e ObligationShareStatus) Valid() bool {
+	switch e {
+	case ObligationShareStatusCancelled:
+		return true
+	case ObligationShareStatusOpen:
+		return true
+	case ObligationShareStatusPaid:
 		return true
 	default:
 		return false
@@ -1278,6 +1584,42 @@ func (e CreateAttachmentUploadJSONBodyContentType) Valid() bool {
 	}
 }
 
+// Defines values for GetLeaseLedgerParamsFormat.
+const (
+	Csv  GetLeaseLedgerParamsFormat = "csv"
+	Json GetLeaseLedgerParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the GetLeaseLedgerParamsFormat enum.
+func (e GetLeaseLedgerParamsFormat) Valid() bool {
+	switch e {
+	case Csv:
+		return true
+	case Json:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignLeaseJSONBodyProvider.
+const (
+	SignLeaseJSONBodyProviderBankidSign SignLeaseJSONBodyProvider = "bankid_sign"
+	SignLeaseJSONBodyProviderMock       SignLeaseJSONBodyProvider = "mock"
+)
+
+// Valid indicates whether the value is a known member of the SignLeaseJSONBodyProvider enum.
+func (e SignLeaseJSONBodyProvider) Valid() bool {
+	switch e {
+	case SignLeaseJSONBodyProviderBankidSign:
+		return true
+	case SignLeaseJSONBodyProviderMock:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateIncomeUploadJSONBodyContentType.
 const (
 	CreateIncomeUploadJSONBodyContentTypeApplicationpdf CreateIncomeUploadJSONBodyContentType = "application/pdf"
@@ -1314,6 +1656,30 @@ func (e DecideApplicationJSONBodyAction) Valid() bool {
 	case Invite:
 		return true
 	case Reject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetBankOverviewParamsStatus.
+const (
+	GetBankOverviewParamsStatusIgnored   GetBankOverviewParamsStatus = "ignored"
+	GetBankOverviewParamsStatusMatched   GetBankOverviewParamsStatus = "matched"
+	GetBankOverviewParamsStatusSuggested GetBankOverviewParamsStatus = "suggested"
+	GetBankOverviewParamsStatusUnmatched GetBankOverviewParamsStatus = "unmatched"
+)
+
+// Valid indicates whether the value is a known member of the GetBankOverviewParamsStatus enum.
+func (e GetBankOverviewParamsStatus) Valid() bool {
+	switch e {
+	case GetBankOverviewParamsStatusIgnored:
+		return true
+	case GetBankOverviewParamsStatusMatched:
+		return true
+	case GetBankOverviewParamsStatusSuggested:
+		return true
+	case GetBankOverviewParamsStatusUnmatched:
 		return true
 	default:
 		return false
@@ -1622,6 +1988,54 @@ type AuthResult struct {
 // AuthResultStatus defines model for AuthResult.Status.
 type AuthResultStatus string
 
+// BankConnection defines model for BankConnection.
+type BankConnection struct {
+	CreatedAt    time.Time              `json:"created_at"`
+	Iban         string                 `json:"iban"`
+	Id           openapi_types.UUID     `json:"id"`
+	LastSyncedAt *time.Time             `json:"last_synced_at,omitempty"`
+	Provider     BankConnectionProvider `json:"provider"`
+	Status       BankConnectionStatus   `json:"status"`
+}
+
+// BankConnectionProvider defines model for BankConnection.Provider.
+type BankConnectionProvider string
+
+// BankConnectionStatus defines model for BankConnection.Status.
+type BankConnectionStatus string
+
+// BankLink defines model for BankLink.
+type BankLink struct {
+	Connection BankConnection `json:"connection"`
+
+	// Link Open this URL to authorize access at the bank.
+	Link *string `json:"link,omitempty"`
+}
+
+// BankOverview defines model for BankOverview.
+type BankOverview struct {
+	Connections  []BankConnection  `json:"connections"`
+	Transactions []BankTransaction `json:"transactions"`
+}
+
+// BankTransaction defines model for BankTransaction.
+type BankTransaction struct {
+	Amount           int64                      `json:"amount"`
+	BookedOn         openapi_types.Date         `json:"booked_on"`
+	CounterpartyName string                     `json:"counterparty_name"`
+	Currency         string                     `json:"currency"`
+	Id               openapi_types.UUID         `json:"id"`
+	MatchNote        string                     `json:"match_note"`
+	MatchStatus      BankTransactionMatchStatus `json:"match_status"`
+	Remittance       string                     `json:"remittance"`
+	ShareId          *openapi_types.UUID        `json:"share_id,omitempty"`
+	SpecificSymbol   string                     `json:"specific_symbol"`
+	VariableSymbol   string                     `json:"variable_symbol"`
+}
+
+// BankTransactionMatchStatus defines model for BankTransaction.MatchStatus.
+type BankTransactionMatchStatus string
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	// CurrentPassword Required when the account already has a password.
@@ -1889,6 +2303,155 @@ type Jurisdiction struct {
 	Rules              map[string]interface{} `json:"rules"`
 	SignatureProvider  string                 `json:"signature_provider"`
 }
+
+// LeaseDetail defines model for LeaseDetail.
+type LeaseDetail struct {
+	ChangeRequest  *string         `json:"change_request,omitempty"`
+	Clauses        []string        `json:"clauses"`
+	DepositAmount  int64           `json:"deposit_amount"`
+	Documents      []LeaseDocument `json:"documents"`
+	DueDay         int             `json:"due_day"`
+	LandlordView   bool            `json:"landlord_view"`
+	Lease          LeaseSummary    `json:"lease"`
+	NoticeMonths   int             `json:"notice_months"`
+	Parties        []LeaseParty    `json:"parties"`
+	PayeeIban      string          `json:"payee_iban"`
+	PayeeName      string          `json:"payee_name"`
+	ServicesAmount int64           `json:"services_amount"`
+	TotalDebt      int64           `json:"total_debt"`
+}
+
+// LeaseDocument defines model for LeaseDocument.
+type LeaseDocument struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Filename  string             `json:"filename"`
+	Id        openapi_types.UUID `json:"id"`
+	Kind      LeaseDocumentKind  `json:"kind"`
+	Sha256    string             `json:"sha256"`
+	Url       string             `json:"url"`
+	Version   int                `json:"version"`
+}
+
+// LeaseDocumentKind defines model for LeaseDocument.Kind.
+type LeaseDocumentKind string
+
+// LeaseEvent defines model for LeaseEvent.
+type LeaseEvent struct {
+	CreatedAt time.Time              `json:"created_at"`
+	Hash      string                 `json:"hash"`
+	Kind      string                 `json:"kind"`
+	Payload   map[string]interface{} `json:"payload"`
+	PrevHash  string                 `json:"prev_hash"`
+	Seq       int                    `json:"seq"`
+}
+
+// LeaseEventLog defines model for LeaseEventLog.
+type LeaseEventLog struct {
+	Error  *string      `json:"error,omitempty"`
+	Events []LeaseEvent `json:"events"`
+
+	// Head Hash of the last event.
+	Head  string `json:"head"`
+	Valid bool   `json:"valid"`
+
+	// Verified Events that verified before the first break.
+	Verified int `json:"verified"`
+}
+
+// LeaseInput defines model for LeaseInput.
+type LeaseInput struct {
+	ApplicationId   *openapi_types.UUID  `json:"application_id,omitempty"`
+	Clauses         *[]LeaseInputClauses `json:"clauses,omitempty"`
+	DepositAmount   *int64               `json:"deposit_amount,omitempty"`
+	DueDay          *int                 `json:"due_day,omitempty"`
+	EndsOn          *openapi_types.Date  `json:"ends_on,omitempty"`
+	ListingId       *openapi_types.UUID  `json:"listing_id,omitempty"`
+	NoticeMonths    *int                 `json:"notice_months,omitempty"`
+	Parties         *[]LeasePartyInput   `json:"parties,omitempty"`
+	PayeeIban       string               `json:"payee_iban"`
+	PayeeName       string               `json:"payee_name"`
+	PropertyAddress *string              `json:"property_address,omitempty"`
+	RentAmount      int64                `json:"rent_amount"`
+	ServicesAmount  *int64               `json:"services_amount,omitempty"`
+	StartsOn        openapi_types.Date   `json:"starts_on"`
+	Template        LeaseTemplate        `json:"template"`
+	UnitLabel       *string              `json:"unit_label,omitempty"`
+}
+
+// LeaseInputClauses defines model for LeaseInput.Clauses.
+type LeaseInputClauses string
+
+// LeaseParty defines model for LeaseParty.
+type LeaseParty struct {
+	// Debt Due and unpaid amount today.
+	Debt  *int64             `json:"debt,omitempty"`
+	Email *string            `json:"email,omitempty"`
+	Id    openapi_types.UUID `json:"id"`
+	Me    bool               `json:"me"`
+	Name  string             `json:"name"`
+
+	// Position Specific symbol of this party's payments.
+	Position int            `json:"position"`
+	Role     LeasePartyRole `json:"role"`
+	ShareBps int            `json:"share_bps"`
+	SignedAt *time.Time     `json:"signed_at,omitempty"`
+}
+
+// LeasePartyRole defines model for LeaseParty.Role.
+type LeasePartyRole string
+
+// LeasePartyInput defines model for LeasePartyInput.
+type LeasePartyInput struct {
+	Email openapi_types.Email `json:"email"`
+	Name  string              `json:"name"`
+	Role  LeasePartyInputRole `json:"role"`
+
+	// ShareBps Payment share in basis points; all zero = equal shares.
+	ShareBps *int `json:"share_bps,omitempty"`
+}
+
+// LeasePartyInputRole defines model for LeasePartyInput.Role.
+type LeasePartyInputRole string
+
+// LeaseState defines model for LeaseState.
+type LeaseState string
+
+// LeaseSummary defines model for LeaseSummary.
+type LeaseSummary struct {
+	// Code Variable symbol of payments.
+	Code            int64               `json:"code"`
+	CreatedAt       time.Time           `json:"created_at"`
+	Currency        string              `json:"currency"`
+	EndsOn          *openapi_types.Date `json:"ends_on,omitempty"`
+	Id              openapi_types.UUID  `json:"id"`
+	OrgId           openapi_types.UUID  `json:"org_id"`
+	OrgName         *string             `json:"org_name,omitempty"`
+	PropertyAddress string              `json:"property_address"`
+	RentAmount      int64               `json:"rent_amount"`
+	StartsOn        openapi_types.Date  `json:"starts_on"`
+	State           LeaseState          `json:"state"`
+	Template        LeaseTemplate       `json:"template"`
+	TenantNames     *string             `json:"tenant_names,omitempty"`
+	UnitLabel       *string             `json:"unit_label,omitempty"`
+}
+
+// LeaseTemplate defines model for LeaseTemplate.
+type LeaseTemplate string
+
+// LedgerEntry defines model for LedgerEntry.
+type LedgerEntry struct {
+	Account LedgerEntryAccount `json:"account"`
+
+	// Amount Debit positive, credit negative.
+	Amount    int64              `json:"amount"`
+	BookedOn  openapi_types.Date `json:"booked_on"`
+	Memo      string             `json:"memo"`
+	PartyName *string            `json:"party_name,omitempty"`
+	PostingId openapi_types.UUID `json:"posting_id"`
+}
+
+// LedgerEntryAccount defines model for LedgerEntry.Account.
+type LedgerEntryAccount string
 
 // Listing defines model for Listing.
 type Listing struct {
@@ -2255,6 +2818,33 @@ type NotificationPreferences struct {
 
 // NotificationPreferencesEmailMessages instant = one e-mail per unread conversation; daily = summary at 18:00.
 type NotificationPreferencesEmailMessages string
+
+// ObligationShare defines model for ObligationShare.
+type ObligationShare struct {
+	Amount   int64              `json:"amount"`
+	Currency string             `json:"currency"`
+	DueOn    openapi_types.Date `json:"due_on"`
+
+	// Id Share id.
+	Id           openapi_types.UUID  `json:"id"`
+	Kind         ObligationShareKind `json:"kind"`
+	Mine         bool                `json:"mine"`
+	ObligationId openapi_types.UUID  `json:"obligation_id"`
+	PaidAmount   int64               `json:"paid_amount"`
+	PartyId      openapi_types.UUID  `json:"party_id"`
+	PartyName    string              `json:"party_name"`
+	Period       string              `json:"period"`
+
+	// Spayd QR Platba payload for the open amount.
+	Spayd  *string               `json:"spayd,omitempty"`
+	Status ObligationShareStatus `json:"status"`
+}
+
+// ObligationShareKind defines model for ObligationShare.Kind.
+type ObligationShareKind string
+
+// ObligationShareStatus defines model for ObligationShare.Status.
+type ObligationShareStatus string
 
 // OidcCallbackRequest defines model for OidcCallbackRequest.
 type OidcCallbackRequest struct {
@@ -2823,6 +3413,9 @@ type GroupId = openapi_types.UUID
 // InvitationToken defines model for InvitationToken.
 type InvitationToken = string
 
+// LeaseId defines model for LeaseId.
+type LeaseId = openapi_types.UUID
+
 // Limit defines model for Limit.
 type Limit = int
 
@@ -2944,6 +3537,32 @@ type SendGroupMessageJSONBody struct {
 	Body string `json:"body"`
 }
 
+// GetLeaseLedgerParams defines parameters for GetLeaseLedger.
+type GetLeaseLedgerParams struct {
+	Format *GetLeaseLedgerParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+}
+
+// GetLeaseLedgerParamsFormat defines parameters for GetLeaseLedger.
+type GetLeaseLedgerParamsFormat string
+
+// GiveLeaseNoticeJSONBody defines parameters for GiveLeaseNotice.
+type GiveLeaseNoticeJSONBody struct {
+	DeliveredOn openapi_types.Date `json:"delivered_on"`
+}
+
+// RequestLeaseChangesJSONBody defines parameters for RequestLeaseChanges.
+type RequestLeaseChangesJSONBody struct {
+	Comment string `json:"comment"`
+}
+
+// SignLeaseJSONBody defines parameters for SignLease.
+type SignLeaseJSONBody struct {
+	Provider SignLeaseJSONBodyProvider `json:"provider"`
+}
+
+// SignLeaseJSONBodyProvider defines parameters for SignLease.
+type SignLeaseJSONBodyProvider string
+
 // MarkNotificationsReadJSONBody defines parameters for MarkNotificationsRead.
 type MarkNotificationsReadJSONBody struct {
 	Id *openapi_types.UUID `json:"id,omitempty"`
@@ -2980,6 +3599,26 @@ type ListOrgAuditParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// GetBankOverviewParams defines parameters for GetBankOverview.
+type GetBankOverviewParams struct {
+	Status *GetBankOverviewParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// GetBankOverviewParamsStatus defines parameters for GetBankOverview.
+type GetBankOverviewParamsStatus string
+
+// ConnectBankJSONBody defines parameters for ConnectBank.
+type ConnectBankJSONBody struct {
+	InstitutionId *string `json:"institution_id,omitempty"`
+	RedirectUri   string  `json:"redirect_uri"`
+}
+
+// MatchBankTransactionJSONBody defines parameters for MatchBankTransaction.
+type MatchBankTransactionJSONBody struct {
+	Ignore  *bool               `json:"ignore,omitempty"`
+	ShareId *openapi_types.UUID `json:"share_id,omitempty"`
+}
+
 // ListListingsParams defines parameters for ListListings.
 type ListListingsParams struct {
 	Status *ListingStatus `form:"status,omitempty" json:"status,omitempty"`
@@ -3010,6 +3649,13 @@ type CreateViewingSlotJSONBody struct {
 	DurationMin *int      `json:"duration_min,omitempty"`
 	Note        *string   `json:"note,omitempty"`
 	StartsAt    time.Time `json:"starts_at"`
+}
+
+// MarkSharePaidJSONBody defines parameters for MarkSharePaid.
+type MarkSharePaidJSONBody struct {
+	// Amount Default is the open amount.
+	Amount *int64              `json:"amount,omitempty"`
+	PaidOn *openapi_types.Date `json:"paid_on,omitempty"`
 }
 
 // ListRoommatesParams defines parameters for ListRoommates.
@@ -3095,6 +3741,15 @@ type InviteToGroupJSONRequestBody InviteToGroupJSONBody
 // SendGroupMessageJSONRequestBody defines body for SendGroupMessage for application/json ContentType.
 type SendGroupMessageJSONRequestBody SendGroupMessageJSONBody
 
+// GiveLeaseNoticeJSONRequestBody defines body for GiveLeaseNotice for application/json ContentType.
+type GiveLeaseNoticeJSONRequestBody GiveLeaseNoticeJSONBody
+
+// RequestLeaseChangesJSONRequestBody defines body for RequestLeaseChanges for application/json ContentType.
+type RequestLeaseChangesJSONRequestBody RequestLeaseChangesJSONBody
+
+// SignLeaseJSONRequestBody defines body for SignLease for application/json ContentType.
+type SignLeaseJSONRequestBody SignLeaseJSONBody
+
 // UpdateMeJSONRequestBody defines body for UpdateMe for application/json ContentType.
 type UpdateMeJSONRequestBody = UpdateMeRequest
 
@@ -3152,8 +3807,20 @@ type UpdateOrgJSONRequestBody = OrgInput
 // DecideApplicationJSONRequestBody defines body for DecideApplication for application/json ContentType.
 type DecideApplicationJSONRequestBody DecideApplicationJSONBody
 
+// ConnectBankJSONRequestBody defines body for ConnectBank for application/json ContentType.
+type ConnectBankJSONRequestBody ConnectBankJSONBody
+
+// MatchBankTransactionJSONRequestBody defines body for MatchBankTransaction for application/json ContentType.
+type MatchBankTransactionJSONRequestBody MatchBankTransactionJSONBody
+
 // CreateOrgInvitationJSONRequestBody defines body for CreateOrgInvitation for application/json ContentType.
 type CreateOrgInvitationJSONRequestBody = InvitationInput
+
+// CreateLeaseJSONRequestBody defines body for CreateLease for application/json ContentType.
+type CreateLeaseJSONRequestBody = LeaseInput
+
+// UpdateLeaseJSONRequestBody defines body for UpdateLease for application/json ContentType.
+type UpdateLeaseJSONRequestBody = LeaseInput
 
 // CreateListingJSONRequestBody defines body for CreateListing for application/json ContentType.
 type CreateListingJSONRequestBody = ListingCreate
@@ -3181,6 +3848,9 @@ type UpdateMediaJSONRequestBody = MediaUpdate
 
 // UpdateOrgMemberJSONRequestBody defines body for UpdateOrgMember for application/json ContentType.
 type UpdateOrgMemberJSONRequestBody = RoleInput
+
+// MarkSharePaidJSONRequestBody defines body for MarkSharePaid for application/json ContentType.
+type MarkSharePaidJSONRequestBody MarkSharePaidJSONBody
 
 // CreateReplyTemplateJSONRequestBody defines body for CreateReplyTemplate for application/json ContentType.
 type CreateReplyTemplateJSONRequestBody = ReplyTemplateInput
@@ -3370,6 +4040,30 @@ type ServerInterface interface {
 	// GetJurisdiction One jurisdiction
 	// (GET /v1/jurisdictions/{code})
 	GetJurisdiction(w http.ResponseWriter, r *http.Request, code string)
+	// GetLease Lease with parties, documents, signatures and the current debt
+	// (GET /v1/leases/{leaseId})
+	GetLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// GetLeaseEvents Hash-chained event log with its verification (export for disputes)
+	// (GET /v1/leases/{leaseId}/events)
+	GetLeaseEvents(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// GetLeaseLedger Double-entry ledger of the lease (JSON, or CSV with format=csv)
+	// (GET /v1/leases/{leaseId}/ledger)
+	GetLeaseLedger(w http.ResponseWriter, r *http.Request, leaseId LeaseId, params GetLeaseLedgerParams)
+	// GiveLeaseNotice Give notice; the lease ends after the notice period
+	// (POST /v1/leases/{leaseId}/notice)
+	GiveLeaseNotice(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// ListLeaseObligations Payment schedule split between parties, with QR payments (SPAYD) for open shares
+	// (GET /v1/leases/{leaseId}/obligations)
+	ListLeaseObligations(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// RequestLeaseChanges Tenant asks the landlord to change the proposal
+	// (POST /v1/leases/{leaseId}/request-changes)
+	RequestLeaseChanges(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// ConfirmLeaseSettlement Confirm the deposit settlement after the lease ended (all parties settle the lease)
+	// (POST /v1/leases/{leaseId}/settlement)
+	ConfirmLeaseSettlement(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// SignLease Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+	// (POST /v1/leases/{leaseId}/sign)
+	SignLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
 	// GetPublicListing Published listing (approved version only)
 	// (GET /v1/listings/{listingId})
 	GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId)
@@ -3409,6 +4103,9 @@ type ServerInterface interface {
 	// StartIdentityVerification Begin identity verification (BankID in CZ); returns the provider URL
 	// (POST /v1/me/identity/start)
 	StartIdentityVerification(w http.ResponseWriter, r *http.Request)
+	// ListMyLeases Leases where I am a tenant
+	// (GET /v1/me/leases)
+	ListMyLeases(w http.ResponseWriter, r *http.Request)
 	// DisableTotp Disable TOTP after confirming a current code
 	// (POST /v1/me/mfa/totp/disable)
 	DisableTotp(w http.ResponseWriter, r *http.Request)
@@ -3487,6 +4184,9 @@ type ServerInterface interface {
 	// ListMyViewings My upcoming viewings
 	// (GET /v1/me/viewings)
 	ListMyViewings(w http.ResponseWriter, r *http.Request)
+	// GetShareQR QR payment (QR Platba / SPAYD) of one open share as a PNG image
+	// (GET /v1/obligation-shares/{shareId}/qr)
+	GetShareQR(w http.ResponseWriter, r *http.Request, shareId openapi_types.UUID)
 	// ListMyOrgs Organizations I belong to, personal first
 	// (GET /v1/orgs)
 	ListMyOrgs(w http.ResponseWriter, r *http.Request)
@@ -3505,6 +4205,21 @@ type ServerInterface interface {
 	// ListOrgAudit Audit log of an organization (owner, admin)
 	// (GET /v1/orgs/{orgId}/audit)
 	ListOrgAudit(w http.ResponseWriter, r *http.Request, orgId OrgId, params ListOrgAuditParams)
+	// GetBankOverview Linked accounts and recent incoming transactions with their match status
+	// (GET /v1/orgs/{orgId}/bank)
+	GetBankOverview(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetBankOverviewParams)
+	// ConnectBank Link the landlord's account (open banking AIS, read only)
+	// (POST /v1/orgs/{orgId}/bank/connections)
+	ConnectBank(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// FinishBankConnection Complete linking after returning from the bank
+	// (POST /v1/orgs/{orgId}/bank/connections/{connectionId}/finish)
+	FinishBankConnection(w http.ResponseWriter, r *http.Request, orgId OrgId, connectionId openapi_types.UUID)
+	// SyncBank Fetch and match new transactions now
+	// (POST /v1/orgs/{orgId}/bank/sync)
+	SyncBank(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// MatchBankTransaction Confirm a suggested match or match manually; or ignore the transaction
+	// (POST /v1/orgs/{orgId}/bank/transactions/{transactionId}/match)
+	MatchBankTransaction(w http.ResponseWriter, r *http.Request, orgId OrgId, transactionId openapi_types.UUID)
 	// ListOrgInvitations Open invitations
 	// (GET /v1/orgs/{orgId}/invitations)
 	ListOrgInvitations(w http.ResponseWriter, r *http.Request, orgId OrgId)
@@ -3514,6 +4229,18 @@ type ServerInterface interface {
 	// RevokeOrgInvitation Revoke an open invitation
 	// (DELETE /v1/orgs/{orgId}/invitations/{invitationId})
 	RevokeOrgInvitation(w http.ResponseWriter, r *http.Request, orgId OrgId, invitationId openapi_types.UUID)
+	// ListOrgLeases Leases of the organization
+	// (GET /v1/orgs/{orgId}/leases)
+	ListOrgLeases(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// CreateLease Draft a lease (from an accepted application, or with explicit parties)
+	// (POST /v1/orgs/{orgId}/leases)
+	CreateLease(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// UpdateLease Edit a draft or a lease in negotiation
+	// (PUT /v1/orgs/{orgId}/leases/{leaseId})
+	UpdateLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId)
+	// ProposeLease Render the lease document and ask all parties to sign
+	// (POST /v1/orgs/{orgId}/leases/{leaseId}/propose)
+	ProposeLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId)
 	// ListListings Listings of an organization
 	// (GET /v1/orgs/{orgId}/listings)
 	ListListings(w http.ResponseWriter, r *http.Request, orgId OrgId, params ListListingsParams)
@@ -3574,6 +4301,9 @@ type ServerInterface interface {
 	// UpdateOrgMember Change a member's role (owner, admin)
 	// (PATCH /v1/orgs/{orgId}/members/{userId})
 	UpdateOrgMember(w http.ResponseWriter, r *http.Request, orgId OrgId, userId openapi_types.UUID)
+	// MarkSharePaid The landlord confirms a payment arrived ("přišlo")
+	// (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
+	MarkSharePaid(w http.ResponseWriter, r *http.Request, orgId OrgId, shareId openapi_types.UUID)
 	// ListReplyTemplates Reply templates of the organization
 	// (GET /v1/orgs/{orgId}/reply-templates)
 	ListReplyTemplates(w http.ResponseWriter, r *http.Request, orgId OrgId)
@@ -3964,6 +4694,54 @@ func (_ Unimplemented) GetJurisdiction(w http.ResponseWriter, r *http.Request, c
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetLease Lease with parties, documents, signatures and the current debt
+// (GET /v1/leases/{leaseId})
+func (_ Unimplemented) GetLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLeaseEvents Hash-chained event log with its verification (export for disputes)
+// (GET /v1/leases/{leaseId}/events)
+func (_ Unimplemented) GetLeaseEvents(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLeaseLedger Double-entry ledger of the lease (JSON, or CSV with format=csv)
+// (GET /v1/leases/{leaseId}/ledger)
+func (_ Unimplemented) GetLeaseLedger(w http.ResponseWriter, r *http.Request, leaseId LeaseId, params GetLeaseLedgerParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GiveLeaseNotice Give notice; the lease ends after the notice period
+// (POST /v1/leases/{leaseId}/notice)
+func (_ Unimplemented) GiveLeaseNotice(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListLeaseObligations Payment schedule split between parties, with QR payments (SPAYD) for open shares
+// (GET /v1/leases/{leaseId}/obligations)
+func (_ Unimplemented) ListLeaseObligations(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RequestLeaseChanges Tenant asks the landlord to change the proposal
+// (POST /v1/leases/{leaseId}/request-changes)
+func (_ Unimplemented) RequestLeaseChanges(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ConfirmLeaseSettlement Confirm the deposit settlement after the lease ended (all parties settle the lease)
+// (POST /v1/leases/{leaseId}/settlement)
+func (_ Unimplemented) ConfirmLeaseSettlement(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SignLease Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+// (POST /v1/leases/{leaseId}/sign)
+func (_ Unimplemented) SignLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetPublicListing Published listing (approved version only)
 // (GET /v1/listings/{listingId})
 func (_ Unimplemented) GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId) {
@@ -4039,6 +4817,12 @@ func (_ Unimplemented) FinishIdentityVerification(w http.ResponseWriter, r *http
 // StartIdentityVerification Begin identity verification (BankID in CZ); returns the provider URL
 // (POST /v1/me/identity/start)
 func (_ Unimplemented) StartIdentityVerification(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMyLeases Leases where I am a tenant
+// (GET /v1/me/leases)
+func (_ Unimplemented) ListMyLeases(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4198,6 +4982,12 @@ func (_ Unimplemented) ListMyViewings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetShareQR QR payment (QR Platba / SPAYD) of one open share as a PNG image
+// (GET /v1/obligation-shares/{shareId}/qr)
+func (_ Unimplemented) GetShareQR(w http.ResponseWriter, r *http.Request, shareId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListMyOrgs Organizations I belong to, personal first
 // (GET /v1/orgs)
 func (_ Unimplemented) ListMyOrgs(w http.ResponseWriter, r *http.Request) {
@@ -4234,6 +5024,36 @@ func (_ Unimplemented) ListOrgAudit(w http.ResponseWriter, r *http.Request, orgI
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetBankOverview Linked accounts and recent incoming transactions with their match status
+// (GET /v1/orgs/{orgId}/bank)
+func (_ Unimplemented) GetBankOverview(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetBankOverviewParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ConnectBank Link the landlord's account (open banking AIS, read only)
+// (POST /v1/orgs/{orgId}/bank/connections)
+func (_ Unimplemented) ConnectBank(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// FinishBankConnection Complete linking after returning from the bank
+// (POST /v1/orgs/{orgId}/bank/connections/{connectionId}/finish)
+func (_ Unimplemented) FinishBankConnection(w http.ResponseWriter, r *http.Request, orgId OrgId, connectionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SyncBank Fetch and match new transactions now
+// (POST /v1/orgs/{orgId}/bank/sync)
+func (_ Unimplemented) SyncBank(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MatchBankTransaction Confirm a suggested match or match manually; or ignore the transaction
+// (POST /v1/orgs/{orgId}/bank/transactions/{transactionId}/match)
+func (_ Unimplemented) MatchBankTransaction(w http.ResponseWriter, r *http.Request, orgId OrgId, transactionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListOrgInvitations Open invitations
 // (GET /v1/orgs/{orgId}/invitations)
 func (_ Unimplemented) ListOrgInvitations(w http.ResponseWriter, r *http.Request, orgId OrgId) {
@@ -4249,6 +5069,30 @@ func (_ Unimplemented) CreateOrgInvitation(w http.ResponseWriter, r *http.Reques
 // RevokeOrgInvitation Revoke an open invitation
 // (DELETE /v1/orgs/{orgId}/invitations/{invitationId})
 func (_ Unimplemented) RevokeOrgInvitation(w http.ResponseWriter, r *http.Request, orgId OrgId, invitationId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrgLeases Leases of the organization
+// (GET /v1/orgs/{orgId}/leases)
+func (_ Unimplemented) ListOrgLeases(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateLease Draft a lease (from an accepted application, or with explicit parties)
+// (POST /v1/orgs/{orgId}/leases)
+func (_ Unimplemented) CreateLease(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateLease Edit a draft or a lease in negotiation
+// (PUT /v1/orgs/{orgId}/leases/{leaseId})
+func (_ Unimplemented) UpdateLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ProposeLease Render the lease document and ask all parties to sign
+// (POST /v1/orgs/{orgId}/leases/{leaseId}/propose)
+func (_ Unimplemented) ProposeLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4369,6 +5213,12 @@ func (_ Unimplemented) RemoveOrgMember(w http.ResponseWriter, r *http.Request, o
 // UpdateOrgMember Change a member's role (owner, admin)
 // (PATCH /v1/orgs/{orgId}/members/{userId})
 func (_ Unimplemented) UpdateOrgMember(w http.ResponseWriter, r *http.Request, orgId OrgId, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MarkSharePaid The landlord confirms a payment arrived ("přišlo")
+// (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
+func (_ Unimplemented) MarkSharePaid(w http.ResponseWriter, r *http.Request, orgId OrgId, shareId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5870,6 +6720,230 @@ func (siw *ServerInterfaceWrapper) GetJurisdiction(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetLease operation middleware
+func (siw *ServerInterfaceWrapper) GetLease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLease(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLeaseEvents operation middleware
+func (siw *ServerInterfaceWrapper) GetLeaseEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLeaseEvents(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLeaseLedger operation middleware
+func (siw *ServerInterfaceWrapper) GetLeaseLedger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLeaseLedgerParams
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLeaseLedger(w, r, leaseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GiveLeaseNotice operation middleware
+func (siw *ServerInterfaceWrapper) GiveLeaseNotice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GiveLeaseNotice(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListLeaseObligations operation middleware
+func (siw *ServerInterfaceWrapper) ListLeaseObligations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListLeaseObligations(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestLeaseChanges operation middleware
+func (siw *ServerInterfaceWrapper) RequestLeaseChanges(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestLeaseChanges(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ConfirmLeaseSettlement operation middleware
+func (siw *ServerInterfaceWrapper) ConfirmLeaseSettlement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ConfirmLeaseSettlement(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignLease operation middleware
+func (siw *ServerInterfaceWrapper) SignLease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignLease(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetPublicListing operation middleware
 func (siw *ServerInterfaceWrapper) GetPublicListing(w http.ResponseWriter, r *http.Request) {
 
@@ -6079,6 +7153,20 @@ func (siw *ServerInterfaceWrapper) StartIdentityVerification(w http.ResponseWrit
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.StartIdentityVerification(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyLeases operation middleware
+func (siw *ServerInterfaceWrapper) ListMyLeases(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyLeases(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6488,6 +7576,32 @@ func (siw *ServerInterfaceWrapper) ListMyViewings(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// GetShareQR operation middleware
+func (siw *ServerInterfaceWrapper) GetShareQR(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "shareId" -------------
+	var shareId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shareId", chi.URLParam(r, "shareId"), &shareId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shareId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetShareQR(w, r, shareId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMyOrgs operation middleware
 func (siw *ServerInterfaceWrapper) ListMyOrgs(w http.ResponseWriter, r *http.Request) {
 
@@ -6658,6 +7772,170 @@ func (siw *ServerInterfaceWrapper) ListOrgAudit(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// GetBankOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetBankOverview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetBankOverviewParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBankOverview(w, r, orgId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ConnectBank operation middleware
+func (siw *ServerInterfaceWrapper) ConnectBank(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ConnectBank(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FinishBankConnection operation middleware
+func (siw *ServerInterfaceWrapper) FinishBankConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connectionId" -------------
+	var connectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connectionId", chi.URLParam(r, "connectionId"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connectionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FinishBankConnection(w, r, orgId, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SyncBank operation middleware
+func (siw *ServerInterfaceWrapper) SyncBank(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SyncBank(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MatchBankTransaction operation middleware
+func (siw *ServerInterfaceWrapper) MatchBankTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "transactionId" -------------
+	var transactionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transactionId", chi.URLParam(r, "transactionId"), &transactionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "transactionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MatchBankTransaction(w, r, orgId, transactionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrgInvitations operation middleware
 func (siw *ServerInterfaceWrapper) ListOrgInvitations(w http.ResponseWriter, r *http.Request) {
 
@@ -6736,6 +8014,128 @@ func (siw *ServerInterfaceWrapper) RevokeOrgInvitation(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeOrgInvitation(w, r, orgId, invitationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrgLeases operation middleware
+func (siw *ServerInterfaceWrapper) ListOrgLeases(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrgLeases(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateLease operation middleware
+func (siw *ServerInterfaceWrapper) CreateLease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLease(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateLease operation middleware
+func (siw *ServerInterfaceWrapper) UpdateLease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateLease(w, r, orgId, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ProposeLease operation middleware
+func (siw *ServerInterfaceWrapper) ProposeLease(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ProposeLease(w, r, orgId, leaseId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7425,6 +8825,41 @@ func (siw *ServerInterfaceWrapper) UpdateOrgMember(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateOrgMember(w, r, orgId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkSharePaid operation middleware
+func (siw *ServerInterfaceWrapper) MarkSharePaid(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "shareId" -------------
+	var shareId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shareId", chi.URLParam(r, "shareId"), &shareId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shareId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkSharePaid(w, r, orgId, shareId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8317,6 +9752,66 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/orgs/{orgId}/listings/{listingId}/roommates", wrapper.ListListingRoommates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/leases", wrapper.ListOrgLeases)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/leases", wrapper.CreateLease)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/v1/orgs/{orgId}/leases/{leaseId}", wrapper.UpdateLease)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/leases/{leaseId}/propose", wrapper.ProposeLease)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/me/leases", wrapper.ListMyLeases)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/leases/{leaseId}", wrapper.GetLease)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/leases/{leaseId}/request-changes", wrapper.RequestLeaseChanges)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/leases/{leaseId}/sign", wrapper.SignLease)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/leases/{leaseId}/obligations", wrapper.ListLeaseObligations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/obligation-shares/{shareId}/qr", wrapper.GetShareQR)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/obligation-shares/{shareId}/paid", wrapper.MarkSharePaid)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/leases/{leaseId}/ledger", wrapper.GetLeaseLedger)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/leases/{leaseId}/events", wrapper.GetLeaseEvents)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/leases/{leaseId}/notice", wrapper.GiveLeaseNotice)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/leases/{leaseId}/settlement", wrapper.ConfirmLeaseSettlement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/bank", wrapper.GetBankOverview)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/bank/connections", wrapper.ConnectBank)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/bank/connections/{connectionId}/finish", wrapper.FinishBankConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/bank/sync", wrapper.SyncBank)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/bank/transactions/{transactionId}/match", wrapper.MatchBankTransaction)
 	})
 
 	return r
@@ -10413,6 +11908,343 @@ func (response GetJurisdictiondefaultApplicationProblemPlusJSONResponse) VisitGe
 	return err
 }
 
+type GetLeaseRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type GetLeaseResponseObject interface {
+	VisitGetLeaseResponse(w http.ResponseWriter) error
+}
+
+type GetLease200JSONResponse LeaseDetail
+
+func (response GetLease200JSONResponse) VisitGetLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLeasedefaultApplicationProblemPlusJSONResponse) VisitGetLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseEventsRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type GetLeaseEventsResponseObject interface {
+	VisitGetLeaseEventsResponse(w http.ResponseWriter) error
+}
+
+type GetLeaseEvents200JSONResponse LeaseEventLog
+
+func (response GetLeaseEvents200JSONResponse) VisitGetLeaseEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseEventsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLeaseEventsdefaultApplicationProblemPlusJSONResponse) VisitGetLeaseEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseLedgerRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+	Params  GetLeaseLedgerParams
+}
+
+type GetLeaseLedgerResponseObject interface {
+	VisitGetLeaseLedgerResponse(w http.ResponseWriter) error
+}
+
+type GetLeaseLedger200JSONResponse []LedgerEntry
+
+func (response GetLeaseLedger200JSONResponse) VisitGetLeaseLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseLedger200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetLeaseLedger200TextcsvResponse) VisitGetLeaseLedgerResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetLeaseLedgerdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLeaseLedgerdefaultApplicationProblemPlusJSONResponse) VisitGetLeaseLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GiveLeaseNoticeRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+	Body    *GiveLeaseNoticeJSONRequestBody
+}
+
+type GiveLeaseNoticeResponseObject interface {
+	VisitGiveLeaseNoticeResponse(w http.ResponseWriter) error
+}
+
+type GiveLeaseNotice200JSONResponse struct {
+	EndsOn openapi_types.Date `json:"ends_on"`
+}
+
+func (response GiveLeaseNotice200JSONResponse) VisitGiveLeaseNoticeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GiveLeaseNoticedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GiveLeaseNoticedefaultApplicationProblemPlusJSONResponse) VisitGiveLeaseNoticeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLeaseObligationsRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type ListLeaseObligationsResponseObject interface {
+	VisitListLeaseObligationsResponse(w http.ResponseWriter) error
+}
+
+type ListLeaseObligations200JSONResponse []ObligationShare
+
+func (response ListLeaseObligations200JSONResponse) VisitListLeaseObligationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLeaseObligationsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListLeaseObligationsdefaultApplicationProblemPlusJSONResponse) VisitListLeaseObligationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestLeaseChangesRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+	Body    *RequestLeaseChangesJSONRequestBody
+}
+
+type RequestLeaseChangesResponseObject interface {
+	VisitRequestLeaseChangesResponse(w http.ResponseWriter) error
+}
+
+type RequestLeaseChanges204Response struct {
+}
+
+func (response RequestLeaseChanges204Response) VisitRequestLeaseChangesResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RequestLeaseChangesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RequestLeaseChangesdefaultApplicationProblemPlusJSONResponse) VisitRequestLeaseChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmLeaseSettlementRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type ConfirmLeaseSettlementResponseObject interface {
+	VisitConfirmLeaseSettlementResponse(w http.ResponseWriter) error
+}
+
+type ConfirmLeaseSettlement200JSONResponse struct {
+	Settled bool `json:"settled"`
+}
+
+func (response ConfirmLeaseSettlement200JSONResponse) VisitConfirmLeaseSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConfirmLeaseSettlementdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ConfirmLeaseSettlementdefaultApplicationProblemPlusJSONResponse) VisitConfirmLeaseSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignLeaseRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+	Body    *SignLeaseJSONRequestBody
+}
+
+type SignLeaseResponseObject interface {
+	VisitSignLeaseResponse(w http.ResponseWriter) error
+}
+
+type SignLease200JSONResponse struct {
+	RedirectUrl *string `json:"redirect_url,omitempty"`
+	Signed      bool    `json:"signed"`
+}
+
+func (response SignLease200JSONResponse) VisitSignLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignLeasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SignLeasedefaultApplicationProblemPlusJSONResponse) VisitSignLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetPublicListingRequestObject struct {
 	ListingId ListingId `json:"listingId"`
 }
@@ -10897,6 +12729,44 @@ type StartIdentityVerificationdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response StartIdentityVerificationdefaultApplicationProblemPlusJSONResponse) VisitStartIdentityVerificationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyLeasesRequestObject struct {
+}
+
+type ListMyLeasesResponseObject interface {
+	VisitListMyLeasesResponse(w http.ResponseWriter) error
+}
+
+type ListMyLeases200JSONResponse []LeaseSummary
+
+func (response ListMyLeases200JSONResponse) VisitListMyLeasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyLeasesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListMyLeasesdefaultApplicationProblemPlusJSONResponse) VisitListMyLeasesResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -11866,6 +13736,51 @@ func (response ListMyViewingsdefaultApplicationProblemPlusJSONResponse) VisitLis
 	return err
 }
 
+type GetShareQRRequestObject struct {
+	ShareId openapi_types.UUID `json:"shareId"`
+}
+
+type GetShareQRResponseObject interface {
+	VisitGetShareQRResponse(w http.ResponseWriter) error
+}
+
+type GetShareQR200ImagepngResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetShareQR200ImagepngResponse) VisitGetShareQRResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "image/png")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetShareQRdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetShareQRdefaultApplicationProblemPlusJSONResponse) VisitGetShareQRResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMyOrgsRequestObject struct {
 }
 
@@ -12097,6 +14012,204 @@ func (response ListOrgAuditdefaultApplicationProblemPlusJSONResponse) VisitListO
 	return err
 }
 
+type GetBankOverviewRequestObject struct {
+	OrgId  OrgId `json:"orgId"`
+	Params GetBankOverviewParams
+}
+
+type GetBankOverviewResponseObject interface {
+	VisitGetBankOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetBankOverview200JSONResponse BankOverview
+
+func (response GetBankOverview200JSONResponse) VisitGetBankOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBankOverviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetBankOverviewdefaultApplicationProblemPlusJSONResponse) VisitGetBankOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConnectBankRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *ConnectBankJSONRequestBody
+}
+
+type ConnectBankResponseObject interface {
+	VisitConnectBankResponse(w http.ResponseWriter) error
+}
+
+type ConnectBank201JSONResponse BankLink
+
+func (response ConnectBank201JSONResponse) VisitConnectBankResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ConnectBankdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ConnectBankdefaultApplicationProblemPlusJSONResponse) VisitConnectBankResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinishBankConnectionRequestObject struct {
+	OrgId        OrgId              `json:"orgId"`
+	ConnectionId openapi_types.UUID `json:"connectionId"`
+}
+
+type FinishBankConnectionResponseObject interface {
+	VisitFinishBankConnectionResponse(w http.ResponseWriter) error
+}
+
+type FinishBankConnection200JSONResponse BankConnection
+
+func (response FinishBankConnection200JSONResponse) VisitFinishBankConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinishBankConnectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response FinishBankConnectiondefaultApplicationProblemPlusJSONResponse) VisitFinishBankConnectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SyncBankRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type SyncBankResponseObject interface {
+	VisitSyncBankResponse(w http.ResponseWriter) error
+}
+
+type SyncBank200JSONResponse struct {
+	Matched   int `json:"matched"`
+	New       int `json:"new"`
+	Suggested int `json:"suggested"`
+}
+
+func (response SyncBank200JSONResponse) VisitSyncBankResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SyncBankdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SyncBankdefaultApplicationProblemPlusJSONResponse) VisitSyncBankResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchBankTransactionRequestObject struct {
+	OrgId         OrgId              `json:"orgId"`
+	TransactionId openapi_types.UUID `json:"transactionId"`
+	Body          *MatchBankTransactionJSONRequestBody
+}
+
+type MatchBankTransactionResponseObject interface {
+	VisitMatchBankTransactionResponse(w http.ResponseWriter) error
+}
+
+type MatchBankTransaction204Response struct {
+}
+
+func (response MatchBankTransaction204Response) VisitMatchBankTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MatchBankTransactiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response MatchBankTransactiondefaultApplicationProblemPlusJSONResponse) VisitMatchBankTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListOrgInvitationsRequestObject struct {
 	OrgId OrgId `json:"orgId"`
 }
@@ -12199,6 +14312,166 @@ type RevokeOrgInvitationdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response RevokeOrgInvitationdefaultApplicationProblemPlusJSONResponse) VisitRevokeOrgInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgLeasesRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type ListOrgLeasesResponseObject interface {
+	VisitListOrgLeasesResponse(w http.ResponseWriter) error
+}
+
+type ListOrgLeases200JSONResponse []LeaseSummary
+
+func (response ListOrgLeases200JSONResponse) VisitListOrgLeasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgLeasesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListOrgLeasesdefaultApplicationProblemPlusJSONResponse) VisitListOrgLeasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateLeaseRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *CreateLeaseJSONRequestBody
+}
+
+type CreateLeaseResponseObject interface {
+	VisitCreateLeaseResponse(w http.ResponseWriter) error
+}
+
+type CreateLease201JSONResponse LeaseDetail
+
+func (response CreateLease201JSONResponse) VisitCreateLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateLeasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateLeasedefaultApplicationProblemPlusJSONResponse) VisitCreateLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateLeaseRequestObject struct {
+	OrgId   OrgId   `json:"orgId"`
+	LeaseId LeaseId `json:"leaseId"`
+	Body    *UpdateLeaseJSONRequestBody
+}
+
+type UpdateLeaseResponseObject interface {
+	VisitUpdateLeaseResponse(w http.ResponseWriter) error
+}
+
+type UpdateLease200JSONResponse LeaseDetail
+
+func (response UpdateLease200JSONResponse) VisitUpdateLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateLeasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateLeasedefaultApplicationProblemPlusJSONResponse) VisitUpdateLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProposeLeaseRequestObject struct {
+	OrgId   OrgId   `json:"orgId"`
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type ProposeLeaseResponseObject interface {
+	VisitProposeLeaseResponse(w http.ResponseWriter) error
+}
+
+type ProposeLease200JSONResponse LeaseDetail
+
+func (response ProposeLease200JSONResponse) VisitProposeLeaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ProposeLeasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ProposeLeasedefaultApplicationProblemPlusJSONResponse) VisitProposeLeaseResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12999,6 +15272,41 @@ func (response UpdateOrgMemberdefaultApplicationProblemPlusJSONResponse) VisitUp
 	return err
 }
 
+type MarkSharePaidRequestObject struct {
+	OrgId   OrgId              `json:"orgId"`
+	ShareId openapi_types.UUID `json:"shareId"`
+	Body    *MarkSharePaidJSONRequestBody
+}
+
+type MarkSharePaidResponseObject interface {
+	VisitMarkSharePaidResponse(w http.ResponseWriter) error
+}
+
+type MarkSharePaid204Response struct {
+}
+
+func (response MarkSharePaid204Response) VisitMarkSharePaidResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkSharePaiddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response MarkSharePaiddefaultApplicationProblemPlusJSONResponse) VisitMarkSharePaidResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListReplyTemplatesRequestObject struct {
 	OrgId OrgId `json:"orgId"`
 }
@@ -13690,6 +15998,30 @@ type StrictServerInterface interface {
 	// GetJurisdiction One jurisdiction
 	// (GET /v1/jurisdictions/{code})
 	GetJurisdiction(ctx context.Context, request GetJurisdictionRequestObject) (GetJurisdictionResponseObject, error)
+	// GetLease Lease with parties, documents, signatures and the current debt
+	// (GET /v1/leases/{leaseId})
+	GetLease(ctx context.Context, request GetLeaseRequestObject) (GetLeaseResponseObject, error)
+	// GetLeaseEvents Hash-chained event log with its verification (export for disputes)
+	// (GET /v1/leases/{leaseId}/events)
+	GetLeaseEvents(ctx context.Context, request GetLeaseEventsRequestObject) (GetLeaseEventsResponseObject, error)
+	// GetLeaseLedger Double-entry ledger of the lease (JSON, or CSV with format=csv)
+	// (GET /v1/leases/{leaseId}/ledger)
+	GetLeaseLedger(ctx context.Context, request GetLeaseLedgerRequestObject) (GetLeaseLedgerResponseObject, error)
+	// GiveLeaseNotice Give notice; the lease ends after the notice period
+	// (POST /v1/leases/{leaseId}/notice)
+	GiveLeaseNotice(ctx context.Context, request GiveLeaseNoticeRequestObject) (GiveLeaseNoticeResponseObject, error)
+	// ListLeaseObligations Payment schedule split between parties, with QR payments (SPAYD) for open shares
+	// (GET /v1/leases/{leaseId}/obligations)
+	ListLeaseObligations(ctx context.Context, request ListLeaseObligationsRequestObject) (ListLeaseObligationsResponseObject, error)
+	// RequestLeaseChanges Tenant asks the landlord to change the proposal
+	// (POST /v1/leases/{leaseId}/request-changes)
+	RequestLeaseChanges(ctx context.Context, request RequestLeaseChangesRequestObject) (RequestLeaseChangesResponseObject, error)
+	// ConfirmLeaseSettlement Confirm the deposit settlement after the lease ended (all parties settle the lease)
+	// (POST /v1/leases/{leaseId}/settlement)
+	ConfirmLeaseSettlement(ctx context.Context, request ConfirmLeaseSettlementRequestObject) (ConfirmLeaseSettlementResponseObject, error)
+	// SignLease Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+	// (POST /v1/leases/{leaseId}/sign)
+	SignLease(ctx context.Context, request SignLeaseRequestObject) (SignLeaseResponseObject, error)
 	// GetPublicListing Published listing (approved version only)
 	// (GET /v1/listings/{listingId})
 	GetPublicListing(ctx context.Context, request GetPublicListingRequestObject) (GetPublicListingResponseObject, error)
@@ -13729,6 +16061,9 @@ type StrictServerInterface interface {
 	// StartIdentityVerification Begin identity verification (BankID in CZ); returns the provider URL
 	// (POST /v1/me/identity/start)
 	StartIdentityVerification(ctx context.Context, request StartIdentityVerificationRequestObject) (StartIdentityVerificationResponseObject, error)
+	// ListMyLeases Leases where I am a tenant
+	// (GET /v1/me/leases)
+	ListMyLeases(ctx context.Context, request ListMyLeasesRequestObject) (ListMyLeasesResponseObject, error)
 	// DisableTotp Disable TOTP after confirming a current code
 	// (POST /v1/me/mfa/totp/disable)
 	DisableTotp(ctx context.Context, request DisableTotpRequestObject) (DisableTotpResponseObject, error)
@@ -13807,6 +16142,9 @@ type StrictServerInterface interface {
 	// ListMyViewings My upcoming viewings
 	// (GET /v1/me/viewings)
 	ListMyViewings(ctx context.Context, request ListMyViewingsRequestObject) (ListMyViewingsResponseObject, error)
+	// GetShareQR QR payment (QR Platba / SPAYD) of one open share as a PNG image
+	// (GET /v1/obligation-shares/{shareId}/qr)
+	GetShareQR(ctx context.Context, request GetShareQRRequestObject) (GetShareQRResponseObject, error)
 	// ListMyOrgs Organizations I belong to, personal first
 	// (GET /v1/orgs)
 	ListMyOrgs(ctx context.Context, request ListMyOrgsRequestObject) (ListMyOrgsResponseObject, error)
@@ -13825,6 +16163,21 @@ type StrictServerInterface interface {
 	// ListOrgAudit Audit log of an organization (owner, admin)
 	// (GET /v1/orgs/{orgId}/audit)
 	ListOrgAudit(ctx context.Context, request ListOrgAuditRequestObject) (ListOrgAuditResponseObject, error)
+	// GetBankOverview Linked accounts and recent incoming transactions with their match status
+	// (GET /v1/orgs/{orgId}/bank)
+	GetBankOverview(ctx context.Context, request GetBankOverviewRequestObject) (GetBankOverviewResponseObject, error)
+	// ConnectBank Link the landlord's account (open banking AIS, read only)
+	// (POST /v1/orgs/{orgId}/bank/connections)
+	ConnectBank(ctx context.Context, request ConnectBankRequestObject) (ConnectBankResponseObject, error)
+	// FinishBankConnection Complete linking after returning from the bank
+	// (POST /v1/orgs/{orgId}/bank/connections/{connectionId}/finish)
+	FinishBankConnection(ctx context.Context, request FinishBankConnectionRequestObject) (FinishBankConnectionResponseObject, error)
+	// SyncBank Fetch and match new transactions now
+	// (POST /v1/orgs/{orgId}/bank/sync)
+	SyncBank(ctx context.Context, request SyncBankRequestObject) (SyncBankResponseObject, error)
+	// MatchBankTransaction Confirm a suggested match or match manually; or ignore the transaction
+	// (POST /v1/orgs/{orgId}/bank/transactions/{transactionId}/match)
+	MatchBankTransaction(ctx context.Context, request MatchBankTransactionRequestObject) (MatchBankTransactionResponseObject, error)
 	// ListOrgInvitations Open invitations
 	// (GET /v1/orgs/{orgId}/invitations)
 	ListOrgInvitations(ctx context.Context, request ListOrgInvitationsRequestObject) (ListOrgInvitationsResponseObject, error)
@@ -13834,6 +16187,18 @@ type StrictServerInterface interface {
 	// RevokeOrgInvitation Revoke an open invitation
 	// (DELETE /v1/orgs/{orgId}/invitations/{invitationId})
 	RevokeOrgInvitation(ctx context.Context, request RevokeOrgInvitationRequestObject) (RevokeOrgInvitationResponseObject, error)
+	// ListOrgLeases Leases of the organization
+	// (GET /v1/orgs/{orgId}/leases)
+	ListOrgLeases(ctx context.Context, request ListOrgLeasesRequestObject) (ListOrgLeasesResponseObject, error)
+	// CreateLease Draft a lease (from an accepted application, or with explicit parties)
+	// (POST /v1/orgs/{orgId}/leases)
+	CreateLease(ctx context.Context, request CreateLeaseRequestObject) (CreateLeaseResponseObject, error)
+	// UpdateLease Edit a draft or a lease in negotiation
+	// (PUT /v1/orgs/{orgId}/leases/{leaseId})
+	UpdateLease(ctx context.Context, request UpdateLeaseRequestObject) (UpdateLeaseResponseObject, error)
+	// ProposeLease Render the lease document and ask all parties to sign
+	// (POST /v1/orgs/{orgId}/leases/{leaseId}/propose)
+	ProposeLease(ctx context.Context, request ProposeLeaseRequestObject) (ProposeLeaseResponseObject, error)
 	// ListListings Listings of an organization
 	// (GET /v1/orgs/{orgId}/listings)
 	ListListings(ctx context.Context, request ListListingsRequestObject) (ListListingsResponseObject, error)
@@ -13894,6 +16259,9 @@ type StrictServerInterface interface {
 	// UpdateOrgMember Change a member's role (owner, admin)
 	// (PATCH /v1/orgs/{orgId}/members/{userId})
 	UpdateOrgMember(ctx context.Context, request UpdateOrgMemberRequestObject) (UpdateOrgMemberResponseObject, error)
+	// MarkSharePaid The landlord confirms a payment arrived ("přišlo")
+	// (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
+	MarkSharePaid(ctx context.Context, request MarkSharePaidRequestObject) (MarkSharePaidResponseObject, error)
 	// ListReplyTemplates Reply templates of the organization
 	// (GET /v1/orgs/{orgId}/reply-templates)
 	ListReplyTemplates(ctx context.Context, request ListReplyTemplatesRequestObject) (ListReplyTemplatesResponseObject, error)
@@ -15586,6 +17954,236 @@ func (sh *strictHandler) GetJurisdiction(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// GetLease operation middleware
+func (sh *strictHandler) GetLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request GetLeaseRequestObject
+
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLease(ctx, request.(GetLeaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLeaseResponseObject); ok {
+		if err := validResponse.VisitGetLeaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLeaseEvents operation middleware
+func (sh *strictHandler) GetLeaseEvents(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request GetLeaseEventsRequestObject
+
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLeaseEvents(ctx, request.(GetLeaseEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLeaseEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLeaseEventsResponseObject); ok {
+		if err := validResponse.VisitGetLeaseEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLeaseLedger operation middleware
+func (sh *strictHandler) GetLeaseLedger(w http.ResponseWriter, r *http.Request, leaseId LeaseId, params GetLeaseLedgerParams) {
+	var request GetLeaseLedgerRequestObject
+
+	request.LeaseId = leaseId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLeaseLedger(ctx, request.(GetLeaseLedgerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLeaseLedger")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLeaseLedgerResponseObject); ok {
+		if err := validResponse.VisitGetLeaseLedgerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GiveLeaseNotice operation middleware
+func (sh *strictHandler) GiveLeaseNotice(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request GiveLeaseNoticeRequestObject
+
+	request.LeaseId = leaseId
+
+	var body GiveLeaseNoticeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GiveLeaseNotice(ctx, request.(GiveLeaseNoticeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GiveLeaseNotice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GiveLeaseNoticeResponseObject); ok {
+		if err := validResponse.VisitGiveLeaseNoticeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListLeaseObligations operation middleware
+func (sh *strictHandler) ListLeaseObligations(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request ListLeaseObligationsRequestObject
+
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListLeaseObligations(ctx, request.(ListLeaseObligationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListLeaseObligations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListLeaseObligationsResponseObject); ok {
+		if err := validResponse.VisitListLeaseObligationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RequestLeaseChanges operation middleware
+func (sh *strictHandler) RequestLeaseChanges(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request RequestLeaseChangesRequestObject
+
+	request.LeaseId = leaseId
+
+	var body RequestLeaseChangesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestLeaseChanges(ctx, request.(RequestLeaseChangesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestLeaseChanges")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RequestLeaseChangesResponseObject); ok {
+		if err := validResponse.VisitRequestLeaseChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ConfirmLeaseSettlement operation middleware
+func (sh *strictHandler) ConfirmLeaseSettlement(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request ConfirmLeaseSettlementRequestObject
+
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmLeaseSettlement(ctx, request.(ConfirmLeaseSettlementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmLeaseSettlement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ConfirmLeaseSettlementResponseObject); ok {
+		if err := validResponse.VisitConfirmLeaseSettlementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SignLease operation middleware
+func (sh *strictHandler) SignLease(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request SignLeaseRequestObject
+
+	request.LeaseId = leaseId
+
+	var body SignLeaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignLease(ctx, request.(SignLeaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignLease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SignLeaseResponseObject); ok {
+		if err := validResponse.VisitSignLeaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetPublicListing operation middleware
 func (sh *strictHandler) GetPublicListing(w http.ResponseWriter, r *http.Request, listingId ListingId) {
 	var request GetPublicListingRequestObject
@@ -15925,6 +18523,30 @@ func (sh *strictHandler) StartIdentityVerification(w http.ResponseWriter, r *htt
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(StartIdentityVerificationResponseObject); ok {
 		if err := validResponse.VisitStartIdentityVerificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyLeases operation middleware
+func (sh *strictHandler) ListMyLeases(w http.ResponseWriter, r *http.Request) {
+	var request ListMyLeasesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyLeases(ctx, request.(ListMyLeasesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyLeases")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyLeasesResponseObject); ok {
+		if err := validResponse.VisitListMyLeasesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -16649,6 +19271,32 @@ func (sh *strictHandler) ListMyViewings(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// GetShareQR operation middleware
+func (sh *strictHandler) GetShareQR(w http.ResponseWriter, r *http.Request, shareId openapi_types.UUID) {
+	var request GetShareQRRequestObject
+
+	request.ShareId = shareId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetShareQR(ctx, request.(GetShareQRRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetShareQR")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetShareQRResponseObject); ok {
+		if err := validResponse.VisitGetShareQRResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMyOrgs operation middleware
 func (sh *strictHandler) ListMyOrgs(w http.ResponseWriter, r *http.Request) {
 	var request ListMyOrgsRequestObject
@@ -16824,6 +19472,153 @@ func (sh *strictHandler) ListOrgAudit(w http.ResponseWriter, r *http.Request, or
 	}
 }
 
+// GetBankOverview operation middleware
+func (sh *strictHandler) GetBankOverview(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetBankOverviewParams) {
+	var request GetBankOverviewRequestObject
+
+	request.OrgId = orgId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBankOverview(ctx, request.(GetBankOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBankOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBankOverviewResponseObject); ok {
+		if err := validResponse.VisitGetBankOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ConnectBank operation middleware
+func (sh *strictHandler) ConnectBank(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request ConnectBankRequestObject
+
+	request.OrgId = orgId
+
+	var body ConnectBankJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ConnectBank(ctx, request.(ConnectBankRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConnectBank")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ConnectBankResponseObject); ok {
+		if err := validResponse.VisitConnectBankResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// FinishBankConnection operation middleware
+func (sh *strictHandler) FinishBankConnection(w http.ResponseWriter, r *http.Request, orgId OrgId, connectionId openapi_types.UUID) {
+	var request FinishBankConnectionRequestObject
+
+	request.OrgId = orgId
+	request.ConnectionId = connectionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.FinishBankConnection(ctx, request.(FinishBankConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FinishBankConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(FinishBankConnectionResponseObject); ok {
+		if err := validResponse.VisitFinishBankConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SyncBank operation middleware
+func (sh *strictHandler) SyncBank(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request SyncBankRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SyncBank(ctx, request.(SyncBankRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SyncBank")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SyncBankResponseObject); ok {
+		if err := validResponse.VisitSyncBankResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MatchBankTransaction operation middleware
+func (sh *strictHandler) MatchBankTransaction(w http.ResponseWriter, r *http.Request, orgId OrgId, transactionId openapi_types.UUID) {
+	var request MatchBankTransactionRequestObject
+
+	request.OrgId = orgId
+	request.TransactionId = transactionId
+
+	var body MatchBankTransactionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MatchBankTransaction(ctx, request.(MatchBankTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MatchBankTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MatchBankTransactionResponseObject); ok {
+		if err := validResponse.VisitMatchBankTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListOrgInvitations operation middleware
 func (sh *strictHandler) ListOrgInvitations(w http.ResponseWriter, r *http.Request, orgId OrgId) {
 	var request ListOrgInvitationsRequestObject
@@ -16903,6 +19698,126 @@ func (sh *strictHandler) RevokeOrgInvitation(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeOrgInvitationResponseObject); ok {
 		if err := validResponse.VisitRevokeOrgInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrgLeases operation middleware
+func (sh *strictHandler) ListOrgLeases(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request ListOrgLeasesRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrgLeases(ctx, request.(ListOrgLeasesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrgLeases")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrgLeasesResponseObject); ok {
+		if err := validResponse.VisitListOrgLeasesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLease operation middleware
+func (sh *strictHandler) CreateLease(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request CreateLeaseRequestObject
+
+	request.OrgId = orgId
+
+	var body CreateLeaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLease(ctx, request.(CreateLeaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLeaseResponseObject); ok {
+		if err := validResponse.VisitCreateLeaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateLease operation middleware
+func (sh *strictHandler) UpdateLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId) {
+	var request UpdateLeaseRequestObject
+
+	request.OrgId = orgId
+	request.LeaseId = leaseId
+
+	var body UpdateLeaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateLease(ctx, request.(UpdateLeaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateLease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateLeaseResponseObject); ok {
+		if err := validResponse.VisitUpdateLeaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ProposeLease operation middleware
+func (sh *strictHandler) ProposeLease(w http.ResponseWriter, r *http.Request, orgId OrgId, leaseId LeaseId) {
+	var request ProposeLeaseRequestObject
+
+	request.OrgId = orgId
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ProposeLease(ctx, request.(ProposeLeaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ProposeLease")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ProposeLeaseResponseObject); ok {
+		if err := validResponse.VisitProposeLeaseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -17511,6 +20426,43 @@ func (sh *strictHandler) UpdateOrgMember(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// MarkSharePaid operation middleware
+func (sh *strictHandler) MarkSharePaid(w http.ResponseWriter, r *http.Request, orgId OrgId, shareId openapi_types.UUID) {
+	var request MarkSharePaidRequestObject
+
+	request.OrgId = orgId
+	request.ShareId = shareId
+
+	var body MarkSharePaidJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkSharePaid(ctx, request.(MarkSharePaidRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkSharePaid")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkSharePaidResponseObject); ok {
+		if err := validResponse.VisitMarkSharePaidResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListReplyTemplates operation middleware
 func (sh *strictHandler) ListReplyTemplates(w http.ResponseWriter, r *http.Request, orgId OrgId) {
 	var request ListReplyTemplatesRequestObject
@@ -17909,279 +20861,329 @@ func (sh *strictHandler) CancelViewing(w http.ResponseWriter, r *http.Request, b
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"/w==",
+	"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",
+	"t7wendHrD8snmPd3d83x8d3H/y8AAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

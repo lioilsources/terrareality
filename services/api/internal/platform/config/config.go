@@ -88,6 +88,13 @@ type Config struct {
 	// Applications (M5).
 	ISIRMode string // mock | live (public ISIR web service)
 	ISIRURL  string // override of the ISIR endpoint
+
+	// Leasing (M6).
+	TypstBin          string // typst binary for lease documents
+	TemplatesReviewed bool   // lawyer reviewed the templates: no DRAFT watermark
+	BankProvider      string // mock | gocardless
+	GoCardlessID      string
+	GoCardlessKey     string
 }
 
 // Flag reports whether a feature flag is on.
@@ -164,6 +171,14 @@ func Load() (Config, error) {
 		isirDefault = "mock"
 	}
 	c.ISIRMode, c.ISIRURL = get("ISIR_MODE", isirDefault), get("ISIR_URL", "")
+	c.TypstBin = get("TYPST_BIN", "typst")
+	c.TemplatesReviewed = MustBool("LEASE_TEMPLATES_REVIEWED", false)
+	c.GoCardlessID, c.GoCardlessKey = get("GOCARDLESS_SECRET_ID", ""), get("GOCARDLESS_SECRET_KEY", "")
+	bankDefault := "mock"
+	if c.GoCardlessID != "" {
+		bankDefault = "gocardless"
+	}
+	c.BankProvider = get("BANK_PROVIDER", bankDefault)
 	// Feature flags: comma list, "-name" turns a default off.
 	c.Flags = map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true, "ai.cloud_fallback": false, "ai.moderation": true, "ai.applications": true}
 	for _, f := range splitList(get("FEATURE_FLAGS", "")) {
@@ -202,6 +217,9 @@ func Load() (Config, error) {
 	}
 	if c.CentrifugoURL != "" && c.CentrifugoTokenSecret == "" {
 		return c, fmt.Errorf("CENTRIFUGO_TOKEN_SECRET is required with CENTRIFUGO_API_URL")
+	}
+	if c.BankProvider == "mock" && c.Env == "prod" {
+		return c, fmt.Errorf("BANK_PROVIDER=mock is not allowed in prod")
 	}
 	if c.MockIdP && !devLike && c.Env != "staging" {
 		return c, fmt.Errorf("MOCK_IDP is not allowed in %s", c.Env)

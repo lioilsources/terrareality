@@ -154,7 +154,7 @@ func TestMessagingAcceptance(t *testing.T) {
 		t.Fatalf("owner inbox %+v", inbox)
 	}
 	var detail struct {
-		Conversation convDTO `json:"conversation"`
+		Conversation convDTO    `json:"conversation"`
 		PeerReadAt   *time.Time `json:"peer_read_at"`
 		Prescreen    []struct {
 			Answer string `json:"answer"`

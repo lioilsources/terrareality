@@ -17,12 +17,13 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
-	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
+	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
+	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/org"
@@ -44,6 +45,7 @@ type Services struct {
 	Chat            *search.Chat
 	Messages        *messaging.Service
 	Applications    *applications.Service
+	Leases          *leasing.Service
 	VAPIDPublicKey  string // browser push subscriptions
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
@@ -120,6 +122,7 @@ type RouterConfig struct {
 	Sessions       dbq.Querier     // nil disables authentication (unit tests)
 	SessionTTL     auth.SessionTTL // sliding session lifetime per client
 	MockIdP        http.Handler    // dev/test mock identity provider pages
+	DevBank        http.Handler    // dev/test mock bank transaction injection
 }
 
 // NewRouter builds the chi router with the standard middleware chain.
@@ -136,6 +139,9 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 	}
 	if rc.MockIdP != nil {
 		r.Handle("/dev/idp/authorize", rc.MockIdP)
+	}
+	if rc.DevBank != nil {
+		r.Handle("/dev/bank/transactions", rc.DevBank)
 	}
 
 	validate, err := requestValidator()

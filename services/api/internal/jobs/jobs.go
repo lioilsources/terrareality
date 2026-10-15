@@ -62,6 +62,8 @@ type WorkerDeps struct {
 	Verdicts    *VerdictWorker
 	Summaries   *ApplicationSummaryWorker
 	Reminders   *ViewingReminderWorker
+	StartLease  *StartLeaseWorker
+	BankSync    *BankSyncWorker
 }
 
 // NewWorkerClient builds a River client that processes jobs. Completed jobs
@@ -81,6 +83,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	river.AddWorker(workers, deps.Verdicts)
 	river.AddWorker(workers, deps.Summaries)
 	river.AddWorker(workers, deps.Reminders)
+	river.AddWorker(workers, deps.StartLease)
+	river.AddWorker(workers, deps.BankSync)
 	prague, err := time.LoadLocation("Europe/Prague")
 	if err != nil {
 		prague = time.UTC
@@ -100,6 +104,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 				func() (river.JobArgs, *river.InsertOpts) { return RefreshAggregatesArgs{}, nil }, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return DigestArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(6*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return BankSyncArgs{}, nil }, nil),
 			river.NewPeriodicJob(dailyAt{hour: 18, loc: prague},
 				func() (river.JobArgs, *river.InsertOpts) { return MessagesDigestArgs{}, nil }, nil),
 		},

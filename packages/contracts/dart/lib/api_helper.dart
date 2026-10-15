@@ -67,6 +67,12 @@ String parameterToString(dynamic value) {
   if (value is ConversationRole) {
     return ConversationRoleTypeTransformer().encode(value).toString();
   }
+  if (value is LeaseState) {
+    return LeaseStateTypeTransformer().encode(value).toString();
+  }
+  if (value is LeaseTemplate) {
+    return LeaseTemplateTypeTransformer().encode(value).toString();
+  }
   if (value is ListingStatus) {
     return ListingStatusTypeTransformer().encode(value).toString();
   }

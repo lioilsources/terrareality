@@ -140,6 +140,26 @@ Class | Method | HTTP request | Description
 *CatalogApi* | [**updateMedia**](doc//CatalogApi.md#updatemedia) | **PATCH** /v1/orgs/{orgId}/media/{mediaId} | Change order and caption
 *JurisdictionsApi* | [**getJurisdiction**](doc//JurisdictionsApi.md#getjurisdiction) | **GET** /v1/jurisdictions/{code} | One jurisdiction
 *JurisdictionsApi* | [**listJurisdictions**](doc//JurisdictionsApi.md#listjurisdictions) | **GET** /v1/jurisdictions | Active jurisdictions and their rules
+*LeasingApi* | [**confirmLeaseSettlement**](doc//LeasingApi.md#confirmleasesettlement) | **POST** /v1/leases/{leaseId}/settlement | Confirm the deposit settlement after the lease ended (all parties settle the lease)
+*LeasingApi* | [**connectBank**](doc//LeasingApi.md#connectbank) | **POST** /v1/orgs/{orgId}/bank/connections | Link the landlord's account (open banking AIS, read only)
+*LeasingApi* | [**createLease**](doc//LeasingApi.md#createlease) | **POST** /v1/orgs/{orgId}/leases | Draft a lease (from an accepted application, or with explicit parties)
+*LeasingApi* | [**finishBankConnection**](doc//LeasingApi.md#finishbankconnection) | **POST** /v1/orgs/{orgId}/bank/connections/{connectionId}/finish | Complete linking after returning from the bank
+*LeasingApi* | [**getBankOverview**](doc//LeasingApi.md#getbankoverview) | **GET** /v1/orgs/{orgId}/bank | Linked accounts and recent incoming transactions with their match status
+*LeasingApi* | [**getLease**](doc//LeasingApi.md#getlease) | **GET** /v1/leases/{leaseId} | Lease with parties, documents, signatures and the current debt
+*LeasingApi* | [**getLeaseEvents**](doc//LeasingApi.md#getleaseevents) | **GET** /v1/leases/{leaseId}/events | Hash-chained event log with its verification (export for disputes)
+*LeasingApi* | [**getLeaseLedger**](doc//LeasingApi.md#getleaseledger) | **GET** /v1/leases/{leaseId}/ledger | Double-entry ledger of the lease (JSON, or CSV with format=csv)
+*LeasingApi* | [**getShareQR**](doc//LeasingApi.md#getshareqr) | **GET** /v1/obligation-shares/{shareId}/qr | QR payment (QR Platba / SPAYD) of one open share as a PNG image
+*LeasingApi* | [**giveLeaseNotice**](doc//LeasingApi.md#giveleasenotice) | **POST** /v1/leases/{leaseId}/notice | Give notice; the lease ends after the notice period
+*LeasingApi* | [**listLeaseObligations**](doc//LeasingApi.md#listleaseobligations) | **GET** /v1/leases/{leaseId}/obligations | Payment schedule split between parties, with QR payments (SPAYD) for open shares
+*LeasingApi* | [**listMyLeases**](doc//LeasingApi.md#listmyleases) | **GET** /v1/me/leases | Leases where I am a tenant
+*LeasingApi* | [**listOrgLeases**](doc//LeasingApi.md#listorgleases) | **GET** /v1/orgs/{orgId}/leases | Leases of the organization
+*LeasingApi* | [**markSharePaid**](doc//LeasingApi.md#marksharepaid) | **POST** /v1/orgs/{orgId}/obligation-shares/{shareId}/paid | The landlord confirms a payment arrived (\"přišlo\")
+*LeasingApi* | [**matchBankTransaction**](doc//LeasingApi.md#matchbanktransaction) | **POST** /v1/orgs/{orgId}/bank/transactions/{transactionId}/match | Confirm a suggested match or match manually; or ignore the transaction
+*LeasingApi* | [**proposeLease**](doc//LeasingApi.md#proposelease) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/propose | Render the lease document and ask all parties to sign
+*LeasingApi* | [**requestLeaseChanges**](doc//LeasingApi.md#requestleasechanges) | **POST** /v1/leases/{leaseId}/request-changes | Tenant asks the landlord to change the proposal
+*LeasingApi* | [**signLease**](doc//LeasingApi.md#signlease) | **POST** /v1/leases/{leaseId}/sign | Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+*LeasingApi* | [**syncBank**](doc//LeasingApi.md#syncbank) | **POST** /v1/orgs/{orgId}/bank/sync | Fetch and match new transactions now
+*LeasingApi* | [**updateLease**](doc//LeasingApi.md#updatelease) | **PUT** /v1/orgs/{orgId}/leases/{leaseId} | Edit a draft or a lease in negotiation
 *MeApi* | [**cancelErasure**](doc//MeApi.md#cancelerasure) | **DELETE** /v1/me/erasure | Cancel a scheduled erasure during the grace period
 *MeApi* | [**changePassword**](doc//MeApi.md#changepassword) | **POST** /v1/me/password | Change or set the password; revokes other sessions
 *MeApi* | [**deletePushDevice**](doc//MeApi.md#deletepushdevice) | **DELETE** /v1/me/push-devices/{deviceId} | Unregister a push device
@@ -238,6 +258,10 @@ Class | Method | HTTP request | Description
  - [AuthProvider](doc//AuthProvider.md)
  - [AuthResult](doc//AuthResult.md)
  - [BackofficeDecideModerationRequest](doc//BackofficeDecideModerationRequest.md)
+ - [BankConnection](doc//BankConnection.md)
+ - [BankLink](doc//BankLink.md)
+ - [BankOverview](doc//BankOverview.md)
+ - [BankTransaction](doc//BankTransaction.md)
  - [BookViewingRequest](doc//BookViewingRequest.md)
  - [ChangeListingStatusRequest](doc//ChangeListingStatusRequest.md)
  - [ChangePasswordRequest](doc//ChangePasswordRequest.md)
@@ -246,6 +270,8 @@ Class | Method | HTTP request | Description
  - [ClientKind](doc//ClientKind.md)
  - [CodeRequest](doc//CodeRequest.md)
  - [CompleteIncomeUploadRequest](doc//CompleteIncomeUploadRequest.md)
+ - [ConfirmLeaseSettlement200Response](doc//ConfirmLeaseSettlement200Response.md)
+ - [ConnectBankRequest](doc//ConnectBankRequest.md)
  - [Consent](doc//Consent.md)
  - [ConsentInput](doc//ConsentInput.md)
  - [ConsentKind](doc//ConsentKind.md)
@@ -264,6 +290,8 @@ Class | Method | HTTP request | Description
  - [FilterProposal](doc//FilterProposal.md)
  - [GdprRequest](doc//GdprRequest.md)
  - [GetPushConfig200Response](doc//GetPushConfig200Response.md)
+ - [GiveLeaseNotice200Response](doc//GiveLeaseNotice200Response.md)
+ - [GiveLeaseNoticeRequest](doc//GiveLeaseNoticeRequest.md)
  - [Group](doc//Group.md)
  - [GroupMember](doc//GroupMember.md)
  - [GroupMessage](doc//GroupMessage.md)
@@ -277,6 +305,17 @@ Class | Method | HTTP request | Description
  - [InvitationPreview](doc//InvitationPreview.md)
  - [InviteToGroupRequest](doc//InviteToGroupRequest.md)
  - [Jurisdiction](doc//Jurisdiction.md)
+ - [LeaseDetail](doc//LeaseDetail.md)
+ - [LeaseDocument](doc//LeaseDocument.md)
+ - [LeaseEvent](doc//LeaseEvent.md)
+ - [LeaseEventLog](doc//LeaseEventLog.md)
+ - [LeaseInput](doc//LeaseInput.md)
+ - [LeaseParty](doc//LeaseParty.md)
+ - [LeasePartyInput](doc//LeasePartyInput.md)
+ - [LeaseState](doc//LeaseState.md)
+ - [LeaseSummary](doc//LeaseSummary.md)
+ - [LeaseTemplate](doc//LeaseTemplate.md)
+ - [LedgerEntry](doc//LedgerEntry.md)
  - [Listing](doc//Listing.md)
  - [ListingAddress](doc//ListingAddress.md)
  - [ListingCard](doc//ListingCard.md)
@@ -290,6 +329,8 @@ Class | Method | HTTP request | Description
  - [MagicLinkRequest](doc//MagicLinkRequest.md)
  - [MapPoint](doc//MapPoint.md)
  - [MarkNotificationsReadRequest](doc//MarkNotificationsReadRequest.md)
+ - [MarkSharePaidRequest](doc//MarkSharePaidRequest.md)
+ - [MatchBankTransactionRequest](doc//MatchBankTransactionRequest.md)
  - [Me](doc//Me.md)
  - [Media](doc//Media.md)
  - [MediaUpdate](doc//MediaUpdate.md)
@@ -308,6 +349,7 @@ Class | Method | HTTP request | Description
  - [Notification](doc//Notification.md)
  - [NotificationList](doc//NotificationList.md)
  - [NotificationPreferences](doc//NotificationPreferences.md)
+ - [ObligationShare](doc//ObligationShare.md)
  - [OidcCallbackRequest](doc//OidcCallbackRequest.md)
  - [OidcStart](doc//OidcStart.md)
  - [OidcStartRequest](doc//OidcStartRequest.md)
@@ -339,6 +381,7 @@ Class | Method | HTTP request | Description
  - [ReplyTemplateInput](doc//ReplyTemplateInput.md)
  - [ReportConversation201Response](doc//ReportConversation201Response.md)
  - [ReportInput](doc//ReportInput.md)
+ - [RequestLeaseChangesRequest](doc//RequestLeaseChangesRequest.md)
  - [RequestSuggestionRequest](doc//RequestSuggestionRequest.md)
  - [ReviewDecision](doc//ReviewDecision.md)
  - [ReviewDetail](doc//ReviewDetail.md)
@@ -356,10 +399,13 @@ Class | Method | HTTP request | Description
  - [SessionInfo](doc//SessionInfo.md)
  - [SessionToken](doc//SessionToken.md)
  - [SetConversationBlockedRequest](doc//SetConversationBlockedRequest.md)
+ - [SignLease200Response](doc//SignLease200Response.md)
+ - [SignLeaseRequest](doc//SignLeaseRequest.md)
  - [StartConversation](doc//StartConversation.md)
  - [SubscriptionToken](doc//SubscriptionToken.md)
  - [Suggestion](doc//Suggestion.md)
  - [SuggestionDecision](doc//SuggestionDecision.md)
+ - [SyncBank200Response](doc//SyncBank200Response.md)
  - [TokenRequest](doc//TokenRequest.md)
  - [TotpSetup](doc//TotpSetup.md)
  - [TranscriptMessage](doc//TranscriptMessage.md)

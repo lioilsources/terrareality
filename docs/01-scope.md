@@ -182,6 +182,49 @@ Tohle je zároveň jádro **správcovského tieru** (předplatné per jednotka/m
 **Rizika:** nesmíme vypadat jako nabídka investice (marketing: „nástroj pro spoluvlastníky“, ne „investujte do bytu“); AML při výplatách řeší partner; dvojí zdanění a mezinárodní vlastníci (PL vlastník CZ bytu) → daňový disclaimer, reporting bez poradenství.
 ---
 
+## 5c. Kandidátní cílové skupiny (k ověření ve fázi 0)
+
+Segmenty mimo jádro (dlouhodobý nájem), které se objevily v diskusi. Každý má hypotézu, kanál a podmínku,
+za které ho bereme.
+
+### 5c.1 Krátkodobé pronájmy na víkendové akce s úklidem po pobytu (2026-10-15)
+
+**Pozorování.** V Praze si část návštěvníků, zejména ze zemí Perského zálivu, pronajímá byty jen na pár
+nocí (víkend, oslava, skupina přátel). Po odjezdu je potřeba rychlý a důkladný úklid, někdy i drobné
+opravy. Zákazníkem jsou tu dvě strany:
+
+- **hostitel / správce krátkodobých pronájmů**: potřebuje spolehlivý úklid mezi pobyty, kauci nebo
+  pojištění na škody a jasná pravidla domu,
+- **host nebo skupina hostů**: chce větší byt v centru, rezervaci v arabštině nebo angličtině, komunikaci
+  přes WhatsApp a rychlé potvrzení.
+
+**Co bychom nabídli** (navazuje na UC-26 marketplace služeb a roli „servisní partneři“):
+úklidový slot navázaný na odjezd (objednávka z kalendáře), checklist s fotkami před a po (stejný
+mechanismus jako předávací protokol v M6), hlášení škod s důkazy a kontakt na pojišťovnu. Platby jdou
+přímo mezi stranami a partnerem, platforma peníze nedrží (ADR 0002).
+
+**Jak je oslovit.**
+- *Hostitelé a správci:* správcovské firmy krátkodobých pronájmů v Praze 1–2 (jedna firma = desítky bytů),
+  skupiny hostitelů na Facebooku, meetupy hostitelů Airbnb/Booking, úklidové firmy jako partneři, kteří
+  hostitele přivedou s sebou. Argument: méně škod a sporů díky fotodokumentaci, úklid objednaný jedním
+  klikem.
+- *Hosté:* přes prostředníky, ne přímým cílením: cestovní kanceláře a DMC (destination management)
+  pro trh Perského zálivu, concierge služby, eventové agentury a pořadatelé oslav. Rozhraní v arabštině
+  (RTL), WhatsApp Business jako kanál, Instagram a Snapchat (silný v Saúdské Arábii). Sezóna: léto
+  (červen–srpen) a svátky Eid.
+- *Obsah:* srozumitelná pravidla domu a nočního klidu předem, v jazyce hosta. Sníží to stížnosti sousedů,
+  které jsou u tohoto typu pobytů hlavní riziko.
+
+**Podmínky a rizika.**
+- Je to krátkodobé ubytování, ne nájem: jiná regulace (evidence ubytovaných, místní poplatek, pravidla
+  Prahy pro krátkodobé pronájmy, SVJ). Viz Q-STR-1.
+- Segment definujeme chováním (krátký pobyt, akce, úklid), ne národností. Zájemce nikdy nefiltrujeme ani
+  nehodnotíme podle původu (antidiskriminační zákon); jazyk a kanál jsou jen marketing. Viz Q-STR-2.
+- Konflikt s jádrem: správci dlouhodobých nájmů a SVJ krátkodobé pronájmy často nechtějí. Rozhodnout, zda
+  jde o samostatný produkt, nebo jen o úklidový add-on pro hostitele (OQ-23).
+
+---
+
 ## 6. Funkční požadavky (výběr, číslování pro plán)
 
 **FR-1 Účty a identita**

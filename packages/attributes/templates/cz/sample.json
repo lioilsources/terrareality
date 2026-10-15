@@ -1,0 +1,8 @@
+{"draft": true, "code": 2600000001, "document_id": "sample", "generated_at": "14. 10. 2026",
+ "parties": [{"role": "landlord", "name": "Lucie Pronajímatelka", "email": "lucie@example.com", "share_pct": null},
+             {"role": "co_tenant", "name": "Anna Nováková", "email": "anna@example.com", "share_pct": 50},
+             {"role": "co_tenant", "name": "Ben Dvořák", "email": "ben@example.com", "share_pct": 50}],
+ "property": {"address": "Dejvická 12, 160 00 Praha 6", "unit": "2+kk, 3. NP"},
+ "starts_on": "1. 11. 2026", "ends_on": "31. 10. 2027", "rent": "22 000 Kč", "services": "3 500 Kč", "deposit": "44 000 Kč",
+ "due_day": 15, "notice_months": 3, "payee": {"iban": "CZ65 0800 0000 1920 0014 5399", "name": "Lucie Pronajímatelka"},
+ "clauses": ["pets_allowed", "no_smoking", "inventory"]}

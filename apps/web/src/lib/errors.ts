@@ -40,7 +40,15 @@ const byCode: Record<string, () => string> = {
 	identity_required: m.err_identity_required,
 	invalid_reason: m.err_invalid_reason,
 	group_full: m.err_group_full,
-	budget_required: m.err_budget_required
+	budget_required: m.err_budget_required,
+	deposit_too_high: m.err_deposit_too_high,
+	invalid_iban: m.err_invalid_iban,
+	joint_needs_two: m.err_joint_needs_two,
+	end_required: m.err_end_required,
+	end_not_allowed: m.err_end_not_allowed,
+	lease_locked: m.err_lease_locked,
+	already_signed: m.err_already_signed,
+	shares_total: m.err_shares_total
 };
 
 /** Translates an api problem into a user-facing message. */

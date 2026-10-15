@@ -4,7 +4,9 @@ package app
 
 import (
 	"context"
+
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"net/http"
 	"net/smtp"
@@ -15,6 +17,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
+	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
@@ -192,6 +195,23 @@ func ISIR(cfg config.Config) isir.Checker {
 		return isir.NewClient(cfg.ISIRURL)
 	}
 	return isir.Mock{}
+}
+
+// Leasing builds the lease service; mockBank is non-nil when the mock bank is
+// active (the dev transaction endpoint needs it).
+func Leasing(cfg config.Config, d Deps, pool *pgxpool.Pool, jobs leasing.Jobs, outbox notify.Outbox, log *slog.Logger) (*leasing.Service, *leasing.MockBank) {
+	svc := &leasing.Service{Pool: pool, Render: leasing.Typst{Bin: cfg.TypstBin},
+		Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}}, Blob: d.Blob, Jobs: jobs,
+		Outbox: outbox, Mail: d.Renderer, WebBaseURL: cfg.WebBaseURL, TemplatesReviewed: cfg.TemplatesReviewed, Log: log}
+	var mock *leasing.MockBank
+	switch cfg.BankProvider {
+	case "gocardless":
+		svc.Bank = leasing.NewGoCardless(cfg.GoCardlessID, cfg.GoCardlessKey)
+	default:
+		mock = &leasing.MockBank{}
+		svc.Bank = mock
+	}
+	return svc, mock
 }
 
 // Tokens signs Centrifugo client tokens.

@@ -2043,6 +2043,337 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{orgId}/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Leases of the organization */
+        get: operations["listOrgLeases"];
+        put?: never;
+        /** Draft a lease (from an accepted application, or with explicit parties) */
+        post: operations["createLease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leases/{leaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit a draft or a lease in negotiation */
+        put: operations["updateLease"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leases/{leaseId}/propose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the lease document and ask all parties to sign */
+        post: operations["proposeLease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leases where I am a tenant */
+        get: operations["listMyLeases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lease with parties, documents, signatures and the current debt */
+        get: operations["getLease"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/request-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tenant asks the landlord to change the proposal */
+        post: operations["requestLeaseChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign the proposed document as my party (mock now; Bank iD SIGN when contracted) */
+        post: operations["signLease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/obligations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payment schedule split between parties, with QR payments (SPAYD) for open shares */
+        get: operations["listLeaseObligations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/obligation-shares/{shareId}/qr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** QR payment (QR Platba / SPAYD) of one open share as a PNG image */
+        get: operations["getShareQR"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/obligation-shares/{shareId}/paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The landlord confirms a payment arrived ("přišlo") */
+        post: operations["markSharePaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Double-entry ledger of the lease (JSON, or CSV with format=csv) */
+        get: operations["getLeaseLedger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hash-chained event log with its verification (export for disputes) */
+        get: operations["getLeaseEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give notice; the lease ends after the notice period */
+        post: operations["giveLeaseNotice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/settlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the deposit settlement after the lease ended (all parties settle the lease) */
+        post: operations["confirmLeaseSettlement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/bank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Linked accounts and recent incoming transactions with their match status */
+        get: operations["getBankOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/bank/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link the landlord's account (open banking AIS, read only) */
+        post: operations["connectBank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/bank/connections/{connectionId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete linking after returning from the bank */
+        post: operations["finishBankConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/bank/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch and match new transactions now */
+        post: operations["syncBank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/bank/transactions/{transactionId}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a suggested match or match manually; or ignore the transaction */
+        post: operations["matchBankTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3372,6 +3703,223 @@ export interface components {
             /** Format: date-time */
             insolvency_checked_at?: string;
         };
+        /** @enum {string} */
+        LeaseState: "draft" | "proposed" | "negotiating" | "signed" | "active" | "notice_given" | "terminated" | "settled" | "cancelled";
+        /** @enum {string} */
+        LeaseTemplate: "byt_doba_urcita" | "byt_doba_neurcita" | "spolecny_najem" | "pokoj";
+        LeasePartyInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            role: "tenant" | "co_tenant" | "subtenant" | "guarantor";
+            /** @description Payment share in basis points; all zero = equal shares. */
+            share_bps?: number;
+        };
+        LeaseInput: {
+            /** Format: uuid */
+            application_id?: string;
+            /** Format: uuid */
+            listing_id?: string;
+            template: components["schemas"]["LeaseTemplate"];
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on?: string;
+            /** Format: int64 */
+            rent_amount: number;
+            /** Format: int64 */
+            services_amount?: number;
+            /** Format: int64 */
+            deposit_amount?: number;
+            /** @default 15 */
+            due_day: number;
+            /** @default 3 */
+            notice_months: number;
+            payee_iban: string;
+            payee_name: string;
+            clauses?: ("pets_allowed" | "no_smoking" | "inventory" | "indexation" | "sublet_forbidden" | "early_termination")[];
+            property_address?: string;
+            unit_label?: string;
+            parties?: components["schemas"]["LeasePartyInput"][];
+        };
+        LeaseSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            org_id: string;
+            org_name?: string;
+            /**
+             * Format: int64
+             * @description Variable symbol of payments.
+             */
+            code: number;
+            state: components["schemas"]["LeaseState"];
+            template: components["schemas"]["LeaseTemplate"];
+            property_address: string;
+            unit_label?: string;
+            tenant_names?: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on?: string;
+            /** Format: int64 */
+            rent_amount: number;
+            currency: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        LeaseParty: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            role: "landlord" | "tenant" | "co_tenant" | "subtenant" | "guarantor";
+            name: string;
+            email?: string;
+            share_bps: number;
+            /** @description Specific symbol of this party's payments. */
+            position: number;
+            me: boolean;
+            /** Format: date-time */
+            signed_at?: string;
+            /**
+             * Format: int64
+             * @description Due and unpaid amount today.
+             */
+            debt?: number;
+        };
+        LeaseDocument: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "draft" | "final" | "signed" | "scan" | "evidence";
+            version: number;
+            filename: string;
+            sha256: string;
+            url: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        LeaseDetail: {
+            lease: components["schemas"]["LeaseSummary"];
+            landlord_view: boolean;
+            payee_iban: string;
+            payee_name: string;
+            due_day: number;
+            notice_months: number;
+            /** Format: int64 */
+            deposit_amount: number;
+            /** Format: int64 */
+            services_amount: number;
+            clauses: string[];
+            change_request?: string;
+            parties: components["schemas"]["LeaseParty"][];
+            documents: components["schemas"]["LeaseDocument"][];
+            /** Format: int64 */
+            total_debt: number;
+        };
+        ObligationShare: {
+            /**
+             * Format: uuid
+             * @description Share id.
+             */
+            id: string;
+            /** Format: uuid */
+            obligation_id: string;
+            /** @enum {string} */
+            kind: "rent" | "services" | "deposit" | "oneoff";
+            period: string;
+            /** Format: date */
+            due_on: string;
+            /** Format: int64 */
+            amount: number;
+            /** Format: int64 */
+            paid_amount: number;
+            currency: string;
+            /** Format: uuid */
+            party_id: string;
+            party_name: string;
+            mine: boolean;
+            /** @enum {string} */
+            status: "open" | "paid" | "cancelled";
+            /** @description QR Platba payload for the open amount. */
+            spayd?: string;
+        };
+        LedgerEntry: {
+            /** Format: uuid */
+            posting_id: string;
+            /** @enum {string} */
+            account: "receivable" | "income" | "deposit_held" | "cash";
+            party_name?: string;
+            /**
+             * Format: int64
+             * @description Debit positive, credit negative.
+             */
+            amount: number;
+            memo: string;
+            /** Format: date */
+            booked_on: string;
+        };
+        LeaseEvent: {
+            seq: number;
+            kind: string;
+            payload: {
+                [key: string]: unknown;
+            };
+            prev_hash: string;
+            hash: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        LeaseEventLog: {
+            events: components["schemas"]["LeaseEvent"][];
+            valid: boolean;
+            /** @description Events that verified before the first break. */
+            verified: number;
+            error?: string;
+            /** @description Hash of the last event. */
+            head: string;
+        };
+        BankConnection: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            provider: "gocardless" | "mock";
+            /** @enum {string} */
+            status: "pending" | "linked" | "expired" | "error";
+            iban: string;
+            /** Format: date-time */
+            last_synced_at?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        BankLink: {
+            connection: components["schemas"]["BankConnection"];
+            /** @description Open this URL to authorize access at the bank. */
+            link?: string;
+        };
+        BankTransaction: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            booked_on: string;
+            /** Format: int64 */
+            amount: number;
+            currency: string;
+            variable_symbol: string;
+            specific_symbol: string;
+            counterparty_name: string;
+            remittance: string;
+            /** @enum {string} */
+            match_status: "unmatched" | "matched" | "suggested" | "ignored";
+            /** Format: uuid */
+            share_id?: string;
+            match_note: string;
+        };
+        BankOverview: {
+            connections: components["schemas"]["BankConnection"][];
+            transactions: components["schemas"]["BankTransaction"][];
+        };
     };
     responses: {
         /** @description Error */
@@ -3428,6 +3976,7 @@ export interface components {
         Before: string;
         ListingId: string;
         MediaId: string;
+        LeaseId: string;
         GroupId: string;
         ApplicationId: string;
         ConversationId: string;
@@ -6645,6 +7194,535 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RoommateMatch"][];
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrgLeases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseSummary"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseInput"];
+            };
+        };
+        responses: {
+            /** @description Draft created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    proposeLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Proposed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMyLeases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseSummary"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lease */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    requestLeaseChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    comment: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Sent */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    signLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    provider: "mock" | "bankid_sign";
+                };
+            };
+        };
+        responses: {
+            /** @description Signed, or continue at the provider (redirect_url) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        signed: boolean;
+                        redirect_url?: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listLeaseObligations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Obligations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObligationShare"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getShareQR: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PNG image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    markSharePaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                shareId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: int64
+                     * @description Default is the open amount.
+                     */
+                    amount?: number;
+                    /** Format: date */
+                    paid_on?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLeaseLedger: {
+        parameters: {
+            query?: {
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ledger */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerEntry"][];
+                    "text/csv": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLeaseEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseEventLog"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    giveLeaseNotice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    delivered_on: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Notice recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        ends_on: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    confirmLeaseSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Confirmed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settled: boolean;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBankOverview: {
+        parameters: {
+            query?: {
+                status?: "unmatched" | "matched" | "suggested" | "ignored";
+            };
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankOverview"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    connectBank: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    institution_id?: string;
+                    redirect_uri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Connection (linked at once with the mock provider) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankLink"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    finishBankConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                connectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankConnection"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    syncBank: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        new: number;
+                        matched: number;
+                        suggested: number;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    matchBankTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    share_id?: string;
+                    ignore?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Done */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };

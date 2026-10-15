@@ -234,6 +234,14 @@ class ApiClient {
           return AuthResult.fromJson(value);
         case 'BackofficeDecideModerationRequest':
           return BackofficeDecideModerationRequest.fromJson(value);
+        case 'BankConnection':
+          return BankConnection.fromJson(value);
+        case 'BankLink':
+          return BankLink.fromJson(value);
+        case 'BankOverview':
+          return BankOverview.fromJson(value);
+        case 'BankTransaction':
+          return BankTransaction.fromJson(value);
         case 'BookViewingRequest':
           return BookViewingRequest.fromJson(value);
         case 'ChangeListingStatusRequest':
@@ -250,6 +258,10 @@ class ApiClient {
           return CodeRequest.fromJson(value);
         case 'CompleteIncomeUploadRequest':
           return CompleteIncomeUploadRequest.fromJson(value);
+        case 'ConfirmLeaseSettlement200Response':
+          return ConfirmLeaseSettlement200Response.fromJson(value);
+        case 'ConnectBankRequest':
+          return ConnectBankRequest.fromJson(value);
         case 'Consent':
           return Consent.fromJson(value);
         case 'ConsentInput':
@@ -286,6 +298,10 @@ class ApiClient {
           return GdprRequest.fromJson(value);
         case 'GetPushConfig200Response':
           return GetPushConfig200Response.fromJson(value);
+        case 'GiveLeaseNotice200Response':
+          return GiveLeaseNotice200Response.fromJson(value);
+        case 'GiveLeaseNoticeRequest':
+          return GiveLeaseNoticeRequest.fromJson(value);
         case 'Group':
           return Group.fromJson(value);
         case 'GroupMember':
@@ -312,6 +328,28 @@ class ApiClient {
           return InviteToGroupRequest.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
+        case 'LeaseDetail':
+          return LeaseDetail.fromJson(value);
+        case 'LeaseDocument':
+          return LeaseDocument.fromJson(value);
+        case 'LeaseEvent':
+          return LeaseEvent.fromJson(value);
+        case 'LeaseEventLog':
+          return LeaseEventLog.fromJson(value);
+        case 'LeaseInput':
+          return LeaseInput.fromJson(value);
+        case 'LeaseParty':
+          return LeaseParty.fromJson(value);
+        case 'LeasePartyInput':
+          return LeasePartyInput.fromJson(value);
+        case 'LeaseState':
+          return LeaseStateTypeTransformer().decode(value);
+        case 'LeaseSummary':
+          return LeaseSummary.fromJson(value);
+        case 'LeaseTemplate':
+          return LeaseTemplateTypeTransformer().decode(value);
+        case 'LedgerEntry':
+          return LedgerEntry.fromJson(value);
         case 'Listing':
           return Listing.fromJson(value);
         case 'ListingAddress':
@@ -338,6 +376,10 @@ class ApiClient {
           return MapPoint.fromJson(value);
         case 'MarkNotificationsReadRequest':
           return MarkNotificationsReadRequest.fromJson(value);
+        case 'MarkSharePaidRequest':
+          return MarkSharePaidRequest.fromJson(value);
+        case 'MatchBankTransactionRequest':
+          return MatchBankTransactionRequest.fromJson(value);
         case 'Me':
           return Me.fromJson(value);
         case 'Media':
@@ -374,6 +416,8 @@ class ApiClient {
           return NotificationList.fromJson(value);
         case 'NotificationPreferences':
           return NotificationPreferences.fromJson(value);
+        case 'ObligationShare':
+          return ObligationShare.fromJson(value);
         case 'OidcCallbackRequest':
           return OidcCallbackRequest.fromJson(value);
         case 'OidcStart':
@@ -436,6 +480,8 @@ class ApiClient {
           return ReportConversation201Response.fromJson(value);
         case 'ReportInput':
           return ReportInput.fromJson(value);
+        case 'RequestLeaseChangesRequest':
+          return RequestLeaseChangesRequest.fromJson(value);
         case 'RequestSuggestionRequest':
           return RequestSuggestionRequest.fromJson(value);
         case 'ReviewDecision':
@@ -470,6 +516,10 @@ class ApiClient {
           return SessionToken.fromJson(value);
         case 'SetConversationBlockedRequest':
           return SetConversationBlockedRequest.fromJson(value);
+        case 'SignLease200Response':
+          return SignLease200Response.fromJson(value);
+        case 'SignLeaseRequest':
+          return SignLeaseRequest.fromJson(value);
         case 'StartConversation':
           return StartConversation.fromJson(value);
         case 'SubscriptionToken':
@@ -478,6 +528,8 @@ class ApiClient {
           return Suggestion.fromJson(value);
         case 'SuggestionDecision':
           return SuggestionDecision.fromJson(value);
+        case 'SyncBank200Response':
+          return SyncBank200Response.fromJson(value);
         case 'TokenRequest':
           return TokenRequest.fromJson(value);
         case 'TotpSetup':

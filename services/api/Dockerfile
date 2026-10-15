@@ -10,10 +10,20 @@ RUN CGO_ENABLED=0 go build -trimpath \
     -ldflags "-s -w -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.Version=${VERSION} -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.Commit=${COMMIT} -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.BuiltAt=${BUILT_AT}" \
     -o /out/ ./cmd/...
 
+# Typst renders lease documents (static musl binary).
+FROM alpine:3.22 AS typst
+ARG TARGETARCH
+ARG TYPST_VERSION=0.15.1
+RUN apk add --no-cache curl xz \
+ && arch=$([ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64) \
+ && curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-${arch}-unknown-linux-musl.tar.xz" \
+    | tar -xJ --strip-components=1 -C /usr/local/bin "typst-${arch}-unknown-linux-musl/typst"
+
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=build /out/ /app/
-ENV APP_ENV=prod LOG_FORMAT=json HTTP_ADDR=:8080
+COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
+ENV APP_ENV=prod LOG_FORMAT=json HTTP_ADDR=:8080 TYPST_BIN=/usr/local/bin/typst
 EXPOSE 8080
 USER nonroot
 CMD ["/app/api"]
