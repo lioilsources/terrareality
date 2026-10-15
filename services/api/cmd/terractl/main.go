@@ -7,6 +7,10 @@
 //	terractl admin import <file>    import administrative units (GeoJSON, see infra/README-geo.md)
 //	terractl seed-search <n>        ensure n synthetic published listings (APP_ENV=dev|test only)
 //	terractl reindex                rebuild the search index from approved versions
+//	terractl import-ruian --region praha [--file f | --url u|official] [--boundaries g.geojson]
+//	                                import a launch region's addresses (+ boundaries), offline sample by default
+//	terractl onboard-owner --email e --name n [--org o] | --csv f [--dry-run]
+//	                                create invited pilot owner organizations (magic-link invitation e-mail)
 package main
 
 import (
@@ -55,6 +59,10 @@ func run(args []string) error {
 	defer pool.Close()
 	q := db.New(pool)
 	switch {
+	case len(args) >= 1 && args[0] == "import-ruian":
+		return importRuian(ctx, cfg, pool, args[1:], os.Stdout)
+	case len(args) >= 1 && args[0] == "onboard-owner":
+		return onboardOwners(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) == 3 && args[0] == "staff" && (args[1] == "grant" || args[1] == "revoke"):
 		u, err := q.GetUserByEmail(ctx, args[2])
 		if err != nil {
@@ -136,7 +144,7 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex")
+	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex | import-ruian --region praha [...] | onboard-owner [...]")
 }
 
 func seedUser(ctx context.Context, pool *pgxpool.Pool, email, name string, staff bool) error {

@@ -1,28 +1,16 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import { kinds, municipalities, czk, type KindSlug } from '../../lib/api';
+import KindIndex from '../../components/KindIndex.astro';
+import { kindsByLang, localityPages } from '../../lib/localities';
 
 export async function getStaticPaths() {
   const out = [];
-  for (const slug of Object.keys(kinds) as KindSlug[]) {
-    const list = await municipalities(kinds[slug].kind);
-    if (list.length) out.push({ params: { kind: slug }, props: { list } });
+  for (const kindSlug of Object.keys(kindsByLang.cs)) {
+    out.push({ params: { kind: kindSlug }, props: { pages: await localityPages('cs', kindSlug) } });
   }
   return out;
 }
-const { kind } = Astro.params as { kind: KindSlug };
-const { list } = Astro.props;
-const k = kinds[kind];
+const { kind } = Astro.params as { kind: string };
+const { pages } = Astro.props;
 ---
 
-<Layout title={`${k.title} | TerraReality`} description={`${k.title} podle obcí – aktuální nabídky a mediány nájmů.`} lang="cs" altHref="/en/" altLabel="English">
-  <h1 class="text-3xl font-semibold">{k.title}</h1>
-  <ul class="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-    {list.map((m) => (
-      <li class="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
-        <a href={`/${kind}/${m.slug}`} class="font-medium">{m.name}</a>
-        <p class="text-sm text-[var(--muted)]">{m.listings} {k.noun} · medián {czk(m.median_rent)}</p>
-      </li>
-    ))}
-  </ul>
-</Layout>
+<KindIndex lang="cs" kindSlug={kind} pages={pages} />

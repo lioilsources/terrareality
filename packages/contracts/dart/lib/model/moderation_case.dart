@@ -14,14 +14,17 @@ class ModerationCase {
   /// Returns a new [ModerationCase] instance.
   ModerationCase({
     required this.id,
+    required this.kind,
     required this.source_,
-    required this.conversationId,
+    this.conversationId,
+    this.listingId,
     this.messageId,
     required this.reason,
     this.note,
     required this.status,
     this.reporterName,
     this.reporterEmail,
+    this.reporterAnonymous,
     this.reportedId,
     this.reportedName,
     this.reportedEmail,
@@ -36,9 +39,28 @@ class ModerationCase {
 
   String id;
 
+  /// What was reported.
+  ModerationCaseKindEnum kind;
+
   ModerationCaseSource_Enum source_;
 
-  String conversationId;
+  /// Set for conversation cases.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? conversationId;
+
+  /// The reported listing (listing cases) or the conversation's listing.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? listingId;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -75,6 +97,15 @@ class ModerationCase {
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
   String? reporterEmail;
+
+  /// The reporter was not signed in (listing reports).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  bool? reporterAnonymous;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -135,14 +166,17 @@ class ModerationCase {
   @override
   bool operator ==(Object other) => identical(this, other) || other is ModerationCase &&
     other.id == id &&
+    other.kind == kind &&
     other.source_ == source_ &&
     other.conversationId == conversationId &&
+    other.listingId == listingId &&
     other.messageId == messageId &&
     other.reason == reason &&
     other.note == note &&
     other.status == status &&
     other.reporterName == reporterName &&
     other.reporterEmail == reporterEmail &&
+    other.reporterAnonymous == reporterAnonymous &&
     other.reportedId == reportedId &&
     other.reportedName == reportedName &&
     other.reportedEmail == reportedEmail &&
@@ -158,14 +192,17 @@ class ModerationCase {
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (id.hashCode) +
+    (kind.hashCode) +
     (source_.hashCode) +
-    (conversationId.hashCode) +
+    (conversationId == null ? 0 : conversationId!.hashCode) +
+    (listingId == null ? 0 : listingId!.hashCode) +
     (messageId == null ? 0 : messageId!.hashCode) +
     (reason.hashCode) +
     (note == null ? 0 : note!.hashCode) +
     (status.hashCode) +
     (reporterName == null ? 0 : reporterName!.hashCode) +
     (reporterEmail == null ? 0 : reporterEmail!.hashCode) +
+    (reporterAnonymous == null ? 0 : reporterAnonymous!.hashCode) +
     (reportedId == null ? 0 : reportedId!.hashCode) +
     (reportedName == null ? 0 : reportedName!.hashCode) +
     (reportedEmail == null ? 0 : reportedEmail!.hashCode) +
@@ -178,13 +215,23 @@ class ModerationCase {
     (createdAt.hashCode);
 
   @override
-  String toString() => 'ModerationCase[id=$id, source_=$source_, conversationId=$conversationId, messageId=$messageId, reason=$reason, note=$note, status=$status, reporterName=$reporterName, reporterEmail=$reporterEmail, reportedId=$reportedId, reportedName=$reportedName, reportedEmail=$reportedEmail, listingTitle=$listingTitle, messageBody=$messageBody, aiStatus=$aiStatus, aiSuggestion=$aiSuggestion, decision=$decision, decisionNote=$decisionNote, createdAt=$createdAt]';
+  String toString() => 'ModerationCase[id=$id, kind=$kind, source_=$source_, conversationId=$conversationId, listingId=$listingId, messageId=$messageId, reason=$reason, note=$note, status=$status, reporterName=$reporterName, reporterEmail=$reporterEmail, reporterAnonymous=$reporterAnonymous, reportedId=$reportedId, reportedName=$reportedName, reportedEmail=$reportedEmail, listingTitle=$listingTitle, messageBody=$messageBody, aiStatus=$aiStatus, aiSuggestion=$aiSuggestion, decision=$decision, decisionNote=$decisionNote, createdAt=$createdAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'id'] = this.id;
+      json[r'kind'] = this.kind;
       json[r'source'] = this.source_;
+    if (this.conversationId != null) {
       json[r'conversation_id'] = this.conversationId;
+    } else {
+      json[r'conversation_id'] = null;
+    }
+    if (this.listingId != null) {
+      json[r'listing_id'] = this.listingId;
+    } else {
+      json[r'listing_id'] = null;
+    }
     if (this.messageId != null) {
       json[r'message_id'] = this.messageId;
     } else {
@@ -206,6 +253,11 @@ class ModerationCase {
       json[r'reporter_email'] = this.reporterEmail;
     } else {
       json[r'reporter_email'] = null;
+    }
+    if (this.reporterAnonymous != null) {
+      json[r'reporter_anonymous'] = this.reporterAnonymous;
+    } else {
+      json[r'reporter_anonymous'] = null;
     }
     if (this.reportedId != null) {
       json[r'reported_id'] = this.reportedId;
@@ -264,14 +316,17 @@ class ModerationCase {
 
       return ModerationCase(
         id: mapValueOfType<String>(json, r'id')!,
+        kind: ModerationCaseKindEnum.fromJson(json[r'kind'])!,
         source_: ModerationCaseSource_Enum.fromJson(json[r'source'])!,
-        conversationId: mapValueOfType<String>(json, r'conversation_id')!,
+        conversationId: mapValueOfType<String>(json, r'conversation_id'),
+        listingId: mapValueOfType<String>(json, r'listing_id'),
         messageId: mapValueOfType<String>(json, r'message_id'),
         reason: mapValueOfType<String>(json, r'reason')!,
         note: mapValueOfType<String>(json, r'note'),
         status: ModerationCaseStatusEnum.fromJson(json[r'status'])!,
         reporterName: mapValueOfType<String>(json, r'reporter_name'),
         reporterEmail: mapValueOfType<String>(json, r'reporter_email'),
+        reporterAnonymous: mapValueOfType<bool>(json, r'reporter_anonymous'),
         reportedId: mapValueOfType<String>(json, r'reported_id'),
         reportedName: mapValueOfType<String>(json, r'reported_name'),
         reportedEmail: mapValueOfType<String>(json, r'reported_email'),
@@ -330,8 +385,8 @@ class ModerationCase {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'id',
+    'kind',
     'source',
-    'conversation_id',
     'reason',
     'status',
     'listing_title',
@@ -340,6 +395,80 @@ class ModerationCase {
     'created_at',
   };
 }
+
+/// What was reported.
+class ModerationCaseKindEnum {
+  /// Instantiate a new enum with the provided [value].
+  const ModerationCaseKindEnum._(this.value);
+
+  /// The underlying value of this enum member.
+  final String value;
+
+  @override
+  String toString() => value;
+
+  String toJson() => value;
+
+  static const conversation = ModerationCaseKindEnum._(r'conversation');
+  static const listing = ModerationCaseKindEnum._(r'listing');
+
+  /// List of all possible values in this [enum][ModerationCaseKindEnum].
+  static const values = <ModerationCaseKindEnum>[
+    conversation,
+    listing,
+  ];
+
+  static ModerationCaseKindEnum? fromJson(dynamic value) => ModerationCaseKindEnumTypeTransformer().decode(value);
+
+  static List<ModerationCaseKindEnum> listFromJson(dynamic json, {bool growable = false,}) {
+    final result = <ModerationCaseKindEnum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = ModerationCaseKindEnum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [ModerationCaseKindEnum] to String,
+/// and [decode] dynamic data back to [ModerationCaseKindEnum].
+class ModerationCaseKindEnumTypeTransformer {
+  factory ModerationCaseKindEnumTypeTransformer() => _instance ??= const ModerationCaseKindEnumTypeTransformer._();
+
+  const ModerationCaseKindEnumTypeTransformer._();
+
+  String encode(ModerationCaseKindEnum data) => data.value;
+
+  /// Decodes a [dynamic value][data] to a ModerationCaseKindEnum.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  ModerationCaseKindEnum? decode(dynamic data, {bool allowNull = true}) {
+    if (data != null) {
+      switch (data) {
+        case r'conversation': return ModerationCaseKindEnum.conversation;
+        case r'listing': return ModerationCaseKindEnum.listing;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// Singleton [ModerationCaseKindEnumTypeTransformer] instance.
+  static ModerationCaseKindEnumTypeTransformer? _instance;
+}
+
 
 
 class ModerationCaseSource_Enum {

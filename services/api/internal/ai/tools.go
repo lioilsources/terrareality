@@ -1,12 +1,9 @@
 package ai
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 )
 
 // Tool is a function the model may call.
@@ -40,22 +37,13 @@ func (c *Client) CallTools(ctx context.Context, messages []ChatMessage, tools []
 	for i, t := range tools {
 		fns[i] = fn{Type: "function", Function: t}
 	}
-	body, _ := json.Marshal(map[string]any{"model": c.Model, "messages": messages, "tools": fns, "tool_choice": "auto",
-		"temperature": 0})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/chat/completions", bytes.NewReader(body))
+	raw, _, err := c.post(ctx, func(model string) []byte {
+		body, _ := json.Marshal(map[string]any{"model": model, "messages": messages, "tools": fns, "tool_choice": "auto",
+			"temperature": 0})
+		return body
+	})
 	if err != nil {
 		return nil, "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	res, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("llm: %w", err)
-	}
-	defer res.Body.Close()
-	raw, _ := io.ReadAll(io.LimitReader(res.Body, 4<<20))
-	if res.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("llm: status %d: %.300s", res.StatusCode, raw)
 	}
 	var cr struct {
 		Choices []struct {

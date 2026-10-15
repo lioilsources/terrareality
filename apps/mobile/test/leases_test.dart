@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:terra_api/api.dart';
 import 'package:terrareality/src/app.dart';
 import 'package:terrareality/src/leases/leases_repository.dart';
+import 'package:terrareality/src/leases/payments_repository.dart';
 
 LeaseSummary _summary(LeaseState state) => LeaseSummary(
       id: 'l1',
@@ -78,12 +79,23 @@ class FakeRepo implements LeasesRepository {
   }
 }
 
+class NoCardPayments implements PaymentsRepository {
+  @override
+  Future<CardPayment?> cardPayment(String shareId) async => null;
+
+  @override
+  Future<PaymentLink> createLink(String shareId) => throw UnimplementedError();
+}
+
 void main() {
   testWidgets('a tenant signs and sees what to pay with a QR code', (tester) async {
     final repo = FakeRepo();
     final router = createRouter()..go('/smlouvy');
     await tester.pumpWidget(ProviderScope(
-      overrides: [leasesRepositoryProvider.overrideWithValue(repo)],
+      overrides: [
+        leasesRepositoryProvider.overrideWithValue(repo),
+        paymentsRepositoryProvider.overrideWithValue(NoCardPayments()),
+      ],
       child: TerraApp(locale: const Locale('cs'), router: router),
     ));
     await tester.pumpAndSettle();

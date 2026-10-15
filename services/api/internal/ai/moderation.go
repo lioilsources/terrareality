@@ -91,7 +91,8 @@ func (c *Client) Moderate(ctx context.Context, req ModerationRequest) (Moderatio
 		"confidence": map[string]any{"type": "number"},
 	}, "required": []string{"verdict", "reason", "confidence"}}
 	var out ModerationResult
-	if err := c.complete(ctx, moderationSystem, "Report:\n"+string(in), "moderation_verdict", schema, &out); err != nil {
+	model, err := c.complete(ctx, moderationSystem, "Report:\n"+string(in), "moderation_verdict", schema, &out)
+	if err != nil {
 		return ModerationResult{}, err
 	}
 	switch out.Verdict {
@@ -101,6 +102,6 @@ func (c *Client) Moderate(ctx context.Context, req ModerationRequest) (Moderatio
 		out.Confidence = 0
 	}
 	out.Confidence = min(max(out.Confidence, 0), 1)
-	out.Model = c.Model
+	out.Model = model
 	return out, nil
 }

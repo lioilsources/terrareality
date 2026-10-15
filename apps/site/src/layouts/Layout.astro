@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { Logo } from '@terra/ui';
+import { APP_URL } from '../lib/api';
 
 interface Props {
   title: string;
@@ -8,9 +9,18 @@ interface Props {
   lang: 'cs' | 'en';
   altHref: string;
   altLabel: string;
+  /** cs/en URLs of this page; emits hreflang alternates (x-default = cs). */
+  alternates?: { cs: string; en: string } | null;
 }
-const { title, description, lang, altHref, altLabel } = Astro.props;
+const { title, description, lang, altHref, altLabel, alternates } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const prefix = lang === 'en' ? '/en' : '';
+const legal = [
+  { href: '/podminky', cs: 'Podmínky užívání', en: 'Terms of service' },
+  { href: '/soukromi', cs: 'Ochrana osobních údajů', en: 'Privacy policy' },
+  { href: '/cookies', cs: 'Cookies', en: 'Cookies' },
+  { href: '/dsa', cs: 'Kontaktní místo DSA', en: 'DSA contact point' }
+];
 ---
 
 <!doctype html>
@@ -21,18 +31,50 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" hreflang={lang === 'cs' ? 'en' : 'cs'} href={new URL(altHref, Astro.site)} />
+    {
+      alternates ? (
+        <>
+          <link rel="alternate" hreflang="cs" href={new URL(alternates.cs, Astro.site)} />
+          <link rel="alternate" hreflang="en" href={new URL(alternates.en, Astro.site)} />
+          <link rel="alternate" hreflang="x-default" href={new URL(alternates.cs, Astro.site)} />
+        </>
+      ) : (
+        <link rel="alternate" hreflang={lang === 'cs' ? 'en' : 'cs'} href={new URL(altHref, Astro.site)} />
+      )
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'cs' ? 'cs_CZ' : 'en_GB'} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap.xml" />
   </head>
   <body>
     <header class="border-b border-[var(--border)] bg-[var(--surface)]">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <a href={lang === 'cs' ? '/' : '/en/'}><Logo /></a>
-        <a href={altHref} class="text-sm text-[var(--muted)] hover:text-[var(--text)]">{altLabel}</a>
+        <a href={altHref} hreflang={lang === 'cs' ? 'en' : 'cs'} class="text-sm text-[var(--muted)] hover:text-[var(--text)]">{altLabel}</a>
       </div>
     </header>
     <main class="mx-auto max-w-6xl px-4 py-12">
       <slot />
     </main>
+    <footer class="border-t border-[var(--border)]">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 text-sm text-[var(--muted)]">
+        <span>© {new Date().getFullYear()} TerraReality</span>
+        <nav aria-label={lang === 'cs' ? 'Právní informace' : 'Legal information'} class="flex flex-wrap gap-4">
+          {legal.map((l) => <a href={`${APP_URL}${prefix}${l.href}`} class="hover:text-[var(--text)]">{l[lang]}</a>)}
+        </nav>
+        <nav aria-label={lang === 'cs' ? 'Lokality' : 'Locations'} class="flex flex-wrap gap-4">
+          <a href={lang === 'cs' ? '/pronajem-bytu/praha' : '/en/apartments-for-rent/praha'} class="hover:text-[var(--text)]">
+            {lang === 'cs' ? 'Pronájem bytů Praha' : 'Apartments for rent in Prague'}
+          </a>
+          <a href={lang === 'cs' ? '/pronajem-pokoje/praha' : '/en/rooms-for-rent/praha'} class="hover:text-[var(--text)]">
+            {lang === 'cs' ? 'Pronájem pokojů Praha' : 'Rooms for rent in Prague'}
+          </a>
+        </nav>
+      </div>
+    </footer>
   </body>
 </html>

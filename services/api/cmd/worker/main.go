@@ -23,6 +23,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/logx"
+	"github.com/terrareality/terrareality/services/api/internal/platform/telemetry"
 	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/search"
 	"github.com/terrareality/terrareality/services/api/internal/workflows"
@@ -46,6 +47,12 @@ func run() error {
 	log := logx.New(cfg.LogLevel, cfg.LogFormat)
 	log.Info("starting worker", "version", buildinfo.Version, "env", cfg.Env)
 
+	shutdownTracing, err := telemetry.Setup(ctx, "terra-worker", cfg.OTLPEndpoint, cfg.Env)
+	if err != nil {
+		return err
+	}
+	defer shutdownTracing(context.Background())
+
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
@@ -65,6 +72,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	app.GateCloudFallback(fl, deps.AI)
 	gdpr := &jobs.GDPRWorker{}
 	mediaW, suggestW, digestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}, &jobs.DigestWorker{}
 	notifyW, msgDigestW, verdictW := &jobs.MessageNotifyWorker{}, &jobs.MessagesDigestWorker{}, &jobs.VerdictWorker{}
@@ -98,6 +106,19 @@ func run() error {
 	bankSyncW.Syncer = leases
 	bill := app.Billing(cfg, deps, pool, fl, jobs.BillingJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	promoW.Runner, invoiceW.Runner = bill.Service, bill.Service
+	// Prometheus /metrics on an internal listener, only when METRICS_ADDR is set.
+	if addr := telemetry.MetricsAddr(); addr != "" {
+		metrics := telemetry.NewRegistry("terra-worker")
+		metrics.MustRegister(telemetry.NewPoolCollector(pool), telemetry.NewRiverQueueCollector(pool))
+		events, unsubscribe := rc.Subscribe(telemetry.RiverEvents...)
+		defer unsubscribe()
+		go telemetry.ObserveRiver(ctx, metrics, events)
+		stopMetrics, err := telemetry.ServeMetrics(addr, metrics, log)
+		if err != nil {
+			return err
+		}
+		defer stopMetrics(context.Background())
+	}
 	if err := rc.Start(ctx); err != nil {
 		return err
 	}

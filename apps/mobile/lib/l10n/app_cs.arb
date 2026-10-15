@@ -132,5 +132,117 @@
   "attentionEnding": "Konec smlouvy do 90 dní",
   "attentionNotice": "Výpověď",
   "attentionVacant": "Volná jednotka",
-  "attentionHighRisk": "Vysoké riziko"
+  "attentionHighRisk": "Vysoké riziko",
+  "navSearch": "Hledat",
+  "navMessages": "Zprávy",
+  "navApplications": "Žádosti",
+  "navLease": "Nájem",
+  "navProfile": "Profil",
+  "searchTitle": "Hledat bydlení",
+  "filters": "Filtry",
+  "showList": "Zobrazit seznam",
+  "showMap": "Zobrazit mapu",
+  "mapAreaFilter": "Oblast mapy",
+  "areaFilter": "Vybraná oblast",
+  "clearFilter": "Zrušit filtr",
+  "mapUnavailable": "Mapu se nepodařilo načíst, zobrazujeme seznam.",
+  "searchTotal": "{count, plural, =0{Žádné inzeráty} =1{1 inzerát} few{{count} inzeráty} other{{count} inzerátů}}",
+  "@searchTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmpty": "Nic jsme nenašli. Zkuste upravit filtry.",
+  "loadMore": "Načíst další",
+  "mapLabel": "Mapa s výsledky hledání, {count} inzerátů",
+  "@mapLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "perMonth": "{amount} / měsíc",
+  "@perMonth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "promoted": "Topováno",
+  "filterKind": "Typ",
+  "filterLayout": "Dispozice",
+  "filterRent": "Nájem za měsíc",
+  "rentFrom": "Od",
+  "rentTo": "Do",
+  "clearFilters": "Vymazat",
+  "showResults": "Zobrazit",
+  "kindApartment": "Byt",
+  "kindHouse": "Dům",
+  "kindRoom": "Pokoj",
+  "kindParking": "Parkování",
+  "kindStorage": "Sklad",
+  "kindCommercial": "Komerční prostor",
+  "listingTitle": "Inzerát",
+  "listingGone": "Inzerát už není dostupný.",
+  "loginRequired": "Nejdřív se přihlaste.",
+  "attrKind": "Typ",
+  "attrLayout": "Dispozice",
+  "attrArea": "Plocha",
+  "attrFloor": "Podlaží",
+  "attrAvailable": "K nastěhování od",
+  "attrMinTerm": "Minimální doba nájmu",
+  "months": "{count, plural, =1{1 měsíc} few{{count} měsíce} other{{count} měsíců}}",
+  "@months": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attrDeposit": "Kauce",
+  "attrUtilities": "Zálohy na služby",
+  "photoOf": "Fotografie {index} z {total}",
+  "@photoOf": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "actionMessage": "Napsat pronajímateli",
+  "chatDefault": "Dobrý den, mám zájem o tento inzerát.",
+  "actionViewing": "Domluvit prohlídku",
+  "viewingRequestMessage": "Dobrý den, rád bych se přišel podívat.",
+  "actionApply": "Podat žádost",
+  "parameters": "Parametry",
+  "location": "Poloha",
+  "locationApproximate": "Poloha je přibližná, přesnou adresu sdělí pronajímatel.",
+  "mapPinLabel": "Mapa s polohou nemovitosti",
+  "fieldRequired": "Vyplňte prosím",
+  "householdSize": "Počet osob v domácnosti",
+  "yes": "Ano",
+  "no": "Ne",
+  "cancel": "Zrušit",
+  "back": "Zpět",
+  "cancelViewingConfirm": "Zrušit prohlídku?",
+  "viewingsTitle": "Moje prohlídky",
+  "viewingsEmpty": "Nemáte domluvenou žádnou prohlídku.",
+  "payByQr": "QR Platba z bankovní aplikace",
+  "qrLabel": "QR kód pro platbu {amount}",
+  "@qrLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "payByCard": "Zaplatit kartou (Revolut)",
+  "cardPaymentUnavailable": "Platbu kartou teď nelze vytvořit: pronajímatel nemá napojený Revolut, nebo je už zaplaceno."
 }

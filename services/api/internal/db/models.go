@@ -577,23 +577,28 @@ type MessageAttachment struct {
 }
 
 type ModerationCase struct {
-	ID             uuid.UUID  `json:"id"`
-	Source         string     `json:"source"`
-	ConversationID uuid.UUID  `json:"conversation_id"`
-	MessageID      *uuid.UUID `json:"message_id"`
-	ReporterID     *uuid.UUID `json:"reporter_id"`
-	ReportedID     *uuid.UUID `json:"reported_id"`
-	Reason         string     `json:"reason"`
-	Note           *string    `json:"note"`
-	Status         string     `json:"status"`
-	AiStatus       string     `json:"ai_status"`
-	AiSuggestion   []byte     `json:"ai_suggestion"`
-	AiModel        *string    `json:"ai_model"`
-	Decision       *string    `json:"decision"`
-	DecisionNote   *string    `json:"decision_note"`
-	DecidedBy      *uuid.UUID `json:"decided_by"`
-	DecidedAt      *time.Time `json:"decided_at"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID                   uuid.UUID  `json:"id"`
+	Source               string     `json:"source"`
+	ConversationID       *uuid.UUID `json:"conversation_id"`
+	MessageID            *uuid.UUID `json:"message_id"`
+	ReporterID           *uuid.UUID `json:"reporter_id"`
+	ReportedID           *uuid.UUID `json:"reported_id"`
+	Reason               string     `json:"reason"`
+	Note                 *string    `json:"note"`
+	Status               string     `json:"status"`
+	AiStatus             string     `json:"ai_status"`
+	AiSuggestion         []byte     `json:"ai_suggestion"`
+	AiModel              *string    `json:"ai_model"`
+	Decision             *string    `json:"decision"`
+	DecisionNote         *string    `json:"decision_note"`
+	DecidedBy            *uuid.UUID `json:"decided_by"`
+	DecidedAt            *time.Time `json:"decided_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	Kind                 string     `json:"kind"`
+	ListingID            *uuid.UUID `json:"listing_id"`
+	ReporterContactEmail *string    `json:"reporter_contact_email"`
+	ReporterContactName  *string    `json:"reporter_contact_name"`
+	ReporterLocale       string     `json:"reporter_locale"`
 }
 
 type Notification struct {

@@ -126,9 +126,16 @@ void main() {
 
   testWidgets('router knows the messaging routes', (tester) async {
     final router = createRouter();
-    expect(
-      router.configuration.routes.whereType<GoRoute>().map((r) => r.path),
-      containsAll(['/zpravy', '/zpravy/:id']),
-    );
+    Iterable<String> paths(List<RouteBase> routes) sync* {
+      for (final r in routes) {
+        if (r is GoRoute) yield r.path;
+        yield* paths(r.routes);
+      }
+    }
+
+    // '/zpravy' is a bottom-nav tab inside the shell, '/zpravy/:id' is full screen.
+    expect(paths(router.configuration.routes), containsAll(['/zpravy', '/zpravy/:id']));
+    expect(router.configuration.findMatch(Uri.parse('/zpravy')).isNotEmpty, isTrue);
+    expect(router.configuration.findMatch(Uri.parse('/zpravy/c1')).isNotEmpty, isTrue);
   });
 }

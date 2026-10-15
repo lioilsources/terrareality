@@ -27,6 +27,37 @@ type Push struct {
 	Data     map[string]string `json:"data,omitempty"`
 }
 
+// Push kinds. The mobile app deep-links by data "kind" + "id" and falls back
+// to "link" (apps/mobile/lib/src/push/push_registrar.dart).
+const (
+	PushConversation = "conversation"
+	PushApplication  = "application"
+	PushViewing      = "viewing"
+	PushLease        = "lease"
+	PushObligation   = "obligation"
+)
+
+// PushData builds the data payload of a push: kind and id of the entity it is
+// about plus optional extra keys. Every push sender uses it.
+func PushData(kind, id string, extra map[string]string) map[string]string {
+	out := make(map[string]string, len(extra)+2)
+	for k, v := range extra {
+		out[k] = v
+	}
+	out["kind"] = kind
+	out["id"] = id
+	return out
+}
+
+// payload is the data delivered to the device: the link plus Data.
+func (p Push) payload() map[string]string {
+	data := map[string]string{"link": p.Link}
+	for k, v := range p.Data {
+		data[k] = v
+	}
+	return data
+}
+
 // ErrDeviceGone means the token is no longer valid; the caller removes it.
 var ErrDeviceGone = errors.New("push device gone")
 
@@ -80,14 +111,10 @@ func (f *FCM) Push(ctx context.Context, p Push) error {
 	if p.Platform != "fcm" && p.Platform != "apns" {
 		return f.Fallback.Push(ctx, p)
 	}
-	data := map[string]string{"link": p.Link}
-	for k, v := range p.Data {
-		data[k] = v
-	}
 	body, _ := json.Marshal(map[string]any{"message": map[string]any{
 		"token":        p.Token,
 		"notification": map[string]string{"title": p.Title, "body": p.Body},
-		"data":         data,
+		"data":         p.payload(),
 	}})
 	url := "https://fcm.googleapis.com/v1/projects/" + f.Project + "/messages:send"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))

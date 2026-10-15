@@ -11,8 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/terrareality/terrareality/services/api/internal/account"
-	"github.com/terrareality/terrareality/services/api/internal/ai"
 	"github.com/terrareality/terrareality/services/api/internal/api"
 	"github.com/terrareality/terrareality/services/api/internal/app"
 	"github.com/terrareality/terrareality/services/api/internal/applications"
@@ -95,8 +96,9 @@ func run() error {
 	bill := app.Billing(cfg, deps, pool, fl, jobs.BillingJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	chat := &search.Chat{Pool: pool, Model: "rules"}
 	if cfg.LLMBaseURL != "" {
-		chat.LLM, chat.Model = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel), cfg.LLMModel
+		chat.LLM, chat.Model = app.LLM(cfg, log), cfg.LLMModel
 	}
+	app.GateCloudFallback(fl, deps.AI, chat.LLM)
 	if err := catalog.Sync(ctx, dbq.New(pool)); err != nil {
 		return fmt.Errorf("sync attribute catalog: %w", err)
 	}
@@ -120,17 +122,31 @@ func run() error {
 	checker.Add("vision", health.HTTPCheck(httpClient, joinURL(cfg.VisionURL, "/healthz")))
 	checker.Add("centrifugo", health.HTTPCheck(httpClient, centrifugoHealth(cfg.CentrifugoURL)))
 
+	// Prometheus /metrics on an internal listener, only when METRICS_ADDR is set.
+	var metrics *prometheus.Registry
+	if addr := telemetry.MetricsAddr(); addr != "" {
+		metrics = telemetry.NewRegistry("terra-api")
+		metrics.MustRegister(telemetry.NewPoolCollector(pool))
+		stopMetrics, err := telemetry.ServeMetrics(addr, metrics, log)
+		if err != nil {
+			return fmt.Errorf("METRICS_ADDR: %w", err)
+		}
+		defer stopMetrics(context.Background())
+	}
+
 	trusted, err := httpx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
 		return fmt.Errorf("TRUSTED_PROXIES: %w", err)
 	}
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: api.NewRouter(
+		Handler: httpx.Metrics(metrics)(api.NewRouter(
 			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, Portfolio: app.Portfolio(deps, pool), Billing: bill.Service, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), Flags: fl, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
 				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank),
-				DevLeases: devLeases(cfg, leases), MockStripe: bill.MockStripe, MockRevolut: bill.MockRevolut}),
+				DevLeases: devLeases(cfg, leases), MockStripe: bill.MockStripe, MockRevolut: bill.MockRevolut,
+				RateLimits: api.RateLimits{Search: cfg.RateSearch, Chat: cfg.RateChat, Webhook: cfg.RateWebhook,
+					Apply: cfg.RateApply, Message: cfg.RateMessage, Report: cfg.RateReport}})),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

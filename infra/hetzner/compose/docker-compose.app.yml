@@ -1,0 +1,268 @@
+# Production app VM (Hetzner). Images come from the registry, built by CI
+# (`images` job: terra/api, terra/web, terra/vision). PostgreSQL runs on the DB VM
+# (docker-compose.db.yml) and is reached over the private network.
+#
+# Usage on the app VM (/opt/terra checkout, see docs/runbooks/deploy.md):
+#   cp .env.example .env && edit           # never commit .env
+#   docker compose -f docker-compose.app.yml pull
+#   docker compose -f docker-compose.app.yml up -d
+name: terra-prod
+
+include:
+  # Prometheus, Alertmanager, Loki, Tempo, Alloy, Grafana (owned by observability).
+  - path: ../observability/docker-compose.yml
+    env_file: ../observability/observability.env
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "50m", max-file: "5" }
+
+x-api-env: &api-env
+  APP_ENV: prod
+  LOG_FORMAT: json
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgres://${POSTGRES_USER:-terra}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@${DB_HOST:?set DB_HOST}:5432/terra?sslmode=disable
+  MIGRATE_ON_START: "false"
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: default
+  CENTRIFUGO_API_URL: http://centrifugo:8000/api
+  CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:?set CENTRIFUGO_API_KEY}
+  CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET}
+  CENTRIFUGO_WS_URL: wss://${APP_DOMAIN}/connection/websocket
+  VISION_URL: http://vision:8001
+  # Through the WireGuard tunnel to the AiStack gateway on the Spark (infra/hetzner/wireguard).
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+  LLM_MODEL: ${LLM_MODEL:-openclaw-default}
+  EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-}
+  FEATURE_FLAGS: ${FEATURE_FLAGS:-}
+  TRUSTED_PROXIES: 172.16.0.0/12
+  CORS_ORIGINS: https://${APP_DOMAIN:?set APP_DOMAIN},https://${SITE_DOMAIN:?set SITE_DOMAIN}
+  METRICS_ADDR: ":9090"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318/v1/traces
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.2}
+  # Identity
+  APP_SECRET_KEY: ${APP_SECRET_KEY:?set APP_SECRET_KEY}
+  WEB_BASE_URL: https://${APP_DOMAIN}
+  API_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}
+  OIDC_REDIRECT_ALLOWLIST: https://${APP_DOMAIN}/auth/,terra://auth/
+  MOCK_IDP: "false"
+  STAFF_REQUIRE_MFA: "true"
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+  APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+  BANKID_ISSUER: ${BANKID_ISSUER:-}
+  BANKID_CLIENT_ID: ${BANKID_CLIENT_ID:-}
+  BANKID_CLIENT_SECRET: ${BANKID_CLIENT_SECRET:-}
+  BANKID_SCOPES: ${BANKID_SCOPES:-}
+  TERMS_VERSION: ${TERMS_VERSION:-}
+  PRIVACY_VERSION: ${PRIVACY_VERSION:-}
+  # Delivery
+  SMTP_ADDR: ${SMTP_ADDR:?set SMTP_ADDR}
+  MAIL_FROM: ${MAIL_FROM:-no-reply@terrareality.cz}
+  SMS_PROVIDER: ${SMS_PROVIDER:-log}
+  PUSH_PROVIDER: ${PUSH_PROVIDER:-fcm}
+  FCM_CREDENTIALS_FILE: /run/secrets/fcm.json
+  FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+  WEBPUSH_VAPID_SEED: ${WEBPUSH_VAPID_SEED:-}
+  WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT:-mailto:podpora@terrareality.cz}
+  # Object storage (Hetzner, S3 compatible)
+  S3_ENDPOINT: ${S3_ENDPOINT:?set S3_ENDPOINT}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
+  S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
+  S3_REGION: ${S3_REGION:-fsn1}
+  S3_USE_SSL: "true"
+  IMGPROXY_URL: https://${IMG_DOMAIN:?set IMG_DOMAIN}
+  IMGPROXY_KEY: ${IMGPROXY_KEY:?set IMGPROXY_KEY}
+  IMGPROXY_SALT: ${IMGPROXY_SALT:?set IMGPROXY_SALT}
+  CLAMAV_ADDR: clamav:3310
+  SEED_RUIAN_SAMPLE: "false"
+  # Applications, leasing
+  ISIR_MODE: ${ISIR_MODE:-live}
+  LEASE_TEMPLATES_REVIEWED: ${LEASE_TEMPLATES_REVIEWED:-false}
+  BANK_PROVIDER: ${BANK_PROVIDER:-gocardless}
+  GOCARDLESS_SECRET_ID: ${GOCARDLESS_SECRET_ID:-}
+  GOCARDLESS_SECRET_KEY: ${GOCARDLESS_SECRET_KEY:-}
+  # Billing (M7): platform services only, never landlord money (ADR 0002)
+  STRIPE_MODE: live
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?set STRIPE_SECRET_KEY}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?set STRIPE_WEBHOOK_SECRET}
+  REVOLUT_MODE: live
+  REVOLUT_API_URL: ${REVOLUT_API_URL:-https://merchant.revolut.com}
+  PLATFORM_LEGAL_NAME: ${PLATFORM_LEGAL_NAME:?set PLATFORM_LEGAL_NAME}
+  PLATFORM_ICO: ${PLATFORM_ICO:?set PLATFORM_ICO}
+  PLATFORM_DIC: ${PLATFORM_DIC:-}
+  PLATFORM_ADDRESS: ${PLATFORM_ADDRESS:?set PLATFORM_ADDRESS}
+  PLATFORM_IBAN: ${PLATFORM_IBAN:?set PLATFORM_IBAN}
+
+x-api-service: &api-service
+  image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY}/terra/api:${IMAGE_TAG:?set IMAGE_TAG}
+  environment: *api-env
+  secrets: [fcm]
+  logging: *logging
+  restart: unless-stopped
+
+services:
+  caddy:
+    image: caddy:2.10
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      IMG_DOMAIN: ${IMG_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${SITE_DIST_DIR:-/srv/site}:/srv/site:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api, web, centrifugo, imgproxy]
+    logging: *logging
+    restart: unless-stopped
+
+  migrate:
+    <<: *api-service
+    command: ["/app/migrate", "up"]
+    restart: "no"
+
+  api:
+    <<: *api-service
+    command: ["/app/api"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      temporal: { condition: service_started }
+    networks: [default, observability]
+
+  worker:
+    <<: *api-service
+    command: ["/app/worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      temporal: { condition: service_started }
+    networks: [default, observability]
+
+  web:
+    image: ${IMAGE_REGISTRY}/terra/web:${IMAGE_TAG}
+    environment:
+      API_URL: http://api:8080
+      ORIGIN: https://${APP_DOMAIN}
+      MAP_STYLE: ${MAP_STYLE:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      PUBLIC_SENTRY_DSN: ${PUBLIC_SENTRY_DSN:-}
+      PUBLIC_SENTRY_ENVIRONMENT: prod
+      PUBLIC_SENTRY_RELEASE: ${IMAGE_TAG}
+    networks: [default, observability]
+    logging: *logging
+    restart: unless-stopped
+
+  vision:
+    image: ${IMAGE_REGISTRY}/terra/vision:${IMAGE_TAG}
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-not-needed}
+      VISION_MODEL: ${VISION_MODEL:-vl}
+    logging: *logging
+    restart: unless-stopped
+
+  centrifugo:
+    image: centrifugo/centrifugo:v6
+    command: ["centrifugo", "--config", "/centrifugo/config.json"]
+    volumes: [../../dev/centrifugo/config.json:/centrifugo/config.json:ro]
+    environment:
+      CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY}
+      CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET}
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: https://${APP_DOMAIN}
+      CENTRIFUGO_ADMIN_ENABLED: "false"
+      CENTRIFUGO_LOG_LEVEL: info
+    logging: *logging
+    restart: unless-stopped
+
+  imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:v3
+    environment:
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: https://${S3_ENDPOINT}
+      IMGPROXY_S3_REGION: ${S3_REGION:-fsn1}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_REGION: ${S3_REGION:-fsn1}
+      IMGPROXY_KEY: ${IMGPROXY_KEY}
+      IMGPROXY_SALT: ${IMGPROXY_SALT}
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+      IMGPROXY_ENABLE_AVIF_DETECTION: "true"
+      IMGPROXY_STRIP_METADATA: "true"
+      IMGPROXY_TTL: "31536000"
+      IMGPROXY_MAX_SRC_RESOLUTION: "50"
+    logging: *logging
+    restart: unless-stopped
+
+  clamav:
+    # Upload scanning (CLAMAV_ADDR). Needs ~1.5 GB RAM; signatures update via freshclam.
+    image: clamav/clamav:1.4
+    volumes: [clamav_db:/var/lib/clamav]
+    logging: *logging
+    restart: unless-stopped
+
+  # --- Temporal on PostgreSQL (DB VM, databases temporal + temporal_visibility) ---
+  temporal-schema:
+    # One-shot: creates/updates the Temporal schema. Idempotent.
+    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1}
+    environment:
+      SQL_PLUGIN: postgres12
+      SQL_HOST: ${DB_HOST}
+      SQL_PORT: "5432"
+      SQL_USER: temporal
+      SQL_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        base=/etc/temporal/schema/postgresql/v12
+        temporal-sql-tool --db temporal setup-schema -v 0.0 2>/dev/null || true
+        temporal-sql-tool --db temporal update-schema -d $$base/temporal/versioned
+        temporal-sql-tool --db temporal_visibility setup-schema -v 0.0 2>/dev/null || true
+        temporal-sql-tool --db temporal_visibility update-schema -d $$base/visibility/versioned
+    restart: "no"
+
+  temporal:
+    image: ${TEMPORAL_SERVER_IMAGE:-temporalio/server:1.28.1}
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_SEEDS: ${DB_HOST}
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: ${TEMPORAL_DB_PASSWORD}
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      SKIP_DB_CREATE: "true"
+      SKIP_SCHEMA_SETUP: "true"
+      BIND_ON_IP: 0.0.0.0
+    depends_on:
+      temporal-schema: { condition: service_completed_successfully }
+    logging: *logging
+    restart: unless-stopped
+
+  temporal-namespace:
+    # One-shot: registers the "default" namespace (7 days retention) if missing.
+    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1}
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for i in $$(seq 1 60); do temporal operator cluster health >/dev/null 2>&1 && break; sleep 2; done
+        temporal operator namespace describe --namespace default >/dev/null 2>&1 \
+          || temporal operator namespace create --namespace default --retention 168h
+    depends_on: [temporal]
+    restart: "no"
+
+secrets:
+  fcm:
+    file: ${FCM_CREDENTIALS_HOST_FILE:-/etc/terrareality/secrets/fcm.json}
+
+volumes:
+  caddy_data:
+  caddy_config:
+  clamav_db:

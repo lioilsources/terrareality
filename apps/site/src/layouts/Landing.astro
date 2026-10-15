@@ -10,7 +10,7 @@ const t = strings[lang];
 const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
 ---
 
-<Layout title={t.title} description={t.description} lang={lang} altHref={lang === 'cs' ? '/en/' : '/'} altLabel={t.switchLang}>
+<Layout title={t.title} description={t.description} lang={lang} altHref={lang === 'cs' ? '/en/' : '/'} altLabel={t.switchLang} alternates={{ cs: '/', en: '/en/' }}>
   <section class="max-w-3xl">
     <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">{t.hero}</h1>
     <p class="mt-4 text-lg text-[var(--muted)]">{t.lead}</p>

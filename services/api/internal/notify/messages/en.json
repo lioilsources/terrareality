@@ -126,5 +126,25 @@
   "invoice_issued": {
     "subject": "Invoice {{.Number}} for {{.Product}}",
     "text": "Hello,\n\nthank you for paying {{.Amount}} for {{.Product}} on the listing “{{.Listing}}”. We issued the tax invoice {{.Number}} (paid by card).\n\nYour invoices are in the billing overview:\n{{.Link}}"
+  },
+  "listing_report_received": {
+    "subject": "We received your notice about the listing \"{{.Title}}\"",
+    "text": "Hello{{if .Name}} {{.Name}}{{end}},\n\nwe confirm receipt of your notice about the listing \"{{.Title}}\" (notice number {{.CaseID}}).\n\nReason: {{.Reason}}\nYour explanation: {{.Explanation}}\n\nA person on our moderation team, not an automated system, will review the notice. We will e-mail you the decision and the reasons for it.\n\nListing: {{.Link}}",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_report_decided": {
+    "subject": "Decision on your notice about the listing \"{{.Title}}\"",
+    "text": "Hello{{if .Name}} {{.Name}}{{end}},\n\nwe reviewed your notice about the listing \"{{.Title}}\" (notice number {{.CaseID}}).\n\nDecision: {{.Decision}}\n{{if .Note}}Reasons: {{.Note}}\n{{end}}\nThe decision was taken by a person on our moderation team based on your notice; no automated means were used to decide.\n\nIf you disagree, you can file a complaint within 6 months by replying to this e-mail. You may also turn to a certified out-of-court dispute settlement body or a court.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_unpublished_report": {
+    "subject": "We took the listing \"{{.Title}}\" offline",
+    "text": "Hello,\n\nfollowing a notice (reason: {{.Reason}}) we removed the listing \"{{.Title}}\" from public view (case number {{.CaseID}}).\n\nReasons: {{.Note}}\n\nThe decision was taken by a person on our moderation team; no automated means were used to decide. You can edit the listing and submit it for review again:\n{{.Link}}\n\nIf you disagree, you can file a complaint within 6 months by replying to this e-mail. You may also turn to a certified out-of-court dispute settlement body or a court.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_change_requested_report": {
+    "subject": "Please update the listing \"{{.Title}}\"",
+    "text": "Hello,\n\nfollowing a notice (reason: {{.Reason}}) we ask you to update the listing \"{{.Title}}\" (case number {{.CaseID}}). The listing stays published.\n\nWhat to change: {{.Note}}\n\nEdit the listing here:\n{{.Link}}\n\nThe decision was taken by a person on our moderation team. If you disagree, reply to this e-mail.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
   }
 }

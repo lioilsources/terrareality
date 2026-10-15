@@ -88,3 +88,15 @@ images: ## Build production container images
 
 clean-db: ## Drop and recreate the dev database volume (DESTROYS local data)
 	$(COMPOSE) down -v
+
+.PHONY: restore-test
+restore-test: ## Backup + point-in-time restore drill with pgBackRest in throwaway containers (offline, ~2-5 min)
+	./scripts/restore-test.sh
+
+.PHONY: smoke
+smoke: ## Read-only production smoke E2E: make smoke BASE_URL=https://app.. API_URL=https://api.. SITE_URL=https://..
+	@# Targets must be given explicitly (not the dev defaults from .env): never smoke the wrong stack.
+	$(foreach v,BASE_URL API_URL SITE_URL,$(if $(filter command line environment,$(origin $(v))),,\
+		$(error smoke: pass $(v)=... explicitly, e.g. make smoke BASE_URL=<web> API_URL=<api> SITE_URL=<site>)))
+	cd apps/web && BASE_URL="$(BASE_URL)" API_URL="$(API_URL)" SITE_URL="$(SITE_URL)" \
+		npx playwright test -c playwright.smoke.config.ts

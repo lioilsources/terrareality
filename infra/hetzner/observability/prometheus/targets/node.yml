@@ -1,0 +1,6 @@
+# node_exporter on both VMs. The DB VM runs node_exporter with
+# --collector.textfile.directory=/var/lib/node_exporter/textfile (pgBackRest metrics).
+- targets: ["node-exporter:9100"]
+  labels: { vm: app }
+- targets: ["10.10.1.20:9100"]
+  labels: { vm: db }

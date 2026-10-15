@@ -149,11 +149,76 @@ jobs:
       - run: ruff check . && ruff format --check .
       - run: pytest -q
 
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: services/api/go.sum
+      - name: govulncheck (reachable Go vulnerabilities)
+        working-directory: services/api
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: npm audit (production dependencies, high and above)
+        run: npm audit --omit=dev --audit-level=high
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: pip-audit (services/vision)
+        working-directory: services/vision
+        run: |
+          python -m venv /tmp/vision-audit
+          /tmp/vision-audit/bin/pip install --quiet . pip-audit
+          /tmp/vision-audit/bin/pip-audit --skip-editable --progress-spinner off
+      - name: osv-scanner (lockfiles of all stacks)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
+            --lockfile=services/api/go.mod
+            --lockfile=apps/mobile/pubspec.lock
+      - uses: hashicorp/setup-terraform@v3
+        if: hashFiles('infra/hetzner/terraform/**/*.tf') != ''
+        with:
+          terraform_wrapper: false
+      - name: terraform fmt
+        if: hashFiles('infra/hetzner/terraform/**/*.tf') != ''
+        run: terraform fmt -check -recursive infra/hetzner/terraform
+
   images:
     runs-on: ubuntu-latest
     needs: [go, web, vision]
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # Push only when a registry token is configured (secrets are not readable in `if:` directly).
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+      # Must equal IMAGE_REGISTRY in infra/hetzner/compose/.env (images: $IMAGE_REGISTRY/terra/{api,web,vision}:$IMAGE_TAG).
+      IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t terra/api services/api
       - run: docker build -f apps/web/Dockerfile -t terra/web .
       - run: docker build -t terra/vision services/vision
+      - name: Log in to the image registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.REGISTRY_TOKEN != ''
+        run: |
+          echo "$REGISTRY_TOKEN" | docker login "${IMAGE_REGISTRY%%/*}" \
+            -u "${{ vars.REGISTRY_USER || github.actor }}" --password-stdin
+      - name: Push images (tag = git sha + latest)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.REGISTRY_TOKEN != ''
+        run: |
+          registry=$(echo "$IMAGE_REGISTRY" | tr '[:upper:]' '[:lower:]')
+          for name in api web vision; do
+            for tag in "$GITHUB_SHA" latest; do
+              docker tag "terra/$name" "$registry/terra/$name:$tag"
+              docker push "$registry/terra/$name:$tag"
+            done
+          done
+          echo "Deploy with IMAGE_REGISTRY=$registry IMAGE_TAG=$GITHUB_SHA (docs/runbooks/deploy.md)" >> "$GITHUB_STEP_SUMMARY"

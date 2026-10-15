@@ -155,7 +155,8 @@ func (n *Notifier) notifyOne(ctx context.Context, msg db.Message, sum db.SystemC
 	for _, d := range devices {
 		err := n.Pusher.Push(ctx, notify.Push{Platform: d.Platform, Token: d.Token, Keys: d.Keys, UserID: r.ID.String(),
 			Title: sender + " · " + listing, Body: prev, Link: link,
-			Data: map[string]string{"conversation_id": msg.ConversationID.String()}})
+			Data: notify.PushData(notify.PushConversation, msg.ConversationID.String(),
+				map[string]string{"conversation_id": msg.ConversationID.String()})})
 		switch {
 		case errors.Is(err, notify.ErrDeviceGone):
 			_ = db.New(n.Pool).DeletePushDeviceByToken(ctx, db.DeletePushDeviceByTokenParams{Platform: d.Platform, Token: d.Token})

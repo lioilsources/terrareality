@@ -1,0 +1,99 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { APP_URL, topListings } from '../lib/api';
+import { alternates, czk, kindsByLang, localityCopy, pagePath, type Lang, type LocalityPage } from '../lib/localities';
+import { prahaDistricts, prahaSurroundings } from '../lib/praha';
+
+interface Props {
+  lang: Lang;
+  kindSlug: string;
+  page: LocalityPage;
+}
+const { lang, kindSlug, page } = Astro.props;
+const k = kindsByLang[lang][kindSlug];
+const top = await topListings(k.kind, page.path);
+const copy = localityCopy(lang, k, page);
+const alt = alternates(lang, kindSlug, page);
+const searchUrl = `${APP_URL}${lang === 'en' ? '/en' : ''}/hledat?kind=${k.kind}&area=${encodeURIComponent(page.path)}`;
+const pragueName = lang === 'en' ? 'Prague' : 'Praha';
+const crumbs = [
+  { name: k.title, href: pagePath(lang, kindSlug) },
+  ...(page.praha && page.praha.kind !== 'city' ? [{ name: pragueName, href: pagePath(lang, kindSlug, 'praha') }] : []),
+  { name: page.name === 'Praha' ? pragueName : page.name, href: pagePath(lang, kindSlug, page.slug) }
+];
+const related =
+  page.praha?.kind === 'municipality'
+    ? prahaSurroundings.filter((l) => l.slug !== page.slug)
+    : prahaDistricts.filter((l) => l.slug !== page.slug);
+const ld = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+const breadcrumbLd = ld({
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.name,
+    item: new URL(c.href, Astro.site).toString()
+  }))
+});
+const listLd = ld({
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: copy.title,
+  numberOfItems: top.total,
+  itemListElement: top.items.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    url: `${APP_URL}/inzerat/${c.id}`,
+    name: (lang === 'en' ? c.title.en : undefined) || c.title.cs || copy.title
+  }))
+});
+---
+
+<Layout
+  title={`${copy.title} | TerraReality`}
+  description={copy.description}
+  lang={lang}
+  altHref={alt ? alt[lang === 'cs' ? 'en' : 'cs'] : lang === 'cs' ? '/en/' : '/'}
+  altLabel={lang === 'cs' ? 'English' : 'Čeština'}
+  alternates={alt}
+>
+  <script type="application/ld+json" set:html={breadcrumbLd} />
+  {top.items.length > 0 && <script type="application/ld+json" set:html={listLd} />}
+  <nav class="text-sm" aria-label={lang === 'cs' ? 'Drobečková navigace' : 'Breadcrumb'}>
+    {crumbs.map((c, i) => (i < crumbs.length - 1 ? <><a href={c.href}>{c.name}</a> › </> : <span aria-current="page">{c.name}</span>))}
+  </nav>
+  <h1 class="mt-2 text-3xl font-semibold" data-testid="seo-title">{copy.title}</h1>
+  {copy.intro && <p class="mt-3 max-w-3xl">{copy.intro}</p>}
+  <p class="mt-2 text-[var(--muted)]">{copy.statsLine}</p>
+  {top.items.length > 0 && (
+    <ul class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {top.items.map((c) => (
+        <li class="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+          <a href={`${APP_URL}${lang === 'en' ? '/en' : ''}/inzerat/${c.id}`} class="block p-3">
+            <strong>{(lang === 'en' ? c.title.en : undefined) || c.title.cs || copy.title}</strong>
+            <p class="text-sm text-[var(--muted)]">{c.city_part ?? c.city}{c.floor_area ? ` · ${c.floor_area} m²` : ''}</p>
+            <p class="font-semibold">{czk(c.rent_amount)}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+  <a href={searchUrl} class="mt-8 inline-block rounded-lg bg-[var(--accent)] px-4 py-2 text-white">{copy.cta}</a>
+  {page.praha && (
+    <section class="mt-12">
+      <h2 class="text-xl font-semibold">{copy.nearby}</h2>
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {related.map((l) => <li><a href={pagePath(lang, kindSlug, l.slug)}>{l.name}</a></li>)}
+      </ul>
+      {page.praha.kind === 'city' && (
+        <>
+          <h2 class="mt-8 text-xl font-semibold">{copy.around}</h2>
+          <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            {prahaSurroundings.map((l) => <li><a href={pagePath(lang, kindSlug, l.slug)}>{l.name}</a></li>)}
+          </ul>
+        </>
+      )}
+    </section>
+  )}
+</Layout>

@@ -234,32 +234,41 @@ DELETE FROM push_devices WHERE platform = $1 AND token = $2 AND user_id <> $3;
 SELECT (messaging_suspended_at IS NOT NULL)::boolean AS suspended FROM users WHERE id = $1;
 
 -- name: ListOpenModerationCases :many
-SELECT mc.*, ru.display_name AS reporter_name, ru.email AS reporter_email,
+-- Conversation cases and listing reports (DSA), oldest first.
+SELECT mc.*,
+  coalesce(ru.display_name, mc.reporter_contact_name, '')::text AS reporter_name,
+  coalesce(ru.email, mc.reporter_contact_email, '')::text AS reporter_email,
+  (mc.reporter_id IS NULL AND mc.source = 'report')::boolean AS reporter_anonymous,
   du.display_name AS reported_name, du.email AS reported_email,
   coalesce(msg.body, '')::text AS message_body,
-  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title
+  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title,
+  l.id AS subject_listing_id
 FROM moderation_cases mc
-JOIN conversations c ON c.id = mc.conversation_id
+LEFT JOIN conversations c ON c.id = mc.conversation_id
 LEFT JOIN users ru ON ru.id = mc.reporter_id
 LEFT JOIN users du ON du.id = mc.reported_id
 LEFT JOIN messages msg ON msg.id = mc.message_id
-LEFT JOIN listing_search s ON s.listing_id = c.listing_id
-LEFT JOIN listings l ON l.id = c.listing_id
+LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
+LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.status = 'open'
 ORDER BY mc.created_at;
 
 -- name: GetModerationCase :one
-SELECT mc.*, ru.display_name AS reporter_name, ru.email AS reporter_email,
+SELECT mc.*,
+  coalesce(ru.display_name, mc.reporter_contact_name, '')::text AS reporter_name,
+  coalesce(ru.email, mc.reporter_contact_email, '')::text AS reporter_email,
+  (mc.reporter_id IS NULL AND mc.source = 'report')::boolean AS reporter_anonymous,
   du.display_name AS reported_name, du.email AS reported_email,
   coalesce(msg.body, '')::text AS message_body,
-  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title
+  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title,
+  l.id AS subject_listing_id
 FROM moderation_cases mc
-JOIN conversations c ON c.id = mc.conversation_id
+LEFT JOIN conversations c ON c.id = mc.conversation_id
 LEFT JOIN users ru ON ru.id = mc.reporter_id
 LEFT JOIN users du ON du.id = mc.reported_id
 LEFT JOIN messages msg ON msg.id = mc.message_id
-LEFT JOIN listing_search s ON s.listing_id = c.listing_id
-LEFT JOIN listings l ON l.id = c.listing_id
+LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
+LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.id = $1;
 
 -- name: ModerationTranscript :many
@@ -276,7 +285,8 @@ SELECT * FROM (
 ) t ORDER BY created_at;
 
 -- name: PendingModerationAI :many
-SELECT id FROM moderation_cases WHERE ai_status = 'pending' AND status = 'open' ORDER BY created_at LIMIT 100;
+SELECT id FROM moderation_cases WHERE ai_status = 'pending' AND status = 'open' AND kind = 'conversation'
+ORDER BY created_at LIMIT 100;
 
 -- name: SetModerationAI :exec
 UPDATE moderation_cases SET ai_status = $2, ai_suggestion = $3, ai_model = $4 WHERE id = $1;

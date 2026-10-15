@@ -263,6 +263,7 @@ Class | Method | HTTP request | Description
 *SearchApi* | [**listAreas**](doc//SearchApi.md#listareas) | **GET** /v1/areas | Child administrative units with simplified outlines (regions when parent is empty)
 *SearchApi* | [**listSavedSearches**](doc//SearchApi.md#listsavedsearches) | **GET** /v1/me/saved-searches | My saved searches
 *SearchApi* | [**listSeoMunicipalities**](doc//SearchApi.md#listseomunicipalities) | **GET** /v1/seo/municipalities | Municipalities with at least one listing (static site pages)
+*SearchApi* | [**reportListing**](doc//SearchApi.md#reportlisting) | **POST** /v1/listings/{listingId}/reports | Report a published listing to the moderators (DSA notice, art. 16)
 *SearchApi* | [**search**](doc//SearchApi.md#search) | **POST** /v1/search | Faceted search over published listings with map aggregates
 *SystemApi* | [**getHealth**](doc//SystemApi.md#gethealth) | **GET** /healthz | Liveness and dependency health
 *SystemApi* | [**getVersion**](doc//SystemApi.md#getversion) | **GET** /v1/version | Build information
@@ -372,6 +373,9 @@ Class | Method | HTTP request | Description
  - [ListingAddress](doc//ListingAddress.md)
  - [ListingCard](doc//ListingCard.md)
  - [ListingCreate](doc//ListingCreate.md)
+ - [ListingReportCreated](doc//ListingReportCreated.md)
+ - [ListingReportInput](doc//ListingReportInput.md)
+ - [ListingReportReason](doc//ListingReportReason.md)
  - [ListingStatus](doc//ListingStatus.md)
  - [ListingSummary](doc//ListingSummary.md)
  - [ListingUnit](doc//ListingUnit.md)

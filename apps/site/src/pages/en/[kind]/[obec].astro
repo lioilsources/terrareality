@@ -1,0 +1,19 @@
+---
+import LocalityPage from '../../../components/LocalityPage.astro';
+import { kindsByLang, localityPages } from '../../../lib/localities';
+
+// English pages exist for the Prague area only.
+export async function getStaticPaths() {
+  const out = [];
+  for (const kindSlug of Object.keys(kindsByLang.en)) {
+    for (const page of await localityPages('en', kindSlug)) {
+      out.push({ params: { kind: kindSlug, obec: page.slug }, props: { page } });
+    }
+  }
+  return out;
+}
+const { kind } = Astro.params as { kind: string };
+const { page } = Astro.props;
+---
+
+<LocalityPage lang="en" kindSlug={kind} page={page} />

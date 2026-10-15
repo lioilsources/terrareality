@@ -23,8 +23,14 @@
 						class="grid gap-1 rounded-lg border border-[var(--border)] p-3 text-[var(--text)] no-underline hover:border-[var(--accent)]"
 					>
 						<span class="flex flex-wrap items-center gap-2 text-sm">
-							<span class="rounded bg-[var(--border)]/60 px-2 py-0.5"
-								>{c.source === 'auto' ? m.bo_case_auto() : m.bo_case_report()}</span
+							<span
+								class="rounded bg-[var(--border)]/60 px-2 py-0.5"
+								data-testid="case-kind-{c.kind}"
+								>{c.kind === 'listing'
+									? m.bo_case_listing()
+									: c.source === 'auto'
+										? m.bo_case_auto()
+										: m.bo_case_report()}</span
 							>
 							<strong>{reasonLabel(c.reason)}</strong>
 							<span class="text-[var(--muted)]">{t(c.listing_title, locale)}</span>
@@ -32,7 +38,9 @@
 								>{fmtDateTime(c.created_at, locale)}</span
 							>
 						</span>
-						{#if c.message_body}<span class="truncate text-sm">„{c.message_body}“</span>{/if}
+						{#if c.message_body}<span class="truncate text-sm">„{c.message_body}“</span>
+						{:else if c.kind === 'listing' && c.note}<span class="truncate text-sm">„{c.note}“</span
+							>{/if}
 						<span class="text-xs text-[var(--muted)]" data-testid="case-ai">
 							{#if c.ai_status === 'ready' && c.ai_suggestion}
 								{m.bo_ai_suggestion()}: {verdictLabel(c.ai_suggestion.verdict)} ({m.bo_confidence({

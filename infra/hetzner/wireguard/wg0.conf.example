@@ -1,0 +1,28 @@
+# /etc/wireguard/wg0.conf on the Hetzner app VM (chmod 600, root).
+# Point-to-point tunnel to the DGX Spark so the api, worker and vision reach the
+# AiStack LiteLLM gateway (LLM_BASE_URL=http://10.66.0.2:8080/v1) without the
+# public Cloudflare endpoint. The Spark is behind NAT, so it dials in and keeps
+# the tunnel alive; this side only listens.
+#
+#   umask 077; wg genkey | tee /etc/wireguard/hetzner.key | wg pubkey > /etc/wireguard/hetzner.pub
+#   (send ONLY hetzner.pub to the AiStack operator, see README.md)
+#   systemctl enable --now wg-quick@wg0
+#   wg show            # latest handshake < 2 min = up
+#   curl -s http://10.66.0.2:8080/v1/models -H 'Authorization: Bearer not-needed' | jq '.data[].id'
+
+[Interface]
+Address = 10.66.0.1/30
+ListenPort = 51820
+PrivateKey = <contents of /etc/wireguard/hetzner.key>
+# Only replies may come back through the tunnel: the Spark cannot open
+# connections to this VM or its containers. Containers reach 10.66.0.2 via
+# Docker's NAT (source becomes 10.66.0.1); their replies pass DOCKER-USER.
+# DOCKER-USER exists once Docker runs, hence the systemd drop-in in README.md.
+PostUp = iptables -I INPUT -i %i -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP; iptables -I DOCKER-USER -i %i -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP
+PostDown = iptables -D INPUT -i %i -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP; iptables -D DOCKER-USER -i %i -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP
+
+[Peer]
+# DGX Spark (AiStack). Public key from the operator.
+PublicKey = <spark public key>
+PresharedKey = <wg genpsk output, shared with the operator over a secure channel>
+AllowedIPs = 10.66.0.2/32

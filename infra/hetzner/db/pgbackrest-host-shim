@@ -1,0 +1,4 @@
+#!/bin/sh
+# Install on the DB VM as /usr/local/bin/pgbackrest (root:root 0755).
+# Forwards host-side pgbackrest calls (monitoring scripts) into the DB container.
+exec docker exec -u postgres "${DB_CONTAINER:-terra-db}" pgbackrest "$@"

@@ -132,7 +132,8 @@ func (r *Reminders) Remind(ctx context.Context, bookingID uuid.UUID) error {
 		}
 		for _, d := range devices {
 			_ = r.Pusher.Push(ctx, notify.Push{Platform: d.Platform, Token: d.Token, Keys: d.Keys, UserID: p.ID.String(),
-				Title: pick(title, p.Locale), Body: when, Link: link})
+				Title: pick(title, p.Locale), Body: when, Link: link,
+				Data: notify.PushData(notify.PushViewing, bookingID.String(), map[string]string{"application_id": b.ApplicationID.String()})})
 		}
 	}
 	return nil

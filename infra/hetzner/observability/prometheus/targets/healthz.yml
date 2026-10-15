@@ -1,0 +1,2 @@
+- targets: ["https://api.terrareality.cz/healthz"]
+  labels: { probe: api-healthz }

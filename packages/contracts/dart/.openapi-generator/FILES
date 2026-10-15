@@ -109,6 +109,9 @@ doc/Listing.md
 doc/ListingAddress.md
 doc/ListingCard.md
 doc/ListingCreate.md
+doc/ListingReportCreated.md
+doc/ListingReportInput.md
+doc/ListingReportReason.md
 doc/ListingStatus.md
 doc/ListingSummary.md
 doc/ListingUnit.md
@@ -379,6 +382,9 @@ lib/model/listing.dart
 lib/model/listing_address.dart
 lib/model/listing_card.dart
 lib/model/listing_create.dart
+lib/model/listing_report_created.dart
+lib/model/listing_report_input.dart
+lib/model/listing_report_reason.dart
 lib/model/listing_status.dart
 lib/model/listing_summary.dart
 lib/model/listing_unit.dart

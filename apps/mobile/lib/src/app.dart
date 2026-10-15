@@ -9,19 +9,36 @@ import 'leases/leases_screen.dart';
 import 'messaging/conversations_screen.dart';
 import 'messaging/thread_screen.dart';
 import 'portfolio/portfolio_screen.dart';
+import 'push/push_registrar.dart';
+import 'search/listing_screen.dart';
+import 'search/search_screen.dart';
 import 'status/status_screen.dart';
+import 'viewings/viewings_screen.dart';
 
-GoRouter createRouter() => GoRouter(
+GoRouter createRouter({String initialLocation = '/hledat'}) => GoRouter(
+  initialLocation: initialLocation,
   routes: [
-    GoRoute(path: '/', builder: (_, _) => const StatusScreen()),
+    GoRoute(path: '/', redirect: (_, _) => '/hledat'),
+    ShellRoute(
+      builder: (_, state, child) => HomeShell(location: state.uri.path, child: child),
+      routes: [
+        GoRoute(path: '/hledat', pageBuilder: (_, _) => const NoTransitionPage(child: SearchScreen())),
+        GoRoute(path: '/zpravy', pageBuilder: (_, _) => const NoTransitionPage(child: ConversationsScreen())),
+        GoRoute(path: '/zadosti', pageBuilder: (_, _) => const NoTransitionPage(child: ApplicationsScreen())),
+        GoRoute(path: '/smlouvy', pageBuilder: (_, _) => const NoTransitionPage(child: LeasesScreen())),
+        GoRoute(path: '/stav', pageBuilder: (_, _) => const NoTransitionPage(child: StatusScreen())),
+      ],
+    ),
     GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-    GoRoute(path: '/zpravy', builder: (_, _) => const ConversationsScreen()),
+    GoRoute(
+      path: '/inzerat/:id',
+      builder: (_, s) => ListingScreen(id: s.pathParameters['id']!),
+    ),
     GoRoute(
       path: '/zpravy/:id',
       builder: (_, s) => ThreadScreen(id: s.pathParameters['id']!),
     ),
-    GoRoute(path: '/zadosti', builder: (_, _) => const ApplicationsScreen()),
-    GoRoute(path: '/smlouvy', builder: (_, _) => const LeasesScreen()),
+    GoRoute(path: '/prohlidky', builder: (_, _) => const ViewingsScreen()),
     GoRoute(path: '/portfolio', builder: (_, _) => const PortfolioScreen()),
     GoRoute(
       path: '/smlouvy/:id',
@@ -33,6 +50,36 @@ GoRouter createRouter() => GoRouter(
     ),
   ],
 );
+
+/// Bottom navigation of the seeker/tenant app. Admin features stay on the web.
+class HomeShell extends StatelessWidget {
+  const HomeShell({super.key, required this.location, required this.child});
+
+  final String location;
+  final Widget child;
+
+  static const tabs = ['/hledat', '/zpravy', '/zadosti', '/smlouvy', '/stav'];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final index = tabs.indexWhere((p) => location.startsWith(p));
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index < 0 ? 0 : index,
+        onDestinationSelected: (i) => context.go(tabs[i]),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.search), label: t.navSearch),
+          NavigationDestination(icon: const Icon(Icons.chat_bubble_outline), label: t.navMessages),
+          NavigationDestination(icon: const Icon(Icons.assignment_outlined), label: t.navApplications),
+          NavigationDestination(icon: const Icon(Icons.home_outlined), label: t.navLease),
+          NavigationDestination(icon: const Icon(Icons.person_outline), label: t.navProfile),
+        ],
+      ),
+    );
+  }
+}
 
 const _seed = Color(0xFF2F7D4F);
 
@@ -58,6 +105,7 @@ class TerraApp extends StatelessWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
       routerConfig: router,
+      builder: (_, child) => PushNavigation(router: router, child: child ?? const SizedBox.shrink()),
     );
   }
 }

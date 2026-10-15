@@ -1,0 +1,10 @@
+[Unit]
+Description=TerraReality: pgBackRest metrics textfile (schedule)
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

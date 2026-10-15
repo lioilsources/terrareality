@@ -126,5 +126,25 @@
   "invoice_issued": {
     "subject": "Faktura {{.Number}} za {{.Product}}",
     "text": "Dobrý den,\n\nděkujeme za platbu {{.Amount}} za {{.Product}} k inzerátu „{{.Listing}}“. Vystavili jsme daňový doklad {{.Number}} (platba kartou, uhrazeno).\n\nFaktury najdete v přehledu fakturace:\n{{.Link}}"
+  },
+  "listing_report_received": {
+    "subject": "Přijali jsme vaše oznámení k inzerátu „{{.Title}}“",
+    "text": "Dobrý den{{if .Name}}, {{.Name}}{{end}},\n\npotvrzujeme přijetí vašeho oznámení k inzerátu „{{.Title}}“ (číslo oznámení {{.CaseID}}).\n\nDůvod: {{.Reason}}\nVaše vysvětlení: {{.Explanation}}\n\nOznámení posoudí člověk z našeho týmu moderátorů, nikoli automatický systém. O rozhodnutí a jeho odůvodnění vás budeme informovat e-mailem.\n\nInzerát: {{.Link}}",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_report_decided": {
+    "subject": "Rozhodnutí o vašem oznámení k inzerátu „{{.Title}}“",
+    "text": "Dobrý den{{if .Name}}, {{.Name}}{{end}},\n\nposoudili jsme vaše oznámení k inzerátu „{{.Title}}“ (číslo oznámení {{.CaseID}}).\n\nRozhodnutí: {{.Decision}}\n{{if .Note}}Odůvodnění: {{.Note}}\n{{end}}\nRozhodnutí učinil člověk z týmu moderátorů na základě vašeho oznámení; automatizované prostředky k rozhodnutí použity nebyly.\n\nPokud s rozhodnutím nesouhlasíte, můžete do 6 měsíců podat stížnost odpovědí na tento e-mail. Máte také možnost obrátit se na orgán mimosoudního řešení sporů nebo na soud.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_unpublished_report": {
+    "subject": "Inzerát „{{.Title}}“ jsme stáhli z nabídky",
+    "text": "Dobrý den,\n\nna základě oznámení (důvod: {{.Reason}}) jsme inzerát „{{.Title}}“ stáhli z veřejné nabídky (číslo případu {{.CaseID}}).\n\nOdůvodnění: {{.Note}}\n\nRozhodnutí učinil člověk z týmu moderátorů; automatizované prostředky k rozhodnutí použity nebyly. Inzerát můžete upravit a znovu odeslat ke schválení:\n{{.Link}}\n\nPokud s rozhodnutím nesouhlasíte, můžete do 6 měsíců podat stížnost odpovědí na tento e-mail. Máte také možnost obrátit se na orgán mimosoudního řešení sporů nebo na soud.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "listing_change_requested_report": {
+    "subject": "Žádáme o úpravu inzerátu „{{.Title}}“",
+    "text": "Dobrý den,\n\nna základě oznámení (důvod: {{.Reason}}) vás žádáme o úpravu inzerátu „{{.Title}}“ (číslo případu {{.CaseID}}). Inzerát zůstává zveřejněný.\n\nCo upravit: {{.Note}}\n\nInzerát upravíte zde:\n{{.Link}}\n\nRozhodnutí učinil člověk z týmu moderátorů. Pokud s ním nesouhlasíte, odpovězte na tento e-mail.",
+    "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
   }
 }

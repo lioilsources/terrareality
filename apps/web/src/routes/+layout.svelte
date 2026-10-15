@@ -3,6 +3,8 @@
 	import { getLocale, locales, localizeHref } from '#lib/paraglide/runtime.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { Logo } from '@terra/ui';
+	import CookieBanner from '#lib/components/CookieBanner.svelte';
+	import { LEGAL_ROUTES } from '#lib/legal.js';
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
@@ -16,6 +18,13 @@
 		{ href: '/admin', label: m.nav_admin },
 		...(data.me?.is_staff ? [{ href: '/backoffice', label: m.nav_backoffice }] : [])
 	]);
+
+	const legalLinks = [
+		{ href: LEGAL_ROUTES.terms, label: m.legal_terms },
+		{ href: LEGAL_ROUTES.privacy, label: m.legal_privacy },
+		{ href: LEGAL_ROUTES.cookies, label: m.legal_cookies },
+		{ href: LEGAL_ROUTES.dsa, label: m.legal_dsa }
+	];
 </script>
 
 <svelte:head>
@@ -24,6 +33,9 @@
 </svelte:head>
 
 <div class="min-h-dvh">
+	{#if !data.consent.decided}
+		<CookieBanner />
+	{/if}
 	<header class="border-b border-[var(--border)] bg-[var(--surface)]">
 		<div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
 			<a href={localizeHref('/')} class="no-underline"><Logo /></a>
@@ -87,4 +99,16 @@
 	<main class="mx-auto max-w-6xl px-4 py-8">
 		{@render children()}
 	</main>
+	<footer class="border-t border-[var(--border)]">
+		<div
+			class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 text-sm text-[var(--muted)]"
+		>
+			<span>{m.legal_footer_copyright({ year: new Date().getFullYear() })}</span>
+			<nav aria-label={m.legal_nav()} class="flex flex-wrap gap-4" data-testid="footer-legal">
+				{#each legalLinks as item (item.href)}
+					<a href={localizeHref(item.href)} class="hover:text-[var(--text)]">{item.label()}</a>
+				{/each}
+			</nav>
+		</div>
+	</footer>
 </div>

@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars (git-ignored) or export TF_VAR_<name>. Never commit real values.
+hcloud_token              = "<hetzner-cloud-api-token>"
+object_storage_access_key = "<object-storage-access-key>"
+object_storage_secret_key = "<object-storage-secret-key>"
+
+admin_ssh_public_keys = [
+  "ssh-ed25519 AAAA... admin@example",
+]
+
+# Office / VPN egress addresses that may SSH into the servers.
+admin_cidrs = ["203.0.113.10/32"]
+
+# Public egress IP of the owner's network where the DGX Spark lives (WireGuard peer).
+wireguard_peer_cidrs = ["198.51.100.20/32"]
+
+# Optional overrides
+# location                = "fsn1"
+# object_storage_location = "fsn1"
+# app_server_type         = "cx43"
+# db_server_type          = "cx33"
+# media_bucket            = "terrareality-media"
+# backup_bucket           = "terrareality-pgbackrest"

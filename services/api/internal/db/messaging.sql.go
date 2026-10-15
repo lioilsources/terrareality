@@ -190,7 +190,7 @@ VALUES ('report', $1, $2, $3, $4, $5, $6, $7) RETURNING id
 `
 
 type CreateReportParams struct {
-	ConversationID uuid.UUID  `json:"conversation_id"`
+	ConversationID *uuid.UUID `json:"conversation_id"`
 	MessageID      *uuid.UUID `json:"message_id"`
 	ReporterID     *uuid.UUID `json:"reporter_id"`
 	ReportedID     *uuid.UUID `json:"reported_id"`
@@ -441,44 +441,55 @@ func (q *Queries) GetConversation(ctx context.Context, id uuid.UUID) (Conversati
 }
 
 const getModerationCase = `-- name: GetModerationCase :one
-SELECT mc.id, mc.source, mc.conversation_id, mc.message_id, mc.reporter_id, mc.reported_id, mc.reason, mc.note, mc.status, mc.ai_status, mc.ai_suggestion, mc.ai_model, mc.decision, mc.decision_note, mc.decided_by, mc.decided_at, mc.created_at, ru.display_name AS reporter_name, ru.email AS reporter_email,
+SELECT mc.id, mc.source, mc.conversation_id, mc.message_id, mc.reporter_id, mc.reported_id, mc.reason, mc.note, mc.status, mc.ai_status, mc.ai_suggestion, mc.ai_model, mc.decision, mc.decision_note, mc.decided_by, mc.decided_at, mc.created_at, mc.kind, mc.listing_id, mc.reporter_contact_email, mc.reporter_contact_name, mc.reporter_locale,
+  coalesce(ru.display_name, mc.reporter_contact_name, '')::text AS reporter_name,
+  coalesce(ru.email, mc.reporter_contact_email, '')::text AS reporter_email,
+  (mc.reporter_id IS NULL AND mc.source = 'report')::boolean AS reporter_anonymous,
   du.display_name AS reported_name, du.email AS reported_email,
   coalesce(msg.body, '')::text AS message_body,
-  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title
+  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title,
+  l.id AS subject_listing_id
 FROM moderation_cases mc
-JOIN conversations c ON c.id = mc.conversation_id
+LEFT JOIN conversations c ON c.id = mc.conversation_id
 LEFT JOIN users ru ON ru.id = mc.reporter_id
 LEFT JOIN users du ON du.id = mc.reported_id
 LEFT JOIN messages msg ON msg.id = mc.message_id
-LEFT JOIN listing_search s ON s.listing_id = c.listing_id
-LEFT JOIN listings l ON l.id = c.listing_id
+LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
+LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.id = $1
 `
 
 type GetModerationCaseRow struct {
-	ID             uuid.UUID  `json:"id"`
-	Source         string     `json:"source"`
-	ConversationID uuid.UUID  `json:"conversation_id"`
-	MessageID      *uuid.UUID `json:"message_id"`
-	ReporterID     *uuid.UUID `json:"reporter_id"`
-	ReportedID     *uuid.UUID `json:"reported_id"`
-	Reason         string     `json:"reason"`
-	Note           *string    `json:"note"`
-	Status         string     `json:"status"`
-	AiStatus       string     `json:"ai_status"`
-	AiSuggestion   []byte     `json:"ai_suggestion"`
-	AiModel        *string    `json:"ai_model"`
-	Decision       *string    `json:"decision"`
-	DecisionNote   *string    `json:"decision_note"`
-	DecidedBy      *uuid.UUID `json:"decided_by"`
-	DecidedAt      *time.Time `json:"decided_at"`
-	CreatedAt      time.Time  `json:"created_at"`
-	ReporterName   *string    `json:"reporter_name"`
-	ReporterEmail  *string    `json:"reporter_email"`
-	ReportedName   *string    `json:"reported_name"`
-	ReportedEmail  *string    `json:"reported_email"`
-	MessageBody    string     `json:"message_body"`
-	ListingTitle   []byte     `json:"listing_title"`
+	ID                   uuid.UUID  `json:"id"`
+	Source               string     `json:"source"`
+	ConversationID       *uuid.UUID `json:"conversation_id"`
+	MessageID            *uuid.UUID `json:"message_id"`
+	ReporterID           *uuid.UUID `json:"reporter_id"`
+	ReportedID           *uuid.UUID `json:"reported_id"`
+	Reason               string     `json:"reason"`
+	Note                 *string    `json:"note"`
+	Status               string     `json:"status"`
+	AiStatus             string     `json:"ai_status"`
+	AiSuggestion         []byte     `json:"ai_suggestion"`
+	AiModel              *string    `json:"ai_model"`
+	Decision             *string    `json:"decision"`
+	DecisionNote         *string    `json:"decision_note"`
+	DecidedBy            *uuid.UUID `json:"decided_by"`
+	DecidedAt            *time.Time `json:"decided_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	Kind                 string     `json:"kind"`
+	ListingID            *uuid.UUID `json:"listing_id"`
+	ReporterContactEmail *string    `json:"reporter_contact_email"`
+	ReporterContactName  *string    `json:"reporter_contact_name"`
+	ReporterLocale       string     `json:"reporter_locale"`
+	ReporterName         string     `json:"reporter_name"`
+	ReporterEmail        string     `json:"reporter_email"`
+	ReporterAnonymous    bool       `json:"reporter_anonymous"`
+	ReportedName         *string    `json:"reported_name"`
+	ReportedEmail        *string    `json:"reported_email"`
+	MessageBody          string     `json:"message_body"`
+	ListingTitle         []byte     `json:"listing_title"`
+	SubjectListingID     *uuid.UUID `json:"subject_listing_id"`
 }
 
 func (q *Queries) GetModerationCase(ctx context.Context, id uuid.UUID) (GetModerationCaseRow, error) {
@@ -502,12 +513,19 @@ func (q *Queries) GetModerationCase(ctx context.Context, id uuid.UUID) (GetModer
 		&i.DecidedBy,
 		&i.DecidedAt,
 		&i.CreatedAt,
+		&i.Kind,
+		&i.ListingID,
+		&i.ReporterContactEmail,
+		&i.ReporterContactName,
+		&i.ReporterLocale,
 		&i.ReporterName,
 		&i.ReporterEmail,
+		&i.ReporterAnonymous,
 		&i.ReportedName,
 		&i.ReportedEmail,
 		&i.MessageBody,
 		&i.ListingTitle,
+		&i.SubjectListingID,
 	)
 	return i, err
 }
@@ -857,47 +875,59 @@ func (q *Queries) ListNotifications(ctx context.Context, userID uuid.UUID) ([]No
 }
 
 const listOpenModerationCases = `-- name: ListOpenModerationCases :many
-SELECT mc.id, mc.source, mc.conversation_id, mc.message_id, mc.reporter_id, mc.reported_id, mc.reason, mc.note, mc.status, mc.ai_status, mc.ai_suggestion, mc.ai_model, mc.decision, mc.decision_note, mc.decided_by, mc.decided_at, mc.created_at, ru.display_name AS reporter_name, ru.email AS reporter_email,
+SELECT mc.id, mc.source, mc.conversation_id, mc.message_id, mc.reporter_id, mc.reported_id, mc.reason, mc.note, mc.status, mc.ai_status, mc.ai_suggestion, mc.ai_model, mc.decision, mc.decision_note, mc.decided_by, mc.decided_at, mc.created_at, mc.kind, mc.listing_id, mc.reporter_contact_email, mc.reporter_contact_name, mc.reporter_locale,
+  coalesce(ru.display_name, mc.reporter_contact_name, '')::text AS reporter_name,
+  coalesce(ru.email, mc.reporter_contact_email, '')::text AS reporter_email,
+  (mc.reporter_id IS NULL AND mc.source = 'report')::boolean AS reporter_anonymous,
   du.display_name AS reported_name, du.email AS reported_email,
   coalesce(msg.body, '')::text AS message_body,
-  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title
+  coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title,
+  l.id AS subject_listing_id
 FROM moderation_cases mc
-JOIN conversations c ON c.id = mc.conversation_id
+LEFT JOIN conversations c ON c.id = mc.conversation_id
 LEFT JOIN users ru ON ru.id = mc.reporter_id
 LEFT JOIN users du ON du.id = mc.reported_id
 LEFT JOIN messages msg ON msg.id = mc.message_id
-LEFT JOIN listing_search s ON s.listing_id = c.listing_id
-LEFT JOIN listings l ON l.id = c.listing_id
+LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
+LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.status = 'open'
 ORDER BY mc.created_at
 `
 
 type ListOpenModerationCasesRow struct {
-	ID             uuid.UUID  `json:"id"`
-	Source         string     `json:"source"`
-	ConversationID uuid.UUID  `json:"conversation_id"`
-	MessageID      *uuid.UUID `json:"message_id"`
-	ReporterID     *uuid.UUID `json:"reporter_id"`
-	ReportedID     *uuid.UUID `json:"reported_id"`
-	Reason         string     `json:"reason"`
-	Note           *string    `json:"note"`
-	Status         string     `json:"status"`
-	AiStatus       string     `json:"ai_status"`
-	AiSuggestion   []byte     `json:"ai_suggestion"`
-	AiModel        *string    `json:"ai_model"`
-	Decision       *string    `json:"decision"`
-	DecisionNote   *string    `json:"decision_note"`
-	DecidedBy      *uuid.UUID `json:"decided_by"`
-	DecidedAt      *time.Time `json:"decided_at"`
-	CreatedAt      time.Time  `json:"created_at"`
-	ReporterName   *string    `json:"reporter_name"`
-	ReporterEmail  *string    `json:"reporter_email"`
-	ReportedName   *string    `json:"reported_name"`
-	ReportedEmail  *string    `json:"reported_email"`
-	MessageBody    string     `json:"message_body"`
-	ListingTitle   []byte     `json:"listing_title"`
+	ID                   uuid.UUID  `json:"id"`
+	Source               string     `json:"source"`
+	ConversationID       *uuid.UUID `json:"conversation_id"`
+	MessageID            *uuid.UUID `json:"message_id"`
+	ReporterID           *uuid.UUID `json:"reporter_id"`
+	ReportedID           *uuid.UUID `json:"reported_id"`
+	Reason               string     `json:"reason"`
+	Note                 *string    `json:"note"`
+	Status               string     `json:"status"`
+	AiStatus             string     `json:"ai_status"`
+	AiSuggestion         []byte     `json:"ai_suggestion"`
+	AiModel              *string    `json:"ai_model"`
+	Decision             *string    `json:"decision"`
+	DecisionNote         *string    `json:"decision_note"`
+	DecidedBy            *uuid.UUID `json:"decided_by"`
+	DecidedAt            *time.Time `json:"decided_at"`
+	CreatedAt            time.Time  `json:"created_at"`
+	Kind                 string     `json:"kind"`
+	ListingID            *uuid.UUID `json:"listing_id"`
+	ReporterContactEmail *string    `json:"reporter_contact_email"`
+	ReporterContactName  *string    `json:"reporter_contact_name"`
+	ReporterLocale       string     `json:"reporter_locale"`
+	ReporterName         string     `json:"reporter_name"`
+	ReporterEmail        string     `json:"reporter_email"`
+	ReporterAnonymous    bool       `json:"reporter_anonymous"`
+	ReportedName         *string    `json:"reported_name"`
+	ReportedEmail        *string    `json:"reported_email"`
+	MessageBody          string     `json:"message_body"`
+	ListingTitle         []byte     `json:"listing_title"`
+	SubjectListingID     *uuid.UUID `json:"subject_listing_id"`
 }
 
+// Conversation cases and listing reports (DSA), oldest first.
 func (q *Queries) ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error) {
 	rows, err := q.db.Query(ctx, listOpenModerationCases)
 	if err != nil {
@@ -925,12 +955,19 @@ func (q *Queries) ListOpenModerationCases(ctx context.Context) ([]ListOpenModera
 			&i.DecidedBy,
 			&i.DecidedAt,
 			&i.CreatedAt,
+			&i.Kind,
+			&i.ListingID,
+			&i.ReporterContactEmail,
+			&i.ReporterContactName,
+			&i.ReporterLocale,
 			&i.ReporterName,
 			&i.ReporterEmail,
+			&i.ReporterAnonymous,
 			&i.ReportedName,
 			&i.ReportedEmail,
 			&i.MessageBody,
 			&i.ListingTitle,
+			&i.SubjectListingID,
 		); err != nil {
 			return nil, err
 		}
@@ -1234,7 +1271,8 @@ func (q *Queries) ModerationTranscript(ctx context.Context, conversationID uuid.
 }
 
 const pendingModerationAI = `-- name: PendingModerationAI :many
-SELECT id FROM moderation_cases WHERE ai_status = 'pending' AND status = 'open' ORDER BY created_at LIMIT 100
+SELECT id FROM moderation_cases WHERE ai_status = 'pending' AND status = 'open' AND kind = 'conversation'
+ORDER BY created_at LIMIT 100
 `
 
 func (q *Queries) PendingModerationAI(ctx context.Context) ([]uuid.UUID, error) {

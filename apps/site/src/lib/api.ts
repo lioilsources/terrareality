@@ -8,24 +8,29 @@ import type { ListingCard, MunicipalityStat, SearchResult } from '@terra/contrac
 const API_URL = (import.meta.env.API_URL ?? process.env.API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
 export const APP_URL = (import.meta.env.PUBLIC_APP_URL ?? process.env.PUBLIC_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 
-export const kinds = {
-  'pronajem-bytu': { kind: 'apartment', title: 'Pronájem bytů', noun: 'bytů' },
-  'pronajem-pokoje': { kind: 'room', title: 'Pronájem pokojů', noun: 'pokojů' }
-} as const;
-export type KindSlug = keyof typeof kinds;
+let unreachable = false;
 
 async function get<T>(path: string, init?: RequestInit): Promise<T | null> {
+  if (unreachable) return null;
   try {
     const res = await fetch(API_URL + path, init);
     return res.ok ? ((await res.json()) as T) : null;
   } catch {
-    console.warn(`[site] api not reachable at ${API_URL}; skipping locality pages`);
+    unreachable = true;
+    console.warn(`[site] api not reachable at ${API_URL}; building static Praha pages without listings`);
     return null;
   }
 }
 
-export async function municipalities(kind: string): Promise<MunicipalityStat[]> {
-  return (await get<MunicipalityStat[]>(`/v1/seo/municipalities?kind=${kind}`)) ?? [];
+const muniCache = new Map<string, Promise<MunicipalityStat[]>>();
+
+export function municipalities(kind: string): Promise<MunicipalityStat[]> {
+  let p = muniCache.get(kind);
+  if (!p) {
+    p = get<MunicipalityStat[]>(`/v1/seo/municipalities?kind=${kind}`).then((r) => r ?? []);
+    muniCache.set(kind, p);
+  }
+  return p;
 }
 
 export async function topListings(kind: string, path: string): Promise<{ items: ListingCard[]; total: number }> {

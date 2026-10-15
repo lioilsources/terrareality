@@ -1,53 +1,19 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import { APP_URL, kinds, municipalities, topListings, czk, type KindSlug } from '../../lib/api';
+import LocalityPage from '../../components/LocalityPage.astro';
+import { kindsByLang, localityPages } from '../../lib/localities';
 
-// One static page per municipality with at least one listing (rebuilt daily).
+// Prague-area pages always; other municipalities when the api has listings (rebuilt daily).
 export async function getStaticPaths() {
   const out = [];
-  for (const slug of Object.keys(kinds) as KindSlug[]) {
-    const k = kinds[slug];
-    for (const m of await municipalities(k.kind)) {
-      const top = await topListings(k.kind, m.path);
-      out.push({ params: { kind: slug, obec: m.slug }, props: { m, top } });
+  for (const kindSlug of Object.keys(kindsByLang.cs)) {
+    for (const page of await localityPages('cs', kindSlug)) {
+      out.push({ params: { kind: kindSlug, obec: page.slug }, props: { page } });
     }
   }
   return out;
 }
-const { kind } = Astro.params as { kind: KindSlug };
-const { m, top } = Astro.props;
-const k = kinds[kind];
-const title = `${k.title} ${m.name}`;
-const searchUrl = `${APP_URL}/hledat?kind=${k.kind}&area=${encodeURIComponent(m.path)}`;
-const jsonLd = JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'ItemList',
-  name: title,
-  numberOfItems: top.total,
-  itemListElement: top.items.map((c, i) => ({
-    '@type': 'ListItem',
-    position: i + 1,
-    url: `${APP_URL}/inzerat/${c.id}`,
-    name: c.title.cs || title
-  }))
-}).replace(/</g, '\\u003c');
+const { kind } = Astro.params as { kind: string };
+const { page } = Astro.props;
 ---
 
-<Layout title={`${title} | TerraReality`} description={`${m.listings} nabídek – ${k.title.toLowerCase()} ${m.name}, medián nájmu ${czk(m.median_rent)}.`} lang="cs" altHref="/en/" altLabel="English">
-  <script type="application/ld+json" set:html={jsonLd} />
-  <nav class="text-sm"><a href={`/${kind}`}>{k.title}</a> › {m.name}</nav>
-  <h1 class="mt-2 text-3xl font-semibold" data-testid="seo-title">{title}</h1>
-  <p class="mt-2 text-[var(--muted)]">{m.listings} aktuálních nabídek · medián nájmu {czk(m.median_rent)} měsíčně</p>
-  <ul class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-    {top.items.map((c) => (
-      <li class="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-        <a href={`${APP_URL}/inzerat/${c.id}`} class="block p-3">
-          <strong>{c.title.cs || title}</strong>
-          <p class="text-sm text-[var(--muted)]">{c.city_part ?? c.city}{c.floor_area ? ` · ${c.floor_area} m²` : ''}</p>
-          <p class="font-semibold">{czk(c.rent_amount)}</p>
-        </a>
-      </li>
-    ))}
-  </ul>
-  <a href={searchUrl} class="mt-8 inline-block rounded-lg bg-[var(--accent)] px-4 py-2 text-white">Všechny nabídky na mapě</a>
-</Layout>
+<LocalityPage lang="cs" kindSlug={kind} page={page} />

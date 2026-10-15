@@ -13,7 +13,30 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			// Static CSP with per-request nonces for SvelteKit's inline scripts
+			// (hashes on prerendered pages). hooks.server.ts appends runtime origins
+			// (imgproxy/S3, Centrifugo, map tiles, Sentry, Stripe). Styles allow
+			// 'unsafe-inline': Svelte style attributes/transitions and MapLibre need it.
+			csp: {
+				mode: 'auto',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self', 'unsafe-inline'],
+					'img-src': ['self', 'data:', 'blob:'],
+					'font-src': ['self', 'data:'],
+					'connect-src': ['self'],
+					'worker-src': ['self', 'blob:'],
+					'child-src': ['self', 'blob:'],
+					'manifest-src': ['self'],
+					'object-src': ['none'],
+					'frame-src': ['none'],
+					'frame-ancestors': ['none'],
+					'base-uri': ['self'],
+					'form-action': ['self']
+				}
+			}
 		}),
 
 		paraglideVitePlugin({
