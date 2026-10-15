@@ -2,12 +2,12 @@
 
 Plán a acceptance kritéria: `docs/02-plan.md`. Tento soubor říká, kde jsme a kde začít.
 
-| Milník | Stav | Commit / PR |
-|---|---|---|
-| M1–M5 | hotovo, v `main` | PR #1–#5 |
-| **M6 Leasing** | **hotovo, v `main`** | merge `b9e01c9` (PR #6), poslední commit větve `01efa27` |
-| **M6b Portfolio a riziko** | hotovo, čeká na merge | PR #7, větev `m6b-portfolio`, commity `f02001f`, `17a3812` |
-| M7 Promo, billing, Revolut, backoffice | další na řadě | – |
+| Milník                                 | Stav                  | Commit / PR                                                |
+| -------------------------------------- | --------------------- | ---------------------------------------------------------- |
+| M1–M5                                  | hotovo, v `main`      | PR #1–#5                                                   |
+| **M6 Leasing**                         | **hotovo, v `main`**  | merge `b9e01c9` (PR #6), poslední commit větve `01efa27`   |
+| **M6b Portfolio a riziko**             | hotovo, čeká na merge | PR #7, větev `m6b-portfolio`, commity `f02001f`, `17a3812` |
+| M7 Promo, billing, Revolut, backoffice | další na řadě         | –                                                          |
 
 U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` lokálně i v CI.
 
