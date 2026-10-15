@@ -82,8 +82,17 @@ String parameterToString(dynamic value) {
   if (value is ModerationVerdict) {
     return ModerationVerdictTypeTransformer().encode(value).toString();
   }
+  if (value is OrderStatus) {
+    return OrderStatusTypeTransformer().encode(value).toString();
+  }
+  if (value is PromoProductKind) {
+    return PromoProductKindTypeTransformer().encode(value).toString();
+  }
   if (value is RejectReason) {
     return RejectReasonTypeTransformer().encode(value).toString();
+  }
+  if (value is RevolutMode) {
+    return RevolutModeTypeTransformer().encode(value).toString();
   }
   if (value is RiskBand) {
     return RiskBandTypeTransformer().encode(value).toString();

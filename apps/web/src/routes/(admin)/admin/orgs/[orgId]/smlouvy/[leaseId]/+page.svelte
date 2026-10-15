@@ -48,7 +48,14 @@
 		<LeaseSummary detail={d} chain={data.chain} {locale} />
 		{#if data.shares.length}
 			<Card title={m.lease_payments()}>
-				<LeasePayments shares={data.shares} landlord={true} {locale} />
+				<LeasePayments
+					shares={data.shares}
+					landlord={true}
+					{locale}
+					revolut={data.revolut}
+					revolutResult={form && 'revolut' in form ? form : null}
+					connectHref={localizeHref(`/admin/orgs/${params.orgId}/fakturace#revolut`)}
+				/>
 				<p class="mt-3 text-sm">
 					<a href={`/admin/orgs/${params.orgId}/smlouvy/${l.id}/ledger.csv`}
 						>{m.lease_ledger_csv()}</a

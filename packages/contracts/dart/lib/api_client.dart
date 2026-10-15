@@ -224,6 +224,14 @@ class ApiClient {
           return AttributeOption.fromJson(value);
         case 'AttributeSchema':
           return AttributeSchema.fromJson(value);
+        case 'AttributeSuggestion':
+          return AttributeSuggestion.fromJson(value);
+        case 'AttributeSuggestionDecision':
+          return AttributeSuggestionDecision.fromJson(value);
+        case 'AttributeSuggestionList':
+          return AttributeSuggestionList.fromJson(value);
+        case 'AttributeSuggestionOptionsInner':
+          return AttributeSuggestionOptionsInner.fromJson(value);
         case 'AuditEvent':
           return AuditEvent.fromJson(value);
         case 'AuditPage':
@@ -234,6 +242,8 @@ class ApiClient {
           return AuthResult.fromJson(value);
         case 'BackofficeDecideModerationRequest':
           return BackofficeDecideModerationRequest.fromJson(value);
+        case 'BackofficeMetrics':
+          return BackofficeMetrics.fromJson(value);
         case 'BankConnection':
           return BankConnection.fromJson(value);
         case 'BankLink':
@@ -268,6 +278,10 @@ class ApiClient {
           return ConsentInput.fromJson(value);
         case 'ConsentKind':
           return ConsentKindTypeTransformer().decode(value);
+        case 'ContractTemplate':
+          return ContractTemplate.fromJson(value);
+        case 'ContractTemplateList':
+          return ContractTemplateList.fromJson(value);
         case 'Conversation':
           return Conversation.fromJson(value);
         case 'ConversationDetail':
@@ -290,6 +304,12 @@ class ApiClient {
           return DownloadLink.fromJson(value);
         case 'FacetCount':
           return FacetCount.fromJson(value);
+        case 'FeatureFlag':
+          return FeatureFlag.fromJson(value);
+        case 'FeatureFlagInput':
+          return FeatureFlagInput.fromJson(value);
+        case 'FeatureFlagList':
+          return FeatureFlagList.fromJson(value);
         case 'FieldError':
           return FieldError.fromJson(value);
         case 'FilterProposal':
@@ -328,6 +348,10 @@ class ApiClient {
           return InvitationPreview.fromJson(value);
         case 'InviteToGroupRequest':
           return InviteToGroupRequest.fromJson(value);
+        case 'Invoice':
+          return Invoice.fromJson(value);
+        case 'InvoiceList':
+          return InvoiceList.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
         case 'LeaseDetail':
@@ -412,6 +436,8 @@ class ApiClient {
           return ModerationSuggestion.fromJson(value);
         case 'ModerationVerdict':
           return ModerationVerdictTypeTransformer().decode(value);
+        case 'Money':
+          return Money.fromJson(value);
         case 'MunicipalityStat':
           return MunicipalityStat.fromJson(value);
         case 'Notification':
@@ -428,6 +454,12 @@ class ApiClient {
           return OidcStart.fromJson(value);
         case 'OidcStartRequest':
           return OidcStartRequest.fromJson(value);
+        case 'Order':
+          return Order.fromJson(value);
+        case 'OrderList':
+          return OrderList.fromJson(value);
+        case 'OrderStatus':
+          return OrderStatusTypeTransformer().decode(value);
         case 'OrgInput':
           return OrgInput.fromJson(value);
         case 'OrgMembership':
@@ -438,6 +470,8 @@ class ApiClient {
           return Passport.fromJson(value);
         case 'PasswordResetRequest':
           return PasswordResetRequest.fromJson(value);
+        case 'PaymentLink':
+          return PaymentLink.fromJson(value);
         case 'PhoneRequest':
           return PhoneRequest.fromJson(value);
         case 'PhotoVariants':
@@ -486,6 +520,24 @@ class ApiClient {
           return PrescreenQuestionText.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
+        case 'PromoCheckout':
+          return PromoCheckout.fromJson(value);
+        case 'PromoCheckoutInput':
+          return PromoCheckoutInput.fromJson(value);
+        case 'PromoProduct':
+          return PromoProduct.fromJson(value);
+        case 'PromoProductInput':
+          return PromoProductInput.fromJson(value);
+        case 'PromoProductKind':
+          return PromoProductKindTypeTransformer().decode(value);
+        case 'PromoProductList':
+          return PromoProductList.fromJson(value);
+        case 'PromoProductPatch':
+          return PromoProductPatch.fromJson(value);
+        case 'Promotion':
+          return Promotion.fromJson(value);
+        case 'PromotionList':
+          return PromotionList.fromJson(value);
         case 'ProposalDecision':
           return ProposalDecision.fromJson(value);
         case 'PublicListing':
@@ -534,6 +586,12 @@ class ApiClient {
           return ReviewDetail.fromJson(value);
         case 'ReviewItem':
           return ReviewItem.fromJson(value);
+        case 'RevolutAccount':
+          return RevolutAccount.fromJson(value);
+        case 'RevolutAccountInput':
+          return RevolutAccountInput.fromJson(value);
+        case 'RevolutMode':
+          return RevolutModeTypeTransformer().decode(value);
         case 'RiskBand':
           return RiskBandTypeTransformer().decode(value);
         case 'RiskFactor':

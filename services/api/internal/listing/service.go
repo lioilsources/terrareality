@@ -42,12 +42,32 @@ type SearchIndex interface {
 	Remove(ctx context.Context, q *db.Queries, listingID uuid.UUID) error
 }
 
+// FlagSource is the live feature flag store (internal/flags).
+type FlagSource interface {
+	Enabled(ctx context.Context, key string) bool
+}
+
 // Flags switch AI features (plan section 5: everything AI behind a flag).
+// With Source set the live flags decide; the static values serve tests.
 type Flags struct {
 	AIAttributes bool
 	AIText       bool
 	Vision       bool
+	Source       FlagSource
 }
+
+func (f Flags) on(ctx context.Context, key string, static bool) bool {
+	if f.Source != nil {
+		return f.Source.Enabled(ctx, key)
+	}
+	return static
+}
+
+func (f Flags) aiAttributes(ctx context.Context) bool {
+	return f.on(ctx, "ai.attributes", f.AIAttributes)
+}
+func (f Flags) aiText(ctx context.Context) bool { return f.on(ctx, "ai.text", f.AIText) }
+func (f Flags) vision(ctx context.Context) bool { return f.on(ctx, "ai.vision", f.Vision) }
 
 // Service implements the catalog.
 type Service struct {

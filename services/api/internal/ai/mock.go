@@ -153,6 +153,12 @@ func (Mock) ExtractAttributes(_ context.Context, req ExtractRequest) (ExtractRes
 		res.NewOptions = append(res.NewOptions, NewOption{Key: "heating", Value: "stove",
 			Label: catalog.I18n{CS: "kamna", EN: "stove"}})
 	}
+	// An attribute outside the catalog ("sauna" is not in packages/attributes),
+	// so the backoffice attribute queue is exercised offline (E2E relies on it).
+	if strings.Contains(text, "sauna") {
+		res.NewAttributes = append(res.NewAttributes, NewAttribute{Key: "sauna", Type: "bool", Group: "equipment",
+			Label: catalog.I18n{CS: "Sauna", EN: "Sauna"}})
+	}
 	return res, nil
 }
 

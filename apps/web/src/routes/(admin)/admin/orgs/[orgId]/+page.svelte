@@ -34,6 +34,7 @@
 			<a href={localizeHref(`/admin/orgs/${org.id}/portfolio`)}>{m.nav_portfolio()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/smlouvy`)}>{m.nav_leases()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/banka`)}>{m.nav_bank()}</a>
+			<a href={localizeHref(`/admin/orgs/${org.id}/fakturace`)}>{m.billing_title()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/listings`)}>{m.nav_listings()} →</a>
 		</span>
 	</div>

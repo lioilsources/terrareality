@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -29,6 +30,9 @@ type Querier interface {
 	ApplicationPeople(ctx context.Context, id uuid.UUID) ([]ApplicationPeopleRow, error)
 	AssignAddressAdminPaths(ctx context.Context, onlyMissing pgtype.Bool) (int64, error)
 	AttachToMessage(ctx context.Context, arg AttachToMessageParams) (int64, error)
+	// ---------------------------------------------------------------------------
+	// Metrics.
+	BackofficeMetrics(ctx context.Context, currency string) (BackofficeMetricsRow, error)
 	BookingForReminder(ctx context.Context, id uuid.UUID) (BookingForReminderRow, error)
 	// One unread notification per conversation and recipient; new messages update it.
 	BumpMessageNotification(ctx context.Context, arg BumpMessageNotificationParams) (Notification, error)
@@ -77,6 +81,7 @@ type Querier interface {
 	// Groups (user context).
 	CreateGroup(ctx context.Context, arg CreateGroupParams) (TenantGroup, error)
 	CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error)
+	CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (Invoice, error)
 	// M6: leases, signatures, schedule, ledger, bank matching.
 	CreateLease(ctx context.Context, arg CreateLeaseParams) (Lease, error)
 	CreateListing(ctx context.Context, arg CreateListingParams) (Listing, error)
@@ -84,9 +89,17 @@ type Querier interface {
 	// Media ---------------------------------------------------------------------
 	CreateMedia(ctx context.Context, arg CreateMediaParams) (Medium, error)
 	CreateOAuthIdentity(ctx context.Context, arg CreateOAuthIdentityParams) error
+	// ---------------------------------------------------------------------------
+	// Orders.
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	// Queries on RLS tables run inside db.WithUser transactions unless noted.
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
+	CreatePaymentLink(ctx context.Context, arg CreatePaymentLinkParams) (PaymentLink, error)
 	CreatePortfolioGroup(ctx context.Context, arg CreatePortfolioGroupParams) (PortfolioGroup, error)
+	CreatePromoProduct(ctx context.Context, arg CreatePromoProductParams) (PromoProduct, error)
+	// ---------------------------------------------------------------------------
+	// Promotions.
+	CreatePromotion(ctx context.Context, arg CreatePromotionParams) error
 	CreateProperty(ctx context.Context, arg CreatePropertyParams) (Property, error)
 	CreateReplyTemplate(ctx context.Context, arg CreateReplyTemplateParams) (ReplyTemplate, error)
 	CreateReport(ctx context.Context, arg CreateReportParams) (uuid.UUID, error)
@@ -103,6 +116,7 @@ type Querier interface {
 	// Receivable balance per party for items due by a date (the debt).
 	DebtByParty(ctx context.Context, arg DebtByPartyParams) ([]DebtByPartyRow, error)
 	DecideApplication(ctx context.Context, arg DecideApplicationParams) (int64, error)
+	DecideAttributeSuggestion(ctx context.Context, arg DecideAttributeSuggestionParams) (AttributeSuggestion, error)
 	DecideFilterProposal(ctx context.Context, arg DecideFilterProposalParams) (int64, error)
 	DecideModerationCase(ctx context.Context, arg DecideModerationCaseParams) (int64, error)
 	DecideSuggestion(ctx context.Context, arg DecideSuggestionParams) (int64, error)
@@ -120,6 +134,7 @@ type Querier interface {
 	DeletePushDeviceOfOthers(ctx context.Context, arg DeletePushDeviceOfOthersParams) error
 	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error
 	DeleteReplyTemplate(ctx context.Context, arg DeleteReplyTemplateParams) (int64, error)
+	DeleteRevolutAccount(ctx context.Context, orgID uuid.UUID) (int64, error)
 	// ---------------------------------------------------------------------------
 	// GDPR erasure (system context).
 	DeleteRoommateProfile(ctx context.Context, userID uuid.UUID) error
@@ -138,17 +153,20 @@ type Querier interface {
 	FindPropertyByRuian(ctx context.Context, arg FindPropertyByRuianParams) (Property, error)
 	// Returns the new case id, or null when the message was already flagged.
 	FlagMessage(ctx context.Context, arg FlagMessageParams) (uuid.UUID, error)
+	GetActivePromoProductByCode(ctx context.Context, code string) (PromoProduct, error)
 	GetActiveSession(ctx context.Context, tokenHash []byte) (GetActiveSessionRow, error)
 	GetAdminUnit(ctx context.Context, path string) (GetAdminUnitRow, error)
 	GetAppMeta(ctx context.Context, key string) (AppMetum, error)
 	GetApplication(ctx context.Context, id uuid.UUID) (GetApplicationRow, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (MessageAttachment, error)
+	GetAttributeSuggestion(ctx context.Context, id uuid.UUID) (AttributeSuggestion, error)
 	// Latest open code of a purpose for a user (phone codes are short, so they
 	// are looked up by user and compared in constant time).
 	GetAuthTokenForUser(ctx context.Context, arg GetAuthTokenForUserParams) (AuthToken, error)
 	GetBankConnection(ctx context.Context, id uuid.UUID) (BankConnection, error)
 	GetBankTransaction(ctx context.Context, id uuid.UUID) (BankTransaction, error)
 	GetConversation(ctx context.Context, id uuid.UUID) (Conversation, error)
+	GetFeatureFlag(ctx context.Context, key string) (FeatureFlag, error)
 	GetFilterProposal(ctx context.Context, id uuid.UUID) (FilterSchemaProposal, error)
 	GetGDPRRequest(ctx context.Context, id uuid.UUID) (GdprRequest, error)
 	GetGroup(ctx context.Context, id uuid.UUID) (TenantGroup, error)
@@ -158,7 +176,10 @@ type Querier interface {
 	GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSourceRow, error)
 	// System context: the invitee is not a member yet.
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
+	GetInvoice(ctx context.Context, arg GetInvoiceParams) (Invoice, error)
+	GetInvoiceByOrder(ctx context.Context, orderID uuid.UUID) (Invoice, error)
 	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
+	GetLatestPaymentLink(ctx context.Context, shareID uuid.UUID) (PaymentLink, error)
 	GetLease(ctx context.Context, id uuid.UUID) (Lease, error)
 	GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error)
 	GetListing(ctx context.Context, arg GetListingParams) (Listing, error)
@@ -174,14 +195,17 @@ type Querier interface {
 	GetOAuthIdentity(ctx context.Context, arg GetOAuthIdentityParams) (OauthIdentity, error)
 	GetOpenAuthToken(ctx context.Context, arg GetOpenAuthTokenParams) (AuthToken, error)
 	GetOpenErasureRequest(ctx context.Context, userID uuid.UUID) (GdprRequest, error)
+	GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow, error)
 	GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error)
 	// ---------------------------------------------------------------------------
 	// Tenant Passport.
 	GetPassport(ctx context.Context, userID uuid.UUID) (TenantPassport, error)
 	GetPersonalOrganization(ctx context.Context, personalOwnerID *uuid.UUID) (Organization, error)
+	GetPromoProduct(ctx context.Context, id uuid.UUID) (PromoProduct, error)
 	GetProperty(ctx context.Context, arg GetPropertyParams) (GetPropertyRow, error)
 	GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error)
 	GetPublishedSnapshot(ctx context.Context, id uuid.UUID) (ListingVersion, error)
+	GetRevolutAccount(ctx context.Context, orgID uuid.UUID) (OrgRevolutAccount, error)
 	// ---------------------------------------------------------------------------
 	// Risk settings and scores.
 	GetRiskSettings(ctx context.Context, orgID uuid.UUID) ([]byte, error)
@@ -189,6 +213,10 @@ type Querier interface {
 	// Roommate profiles.
 	GetRoommateProfile(ctx context.Context, userID uuid.UUID) (GetRoommateProfileRow, error)
 	GetRuianPlace(ctx context.Context, id int64) (GetRuianPlaceRow, error)
+	// ---------------------------------------------------------------------------
+	// Payment links (landlord-direct).
+	// The share with what a payment link needs; the caller checks who asks.
+	GetShareForPaymentLink(ctx context.Context, id uuid.UUID) (GetShareForPaymentLinkRow, error)
 	GetSplit(ctx context.Context, id uuid.UUID) (GetSplitRow, error)
 	GetSuggestion(ctx context.Context, arg GetSuggestionParams) (AiSuggestion, error)
 	GetUnit(ctx context.Context, arg GetUnitParams) (Unit, error)
@@ -221,7 +249,14 @@ type Querier interface {
 	InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error
 	InsertSignature(ctx context.Context, arg InsertSignatureParams) (Signature, error)
 	InsertSplit(ctx context.Context, arg InsertSplitParams) (ObligationSplit, error)
+	// ---------------------------------------------------------------------------
+	// Stripe webhook idempotency.
+	// 0 rows: the event was already received and must be ignored.
+	InsertStripeEvent(ctx context.Context, arg InsertStripeEventParams) (int64, error)
 	InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTokensParams) error
+	// Buyer data for the invoice (system context): the organization and the
+	// person who ordered.
+	InvoiceBuyer(ctx context.Context, arg InvoiceBuyerParams) (InvoiceBuyerRow, error)
 	JoinGroup(ctx context.Context, arg JoinGroupParams) (int64, error)
 	LastLeaseEvent(ctx context.Context, leaseID uuid.UUID) (LastLeaseEventRow, error)
 	LastRentPeriod(ctx context.Context, leaseID uuid.UUID) (string, error)
@@ -244,6 +279,7 @@ type Querier interface {
 	ListAllOrganizationIDs(ctx context.Context) ([]uuid.UUID, error)
 	ListApplicationConsents(ctx context.Context, applicationID uuid.UUID) ([]ListApplicationConsentsRow, error)
 	ListAttachments(ctx context.Context, messageIds []uuid.UUID) ([]MessageAttachment, error)
+	ListAttributeSuggestions(ctx context.Context, status string) ([]AttributeSuggestion, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]ListAuditEventsRow, error)
 	// System context: GDPR export.
 	ListAuditEventsByActor(ctx context.Context, actorID *uuid.UUID) ([]AuditEvent, error)
@@ -252,12 +288,18 @@ type Querier interface {
 	ListConsents(ctx context.Context, userID uuid.UUID) ([]Consent, error)
 	// Inbox of the current user (RLS limits rows to their conversations).
 	ListConversations(ctx context.Context, arg ListConversationsParams) ([]ListConversationsRow, error)
+	// M7: backoffice metrics, feature flags and the queue of AI-proposed
+	// attributes. Staff work runs in system context; authorization is in code.
+	// ---------------------------------------------------------------------------
+	// Feature flags.
+	ListFeatureFlags(ctx context.Context) ([]FeatureFlag, error)
 	ListFilterGroups(ctx context.Context) ([]FilterSchemaGroup, error)
 	ListFilterProposals(ctx context.Context, status string) ([]FilterSchemaProposal, error)
 	ListFilterSchemas(ctx context.Context) ([]FilterSchema, error)
 	ListGDPRRequests(ctx context.Context, userID uuid.UUID) ([]GdprRequest, error)
 	ListGroupMembers(ctx context.Context, groupID uuid.UUID) ([]ListGroupMembersRow, error)
 	ListGroupMessages(ctx context.Context, groupID uuid.UUID) ([]ListGroupMessagesRow, error)
+	ListInvoices(ctx context.Context, orgID uuid.UUID) ([]Invoice, error)
 	ListJurisdictions(ctx context.Context) ([]Jurisdiction, error)
 	ListLeaseDocuments(ctx context.Context, leaseID uuid.UUID) ([]LeaseDocument, error)
 	ListLeaseEvents(ctx context.Context, leaseID uuid.UUID) ([]LeaseEvent, error)
@@ -266,6 +308,7 @@ type Querier interface {
 	// The landlord's applicant overview (RLS: organization members).
 	ListListingApplications(ctx context.Context, arg ListListingApplicationsParams) ([]ListListingApplicationsRow, error)
 	ListListingMedia(ctx context.Context, listingID *uuid.UUID) ([]Medium, error)
+	ListListingPromotions(ctx context.Context, arg ListListingPromotionsParams) ([]ListListingPromotionsRow, error)
 	ListListingVersions(ctx context.Context, listingID uuid.UUID) ([]ListListingVersionsRow, error)
 	ListListings(ctx context.Context, arg ListListingsParams) ([]ListListingsRow, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error)
@@ -279,6 +322,7 @@ type Querier interface {
 	ListObligations(ctx context.Context, leaseID uuid.UUID) ([]ListObligationsRow, error)
 	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error)
+	ListOrders(ctx context.Context, orgID uuid.UUID) ([]ListOrdersRow, error)
 	ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error)
 	ListOrgProperties(ctx context.Context, orgID uuid.UUID) ([]ListOrgPropertiesRow, error)
 	// Backoffice moderation queue (system context).
@@ -289,6 +333,12 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	// Rules.
 	ListPortfolioRules(ctx context.Context, orgID uuid.UUID) ([]ListPortfolioRulesRow, error)
+	// M7: promo catalog, orders, promotions, invoices, Revolut payment links and
+	// Stripe webhook idempotency. Owner-facing reads and writes run through
+	// db.AsUser; webhook processing runs in system context (db.InTx).
+	// ---------------------------------------------------------------------------
+	// Promo catalog.
+	ListPromoProducts(ctx context.Context, includeInactive bool) ([]PromoProduct, error)
 	ListProperties(ctx context.Context, orgID uuid.UUID) ([]ListPropertiesRow, error)
 	ListPushDevices(ctx context.Context, userID uuid.UUID) ([]PushDevice, error)
 	ListReads(ctx context.Context, conversationID uuid.UUID) ([]ConversationRead, error)
@@ -315,9 +365,13 @@ type Querier interface {
 	MarkConversationNotificationsRead(ctx context.Context, arg MarkConversationNotificationsReadParams) error
 	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
 	MarkIdentityVerified(ctx context.Context, id uuid.UUID) error
+	MarkInvoiceSent(ctx context.Context, id uuid.UUID) error
 	MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) error
 	MarkNotificationEmailed(ctx context.Context, ids []uuid.UUID) error
 	MarkNotificationsRead(ctx context.Context, arg MarkNotificationsReadParams) error
+	// Idempotent: only a pending order flips to paid; a repeated webhook gets no
+	// row (pgx.ErrNoRows) and must not create promotions or invoices again.
+	MarkOrderPaidBySession(ctx context.Context, stripeSessionID *string) (Order, error)
 	MarkPhoneVerified(ctx context.Context, arg MarkPhoneVerifiedParams) error
 	MarkRead(ctx context.Context, arg MarkReadParams) error
 	MarkSavedSearchNotified(ctx context.Context, arg MarkSavedSearchNotifiedParams) error
@@ -338,6 +392,10 @@ type Querier interface {
 	MunicipalityInText(ctx context.Context, address string) (MunicipalityInTextRow, error)
 	MyViewings(ctx context.Context, userID uuid.UUID) ([]MyViewingsRow, error)
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
+	// ---------------------------------------------------------------------------
+	// Invoices.
+	// Gapless per year when called in the same transaction as CreateInvoice.
+	NextInvoiceNumber(ctx context.Context, year int32) (int32, error)
 	NextListingVersion(ctx context.Context, listingID uuid.UUID) (int32, error)
 	// Dev: the oldest due date with an unpaid share (simulated escalation).
 	OldestOverdueDue(ctx context.Context, arg OldestOverdueDueParams) (pgtype.Date, error)
@@ -353,11 +411,21 @@ type Querier interface {
 	// municipality, for the trend and this month's income.
 	PortfolioMonthly(ctx context.Context, arg PortfolioMonthlyParams) ([]PortfolioMonthlyRow, error)
 	PortfolioRiskTrend(ctx context.Context, arg PortfolioRiskTrendParams) ([]PortfolioRiskTrendRow, error)
+	// Where a new period of this kind starts: after the latest one that is still
+	// running or scheduled, or at the requested start (purchases extend, not overlap).
+	PromotionEndOf(ctx context.Context, arg PromotionEndOfParams) (time.Time, error)
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
 	// System context (backoffice review).
 	PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error
 	// Only listings with an approved version (synthetic load-test rows have none).
 	PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error)
+	// Periodic job: starts scheduled promotions, clears expired ones. Touches only
+	// rows whose value changes.
+	RecomputeAllListingPromos(ctx context.Context) (int64, error)
+	// Denormalize the running promotion windows of one listing onto its search row.
+	// @at is the caller's clock: now() is the transaction start, which can precede
+	// a promotion that starts at payment time inside the same transaction.
+	RecomputeListingPromo(ctx context.Context, arg RecomputeListingPromoParams) error
 	RefreshListingAggregates(ctx context.Context) error
 	RejectOtherApplications(ctx context.Context, arg RejectOtherApplicationsParams) ([]uuid.UUID, error)
 	RemoveGroupInvite(ctx context.Context, arg RemoveGroupInviteParams) (int64, error)
@@ -393,6 +461,7 @@ type Querier interface {
 	SetAttachmentStatus(ctx context.Context, arg SetAttachmentStatusParams) error
 	SetBankConnectionLinked(ctx context.Context, arg SetBankConnectionLinkedParams) error
 	SetConversationBlock(ctx context.Context, arg SetConversationBlockParams) error
+	SetInvoicePdfKey(ctx context.Context, arg SetInvoicePdfKeyParams) error
 	SetLeaseEnd(ctx context.Context, arg SetLeaseEndParams) error
 	SetLeaseLocation(ctx context.Context, arg SetLeaseLocationParams) error
 	SetLeaseNotice(ctx context.Context, arg SetLeaseNoticeParams) (int64, error)
@@ -406,8 +475,12 @@ type Querier interface {
 	SetMediaStatus(ctx context.Context, arg SetMediaStatusParams) error
 	SetMediaVision(ctx context.Context, arg SetMediaVisionParams) error
 	SetModerationAI(ctx context.Context, arg SetModerationAIParams) error
+	SetOrderSession(ctx context.Context, arg SetOrderSessionParams) error
+	// Failed or canceled checkout; never touches a paid order.
+	SetOrderStatusBySession(ctx context.Context, arg SetOrderStatusBySessionParams) (int64, error)
 	SetPassportISIR(ctx context.Context, arg SetPassportISIRParams) error
 	SetPassportIncome(ctx context.Context, arg SetPassportIncomeParams) error
+	SetPaymentLinkStatus(ctx context.Context, arg SetPaymentLinkStatusParams) error
 	SetStaff(ctx context.Context, arg SetStaffParams) error
 	SetTOTPPending(ctx context.Context, arg SetTOTPPendingParams) error
 	SetTransactionMatch(ctx context.Context, arg SetTransactionMatchParams) error
@@ -428,10 +501,12 @@ type Querier interface {
 	SuspendMessaging(ctx context.Context, id uuid.UUID) error
 	SystemConversationSummary(ctx context.Context, id uuid.UUID) (SystemConversationSummaryRow, error)
 	SystemGetApplication(ctx context.Context, id uuid.UUID) (SystemGetApplicationRow, error)
+	SystemGetInvoice(ctx context.Context, id uuid.UUID) (Invoice, error)
 	SystemGetMedia(ctx context.Context, id uuid.UUID) (Medium, error)
 	// ---------------------------------------------------------------------------
 	// System context (worker, backoffice).
 	SystemGetMessage(ctx context.Context, id uuid.UUID) (Message, error)
+	SystemGetOrderBySession(ctx context.Context, stripeSessionID *string) (Order, error)
 	SystemGetSuggestion(ctx context.Context, id uuid.UUID) (AiSuggestion, error)
 	SystemPushDevices(ctx context.Context, userID uuid.UUID) ([]PushDevice, error)
 	SystemSetLeaseState(ctx context.Context, arg SystemSetLeaseStateParams) error
@@ -449,12 +524,20 @@ type Querier interface {
 	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error)
 	UpdatePortfolioGroup(ctx context.Context, arg UpdatePortfolioGroupParams) (PortfolioGroup, error)
+	UpdatePromoProduct(ctx context.Context, arg UpdatePromoProductParams) (PromoProduct, error)
 	UpdateReplyTemplate(ctx context.Context, arg UpdateReplyTemplateParams) (ReplyTemplate, error)
 	UpdateUnit(ctx context.Context, arg UpdateUnitParams) (Unit, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	// Administrative units ------------------------------------------------------
 	UpsertAdminUnit(ctx context.Context, arg UpsertAdminUnitParams) error
 	UpsertAppMeta(ctx context.Context, arg UpsertAppMetaParams) error
+	// ---------------------------------------------------------------------------
+	// AI-proposed attributes (ADR 0003: staff decide, nothing is applied
+	// automatically).
+	// AI ingest found an attribute the catalog does not have; repeated finds
+	// count occurrences while the suggestion is open.
+	UpsertAttributeSuggestion(ctx context.Context, arg UpsertAttributeSuggestionParams) (AttributeSuggestion, error)
+	UpsertFeatureFlag(ctx context.Context, arg UpsertFeatureFlagParams) (FeatureFlag, error)
 	UpsertFilterGroup(ctx context.Context, arg UpsertFilterGroupParams) error
 	UpsertFilterProposal(ctx context.Context, arg UpsertFilterProposalParams) error
 	// Filter schemas ------------------------------------------------------------
@@ -470,6 +553,9 @@ type Querier interface {
 	UpsertMunicipalityRule(ctx context.Context, arg UpsertMunicipalityRuleParams) (uuid.UUID, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertPushDevice(ctx context.Context, arg UpsertPushDeviceParams) (PushDevice, error)
+	// ---------------------------------------------------------------------------
+	// Revolut Business merchant account of the landlord.
+	UpsertRevolutAccount(ctx context.Context, arg UpsertRevolutAccountParams) (OrgRevolutAccount, error)
 	UpsertRiskSettings(ctx context.Context, arg UpsertRiskSettingsParams) error
 	UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateProfileParams) (uuid.UUID, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)

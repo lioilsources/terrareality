@@ -1,5 +1,6 @@
 import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
+import { payWithRevolut } from '#lib/server/billing.js';
 import { loadLease } from '#lib/server/leases.js';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -26,6 +27,10 @@ export const actions: Actions = {
 			body: { comment: String(f.get('comment') ?? '') }
 		});
 		if (error) return fail(400, { error: errorMessage(error) });
+	},
+	revolut: async ({ request, locals }) => {
+		const f = await request.formData();
+		return payWithRevolut(locals.api, String(f.get('share_id') ?? ''));
 	},
 	notice: async ({ request, params, locals }) => {
 		const f = await request.formData();

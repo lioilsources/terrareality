@@ -81,3 +81,16 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
 - **Q-STR-2 Non-discrimination in marketing.** We plan Arabic-language marketing through travel agencies
   for visitors from the Gulf states. Confirm that language and channel targeting is fine, and that nothing
   in the product may filter or rank guests by nationality or origin.
+
+## Billing and invoices (M7)
+
+- **Q-BILL-1 Invoice particulars.** Promo invoices are issued as a full tax document (§ 29 ZDPH) on the
+  payment date (DUZP = card payment date, due date = issue date, "Platební karta – uhrazeno"). Confirm the
+  particulars are complete, and whether a simplified tax document (§ 30, up to 10 000 Kč) would be enough for
+  consumers who are not VAT payers.
+- **Q-BILL-2 Buyers outside CZ.** Landlords in other EU states (SK, PL, ...) buy promotions too. For a buyer
+  with a valid VAT ID the place of supply is the buyer's state (reverse charge, VIES check, wording "daň odvede
+  zákazník"); for consumers OSS may apply. Until answered, every invoice charges Czech VAT 21 %.
+- **Q-BILL-3 Electronic invoices and numbering.** Invoices are sent as a PDF link by e-mail (§ 26 odst. 3:
+  buyer consent to electronic documents, e.g. in the terms) and numbered gaplessly per year
+  (`TR-YYYY-000001`). Confirm consent in the terms is sufficient and that one series per year is fine.

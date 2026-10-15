@@ -79,18 +79,25 @@ SELECT id, code, level, name, slug, path::text AS path FROM admin_units WHERE sl
 
 -- name: UpsertListingSearch :exec
 INSERT INTO listing_search (listing_id, org_id, version, unit_kind, layout, rent_amount, currency, deposit_amount,
-  floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at)
+  floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at,
+  boosted_until, highlighted_until)
 VALUES (sqlc.arg(listing_id), sqlc.arg(org_id), sqlc.arg(version), sqlc.arg(unit_kind), sqlc.narg(layout),
   sqlc.arg(rent_amount), sqlc.arg(currency), sqlc.narg(deposit_amount), sqlc.narg(floor_area)::numeric,
   sqlc.arg(attributes), sqlc.arg(title),
   ST_SetSRID(ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8), 4326)::geography,
   sqlc.narg(admin_path)::text::ltree, sqlc.arg(city), sqlc.narg(city_part), sqlc.narg(cover_key),
-  sqlc.arg(cover_orientation), to_tsvector('simple', lower(unaccent(sqlc.arg(search_text)::text))), sqlc.arg(published_at))
+  sqlc.arg(cover_orientation), to_tsvector('simple', lower(unaccent(sqlc.arg(search_text)::text))), sqlc.arg(published_at),
+  -- Promotion windows (M7) survive re-indexing and unpublish/republish.
+  (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = sqlc.arg(listing_id) AND p.kind = 'top'
+    AND p.starts_at <= now() AND p.ends_at > now()),
+  (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = sqlc.arg(listing_id) AND p.kind = 'highlight'
+    AND p.starts_at <= now() AND p.ends_at > now()))
 ON CONFLICT (listing_id) DO UPDATE SET version = EXCLUDED.version, unit_kind = EXCLUDED.unit_kind, layout = EXCLUDED.layout,
   rent_amount = EXCLUDED.rent_amount, currency = EXCLUDED.currency, deposit_amount = EXCLUDED.deposit_amount,
   floor_area = EXCLUDED.floor_area, attributes = EXCLUDED.attributes, title = EXCLUDED.title, location = EXCLUDED.location,
   admin_path = EXCLUDED.admin_path, city = EXCLUDED.city, city_part = EXCLUDED.city_part, cover_key = EXCLUDED.cover_key,
-  cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at;
+  cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at,
+  boosted_until = EXCLUDED.boosted_until, highlighted_until = EXCLUDED.highlighted_until;
 
 -- name: DeleteListingSearch :exec
 DELETE FROM listing_search WHERE listing_id = $1;

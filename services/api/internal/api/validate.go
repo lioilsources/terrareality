@@ -32,6 +32,12 @@ func requestValidator() (func(http.Handler) http.Handler, error) {
 	opts := &openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Stripe posts application/json while the contract takes the raw
+			// bytes; the handler authenticates them by the signature.
+			if r.Method == http.MethodPost && r.URL.Path == "/v1/webhooks/stripe" {
+				next.ServeHTTP(w, r)
+				return
+			}
 			route, params, err := router.FindRoute(r)
 			if err != nil {
 				next.ServeHTTP(w, r) // unknown routes fall through to 404/405

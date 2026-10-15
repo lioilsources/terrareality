@@ -5,6 +5,7 @@
 	import { fmtDate } from '#lib/labels.js';
 	import { kindLabel } from '#lib/leasing.js';
 	import Button from '#lib/components/Button.svelte';
+	import type { RevolutState } from '#lib/billing.js';
 
 	type Share = {
 		id: string;
@@ -18,10 +19,52 @@
 		status: string;
 		qr: string;
 	};
-	let { shares, landlord, locale }: { shares: Share[]; landlord: boolean; locale: string } =
-		$props();
+	type RevolutResult = { revolut?: 'off' | 'connect' | 'error'; shareId?: string } | null;
+	let {
+		shares,
+		landlord,
+		locale,
+		revolut = 'off',
+		revolutResult = null,
+		connectHref = ''
+	}: {
+		shares: Share[];
+		landlord: boolean;
+		locale: string;
+		/** Revolut payment link availability (tenants: 'on' until the api says otherwise). */
+		revolut?: RevolutState;
+		/** Result of the last ?/revolut action. */
+		revolutResult?: RevolutResult;
+		/** Where a landlord connects Revolut (billing page). */
+		connectHref?: string;
+	} = $props();
 	const today = new Date().toISOString().slice(0, 10);
+	const noteId = $props.id();
+	// 403/404 = flag off → hide; 409 = landlord has no Revolut account.
+	const state = $derived<RevolutState>(
+		revolutResult?.revolut === 'off'
+			? 'off'
+			: revolutResult?.revolut === 'connect'
+				? landlord
+					? 'connect'
+					: 'off'
+				: revolut
+	);
+	const tenantUnavailable = $derived(!landlord && revolutResult?.revolut === 'connect');
 </script>
+
+{#snippet revolutButton(id: string)}
+	<!-- Plain POST: the action redirects to the payment page on another origin. -->
+	<form method="POST" action="?/revolut">
+		<input type="hidden" name="share_id" value={id} />
+		<Button type="submit" variant="secondary" aria-describedby={noteId} data-testid="revolut-pay"
+			>{m.billing_revolut_pay()}</Button
+		>
+	</form>
+	{#if revolutResult?.revolut === 'error' && revolutResult.shareId === id}
+		<p class="text-xs text-red-700 dark:text-red-400" role="alert">{m.billing_revolut_error()}</p>
+	{/if}
+{/snippet}
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm" data-testid="payments">
@@ -52,15 +95,29 @@
 					>
 					<td class="py-1.5">
 						{#if open && landlord}
-							<form method="POST" action="?/paid" use:enhance>
-								<input type="hidden" name="share_id" value={s.id} />
-								<Button type="submit" variant="secondary">{m.lease_mark_paid()}</Button>
-							</form>
-						{:else if open && s.qr}
-							<details>
-								<summary class="cursor-pointer">{m.lease_pay_qr()}</summary>
-								<img src={s.qr} alt={m.lease_pay_qr()} width="200" height="200" data-testid="qr" />
-							</details>
+							<div class="flex flex-wrap gap-2">
+								<form method="POST" action="?/paid" use:enhance>
+									<input type="hidden" name="share_id" value={s.id} />
+									<Button type="submit" variant="secondary">{m.lease_mark_paid()}</Button>
+								</form>
+								{#if state === 'on'}{@render revolutButton(s.id)}{/if}
+							</div>
+						{:else if open && (s.qr || state === 'on')}
+							<div class="flex flex-wrap items-start gap-2">
+								{#if s.qr}
+									<details>
+										<summary class="cursor-pointer">{m.lease_pay_qr()}</summary>
+										<img
+											src={s.qr}
+											alt={m.lease_pay_qr()}
+											width="200"
+											height="200"
+											data-testid="qr"
+										/>
+									</details>
+								{/if}
+								{#if state === 'on' && s.mine}{@render revolutButton(s.id)}{/if}
+							</div>
 						{:else if !open}✓{/if}
 					</td>
 				</tr>
@@ -68,3 +125,16 @@
 		</tbody>
 	</table>
 </div>
+{#if state === 'on'}
+	<p id={noteId} class="mt-2 text-xs text-[var(--muted)]">{m.billing_revolut_note()}</p>
+{:else if state === 'connect' && landlord}
+	<p class="mt-2 text-sm" role="status" data-testid="revolut-connect-hint">
+		{m.billing_revolut_connect_hint()}
+		{#if connectHref}<a href={connectHref}>{m.billing_revolut_connect_link()}</a>{/if}
+	</p>
+{/if}
+{#if tenantUnavailable}
+	<p class="mt-2 text-sm" role="status" data-testid="revolut-unavailable">
+		{m.billing_revolut_unavailable()}
+	</p>
+{/if}

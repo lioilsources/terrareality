@@ -102,7 +102,10 @@ or clearly implies, for example "s výtahem" -> "elevator": true, "balkon" -> "b
 "bez výtahu" means false. Omit attributes the text does not mention; never guess numbers and never output 0
 for an unknown number. For enum and set attributes use only the listed option values. If the text clearly
 states a value that is not among the options, add it to "new_options" with a short snake_case value and
-Czech and English labels, and leave the attribute out of "values". Answer with one JSON object only.`
+Czech and English labels, and leave the attribute out of "values". If the text clearly states a property
+feature that none of the listed attributes covers, add it to "new_attributes" with a snake_case key, a type
+(bool, int, enum or set), a group (basic, building, equipment, location, outdoor, parking, room or rules) and
+Czech and English labels. Answer with one JSON object only.`
 
 // ExtractAttributes implements Assistant. A schema with 60+ optional
 // properties makes guided decoding stop after a few keys, so extraction uses
@@ -130,7 +133,8 @@ func (c *Client) ExtractAttributes(ctx context.Context, req ExtractRequest) (Ext
 		lines = append(lines, line)
 	}
 	user := fmt.Sprintf("Unit kind: %s\nAttributes:\n%s\n\nPhoto tags: %s\n\nOwner text:\n%s\n\n"+
-		`Answer as {"values": {"<attribute key>": <value>, ...}, "new_options": [{"key": ..., "value": ..., "label": {"cs": ..., "en": ...}}]}`,
+		`Answer as {"values": {"<attribute key>": <value>, ...}, "new_options": [{"key": ..., "value": ..., "label": {"cs": ..., "en": ...}}], `+
+		`"new_attributes": [{"key": ..., "type": ..., "group": ..., "label": {"cs": ..., "en": ...}}]}`,
 		req.UnitKind, strings.Join(lines, "\n"), strings.Join(req.PhotoTags, ", "), req.Text)
 	var out ExtractResult
 	if err := c.complete(ctx, extractSystem, user, "", nil, &out); err != nil {
@@ -148,6 +152,14 @@ func (c *Client) ExtractAttributes(ctx context.Context, req ExtractRequest) (Ext
 	out.NewOptions = slices.DeleteFunc(out.NewOptions, func(n NewOption) bool {
 		t := known[n.Key]
 		return (t != "enum" && t != "set") || !reValue.MatchString(n.Value) || n.Label.CS == "" || n.Label.EN == ""
+	})
+	// Values for keys outside the catalog are dropped by the caller's schema
+	// validation; proposals for new attributes go to the staff queue.
+	reKey := regexp.MustCompile(`^[a-z][a-z0-9_]{1,40}$`)
+	out.NewAttributes = slices.DeleteFunc(out.NewAttributes, func(n NewAttribute) bool {
+		_, exists := known[n.Key]
+		return exists || !reKey.MatchString(n.Key) || !slices.Contains([]string{"bool", "int", "enum", "set"}, n.Type) ||
+			n.Label.CS == "" || n.Label.EN == ""
 	})
 	out.Model = c.Model
 	return out, nil

@@ -60,6 +60,8 @@ type Card struct {
 	CoverKey         *string
 	CoverOrientation int32
 	PublishedAt      time.Time
+	Promoted         bool // paid top placement running now (M7)
+	Highlighted      bool // paid visual highlight running now (M7)
 }
 
 // FacetValue is a count per attribute value.
@@ -187,6 +189,34 @@ func build(q Query, schema *catalog.Schema, skip string) (*builder, error) {
 	return b, nil
 }
 
+// promotedCol is true while a paid top placement runs.
+const promotedCol = "(s.boosted_until IS NOT NULL AND s.boosted_until > now())"
+
+// highlightedCol is true while a paid visual highlight runs.
+const highlightedCol = "(s.highlighted_until IS NOT NULL AND s.highlighted_until > now())"
+
+// cardCols are the columns scanned by scanCard.
+const cardCols = `s.listing_id, s.unit_kind, s.layout, s.rent_amount, s.currency, s.floor_area::float8, s.title, s.city, s.city_part,
+		ST_Y(s.location::geometry), ST_X(s.location::geometry), s.cover_key, s.cover_orientation, s.published_at, ` +
+	promotedCol + `, ` + highlightedCol
+
+func scanCard(rows pgx.Rows) (Card, error) {
+	var c Card
+	var title []byte
+	if err := rows.Scan(&c.ListingID, &c.UnitKind, &c.Layout, &c.RentAmount, &c.Currency, &c.FloorArea, &title, &c.City,
+		&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt, &c.Promoted, &c.Highlighted); err != nil {
+		return c, err
+	}
+	_ = json.Unmarshal(title, &c.Title)
+	return c, nil
+}
+
+// orderBy returns the ORDER BY clause. Paid top placement (M7) only reorders
+// the default and relevance sorts: currently boosted listings come first,
+// then the usual order. An explicit sort chosen by the user (price, area,
+// newest) is kept as is, so promotion never overrides what the user asked
+// for; boosted items in those sorts still carry the transparent "Promoted"
+// label (Card.Promoted).
 func orderBy(q Query, b *builder) string {
 	switch q.Sort {
 	case "price_asc":
@@ -199,9 +229,9 @@ func orderBy(q Query, b *builder) string {
 		return "s.published_at DESC"
 	}
 	if t := strings.TrimSpace(q.Text); t != "" {
-		return "ts_rank(s.tsv, websearch_to_tsquery('simple', lower(unaccent(" + b.arg(t) + ")))) DESC, s.published_at DESC"
+		return promotedCol + " DESC, ts_rank(s.tsv, websearch_to_tsquery('simple', lower(unaccent(" + b.arg(t) + ")))) DESC, s.published_at DESC"
 	}
-	return "s.published_at DESC"
+	return promotedCol + " DESC, s.published_at DESC"
 }
 
 // Engine runs searches.
@@ -260,8 +290,7 @@ func (e *Engine) Search(ctx context.Context, q Query, schema *catalog.Schema) (R
 func (e *Engine) items(ctx context.Context, tx pgx.Tx, q Query, base *builder, res *Result) error {
 	b := &builder{where: base.where, args: slices.Clone(base.args)}
 	order := orderBy(q, b)
-	sql := `SELECT s.listing_id, s.unit_kind, s.layout, s.rent_amount, s.currency, s.floor_area::float8, s.title, s.city, s.city_part,
-		ST_Y(s.location::geometry), ST_X(s.location::geometry), s.cover_key, s.cover_orientation, s.published_at
+	sql := `SELECT ` + cardCols + `
 		FROM listing_search s WHERE ` + b.sql() + ` ORDER BY ` + order +
 		` LIMIT ` + b.arg(q.Limit) + ` OFFSET ` + b.arg(q.Offset)
 	rows, err := tx.Query(ctx, sql, b.args...)
@@ -270,13 +299,10 @@ func (e *Engine) items(ctx context.Context, tx pgx.Tx, q Query, base *builder, r
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var c Card
-		var title []byte
-		if err := rows.Scan(&c.ListingID, &c.UnitKind, &c.Layout, &c.RentAmount, &c.Currency, &c.FloorArea, &title, &c.City,
-			&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt); err != nil {
+		c, err := scanCard(rows)
+		if err != nil {
 			return err
 		}
-		_ = json.Unmarshal(title, &c.Title)
 		res.Items = append(res.Items, c)
 	}
 	return rows.Err()
@@ -424,8 +450,7 @@ func (e *Engine) points(ctx context.Context, tx pgx.Tx, base *builder, res *Resu
 
 // Cards loads result cards by id, keeping the given order.
 func (e *Engine) Cards(ctx context.Context, ids []uuid.UUID) ([]Card, error) {
-	rows, err := e.Pool.Query(ctx, `SELECT s.listing_id, s.unit_kind, s.layout, s.rent_amount, s.currency, s.floor_area::float8, s.title,
-		s.city, s.city_part, ST_Y(s.location::geometry), ST_X(s.location::geometry), s.cover_key, s.cover_orientation, s.published_at
+	rows, err := e.Pool.Query(ctx, `SELECT `+cardCols+`
 		FROM listing_search s WHERE s.listing_id = ANY($1)`, ids)
 	if err != nil {
 		return nil, err
@@ -433,13 +458,10 @@ func (e *Engine) Cards(ctx context.Context, ids []uuid.UUID) ([]Card, error) {
 	defer rows.Close()
 	byID := map[uuid.UUID]Card{}
 	for rows.Next() {
-		var c Card
-		var title []byte
-		if err := rows.Scan(&c.ListingID, &c.UnitKind, &c.Layout, &c.RentAmount, &c.Currency, &c.FloorArea, &title, &c.City,
-			&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt); err != nil {
+		c, err := scanCard(rows)
+		if err != nil {
 			return nil, err
 		}
-		_ = json.Unmarshal(title, &c.Title)
 		byID[c.ListingID] = c
 	}
 	out := make([]Card, 0, len(ids))

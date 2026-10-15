@@ -4,10 +4,11 @@
 	import { page } from '$app/state';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
-	import { formatMoney, kindLabel, layouts, t } from '#lib/catalog.js';
+	import { kindLabel, layouts, t } from '#lib/catalog.js';
 	import { PAGE_SIZE } from '#lib/searchParams.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
+	import ListingCard from '#lib/components/ListingCard.svelte';
 	import SearchMap from '#lib/components/map/SearchMap.svelte';
 	import type { PageProps } from './$types';
 
@@ -28,7 +29,6 @@
 	);
 	const input =
 		'w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-sm';
-	const price = (minor: number) => `${formatMoney(minor, locale)} Kč`;
 
 	function withParams(change: (p: URLSearchParams) => void) {
 		// A throwaway copy for building a link, not reactive state.
@@ -217,28 +217,7 @@
 				{:else}
 					<ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="results">
 						{#each res.items as c (c.id)}
-							<li>
-								<a
-									href={localizeHref(`/inzerat/${c.id}`)}
-									class="block overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] no-underline hover:border-[var(--accent)]"
-								>
-									<div class="aspect-[4/3] bg-[var(--border)]/40">
-										{#if c.cover_url}<img
-												src={c.cover_url}
-												alt=""
-												class="h-full w-full object-cover"
-												loading="lazy"
-											/>{/if}
-									</div>
-									<div class="grid gap-0.5 p-3 text-sm text-[var(--text)]">
-										<strong>{t(c.title, locale) || kindLabel[c.unit_kind]()}</strong>
-										<span class="text-[var(--muted)]"
-											>{c.city_part ?? c.city}{c.floor_area ? ` · ${c.floor_area} m²` : ''}</span
-										>
-										<span class="font-semibold">{price(c.rent_amount)}</span>
-									</div>
-								</a>
-							</li>
+							<li><ListingCard card={c} {locale} /></li>
 						{/each}
 					</ul>
 					<nav class="flex gap-4 text-sm">

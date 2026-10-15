@@ -26,7 +26,13 @@
 		<LeaseSummary detail={d} chain={data.chain} {locale} />
 		{#if mine.length}
 			<Card title={m.lease_my_payments()} testid="my-payments">
-				<LeasePayments shares={mine} landlord={false} {locale} />
+				<LeasePayments
+					shares={mine}
+					landlord={false}
+					{locale}
+					revolut="on"
+					revolutResult={form && 'revolut' in form ? form : null}
+				/>
 			</Card>
 		{/if}
 	</div>

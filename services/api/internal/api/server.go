@@ -20,7 +20,9 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
 	"github.com/terrareality/terrareality/services/api/internal/applications"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
+	"github.com/terrareality/terrareality/services/api/internal/billing"
 	dbq "github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/flags"
 	"github.com/terrareality/terrareality/services/api/internal/health"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/leasing"
@@ -48,7 +50,9 @@ type Services struct {
 	Applications    *applications.Service
 	Leases          *leasing.Service
 	Portfolio       *portfolio.Service
-	VAPIDPublicKey  string // browser push subscriptions
+	Billing         *billing.Service
+	Flags           *flags.Store // feature flags (backoffice-editable, config defaults)
+	VAPIDPublicKey  string       // browser push subscriptions
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per
@@ -126,6 +130,8 @@ type RouterConfig struct {
 	MockIdP        http.Handler    // dev/test mock identity provider pages
 	DevBank        http.Handler    // dev/test mock bank transaction injection
 	DevLeases      http.Handler    // dev/test lease lifecycle shortcuts (/dev/leases/{id}/escalate)
+	MockStripe     http.Handler    // mock Stripe Checkout pages (/mock/stripe/...), STRIPE_MODE=mock only
+	MockRevolut    http.Handler    // mock Revolut payment pages (/mock/revolut/...), REVOLUT_MODE=mock only
 }
 
 // NewRouter builds the chi router with the standard middleware chain.
@@ -148,6 +154,12 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 	}
 	if rc.DevLeases != nil {
 		r.Handle("/dev/leases/*", rc.DevLeases)
+	}
+	if rc.MockStripe != nil {
+		r.Handle("/mock/stripe/*", rc.MockStripe)
+	}
+	if rc.MockRevolut != nil {
+		r.Handle("/mock/revolut/*", rc.MockRevolut)
 	}
 
 	validate, err := requestValidator()

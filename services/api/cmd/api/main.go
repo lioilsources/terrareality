@@ -72,6 +72,7 @@ func run() error {
 		}
 	}
 	deps, err := app.Build(cfg, log)
+	fl := app.Flags(cfg, pool)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func run() error {
 		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
 	orgs := &org.Service{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL}
 	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
-		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(cfg),
+		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(fl),
 		WebBaseURL: cfg.WebBaseURL, Search: search.Indexer{}}
 	messages := &messaging.Service{Pool: pool, RT: deps.RT, Tokens: app.Tokens(cfg), WSURL: cfg.CentrifugoWSURL,
 		Jobs: jobs.MessagingJobs{Client: rc}, Blob: deps.Blob, Scanner: deps.Scanner, NotifyDelay: cfg.MessageNotifyDelay,
@@ -91,6 +92,7 @@ func run() error {
 	apps := &applications.Service{Pool: pool, RT: deps.RT, Jobs: jobs.ApplicationJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc},
 		Render: deps.Renderer, Blob: deps.Blob, Scanner: deps.Scanner, ISIR: app.ISIR(cfg), WebBaseURL: cfg.WebBaseURL, Log: log}
 	leases, mockBank := app.Leasing(cfg, deps, pool, jobs.LeaseJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
+	bill := app.Billing(cfg, deps, pool, fl, jobs.BillingJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	chat := &search.Chat{Pool: pool, Model: "rules"}
 	if cfg.LLMBaseURL != "" {
 		chat.LLM, chat.Model = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel), cfg.LLMModel
@@ -125,10 +127,10 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, Portfolio: app.Portfolio(deps, pool), VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, Portfolio: app.Portfolio(deps, pool), Billing: bill.Service, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), Flags: fl, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
 				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank),
-				DevLeases: devLeases(cfg, leases)}),
+				DevLeases: devLeases(cfg, leases), MockStripe: bill.MockStripe, MockRevolut: bill.MockRevolut}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

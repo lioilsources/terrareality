@@ -33,7 +33,7 @@ type AttributePayload struct {
 // RequestSuggestion starts an AI suggestion (attributes or text) for a listing.
 func (s *Service) RequestSuggestion(ctx context.Context, p *auth.Principal, orgID, listingID uuid.UUID, kind string) (db.AiSuggestion, error) {
 	switch {
-	case kind == "attributes" && !s.Flags.AIAttributes, kind == "text" && !s.Flags.AIText:
+	case kind == "attributes" && !s.Flags.aiAttributes(ctx), kind == "text" && !s.Flags.aiText(ctx):
 		return db.AiSuggestion{}, apperr.Forbidden("feature_disabled", "this AI feature is turned off")
 	case kind != "attributes" && kind != "text":
 		return db.AiSuggestion{}, apperr.Unprocessable("invalid_kind", "unknown suggestion kind")
@@ -149,6 +149,9 @@ func (s *Service) extract(ctx context.Context, q *db.Queries, l db.Listing, c db
 		}
 		pending[n.Key][n.Value] = true
 	}
+	if err := s.proposeAttributes(ctx, schema, res, l.ID); err != nil {
+		return AttributePayload{}, "", err
+	}
 	for k, v := range res.Values {
 		switch x := v.(type) {
 		case string:
@@ -174,6 +177,33 @@ func (s *Service) extract(ctx context.Context, q *db.Queries, l db.Listing, c db
 		}
 	}
 	return AttributePayload{Values: valid, Current: current, NewOptions: nonNilOptions(res.NewOptions), Invalid: invalid}, res.Model, nil
+}
+
+// proposeAttributes queues attributes the catalog lacks for staff review
+// (backoffice attribute suggestions). Approval never edits the catalog: a
+// developer adds approved keys to packages/attributes (ADR 0003).
+func (s *Service) proposeAttributes(ctx context.Context, schema *catalog.Schema, res ai.ExtractResult, listingID uuid.UUID) error {
+	if len(res.NewAttributes) == 0 || !s.Flags.aiAttributes(ctx) {
+		return nil
+	}
+	model := res.Model
+	return s.system(ctx, func(q *db.Queries, _ pgx.Tx) error {
+		for _, n := range res.NewAttributes {
+			if _, ok := schema.Get(n.Key); ok {
+				continue
+			}
+			opts := n.Options
+			if opts == nil {
+				opts = []catalog.Option{}
+			}
+			_, err := q.UpsertAttributeSuggestion(ctx, db.UpsertAttributeSuggestionParams{Key: n.Key, Type: n.Type,
+				GroupKey: n.Group, Label: jsonb(n.Label), Options: jsonb(opts), ExampleListingID: &listingID, Model: &model})
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) { // no row: already decided, not reopened
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func nonNilOptions(o []ai.NewOption) []ai.NewOption {

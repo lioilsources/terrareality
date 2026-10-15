@@ -15,6 +15,8 @@ import (
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/ai"
+	"github.com/terrareality/terrareality/services/api/internal/billing"
+	"github.com/terrareality/terrareality/services/api/internal/flags"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
 	"github.com/terrareality/terrareality/services/api/internal/leasing"
@@ -229,9 +231,15 @@ func Tokens(cfg config.Config) realtime.Tokens {
 	return realtime.Tokens{Secret: []byte(cfg.CentrifugoTokenSecret), TTL: time.Hour}
 }
 
+// Flags is the live feature flag store: feature_flags rows over the config
+// defaults (Config.Flags incl. FEATURE_FLAGS).
+func Flags(cfg config.Config, pool *pgxpool.Pool) *flags.Store {
+	return flags.New(pool, cfg.Flags)
+}
+
 // ListingFlags maps feature flags onto the catalog service.
-func ListingFlags(cfg config.Config) listing.Flags {
-	return listing.Flags{AIAttributes: cfg.Flag("ai.attributes"), AIText: cfg.Flag("ai.text"), Vision: cfg.Flag("ai.vision")}
+func ListingFlags(f *flags.Store) listing.Flags {
+	return listing.Flags{Source: f}
 }
 
 // AccountConfig maps process config onto the account service settings.
@@ -239,4 +247,41 @@ func AccountConfig(cfg config.Config) account.Config {
 	return account.Config{WebBaseURL: cfg.WebBaseURL, SessionTTLWeb: cfg.SessionTTLWeb, SessionTTLMobile: cfg.SessionTTLMobile,
 		RedirectAllow: cfg.RedirectAllow, TermsVersion: cfg.TermsVersion, PrivacyVersion: cfg.PrivacyVersion,
 		ErasureGrace: cfg.ErasureGrace, StaffRequireMFA: cfg.StaffRequireMFA}
+}
+
+// BillingDeps are the billing service and the dev mock pages (nil unless the
+// provider runs in mock mode).
+type BillingDeps struct {
+	Service     *billing.Service
+	MockStripe  http.Handler // /mock/stripe/...
+	MockRevolut http.Handler // /mock/revolut/...
+}
+
+// Billing builds the billing service. Stripe runs in mock mode without
+// STRIPE_SECRET_KEY (never in prod, config validation refuses it); the mock
+// delivers its signed webhook in-process instead of HTTP to itself. Revolut
+// links are created in the landlord's own merchant account (ADR 0002).
+func Billing(cfg config.Config, d Deps, pool *pgxpool.Pool, fs billing.Flags, jobs billing.Jobs, outbox notify.Outbox, log *slog.Logger) BillingDeps {
+	if fs == nil {
+		fs = billing.FlagFunc(cfg.Flag)
+	}
+	svc := &billing.Service{Pool: pool, Box: d.Box, Blob: d.Blob, Outbox: outbox, Mail: d.Renderer, Jobs: jobs,
+		Invoices: billing.InvoiceRenderer{Bin: cfg.TypstBin}, WebBaseURL: cfg.WebBaseURL, RedirectAllow: cfg.RedirectAllow, Flags: fs, Log: log,
+		Supplier: billing.Party{Name: cfg.PlatformLegalName, ICO: cfg.PlatformICO, DIC: cfg.PlatformDIC,
+			Address: cfg.PlatformAddress, IBAN: cfg.PlatformIBAN}}
+	out := BillingDeps{Service: svc}
+	if cfg.StripeMode == "live" {
+		svc.Stripe = billing.NewStripeHTTP(cfg.StripeSecretKey, cfg.StripeWebhookSecret)
+	} else {
+		mock := billing.NewMockStripe(cfg.APIPublicURL, cfg.StripeWebhookSecret)
+		mock.Deliver = svc.HandleWebhook
+		svc.Stripe, out.MockStripe = mock, mock.Handler()
+	}
+	if cfg.RevolutMode == "live" {
+		svc.Revolut = billing.NewRevolutHTTP(cfg.RevolutAPIURL)
+	} else {
+		mock := billing.NewMockRevolut(cfg.APIPublicURL)
+		svc.Revolut, out.MockRevolut = mock, mock.Handler()
+	}
+	return out
 }

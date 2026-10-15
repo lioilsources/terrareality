@@ -21,6 +21,8 @@ Name | Type | Description | Notes
 **lng** | **double** |  | 
 **coverUrl** | **String** |  | [optional] 
 **publishedAt** | [**DateTime**](DateTime.md) |  | 
+**promoted** | **bool** | Paid top placement running now; the card shows a transparent \"Promoted\" label. | [default to false]
+**highlighted** | **bool** | Paid visual highlight running now. | [default to false]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
