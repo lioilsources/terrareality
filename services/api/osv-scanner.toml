@@ -1,0 +1,6 @@
+# osv-scanner reads this file for services/api/go.mod (CI job "security").
+# Every entry needs a reason and is re-checked when the module is bumped.
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+reason = "golang.org/x/crypto/openpgp is deprecated and has no fixed version; nothing in services/api imports it (govulncheck reports it as not called)."
