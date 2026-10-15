@@ -22,6 +22,10 @@
   "overrides": {
     "openapi-typescript": {
       "typescript": "^6.0.3"
-    }
+    },
+    "basic-ftp": "$basic-ftp"
+  },
+  "devDependencies": {
+    "basic-ftp": "^6.2.3"
   }
 }

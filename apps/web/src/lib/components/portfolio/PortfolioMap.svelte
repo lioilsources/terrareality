@@ -47,7 +47,7 @@
 
 	onMount(() => {
 		let disposed = false;
-		import('maplibre-gl').then(({ default: maplibregl }) => {
+		import('maplibre-gl').then((maplibregl) => {
 			if (disposed) return;
 			map = new maplibregl.Map({
 				container: el,

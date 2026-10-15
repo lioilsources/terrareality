@@ -87,7 +87,7 @@
 		// maplibre-gl (JS and CSS, ~1 MB) loads only in the browser, after hydration,
 		// so it stays out of the /hledat entry chunk and the SSR bundle.
 		Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]).then(
-			([{ default: maplibregl }]) => {
+			([maplibregl]) => {
 				if (disposed) return;
 				map = new maplibregl.Map({
 					container: el,
