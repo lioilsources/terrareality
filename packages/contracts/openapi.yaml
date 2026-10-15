@@ -21,6 +21,7 @@ tags:
   - name: messaging
   - name: applications
   - name: leasing
+  - name: portfolio
 security:
   - bearerAuth: []
 paths:
@@ -2447,6 +2448,235 @@ paths:
       responses:
         "204": { description: Done }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio:
+    get:
+      tags: [portfolio]
+      operationId: getPortfolio
+      summary: Portfolio dashboard across municipalities (risk, concentration, income, attention, trend)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/PortfolioMunicipality" }
+        - { $ref: "#/components/parameters/PortfolioRegion" }
+        - { $ref: "#/components/parameters/PortfolioGroupFilter" }
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioDashboard" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/rent-roll:
+    get:
+      tags: [portfolio]
+      operationId: getRentRoll
+      summary: Rent roll of all units and running leases (JSON, CSV or XLSX)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/PortfolioMunicipality" }
+        - { $ref: "#/components/parameters/PortfolioRegion" }
+        - { $ref: "#/components/parameters/PortfolioGroupFilter" }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [json, csv, xlsx] } }
+      responses:
+        "200":
+          description: Rent roll
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RentRoll" }
+            text/csv:
+              schema: { type: string }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/groups:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [portfolio]
+      operationId: listPortfolioGroups
+      summary: Groups (tags) of properties and leases
+      responses:
+        "200":
+          description: Groups and the properties that can be added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioGroups" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [portfolio]
+      operationId: createPortfolioGroup
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PortfolioGroupInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioGroup" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId}:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { $ref: "#/components/parameters/PortfolioGroupId" }
+    put:
+      tags: [portfolio]
+      operationId: updatePortfolioGroup
+      summary: Rename a group and replace its members
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PortfolioGroupInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioGroup" }
+        default: { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [portfolio]
+      operationId: deletePortfolioGroup
+      summary: Delete a group (and its rules)
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/rules:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [portfolio]
+      operationId: listPortfolioRules
+      summary: Rules per municipality or group (overrides of the jurisdiction defaults)
+      responses:
+        "200":
+          description: Rules
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioRuleList" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [portfolio]
+      operationId: savePortfolioRule
+      summary: Set the rules of a municipality or a group (applies to new leases)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PortfolioRuleInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/rules/{ruleId}:
+    delete:
+      tags: [portfolio]
+      operationId: deletePortfolioRule
+      summary: Delete a rule
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: ruleId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Deleted }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/rules/resolve:
+    get:
+      tags: [portfolio]
+      operationId: resolvePortfolioRules
+      summary: Rules a new lease at a place would get (lease form defaults)
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: listing_id, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: ruian_id, in: query, required: false, schema: { type: integer, format: int64 } }
+        - { name: address, in: query, required: false, schema: { type: string, maxLength: 300 } }
+      responses:
+        "200":
+          description: Resolved rules
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResolvedRules" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/risk-weights:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [portfolio]
+      operationId: getRiskWeights
+      summary: Factor weights of the lease risk score
+      responses:
+        "200":
+          description: Weights
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RiskWeights" }
+        default: { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [portfolio]
+      operationId: setRiskWeights
+      summary: Set factor weights (0 switches a factor off); leases are rescored
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weights]
+              properties:
+                weights: { type: object, additionalProperties: { type: integer, minimum: 0, maximum: 100 } }
+      responses:
+        "200":
+          description: Weights
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RiskWeights" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/portfolio/summary:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    get:
+      tags: [portfolio]
+      operationId: getPortfolioSummary
+      summary: The latest AI summary of the portfolio (a suggestion)
+      responses:
+        "200":
+          description: Summary, absent when none was made
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary: { $ref: "#/components/schemas/PortfolioSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [portfolio]
+      operationId: createPortfolioSummary
+      summary: Ask the AI to summarize the portfolio (aggregates only, no personal data)
+      responses:
+        "201":
+          description: Summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioSummary" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/leases/{leaseId}/risk:
+    get:
+      tags: [portfolio]
+      operationId: getLeaseRisk
+      summary: Risk of a lease with its factors (tenants see only the payment factors)
+      parameters: [{ $ref: "#/components/parameters/LeaseId" }]
+      responses:
+        "200":
+          description: Risk
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseRisk" }
+        default: { $ref: "#/components/responses/Problem" }
 components:
   securitySchemes:
     bearerAuth:
@@ -2466,6 +2696,10 @@ components:
     ListingId: { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
     MediaId: { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
     LeaseId: { name: leaseId, in: path, required: true, schema: { type: string, format: uuid } }
+    PortfolioGroupId: { name: portfolioGroupId, in: path, required: true, schema: { type: string, format: uuid } }
+    PortfolioMunicipality: { name: municipality, in: query, required: false, description: Admin path of a municipality., schema: { type: string, maxLength: 200 } }
+    PortfolioRegion: { name: region, in: query, required: false, description: Admin path of a region., schema: { type: string, maxLength: 200 } }
+    PortfolioGroupFilter: { name: group_id, in: query, required: false, schema: { type: string, format: uuid } }
     GroupId: { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
     ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
     ConversationId: { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2666,7 +2900,8 @@ components:
       description: none → email → phone → identity (BankID). Features require a minimum level.
     Role:
       type: string
-      enum: [owner, admin, agent, accountant, maintenance, viewer]
+      enum: [owner, admin, agent, accountant, maintenance, viewer, investor]
+      description: investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
     Me:
       type: object
       required: [id, email, email_verified, display_name, locale, phone_verified, verification_level, mfa_enabled, is_staff, created_at, organizations]
@@ -2831,7 +3066,7 @@ components:
       required: [email, role]
       properties:
         email: { $ref: "#/components/schemas/Email" }
-        role: { type: string, enum: [admin, agent, accountant, maintenance, viewer] }
+        role: { type: string, enum: [admin, agent, accountant, maintenance, viewer, investor] }
         locale: { $ref: "#/components/schemas/UserLocale" }
     Invitation:
       type: object
@@ -3821,11 +4056,12 @@ components:
         services_amount: { type: integer, format: int64, minimum: 0 }
         deposit_amount: { type: integer, format: int64, minimum: 0 }
         due_day: { type: integer, minimum: 1, maximum: 28, default: 15 }
-        notice_months: { type: integer, minimum: 1, maximum: 12, default: 3 }
+        notice_months: { type: integer, minimum: 1, maximum: 12, description: "Default: the portfolio rules of the place, else 3." }
         payee_iban: { type: string, maxLength: 42 }
         payee_name: { type: string, minLength: 1, maxLength: 200 }
         clauses: { type: array, items: { type: string, enum: [pets_allowed, no_smoking, inventory, indexation, sublet_forbidden, early_termination] } }
         property_address: { type: string, maxLength: 300 }
+        ruian_id: { type: integer, format: int64, description: RÚIAN address of a lease without a listing (where the lease is in the portfolio). }
         unit_label: { type: string, maxLength: 120 }
         parties: { type: array, maxItems: 10, items: { $ref: "#/components/schemas/LeasePartyInput" } }
     LeaseSummary:
@@ -3970,3 +4206,249 @@ components:
       properties:
         connections: { type: array, items: { $ref: "#/components/schemas/BankConnection" } }
         transactions: { type: array, items: { $ref: "#/components/schemas/BankTransaction" } }
+    # --- portfolio (M6b)
+    RiskBand:
+      type: string
+      enum: [low, medium, high]
+    RiskFactor:
+      type: object
+      required: [key, group, value, known]
+      properties:
+        key: { type: string, enum: [debt, escalations, overdue_days, deposit_coverage, passport, term_end, notice, joint_nonpayer, market_rent, market_supply] }
+        group: { type: string, enum: [payments, deposit, passport, contract, location] }
+        weight: { type: integer, description: Absent for tenants. }
+        value: { type: number, minimum: 0, maximum: 1 }
+        points: { type: number, description: Contribution to the score; absent for tenants. }
+        known: { type: boolean, description: false when there is no data (counted as 0). }
+        detail: { type: object, additionalProperties: true }
+    LeaseRisk:
+      type: object
+      required: [factors, model_version, computed_at, landlord]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100, description: Absent for tenants. }
+        band: { $ref: "#/components/schemas/RiskBand" }
+        factors: { type: array, items: { $ref: "#/components/schemas/RiskFactor" } }
+        model_version: { type: string }
+        computed_at: { type: string, format: date-time }
+        landlord: { type: boolean }
+    RentRollRow:
+      type: object
+      required: [kind, state, municipality, municipality_path, region, address, unit, currency, group_ids]
+      properties:
+        kind: { type: string, enum: [lease, vacant] }
+        lease_id: { type: string, format: uuid }
+        unit_id: { type: string, format: uuid }
+        code: { type: integer, format: int64 }
+        state: { type: string }
+        municipality: { type: string }
+        municipality_path: { type: string }
+        region: { type: string }
+        region_path: { type: string }
+        address: { type: string }
+        unit: { type: string }
+        tenants: { type: string, description: Initials only for the investor role. }
+        rent: { type: integer, format: int64 }
+        services: { type: integer, format: int64 }
+        currency: { type: string }
+        due_day: { type: integer }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        notice_on: { type: string, format: date }
+        deposit: { type: integer, format: int64 }
+        deposit_paid: { type: integer, format: int64 }
+        billed: { type: integer, format: int64, description: Receivables due by today (ledger). }
+        paid: { type: integer, format: int64, description: Payments booked by today (ledger). }
+        debt: { type: integer, format: int64, description: Receivable balance by today. }
+        risk_score: { type: integer }
+        risk_band: { $ref: "#/components/schemas/RiskBand" }
+        group_ids: { type: array, items: { type: string, format: uuid } }
+        lat: { type: number }
+        lng: { type: number }
+        asking_rent: { type: integer, format: int64 }
+        listing_status: { type: string }
+    RentRoll:
+      type: object
+      required: [role, rows, groups, totals]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        rows: { type: array, items: { $ref: "#/components/schemas/RentRollRow" } }
+        groups: { type: array, items: { $ref: "#/components/schemas/PortfolioGroup" } }
+        totals:
+          type: object
+          required: [leases, vacant, monthly, billed, paid, debt]
+          properties:
+            leases: { type: integer }
+            vacant: { type: integer }
+            monthly: { type: integer, format: int64 }
+            billed: { type: integer, format: int64 }
+            paid: { type: integer, format: int64 }
+            debt: { type: integer, format: int64 }
+    PortfolioCity:
+      type: object
+      required: [path, name, region, leases, vacant, monthly, expected, received, debt, share]
+      properties:
+        path: { type: string }
+        name: { type: string }
+        region: { type: string }
+        leases: { type: integer }
+        vacant: { type: integer }
+        monthly: { type: integer, format: int64 }
+        expected: { type: integer, format: int64 }
+        received: { type: integer, format: int64 }
+        debt: { type: integer, format: int64 }
+        weighted_risk: { type: integer }
+        band: { $ref: "#/components/schemas/RiskBand" }
+        share: { type: number }
+        lat: { type: number }
+        lng: { type: number }
+    PortfolioShare:
+      type: object
+      required: [name, share, amount, count]
+      properties:
+        name: { type: string }
+        share: { type: number }
+        amount: { type: integer, format: int64 }
+        count: { type: integer }
+    PortfolioAttention:
+      type: object
+      required: [kind, severity, label, city]
+      properties:
+        kind: { type: string, enum: [escalation, debt, ending, notice, vacant, high_risk] }
+        severity: { type: integer, minimum: 1, maximum: 3 }
+        lease_id: { type: string, format: uuid }
+        unit_id: { type: string, format: uuid }
+        label: { type: string }
+        city: { type: string }
+        amount: { type: integer, format: int64 }
+        date: { type: string, format: date }
+        score: { type: integer }
+    PortfolioDashboard:
+      type: object
+      required: [role, currency, leases, vacant, monthly, debt, period, expected, received, cities, concentration, attention, trend]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        currency: { type: string }
+        leases: { type: integer }
+        vacant: { type: integer }
+        monthly: { type: integer, format: int64 }
+        debt: { type: integer, format: int64 }
+        weighted_risk: { type: integer }
+        band: { $ref: "#/components/schemas/RiskBand" }
+        period: { type: string, description: YYYY-MM of the current month. }
+        expected: { type: integer, format: int64 }
+        received: { type: integer, format: int64 }
+        cities: { type: array, items: { $ref: "#/components/schemas/PortfolioCity" } }
+        concentration:
+          type: object
+          required: [hhi]
+          properties:
+            top_city: { $ref: "#/components/schemas/PortfolioShare" }
+            top_tenant: { $ref: "#/components/schemas/PortfolioShare" }
+            ending_peak: { $ref: "#/components/schemas/PortfolioShare" }
+            hhi: { type: number, description: Herfindahl index of income over municipalities (0..1). }
+        attention: { type: array, items: { $ref: "#/components/schemas/PortfolioAttention" } }
+        trend:
+          type: array
+          items:
+            type: object
+            required: [period, expected, received]
+            properties:
+              period: { type: string }
+              expected: { type: integer, format: int64 }
+              received: { type: integer, format: int64 }
+              weighted_risk: { type: integer }
+    PortfolioGroup:
+      type: object
+      required: [id, name, color, property_ids, lease_ids]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        color: { type: string }
+        property_ids: { type: array, items: { type: string, format: uuid } }
+        lease_ids: { type: array, items: { type: string, format: uuid } }
+    PortfolioGroupInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        color: { type: string, pattern: "^#[0-9a-f]{6}$" }
+        property_ids: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+        lease_ids: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+    PortfolioGroups:
+      type: object
+      required: [groups, properties]
+      properties:
+        groups: { type: array, items: { $ref: "#/components/schemas/PortfolioGroup" } }
+        properties:
+          type: array
+          items:
+            type: object
+            required: [id, name, address]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              address: { type: string }
+    PortfolioRules:
+      type: object
+      description: Unset fields inherit (jurisdiction defaults, then municipality, then group).
+      properties:
+        reminder_before_days: { type: integer, minimum: 0, maximum: 14 }
+        overdue_days: { type: integer, minimum: 1, maximum: 14 }
+        escalation_days: { type: integer, minimum: 2, maximum: 30 }
+        deposit_months: { type: integer, minimum: 0, maximum: 12 }
+        notice_months: { type: integer, minimum: 1, maximum: 12 }
+    PortfolioRule:
+      type: object
+      required: [id, scope, scope_name, rules, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        scope: { type: string, enum: [municipality, group] }
+        municipality: { type: string }
+        group_id: { type: string, format: uuid }
+        scope_name: { type: string }
+        rules: { $ref: "#/components/schemas/PortfolioRules" }
+        updated_at: { type: string, format: date-time }
+    PortfolioRuleInput:
+      type: object
+      required: [rules]
+      properties:
+        municipality: { type: string, maxLength: 200, description: Admin path of the municipality. }
+        group_id: { type: string, format: uuid }
+        rules: { $ref: "#/components/schemas/PortfolioRules" }
+    PortfolioRuleList:
+      type: object
+      required: [rules, municipalities, defaults]
+      properties:
+        rules: { type: array, items: { $ref: "#/components/schemas/PortfolioRule" } }
+        municipalities:
+          type: array
+          items:
+            type: object
+            required: [path, name]
+            properties:
+              path: { type: string }
+              name: { type: string }
+        defaults: { $ref: "#/components/schemas/PortfolioRules" }
+    ResolvedRules:
+      type: object
+      required: [rules, sources, place]
+      properties:
+        rules: { $ref: "#/components/schemas/PortfolioRules" }
+        sources: { type: array, items: { type: string, enum: [jurisdiction, municipality, group] } }
+        place: { type: string, description: "Municipality name; empty when unknown." }
+    RiskWeights:
+      type: object
+      required: [weights, defaults]
+      properties:
+        weights: { type: object, additionalProperties: { type: integer } }
+        defaults: { type: object, additionalProperties: { type: integer } }
+    PortfolioSummary:
+      type: object
+      required: [summary, changes, actions, model, created_at]
+      description: An AI suggestion for the owner; it decides nothing (ADR 0003).
+      properties:
+        summary: { type: string }
+        changes: { type: array, items: { type: string } }
+        actions: { type: array, items: { type: string } }
+        model: { type: string }
+        created_at: { type: string, format: date-time }

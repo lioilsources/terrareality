@@ -32,6 +32,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/httpx"
 	"github.com/terrareality/terrareality/services/api/internal/platform/ratelimit"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/search"
 )
 
@@ -46,6 +47,7 @@ type Services struct {
 	Messages        *messaging.Service
 	Applications    *applications.Service
 	Leases          *leasing.Service
+	Portfolio       *portfolio.Service
 	VAPIDPublicKey  string // browser push subscriptions
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
@@ -123,6 +125,7 @@ type RouterConfig struct {
 	SessionTTL     auth.SessionTTL // sliding session lifetime per client
 	MockIdP        http.Handler    // dev/test mock identity provider pages
 	DevBank        http.Handler    // dev/test mock bank transaction injection
+	DevLeases      http.Handler    // dev/test lease lifecycle shortcuts (/dev/leases/{id}/escalate)
 }
 
 // NewRouter builds the chi router with the standard middleware chain.
@@ -142,6 +145,9 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 	}
 	if rc.DevBank != nil {
 		r.Handle("/dev/bank/transactions", rc.DevBank)
+	}
+	if rc.DevLeases != nil {
+		r.Handle("/dev/leases/*", rc.DevLeases)
 	}
 
 	validate, err := requestValidator()

@@ -12,6 +12,7 @@ const (
 	Accountant  = "accountant"
 	Maintenance = "maintenance"
 	Viewer      = "viewer"
+	Investor    = "investor" // co-owner, bank or accountant outside the team: reads the portfolio only
 )
 
 // Permission is an action within an organization.
@@ -27,17 +28,20 @@ const (
 	PermFinanceRead   Permission = "finance.read"
 	PermFinanceWrite  Permission = "finance.write"
 	PermMaintenance   Permission = "maintenance.write"
-	PermMessages      Permission = "messages.write" // answer seekers, reply templates
-	PermLeases        Permission = "leases.write"   // leases, payment schedule, bank matching
+	PermMessages      Permission = "messages.write"  // answer seekers, reply templates
+	PermLeases        Permission = "leases.write"    // leases, payment schedule, bank matching
+	PermPortfolioRead Permission = "portfolio.read"  // rent roll, risk, dashboard
+	PermPortfolio     Permission = "portfolio.write" // groups, rules per municipality/group, risk weights
 )
 
 var grants = map[string][]Permission{
-	Owner:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages, PermLeases},
-	Admin:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages, PermLeases},
-	Agent:       {PermCatalogRead, PermCatalogWrite, PermMessages, PermLeases},
-	Accountant:  {PermCatalogRead, PermFinanceRead, PermFinanceWrite, PermLeases},
+	Owner:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages, PermLeases, PermPortfolioRead, PermPortfolio},
+	Admin:       {PermOrgManage, PermMembersManage, PermAuditRead, PermCatalogRead, PermCatalogWrite, PermFinanceRead, PermFinanceWrite, PermMaintenance, PermMessages, PermLeases, PermPortfolioRead, PermPortfolio},
+	Agent:       {PermCatalogRead, PermCatalogWrite, PermMessages, PermLeases, PermPortfolioRead},
+	Accountant:  {PermCatalogRead, PermFinanceRead, PermFinanceWrite, PermLeases, PermPortfolioRead},
 	Maintenance: {PermCatalogRead, PermMaintenance},
-	Viewer:      {PermCatalogRead, PermFinanceRead},
+	Viewer:      {PermCatalogRead, PermFinanceRead, PermPortfolioRead},
+	Investor:    {PermPortfolioRead},
 }
 
 // Can reports whether role has permission.

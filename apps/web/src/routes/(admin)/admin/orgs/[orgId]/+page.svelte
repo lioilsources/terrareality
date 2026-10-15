@@ -12,7 +12,15 @@
 
 	let { data, form }: PageProps = $props();
 	const org = $derived(data.org.organization);
-	const roles: Role[] = ['owner', 'admin', 'agent', 'accountant', 'maintenance', 'viewer'];
+	const roles: Role[] = [
+		'owner',
+		'admin',
+		'agent',
+		'accountant',
+		'maintenance',
+		'viewer',
+		'investor'
+	];
 	const select = 'rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-sm';
 </script>
 
@@ -23,6 +31,7 @@
 		<h1 class="text-2xl font-semibold" data-testid="org-name">{org.name}</h1>
 		<span class="flex gap-4">
 			<a href={localizeHref(`/admin/orgs/${org.id}/sablony`)}>{m.msg_templates()}</a>
+			<a href={localizeHref(`/admin/orgs/${org.id}/portfolio`)}>{m.nav_portfolio()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/smlouvy`)}>{m.nav_leases()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/banka`)}>{m.nav_bank()}</a>
 			<a href={localizeHref(`/admin/orgs/${org.id}/listings`)}>{m.nav_listings()} →</a>

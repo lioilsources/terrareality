@@ -321,6 +321,10 @@ type Lease struct {
 	CreatedAt        time.Time   `json:"created_at"`
 	UpdatedAt        time.Time   `json:"updated_at"`
 	SignedAt         *time.Time  `json:"signed_at"`
+	UnitID           *uuid.UUID  `json:"unit_id"`
+	AdminPath        pgtype.Text `json:"admin_path"`
+	Lat              *float64    `json:"lat"`
+	Lng              *float64    `json:"lng"`
 }
 
 type LeaseDocument struct {
@@ -359,6 +363,25 @@ type LeaseParty struct {
 	Position       int32      `json:"position"`
 	SettlementOkAt *time.Time `json:"settlement_ok_at"`
 	CreatedAt      time.Time  `json:"created_at"`
+}
+
+type LeaseRisk struct {
+	LeaseID      uuid.UUID `json:"lease_id"`
+	OrgID        uuid.UUID `json:"org_id"`
+	Score        int32     `json:"score"`
+	Band         string    `json:"band"`
+	Factors      []byte    `json:"factors"`
+	ModelVersion string    `json:"model_version"`
+	ComputedAt   time.Time `json:"computed_at"`
+}
+
+type LeaseRiskHistory struct {
+	LeaseID uuid.UUID `json:"lease_id"`
+	OrgID   uuid.UUID `json:"org_id"`
+	Period  string    `json:"period"`
+	Score   int32     `json:"score"`
+	Band    string    `json:"band"`
+	Monthly int64     `json:"monthly"`
 }
 
 type LedgerEntry struct {
@@ -585,6 +608,42 @@ type PaymentObligation struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type PortfolioGroup struct {
+	ID        uuid.UUID `json:"id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	Name      string    `json:"name"`
+	Color     string    `json:"color"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type PortfolioGroupItem struct {
+	GroupID    uuid.UUID  `json:"group_id"`
+	OrgID      uuid.UUID  `json:"org_id"`
+	PropertyID *uuid.UUID `json:"property_id"`
+	LeaseID    *uuid.UUID `json:"lease_id"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+type PortfolioRule struct {
+	ID        uuid.UUID   `json:"id"`
+	OrgID     uuid.UUID   `json:"org_id"`
+	Scope     string      `json:"scope"`
+	AdminPath pgtype.Text `json:"admin_path"`
+	GroupID   *uuid.UUID  `json:"group_id"`
+	Rules     []byte      `json:"rules"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
+type PortfolioSummary struct {
+	ID        uuid.UUID  `json:"id"`
+	OrgID     uuid.UUID  `json:"org_id"`
+	Body      string     `json:"body"`
+	Model     string     `json:"model"`
+	Input     []byte     `json:"input"`
+	CreatedBy *uuid.UUID `json:"created_by"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 type Property struct {
 	ID        uuid.UUID  `json:"id"`
 	OrgID     uuid.UUID  `json:"org_id"`
@@ -613,6 +672,12 @@ type ReplyTemplate struct {
 	Title     string    `json:"title"`
 	Body      string    `json:"body"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type RiskSetting struct {
+	OrgID     uuid.UUID `json:"org_id"`
+	Weights   []byte    `json:"weights"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 

@@ -59,6 +59,18 @@ func (q *Queries) CountAdminUnits(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countRuianMunicipalitiesWithoutUnit = `-- name: CountRuianMunicipalitiesWithoutUnit :one
+SELECT count(DISTINCT r.municipality_code) FROM ruian_places r
+WHERE NOT EXISTS (SELECT 1 FROM admin_units a WHERE a.code = r.municipality_code::text)
+`
+
+func (q *Queries) CountRuianMunicipalitiesWithoutUnit(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countRuianMunicipalitiesWithoutUnit)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createSavedSearch = `-- name: CreateSavedSearch :one
 
 INSERT INTO saved_searches (user_id, name, query, notify) VALUES ($1, $2, $3, $4) RETURNING id, user_id, name, query, notify, last_notified_at, created_at

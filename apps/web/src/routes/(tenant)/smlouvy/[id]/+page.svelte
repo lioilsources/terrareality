@@ -8,6 +8,7 @@
 	import Card from '#lib/components/Card.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
 	import LeaseSummary from '#lib/components/LeaseSummary.svelte';
+	import LeaseRisk from '#lib/components/portfolio/LeaseRisk.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -30,6 +31,7 @@
 		{/if}
 	</div>
 	<div class="grid content-start gap-4">
+		<LeaseRisk risk={data.risk} {locale} />
 		{#if l.state === 'proposed' && me && !me.signed_at}
 			<Card>
 				<form method="POST" action="?/sign" use:enhance>

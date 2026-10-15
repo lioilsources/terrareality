@@ -7,7 +7,8 @@ export const roleLabel: Record<Role, () => string> = {
 	agent: m.role_agent,
 	accountant: m.role_accountant,
 	maintenance: m.role_maintenance,
-	viewer: m.role_viewer
+	viewer: m.role_viewer,
+	investor: m.role_investor
 };
 
 export const levelLabel: Record<string, () => string> = {
@@ -26,7 +27,14 @@ export const gdprStatus: Record<string, () => string> = {
 	rejected: m.gdpr_rejected
 };
 
-export const invitableRoles = ['admin', 'agent', 'accountant', 'maintenance', 'viewer'] as const;
+export const invitableRoles = [
+	'admin',
+	'agent',
+	'accountant',
+	'maintenance',
+	'viewer',
+	'investor'
+] as const;
 
 export function fmtDate(iso: string, locale: string): string {
 	return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'cs-CZ');

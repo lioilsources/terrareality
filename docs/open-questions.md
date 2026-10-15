@@ -85,3 +85,14 @@ follows until decided otherwise.
   groups need fast cleaning and damage evidence. Validate in phase 0 with 5 short-term property managers:
   a cleaning and handover add-on for hosts, a separate short-term product, or out of scope? It must not
   weaken the long-term core and its relationship with owners' associations.
+
+## Portfolio (M6b)
+
+- **OQ-24 Late payment interest and penalties.** Rules per municipality cover reminders, deposit and
+  notice. Statutory late interest (nařízení vlády 351/2013 Sb.) or a contractual penalty would need a
+  clause in the templates and a computed ledger item. Wanted for v1?
+- **OQ-25 Risk weights and bands.** Default weights and the 25/50 band thresholds are a first guess.
+  Calibrate them with the pilot owners' real payment histories before showing scores widely.
+- **OQ-26 Market factor quality.** The median rent compares a lease with all listings in the
+  municipality regardless of size. Use rent per m² once units carry floor areas consistently?
+

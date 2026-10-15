@@ -150,6 +150,7 @@ class InvitationInputRoleEnum {
   static const accountant = InvitationInputRoleEnum._(r'accountant');
   static const maintenance = InvitationInputRoleEnum._(r'maintenance');
   static const viewer = InvitationInputRoleEnum._(r'viewer');
+  static const investor = InvitationInputRoleEnum._(r'investor');
 
   /// List of all possible values in this [enum][InvitationInputRoleEnum].
   static const values = <InvitationInputRoleEnum>[
@@ -158,6 +159,7 @@ class InvitationInputRoleEnum {
     accountant,
     maintenance,
     viewer,
+    investor,
   ];
 
   static InvitationInputRoleEnum? fromJson(dynamic value) => InvitationInputRoleEnumTypeTransformer().decode(value);
@@ -201,6 +203,7 @@ class InvitationInputRoleEnumTypeTransformer {
         case r'accountant': return InvitationInputRoleEnum.accountant;
         case r'maintenance': return InvitationInputRoleEnum.maintenance;
         case r'viewer': return InvitationInputRoleEnum.viewer;
+        case r'investor': return InvitationInputRoleEnum.investor;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

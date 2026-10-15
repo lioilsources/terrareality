@@ -2374,6 +2374,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{orgId}/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portfolio dashboard across municipalities (risk, concentration, income, attention, trend) */
+        get: operations["getPortfolio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/rent-roll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rent roll of all units and running leases (JSON, CSV or XLSX) */
+        get: operations["getRentRoll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Groups (tags) of properties and leases */
+        get: operations["listPortfolioGroups"];
+        put?: never;
+        /** Create a group */
+        post: operations["createPortfolioGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                portfolioGroupId: components["parameters"]["PortfolioGroupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group and replace its members */
+        put: operations["updatePortfolioGroup"];
+        post?: never;
+        /** Delete a group (and its rules) */
+        delete: operations["deletePortfolioGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Rules per municipality or group (overrides of the jurisdiction defaults) */
+        get: operations["listPortfolioRules"];
+        /** Set the rules of a municipality or a group (applies to new leases) */
+        put: operations["savePortfolioRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a rule */
+        delete: operations["deletePortfolioRule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/rules/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rules a new lease at a place would get (lease form defaults) */
+        get: operations["resolvePortfolioRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/risk-weights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** Factor weights of the lease risk score */
+        get: operations["getRiskWeights"];
+        /** Set factor weights (0 switches a factor off); leases are rescored */
+        put: operations["setRiskWeights"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/portfolio/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        /** The latest AI summary of the portfolio (a suggestion) */
+        get: operations["getPortfolioSummary"];
+        put?: never;
+        /** Ask the AI to summarize the portfolio (aggregates only, no personal data) */
+        post: operations["createPortfolioSummary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leases/{leaseId}/risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Risk of a lease with its factors (tenants see only the payment factors) */
+        get: operations["getLeaseRisk"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2502,8 +2688,11 @@ export interface components {
          * @enum {string}
          */
         VerificationLevel: "none" | "email" | "phone" | "identity";
-        /** @enum {string} */
-        Role: "owner" | "admin" | "agent" | "accountant" | "maintenance" | "viewer";
+        /**
+         * @description investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+         * @enum {string}
+         */
+        Role: "owner" | "admin" | "agent" | "accountant" | "maintenance" | "viewer" | "investor";
         Me: {
             /** Format: uuid */
             id: string;
@@ -2652,7 +2841,7 @@ export interface components {
         InvitationInput: {
             email: components["schemas"]["Email"];
             /** @enum {string} */
-            role: "admin" | "agent" | "accountant" | "maintenance" | "viewer";
+            role: "admin" | "agent" | "accountant" | "maintenance" | "viewer" | "investor";
             locale?: components["schemas"]["UserLocale"];
         };
         Invitation: {
@@ -3734,12 +3923,17 @@ export interface components {
             deposit_amount?: number;
             /** @default 15 */
             due_day: number;
-            /** @default 3 */
-            notice_months: number;
+            /** @description Default: the portfolio rules of the place, else 3. */
+            notice_months?: number;
             payee_iban: string;
             payee_name: string;
             clauses?: ("pets_allowed" | "no_smoking" | "inventory" | "indexation" | "sublet_forbidden" | "early_termination")[];
             property_address?: string;
+            /**
+             * Format: int64
+             * @description RÚIAN address of a lease without a listing (where the lease is in the portfolio).
+             */
+            ruian_id?: number;
             unit_label?: string;
             parties?: components["schemas"]["LeasePartyInput"][];
         };
@@ -3920,6 +4114,269 @@ export interface components {
             connections: components["schemas"]["BankConnection"][];
             transactions: components["schemas"]["BankTransaction"][];
         };
+        /** @enum {string} */
+        RiskBand: "low" | "medium" | "high";
+        RiskFactor: {
+            /** @enum {string} */
+            key: "debt" | "escalations" | "overdue_days" | "deposit_coverage" | "passport" | "term_end" | "notice" | "joint_nonpayer" | "market_rent" | "market_supply";
+            /** @enum {string} */
+            group: "payments" | "deposit" | "passport" | "contract" | "location";
+            /** @description Absent for tenants. */
+            weight?: number;
+            value: number;
+            /** @description Contribution to the score; absent for tenants. */
+            points?: number;
+            /** @description false when there is no data (counted as 0). */
+            known: boolean;
+            detail?: {
+                [key: string]: unknown;
+            };
+        };
+        LeaseRisk: {
+            /** @description Absent for tenants. */
+            score?: number;
+            band?: components["schemas"]["RiskBand"];
+            factors: components["schemas"]["RiskFactor"][];
+            model_version: string;
+            /** Format: date-time */
+            computed_at: string;
+            landlord: boolean;
+        };
+        RentRollRow: {
+            /** @enum {string} */
+            kind: "lease" | "vacant";
+            /** Format: uuid */
+            lease_id?: string;
+            /** Format: uuid */
+            unit_id?: string;
+            /** Format: int64 */
+            code?: number;
+            state: string;
+            municipality: string;
+            municipality_path: string;
+            region: string;
+            region_path?: string;
+            address: string;
+            unit: string;
+            /** @description Initials only for the investor role. */
+            tenants?: string;
+            /** Format: int64 */
+            rent?: number;
+            /** Format: int64 */
+            services?: number;
+            currency: string;
+            due_day?: number;
+            /** Format: date */
+            starts_on?: string;
+            /** Format: date */
+            ends_on?: string;
+            /** Format: date */
+            notice_on?: string;
+            /** Format: int64 */
+            deposit?: number;
+            /** Format: int64 */
+            deposit_paid?: number;
+            /**
+             * Format: int64
+             * @description Receivables due by today (ledger).
+             */
+            billed?: number;
+            /**
+             * Format: int64
+             * @description Payments booked by today (ledger).
+             */
+            paid?: number;
+            /**
+             * Format: int64
+             * @description Receivable balance by today.
+             */
+            debt?: number;
+            risk_score?: number;
+            risk_band?: components["schemas"]["RiskBand"];
+            group_ids: string[];
+            lat?: number;
+            lng?: number;
+            /** Format: int64 */
+            asking_rent?: number;
+            listing_status?: string;
+        };
+        RentRoll: {
+            role: components["schemas"]["Role"];
+            rows: components["schemas"]["RentRollRow"][];
+            groups: components["schemas"]["PortfolioGroup"][];
+            totals: {
+                leases: number;
+                vacant: number;
+                /** Format: int64 */
+                monthly: number;
+                /** Format: int64 */
+                billed: number;
+                /** Format: int64 */
+                paid: number;
+                /** Format: int64 */
+                debt: number;
+            };
+        };
+        PortfolioCity: {
+            path: string;
+            name: string;
+            region: string;
+            leases: number;
+            vacant: number;
+            /** Format: int64 */
+            monthly: number;
+            /** Format: int64 */
+            expected: number;
+            /** Format: int64 */
+            received: number;
+            /** Format: int64 */
+            debt: number;
+            weighted_risk?: number;
+            band?: components["schemas"]["RiskBand"];
+            share: number;
+            lat?: number;
+            lng?: number;
+        };
+        PortfolioShare: {
+            name: string;
+            share: number;
+            /** Format: int64 */
+            amount: number;
+            count: number;
+        };
+        PortfolioAttention: {
+            /** @enum {string} */
+            kind: "escalation" | "debt" | "ending" | "notice" | "vacant" | "high_risk";
+            severity: number;
+            /** Format: uuid */
+            lease_id?: string;
+            /** Format: uuid */
+            unit_id?: string;
+            label: string;
+            city: string;
+            /** Format: int64 */
+            amount?: number;
+            /** Format: date */
+            date?: string;
+            score?: number;
+        };
+        PortfolioDashboard: {
+            role: components["schemas"]["Role"];
+            currency: string;
+            leases: number;
+            vacant: number;
+            /** Format: int64 */
+            monthly: number;
+            /** Format: int64 */
+            debt: number;
+            weighted_risk?: number;
+            band?: components["schemas"]["RiskBand"];
+            /** @description YYYY-MM of the current month. */
+            period: string;
+            /** Format: int64 */
+            expected: number;
+            /** Format: int64 */
+            received: number;
+            cities: components["schemas"]["PortfolioCity"][];
+            concentration: {
+                top_city?: components["schemas"]["PortfolioShare"];
+                top_tenant?: components["schemas"]["PortfolioShare"];
+                ending_peak?: components["schemas"]["PortfolioShare"];
+                /** @description Herfindahl index of income over municipalities (0..1). */
+                hhi: number;
+            };
+            attention: components["schemas"]["PortfolioAttention"][];
+            trend: {
+                period: string;
+                /** Format: int64 */
+                expected: number;
+                /** Format: int64 */
+                received: number;
+                weighted_risk?: number;
+            }[];
+        };
+        PortfolioGroup: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            color: string;
+            property_ids: string[];
+            lease_ids: string[];
+        };
+        PortfolioGroupInput: {
+            name: string;
+            color?: string;
+            property_ids?: string[];
+            lease_ids?: string[];
+        };
+        PortfolioGroups: {
+            groups: components["schemas"]["PortfolioGroup"][];
+            properties: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                address: string;
+            }[];
+        };
+        /** @description Unset fields inherit (jurisdiction defaults, then municipality, then group). */
+        PortfolioRules: {
+            reminder_before_days?: number;
+            overdue_days?: number;
+            escalation_days?: number;
+            deposit_months?: number;
+            notice_months?: number;
+        };
+        PortfolioRule: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            scope: "municipality" | "group";
+            municipality?: string;
+            /** Format: uuid */
+            group_id?: string;
+            scope_name: string;
+            rules: components["schemas"]["PortfolioRules"];
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PortfolioRuleInput: {
+            /** @description Admin path of the municipality. */
+            municipality?: string;
+            /** Format: uuid */
+            group_id?: string;
+            rules: components["schemas"]["PortfolioRules"];
+        };
+        PortfolioRuleList: {
+            rules: components["schemas"]["PortfolioRule"][];
+            municipalities: {
+                path: string;
+                name: string;
+            }[];
+            defaults: components["schemas"]["PortfolioRules"];
+        };
+        ResolvedRules: {
+            rules: components["schemas"]["PortfolioRules"];
+            sources: ("jurisdiction" | "municipality" | "group")[];
+            /** @description Municipality name; empty when unknown. */
+            place: string;
+        };
+        RiskWeights: {
+            weights: {
+                [key: string]: number;
+            };
+            defaults: {
+                [key: string]: number;
+            };
+        };
+        /** @description An AI suggestion for the owner; it decides nothing (ADR 0003). */
+        PortfolioSummary: {
+            summary: string;
+            changes: string[];
+            actions: string[];
+            model: string;
+            /** Format: date-time */
+            created_at: string;
+        };
     };
     responses: {
         /** @description Error */
@@ -3977,6 +4434,12 @@ export interface components {
         ListingId: string;
         MediaId: string;
         LeaseId: string;
+        PortfolioGroupId: string;
+        /** @description Admin path of a municipality. */
+        PortfolioMunicipality: string;
+        /** @description Admin path of a region. */
+        PortfolioRegion: string;
+        PortfolioGroupFilter: string;
         GroupId: string;
         ApplicationId: string;
         ConversationId: string;
@@ -7723,6 +8186,394 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPortfolio: {
+        parameters: {
+            query?: {
+                /** @description Admin path of a municipality. */
+                municipality?: components["parameters"]["PortfolioMunicipality"];
+                /** @description Admin path of a region. */
+                region?: components["parameters"]["PortfolioRegion"];
+                group_id?: components["parameters"]["PortfolioGroupFilter"];
+            };
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioDashboard"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRentRoll: {
+        parameters: {
+            query?: {
+                /** @description Admin path of a municipality. */
+                municipality?: components["parameters"]["PortfolioMunicipality"];
+                /** @description Admin path of a region. */
+                region?: components["parameters"]["PortfolioRegion"];
+                group_id?: components["parameters"]["PortfolioGroupFilter"];
+                format?: "json" | "csv" | "xlsx";
+            };
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rent roll */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentRoll"];
+                    "text/csv": string;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPortfolioGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Groups and the properties that can be added */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioGroups"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPortfolioGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioGroup"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    updatePortfolioGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                portfolioGroupId: components["parameters"]["PortfolioGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioGroup"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deletePortfolioGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                portfolioGroupId: components["parameters"]["PortfolioGroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPortfolioRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioRuleList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    savePortfolioRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioRuleInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    deletePortfolioRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    resolvePortfolioRules: {
+        parameters: {
+            query?: {
+                listing_id?: string;
+                ruian_id?: number;
+                address?: string;
+            };
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resolved rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedRules"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRiskWeights: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Weights */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskWeights"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    setRiskWeights: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    weights: {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Weights */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskWeights"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPortfolioSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary, absent when none was made */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        summary?: components["schemas"]["PortfolioSummary"];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPortfolioSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioSummary"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLeaseRisk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Risk */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseRisk"];
+                };
             };
             default: components["responses"]["Problem"];
         };

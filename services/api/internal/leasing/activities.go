@@ -10,6 +10,7 @@ import (
 
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 )
 
 // Activities are the Temporal activities of the lease lifecycle workflow.
@@ -22,13 +23,24 @@ type Info struct {
 	State    string
 	StartsOn time.Time  // 00:00 Prague
 	EndsOn   *time.Time // 00:00 Prague of the day after the last day
+	Stages   []Stage    // reminder stages from the lease rules (empty = ReminderStages)
 }
 
-// ReminderStages are the reminder offsets in days relative to the due date.
-var ReminderStages = []struct {
+// Stage is a reminder offset in days relative to the due date.
+type Stage struct {
 	Name   string
 	Offset int
-}{{"upcoming", -3}, {"overdue", 1}, {"escalation", 7}}
+}
+
+// ReminderStages are the default reminder stages (CZ jurisdiction).
+var ReminderStages = []Stage{{"upcoming", -3}, {"overdue", 1}, {"escalation", 7}}
+
+// StagesFor returns the reminder stages of rules stored in lease terms
+// (rules per municipality or group, M6b).
+func StagesFor(terms []byte) []Stage {
+	r := portfolio.LeaseRules(terms)
+	return []Stage{{"upcoming", -*r.ReminderBeforeDays}, {"overdue", *r.OverdueDays}, {"escalation", *r.EscalationDays}}
+}
 
 func atPrague(d time.Time, hour int) time.Time {
 	return time.Date(d.Year(), d.Month(), d.Day(), hour, 0, 0, 0, prague)
@@ -40,7 +52,7 @@ func (a *Activities) Info(ctx context.Context, leaseID uuid.UUID) (Info, error) 
 	if err != nil {
 		return Info{}, err
 	}
-	out := Info{State: l.State, StartsOn: atPrague(l.StartsOn.Time, 0)}
+	out := Info{State: l.State, StartsOn: atPrague(l.StartsOn.Time, 0), Stages: StagesFor(l.Terms)}
 	if l.EndsOn.Valid {
 		end := atPrague(l.EndsOn.Time, 0).AddDate(0, 0, 1)
 		out.EndsOn = &end

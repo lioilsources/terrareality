@@ -125,9 +125,10 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: api.NewRouter(
-			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
+			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, Portfolio: app.Portfolio(deps, pool), VAPIDPublicKey: deps.WebPush.VAPIDPublic(), StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
-				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank)}),
+				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank),
+				DevLeases: devLeases(cfg, leases)}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -172,4 +173,12 @@ func devBank(cfg config.Config, leases *leasing.Service, mock *leasing.MockBank)
 		return nil
 	}
 	return leases.DevBankHandler(mock)
+}
+
+// devLeases exposes lease lifecycle shortcuts (simulated escalation) in dev/test.
+func devLeases(cfg config.Config, leases *leasing.Service) http.Handler {
+	if cfg.Env != "dev" && cfg.Env != "test" {
+		return nil
+	}
+	return leases.DevEscalateHandler()
 }

@@ -17,11 +17,12 @@ Name | Type | Description | Notes
 **servicesAmount** | **int** |  | [optional] 
 **depositAmount** | **int** |  | [optional] 
 **dueDay** | **int** |  | [optional] [default to 15]
-**noticeMonths** | **int** |  | [optional] [default to 3]
+**noticeMonths** | **int** | Default: the portfolio rules of the place, else 3. | [optional] 
 **payeeIban** | **String** |  | 
 **payeeName** | **String** |  | 
 **clauses** | **List<String>** |  | [optional] [default to const []]
 **propertyAddress** | **String** |  | [optional] 
+**ruianId** | **int** | RÚIAN address of a lease without a listing (where the lease is in the portfolio). | [optional] 
 **unitLabel** | **String** |  | [optional] 
 **parties** | [**List<LeasePartyInput>**](LeasePartyInput.md) |  | [optional] [default to const []]
 
