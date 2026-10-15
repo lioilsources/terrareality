@@ -1,0 +1,61 @@
+#cloud-config
+# TerraReality database server (PostgreSQL 17 + PostGIS + pgvector, pgBackRest).
+# Rendered by Terraform (templatefile); runs once on first boot.
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+  - docker.io
+  - docker-compose-v2
+  - fail2ban
+  - unattended-upgrades
+
+
+users:
+  - name: deploy
+    groups: [docker, sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+%{ for k in ssh_keys ~}
+      - ${k}
+%{ endfor ~}
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-terra.conf
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+      AllowUsers deploy root
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "data-root": "${mount_path}/docker",
+        "log-driver": "json-file",
+        "log-opts": { "max-size": "50m", "max-file": "5" },
+        "live-restore": true
+      }
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+runcmd:
+  # Wait for the Hetzner volume (attached right after the server is created).
+  - |
+    dev=/dev/disk/by-id/scsi-0HC_Volume_${volume_id}
+    for i in $(seq 1 60); do [ -e "$dev" ] && break; sleep 5; done
+    mkdir -p ${mount_path}
+    grep -q "$dev" /etc/fstab || echo "$dev ${mount_path} ext4 discard,nofail,defaults 0 0" >> /etc/fstab
+    mount -a
+  - systemctl restart ssh
+  - systemctl stop docker && systemctl start docker && systemctl enable docker
+  - systemctl enable --now fail2ban
+  - mkdir -p /opt/terra && chown deploy:deploy /opt/terra
+  - mkdir -p /srv/pgdata /srv/pgbackrest-spool && chown 999:999 /srv/pgdata /srv/pgbackrest-spool
+  - mkdir -p /var/lib/node_exporter/textfile

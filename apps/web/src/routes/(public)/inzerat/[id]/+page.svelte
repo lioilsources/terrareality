@@ -163,6 +163,13 @@
 				</form>
 			{/if}
 		</Card>
+		<p class="text-sm">
+			<a
+				href={localizeHref(`/inzerat/${l.id}/nahlasit`)}
+				class="text-[var(--muted)] hover:text-[var(--text)]"
+				data-testid="report-listing-link">{m.dsa_report_link()}</a
+			>
+		</p>
 		{#if data.similar.length}
 			<Card title={m.listing_similar()}>
 				<ul class="grid gap-2 text-sm">

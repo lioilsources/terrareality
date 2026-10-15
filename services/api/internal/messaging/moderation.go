@@ -19,7 +19,14 @@ import (
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
 )
 
-// Decisions staff can take on a case.
+// Case kinds: a conversation (or one message) or a listing (DSA report,
+// decided in the listing package).
+const (
+	KindConversation = "conversation"
+	KindListing      = "listing"
+)
+
+// Decisions staff can take on a conversation case.
 var decisions = []string{ai.VerdictDismiss, ai.VerdictWarn, ai.VerdictRemoveMessage, ai.VerdictSuspendUser}
 
 // Case is a moderation case with context for staff.
@@ -43,7 +50,10 @@ func (s *Service) Case(ctx context.Context, id uuid.UUID) (Case, error) {
 	if err != nil {
 		return Case{}, err
 	}
-	t, err := q.ModerationTranscript(ctx, c.ConversationID)
+	if c.ConversationID == nil { // listing report (DSA): no conversation
+		return Case{GetModerationCaseRow: c}, nil
+	}
+	t, err := q.ModerationTranscript(ctx, *c.ConversationID)
 	return Case{GetModerationCaseRow: c, Transcript: t}, err
 }
 
@@ -62,7 +72,10 @@ func (s *Service) Decide(ctx context.Context, staff *auth.Principal, id uuid.UUI
 		if err != nil {
 			return err
 		}
-		convID = c.ConversationID
+		if c.Kind != KindConversation || c.ConversationID == nil {
+			return apperr.Unprocessable("invalid_decision", "listing reports take keep, unpublish or request_change")
+		}
+		convID = *c.ConversationID
 		if decision == ai.VerdictRemoveMessage && c.MessageID == nil {
 			return apperr.Unprocessable("no_message", "this case is not about a single message")
 		}
@@ -91,7 +104,7 @@ func (s *Service) Decide(ctx context.Context, staff *auth.Principal, id uuid.UUI
 				return err
 			}
 		}
-		conv, err := q.GetConversation(ctx, c.ConversationID)
+		conv, err := q.GetConversation(ctx, convID)
 		if err != nil {
 			return err
 		}
@@ -112,7 +125,7 @@ func (s *Service) Decide(ctx context.Context, staff *auth.Principal, id uuid.UUI
 			key = "messaging_suspended"
 		}
 		m, err := s.Render.Render(notify.Email, u.Email, u.Locale, key, map[string]any{
-			"Listing": i18n(c.ListingTitle, u.Locale), "Note": note, "Link": ConversationLink(s.WebBaseURL, c.ConversationID)})
+			"Listing": i18n(c.ListingTitle, u.Locale), "Note": note, "Link": ConversationLink(s.WebBaseURL, convID)})
 		if err != nil {
 			return err
 		}
@@ -163,14 +176,14 @@ func (v *Verdicts) Suggest(ctx context.Context, id uuid.UUID, final bool) error 
 	if err != nil || c.AiStatus != "pending" {
 		return err
 	}
-	if !v.enabled(ctx) {
+	if !v.enabled(ctx) || c.ConversationID == nil {
 		return q.SetModerationAI(ctx, db.SetModerationAIParams{ID: id, AiStatus: "disabled"})
 	}
-	conv, err := q.GetConversation(ctx, c.ConversationID)
+	conv, err := q.GetConversation(ctx, *c.ConversationID)
 	if err != nil {
 		return err
 	}
-	lines, err := q.ModerationTranscript(ctx, c.ConversationID)
+	lines, err := q.ModerationTranscript(ctx, *c.ConversationID)
 	if err != nil {
 		return err
 	}

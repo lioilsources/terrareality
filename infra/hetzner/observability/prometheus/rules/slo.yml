@@ -1,0 +1,73 @@
+# SLO recording and alert rules.
+# Availability SLO: 99.9 % of api requests are not 5xx (error budget 0.1 %),
+# alerted with multi-window multi-burn-rate (Google SRE workbook, chapter 5).
+# Search SLO: p95 of GET /v1/search below 300 ms.
+groups:
+  - name: terra-slo-recording
+    interval: 30s
+    rules:
+      - record: terra:http_requests:rate5m
+        expr: sum(rate(terra_http_requests_total{job="terra-api"}[5m]))
+      - record: terra:http_errors:rate5m
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[5m]))
+      - record: terra:http_error_ratio:rate5m
+        expr: terra:http_errors:rate5m / clamp_min(terra:http_requests:rate5m, 1e-9)
+      - record: terra:http_error_ratio:rate30m
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[30m])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[30m])), 1e-9)
+      - record: terra:http_error_ratio:rate1h
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[1h])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[1h])), 1e-9)
+      - record: terra:http_error_ratio:rate2h
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[2h])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[2h])), 1e-9)
+      - record: terra:http_error_ratio:rate6h
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[6h])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[6h])), 1e-9)
+      - record: terra:http_error_ratio:rate1d
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[1d])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[1d])), 1e-9)
+      - record: terra:http_error_ratio:rate3d
+        expr: sum(rate(terra_http_requests_total{job="terra-api",status="5xx"}[3d])) / clamp_min(sum(rate(terra_http_requests_total{job="terra-api"}[3d])), 1e-9)
+      - record: terra:search_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(terra_http_request_duration_seconds_bucket{job="terra-api",method="GET",route="/v1/search"}[5m])))
+      - record: terra:route_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (route, le) (rate(terra_http_request_duration_seconds_bucket{job="terra-api"}[5m])))
+
+  - name: terra-slo-alerts
+    rules:
+      - alert: ApiErrorBudgetBurnFast
+        expr: |
+          (terra:http_error_ratio:rate1h > (14.4 * 0.001) and terra:http_error_ratio:rate5m > (14.4 * 0.001))
+          or
+          (terra:http_error_ratio:rate6h > (6 * 0.001) and terra:http_error_ratio:rate30m > (6 * 0.001))
+        for: 2m
+        labels: { severity: page, slo: availability }
+        annotations:
+          summary: API is burning the 99.9 % availability error budget fast
+          description: 5xx ratio {{ $value | humanizePercentage }}; at this rate the 30-day budget is gone in under 5 days.
+      - alert: ApiErrorBudgetBurnSlow
+        expr: |
+          (terra:http_error_ratio:rate1d > (3 * 0.001) and terra:http_error_ratio:rate2h > (3 * 0.001))
+          or
+          (terra:http_error_ratio:rate3d > 0.001 and terra:http_error_ratio:rate6h > 0.001)
+        for: 15m
+        labels: { severity: ticket, slo: availability }
+        annotations:
+          summary: API error budget is burning steadily
+          description: 5xx ratio {{ $value | humanizePercentage }} over a long window.
+      - alert: SearchLatencyP95High
+        expr: terra:search_latency_seconds:p95_5m > 0.3 and terra:http_requests:rate5m > 0.05
+        for: 15m
+        labels: { severity: ticket, slo: search-latency }
+        annotations:
+          summary: Search p95 latency above 300 ms
+          description: p95 of GET /v1/search is {{ $value | humanizeDuration }} for 15 minutes.
+      - alert: UptimeProbeFailing
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 3m
+        labels: { severity: page, slo: availability }
+        annotations:
+          summary: "{{ $labels.probe }} is down ({{ $labels.instance }})"
+          description: Blackbox probe failed for 3 minutes (HTTP, TLS or DNS).
+      - alert: TlsCertificateExpiresSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 14 * 86400
+        for: 1h
+        labels: { severity: ticket }
+        annotations:
+          summary: TLS certificate for {{ $labels.instance }} expires in under 14 days

@@ -1,0 +1,16 @@
+---
+import KindIndex from '../../../components/KindIndex.astro';
+import { kindsByLang, localityPages } from '../../../lib/localities';
+
+export async function getStaticPaths() {
+  const out = [];
+  for (const kindSlug of Object.keys(kindsByLang.en)) {
+    out.push({ params: { kind: kindSlug }, props: { pages: await localityPages('en', kindSlug) } });
+  }
+  return out;
+}
+const { kind } = Astro.params as { kind: string };
+const { pages } = Astro.props;
+---
+
+<KindIndex lang="en" kindSlug={kind} pages={pages} />

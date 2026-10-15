@@ -85,6 +85,9 @@ type Querier interface {
 	// M6: leases, signatures, schedule, ledger, bank matching.
 	CreateLease(ctx context.Context, arg CreateLeaseParams) (Lease, error)
 	CreateListing(ctx context.Context, arg CreateListingParams) (Listing, error)
+	// M8: DSA notice-and-action for listings (system context; staff and the
+	// anonymous reporter path never run as an org member).
+	CreateListingReport(ctx context.Context, arg CreateListingReportParams) (uuid.UUID, error)
 	CreateListingVersion(ctx context.Context, arg CreateListingVersionParams) (ListingVersion, error)
 	// Media ---------------------------------------------------------------------
 	CreateMedia(ctx context.Context, arg CreateMediaParams) (Medium, error)
@@ -321,6 +324,7 @@ type Querier interface {
 	ListNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
 	ListObligations(ctx context.Context, leaseID uuid.UUID) ([]ListObligationsRow, error)
 	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
+	// Conversation cases and listing reports (DSA), oldest first.
 	ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error)
 	ListOrders(ctx context.Context, orgID uuid.UUID) ([]ListOrdersRow, error)
 	ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error)
@@ -357,8 +361,12 @@ type Querier interface {
 	// M4: conversations, messages, moderation and notifications.
 	// Published listing a seeker may contact (system context).
 	ListingForConversation(ctx context.Context, listingID uuid.UUID) (ListingForConversationRow, error)
+	ListingForReport(ctx context.Context, id uuid.UUID) (ListingForReportRow, error)
 	// What roommate matching needs about a listing (system context).
 	ListingMatchFacts(ctx context.Context, listingID uuid.UUID) (ListingMatchFactsRow, error)
+	// Owners and admins of the organization behind a listing (DSA art. 17
+	// statement of reasons on unpublish or a change request).
+	ListingOwnerRecipients(ctx context.Context, orgID uuid.UUID) ([]ListingOwnerRecipientsRow, error)
 	LockLease(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	LockSlot(ctx context.Context, id uuid.UUID) (ViewingSlot, error)
 	MarkAuthTokenUsed(ctx context.Context, id uuid.UUID) error
@@ -565,6 +573,9 @@ type Querier interface {
 	WithdrawMyPendingVersions(ctx context.Context, pListing uuid.UUID) error
 	// System context, after the caller's access was checked.
 	WithdrawPendingVersions(ctx context.Context, listingID uuid.UUID) error
+	// Unpublished after a report: pending versions go back to the owner so a
+	// resubmission is reviewed from scratch.
+	WithdrawPendingVersionsForModeration(ctx context.Context, listingID uuid.UUID) error
 }
 
 var _ Querier = (*Queries)(nil)

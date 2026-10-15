@@ -1,0 +1,65 @@
+# Prometheus for TerraReality production. Targets on the DB VM are reached over
+# the Hetzner private network (10.10.1.20, see terraform var.db_private_ip).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: prod
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Go api and worker: METRICS_ADDR=:9090 on an internal listener (never proxied by Caddy).
+  - job_name: terra-api
+    static_configs:
+      - targets: ["api:9090"]
+  - job_name: terra-worker
+    static_configs:
+      - targets: ["worker:9090"]
+
+  - job_name: node
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/node.yml]
+
+  - job_name: postgres
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/postgres.yml]
+
+  # Uptime: public HTTPS endpoints probed from inside the VM through the public DNS
+  # (catches Caddy/TLS/DNS problems too). Targets in targets/uptime.yml.
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/uptime.yml]
+    relabel_configs: &blackbox_relabel
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # api /healthz must also report the worker heartbeat as ok.
+  - job_name: blackbox-healthz
+    metrics_path: /probe
+    params:
+      module: [http_healthz]
+    file_sd_configs:
+      - files: [/etc/prometheus/targets/healthz.yml]
+    relabel_configs: *blackbox_relabel
+
+  - job_name: blackbox-exporter
+    static_configs:
+      - targets: ["blackbox:9115"]

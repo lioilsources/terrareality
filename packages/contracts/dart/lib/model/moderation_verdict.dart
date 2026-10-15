@@ -10,7 +10,7 @@
 
 part of openapi.api;
 
-
+/// Conversation cases take dismiss, warn, remove_message or suspend_user; listing cases (DSA reports) take keep, unpublish or request_change.
 class ModerationVerdict {
   /// Instantiate a new enum with the provided [value].
   const ModerationVerdict._(this.value);
@@ -27,6 +27,9 @@ class ModerationVerdict {
   static const warn = ModerationVerdict._(r'warn');
   static const removeMessage = ModerationVerdict._(r'remove_message');
   static const suspendUser = ModerationVerdict._(r'suspend_user');
+  static const keep = ModerationVerdict._(r'keep');
+  static const unpublish = ModerationVerdict._(r'unpublish');
+  static const requestChange = ModerationVerdict._(r'request_change');
 
   /// List of all possible values in this [enum][ModerationVerdict].
   static const values = <ModerationVerdict>[
@@ -34,6 +37,9 @@ class ModerationVerdict {
     warn,
     removeMessage,
     suspendUser,
+    keep,
+    unpublish,
+    requestChange,
   ];
 
   static ModerationVerdict? fromJson(dynamic value) => ModerationVerdictTypeTransformer().decode(value);
@@ -76,6 +82,9 @@ class ModerationVerdictTypeTransformer {
         case r'warn': return ModerationVerdict.warn;
         case r'remove_message': return ModerationVerdict.removeMessage;
         case r'suspend_user': return ModerationVerdict.suspendUser;
+        case r'keep': return ModerationVerdict.keep;
+        case r'unpublish': return ModerationVerdict.unpublish;
+        case r'request_change': return ModerationVerdict.requestChange;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

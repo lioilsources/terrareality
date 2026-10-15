@@ -17,6 +17,7 @@ Method | HTTP request | Description
 [**listAreas**](SearchApi.md#listareas) | **GET** /v1/areas | Child administrative units with simplified outlines (regions when parent is empty)
 [**listSavedSearches**](SearchApi.md#listsavedsearches) | **GET** /v1/me/saved-searches | My saved searches
 [**listSeoMunicipalities**](SearchApi.md#listseomunicipalities) | **GET** /v1/seo/municipalities | Municipalities with at least one listing (static site pages)
+[**reportListing**](SearchApi.md#reportlisting) | **POST** /v1/listings/{listingId}/reports | Report a published listing to the moderators (DSA notice, art. 16)
 [**search**](SearchApi.md#search) | **POST** /v1/search | Faceted search over published listings with map aggregates
 
 
@@ -358,6 +359,51 @@ No authorization required
 
  - **Content-Type**: Not defined
  - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **reportListing**
+> ListingReportCreated reportListing(listingId, listingReportInput)
+
+Report a published listing to the moderators (DSA notice, art. 16)
+
+Open to signed-in users and anonymous visitors. Anonymous reporters give an e-mail address for the acknowledgement and the statement of reasons; signed-in reporters use their account e-mail. Staff decide every report (ADR 0003). Rate-limited per user or client IP.
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+
+final api_instance = SearchApi();
+final listingId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final listingReportInput = ListingReportInput(); // ListingReportInput | 
+
+try {
+    final result = api_instance.reportListing(listingId, listingReportInput);
+    print(result);
+} catch (e) {
+    print('Exception when calling SearchApi->reportListing: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **listingId** | **String**|  | 
+ **listingReportInput** | [**ListingReportInput**](ListingReportInput.md)|  | 
+
+### Return type
+
+[**ListingReportCreated**](ListingReportCreated.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

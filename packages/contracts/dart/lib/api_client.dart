@@ -386,6 +386,12 @@ class ApiClient {
           return ListingCard.fromJson(value);
         case 'ListingCreate':
           return ListingCreate.fromJson(value);
+        case 'ListingReportCreated':
+          return ListingReportCreated.fromJson(value);
+        case 'ListingReportInput':
+          return ListingReportInput.fromJson(value);
+        case 'ListingReportReason':
+          return ListingReportReasonTypeTransformer().decode(value);
         case 'ListingStatus':
           return ListingStatusTypeTransformer().decode(value);
         case 'ListingSummary':

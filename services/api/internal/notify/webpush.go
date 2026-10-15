@@ -70,7 +70,9 @@ func (w *WebPush) Push(ctx context.Context, p Push) error {
 	if err1 != nil || err2 != nil {
 		return ErrDeviceGone
 	}
-	payload, _ := json.Marshal(map[string]string{"title": p.Title, "body": p.Body, "link": p.Link})
+	data := p.payload()
+	data["title"], data["body"] = p.Title, p.Body
+	payload, _ := json.Marshal(data)
 	body, err := Encrypt(payload, uaPub, auth, nil, nil)
 	if err != nil {
 		return ErrDeviceGone

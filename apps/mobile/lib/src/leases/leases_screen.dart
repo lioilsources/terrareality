@@ -6,7 +6,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../platform/url_opener.dart';
 import 'leases_repository.dart';
+import 'payments_repository.dart';
 
 final myLeasesProvider = FutureProvider.autoDispose<List<LeaseSummary>>(
   (ref) => ref.watch(leasesRepositoryProvider).mine(),
@@ -107,8 +109,18 @@ class LeaseScreen extends ConsumerWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${date.format(s.dueOn)} · ${s.period.isEmpty ? t.leaseDeposit : s.period}'),
                       Text(money(s.amount - s.paidAmount, locale), style: Theme.of(context).textTheme.titleMedium),
-                      if (s.spayd != null)
-                        Center(child: QrImageView(key: Key('qr-${s.id}'), data: s.spayd!, size: 180)),
+                      if (s.spayd != null) ...[
+                        const SizedBox(height: 8),
+                        Text(t.payByQr, style: Theme.of(context).textTheme.labelLarge),
+                        Center(
+                          child: Semantics(
+                            image: true,
+                            label: t.qrLabel(money(s.amount - s.paidAmount, locale)),
+                            child: QrImageView(key: Key('qr-${s.id}'), data: s.spayd!, size: 180),
+                          ),
+                        ),
+                      ],
+                      RevolutButton(shareId: s.id),
                     ]),
                   ),
                 ),
@@ -129,6 +141,77 @@ class LeaseScreen extends ConsumerWidget {
           ]);
         },
       ),
+    );
+  }
+}
+
+/// The second payment option: a card payment link in the landlord's own
+/// Revolut account. Hidden when unavailable (401/403); the link is created
+/// only on tap, never on load.
+class RevolutButton extends ConsumerStatefulWidget {
+  const RevolutButton({super.key, required this.shareId});
+
+  final String shareId;
+
+  @override
+  ConsumerState<RevolutButton> createState() => _RevolutButtonState();
+}
+
+class _RevolutButtonState extends ConsumerState<RevolutButton> {
+  bool _busy = false;
+  bool _hidden = false;
+  String? _message;
+
+  Future<void> _pay(CardPayment p, AppLocalizations t) async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      var link = p.link;
+      if (link == null || link.status != PaymentLinkStatusEnum.created) {
+        link = await ref.read(paymentsRepositoryProvider).createLink(widget.shareId);
+      }
+      final ok = await ref.read(urlOpenerProvider).open(Uri.parse(link.url));
+      if (!ok && mounted) setState(() => _message = t.actionFailed);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        if (e.code == 409) {
+          _message = t.cardPaymentUnavailable;
+        } else if (e.code == 401 || e.code == 403 || e.code == 404) {
+          _hidden = true;
+        } else {
+          _message = t.actionFailed;
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final p = ref.watch(cardPaymentProvider(widget.shareId)).asData?.value;
+    if (p == null || _hidden) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        OutlinedButton.icon(
+          key: Key('revolut-${widget.shareId}'),
+          icon: const Icon(Icons.credit_card),
+          label: Text(t.payByCard),
+          onPressed: _busy ? null : () => _pay(p, t),
+        ),
+        if (_message != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(_message!,
+                key: Key('revolut-message-${widget.shareId}'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+      ]),
     );
   }
 }

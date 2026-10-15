@@ -1,0 +1,52 @@
+name: smoke
+
+# Manual, read-only production smoke E2E (make smoke). Separate workflow so a dispatch
+# does not run the whole CI. See docs/runbooks/launch.md (Go-live).
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Web app URL (BASE_URL)
+        required: true
+        default: https://app.terrareality.cz
+      api_url:
+        description: API URL (API_URL)
+        required: true
+        default: https://api.terrareality.cz
+      site_url:
+        description: Static site URL (SITE_URL)
+        required: true
+        default: https://terrareality.cz
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: make smoke
+        run: make smoke BASE_URL="$BASE_URL" API_URL="$API_URL" SITE_URL="$SITE_URL"
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          API_URL: ${{ inputs.api_url }}
+          SITE_URL: ${{ inputs.site_url }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-report
+          path: apps/web/test-results/smoke
+          retention-days: 14

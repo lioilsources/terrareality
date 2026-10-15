@@ -1,11 +1,10 @@
 package ai
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"slices"
@@ -15,11 +14,19 @@ import (
 
 // Client calls an OpenAI-compatible chat completions endpoint (AiStack
 // LiteLLM gateway on the Spark) with JSON-schema constrained output.
+//
+// Fallback, when set, is a cloud OpenAI-compatible gateway (Claude) used only
+// when the Spark fails (unreachable, timeout, 5xx) and FallbackOn reports the
+// flag ai.cloud_fallback on for the request. Listing texts and search queries
+// then leave the EU-hosted stack; see docs/legal-questions.md.
 type Client struct {
-	BaseURL string
-	APIKey  string
-	Model   string
-	HTTP    *http.Client
+	BaseURL    string
+	APIKey     string
+	Model      string
+	HTTP       *http.Client
+	Fallback   *Endpoint
+	FallbackOn func(context.Context) bool
+	Log        *slog.Logger
 }
 
 // NewClient creates a client with a generous timeout for local inference.
@@ -40,34 +47,25 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
-// complete asks for JSON. With a schema the output is constrained by guided
+// complete asks for JSON and returns the model that answered. With a schema the output is constrained by guided
 // decoding; without one (nil) the model answers in JSON mode and the caller
 // validates, which works better for wide, sparse objects.
-func (c *Client) complete(ctx context.Context, system, user, schemaName string, schema map[string]any, out any) error {
+func (c *Client) complete(ctx context.Context, system, user, schemaName string, schema map[string]any, out any) (string, error) {
 	format := map[string]any{"type": "json_object"}
 	if schema != nil {
 		format = map[string]any{"type": "json_schema", "json_schema": map[string]any{
 			"name": schemaName, "schema": schema, "strict": false}}
 	}
-	body, _ := json.Marshal(chatRequest{
-		Model: c.Model, Temperature: 0,
-		Messages:       []chatMessage{{Role: "system", Content: system}, {Role: "user", Content: user}},
-		ResponseFormat: format,
+	raw, model, err := c.post(ctx, func(model string) []byte {
+		body, _ := json.Marshal(chatRequest{
+			Model: model, Temperature: 0,
+			Messages:       []chatMessage{{Role: "system", Content: system}, {Role: "user", Content: user}},
+			ResponseFormat: format,
+		})
+		return body
 	})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	res, err := c.HTTP.Do(req)
-	if err != nil {
-		return fmt.Errorf("llm: %w", err)
-	}
-	defer res.Body.Close()
-	raw, _ := io.ReadAll(io.LimitReader(res.Body, 4<<20))
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("llm: status %d: %.300s", res.StatusCode, raw)
+		return "", err
 	}
 	var cr struct {
 		Choices []struct {
@@ -77,9 +75,9 @@ func (c *Client) complete(ctx context.Context, system, user, schemaName string, 
 		} `json:"choices"`
 	}
 	if err := json.Unmarshal(raw, &cr); err != nil || len(cr.Choices) == 0 {
-		return fmt.Errorf("llm: unexpected response: %.300s", raw)
+		return "", fmt.Errorf("llm: unexpected response: %.300s", raw)
 	}
-	return json.Unmarshal([]byte(jsonObject(cr.Choices[0].Message.Content)), out)
+	return model, json.Unmarshal([]byte(jsonObject(cr.Choices[0].Message.Content)), out)
 }
 
 var reThink = regexp.MustCompile(`(?s)<think>.*?</think>`)
@@ -137,7 +135,8 @@ func (c *Client) ExtractAttributes(ctx context.Context, req ExtractRequest) (Ext
 		`"new_attributes": [{"key": ..., "type": ..., "group": ..., "label": {"cs": ..., "en": ...}}]}`,
 		req.UnitKind, strings.Join(lines, "\n"), strings.Join(req.PhotoTags, ", "), req.Text)
 	var out ExtractResult
-	if err := c.complete(ctx, extractSystem, user, "", nil, &out); err != nil {
+	model, err := c.complete(ctx, extractSystem, user, "", nil, &out)
+	if err != nil {
 		return ExtractResult{}, err
 	}
 	if out.Values == nil {
@@ -161,7 +160,7 @@ func (c *Client) ExtractAttributes(ctx context.Context, req ExtractRequest) (Ext
 		return exists || !reKey.MatchString(n.Key) || !slices.Contains([]string{"bool", "int", "enum", "set"}, n.Type) ||
 			n.Label.CS == "" || n.Label.EN == ""
 	})
-	out.Model = c.Model
+	out.Model = model
 	return out, nil
 }
 
@@ -178,7 +177,8 @@ func (c *Client) DraftText(ctx context.Context, req DraftRequest) (DraftResult, 
 	schema := map[string]any{"type": "object", "properties": map[string]any{"title": texts, "description": texts},
 		"required": []string{"title", "description"}}
 	var out DraftResult
-	if err := c.complete(ctx, draftSystem, "Facts:\n"+string(facts), "listing_text", schema, &out); err != nil {
+	model, err := c.complete(ctx, draftSystem, "Facts:\n"+string(facts), "listing_text", schema, &out)
+	if err != nil {
 		return DraftResult{}, err
 	}
 	if len(out.Title.CS) > 120 {
@@ -187,6 +187,6 @@ func (c *Client) DraftText(ctx context.Context, req DraftRequest) (DraftResult, 
 	if len(out.Title.EN) > 120 {
 		out.Title.EN = out.Title.EN[:120]
 	}
-	out.Model = c.Model
+	out.Model = model
 	return out, nil
 }

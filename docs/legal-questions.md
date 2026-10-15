@@ -94,3 +94,51 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
 - **Q-BILL-3 Electronic invoices and numbering.** Invoices are sent as a PDF link by e-mail (§ 26 odst. 3:
   buyer consent to electronic documents, e.g. in the terms) and numbered gaplessly per year
   (`TR-YYYY-000001`). Confirm consent in the terms is sufficient and that one series per year is fine.
+
+## Cloud LLM fallback (M8)
+
+- **Q-AI-1 Transfer to a cloud LLM provider.** When the Spark gateway is down and the backoffice flag
+  `ai.cloud_fallback` is on (off by default), the API sends the same LLM request to a cloud
+  OpenAI-compatible gateway in front of Anthropic Claude (`CLOUD_LLM_BASE_URL`, default model
+  `claude-sonnet-5-5`). Payloads are listing texts and owner notes (attribute extraction, text drafts),
+  free-text chat search queries, message reports (moderation), application facts (applicant summaries) and
+  portfolio facts. There is no PII minimization yet: owner notes, chat queries, reported messages and
+  application messages may contain names, phone numbers or other personal data. Questions: is a DPA with
+  Anthropic (or the gateway operator) plus SCCs/EU–US DPF enough for this transfer, must the privacy policy
+  and the record of processing name the provider, do applicant summaries and moderation need to be excluded
+  from the fallback (special categories, Art. 22 GDPR context), and is zero-retention / no-training
+  required contractually? Until answered the flag stays off in production; outputs remain suggestions
+  approved by a person (ADR 0003) and the served model is recorded with each suggestion and logged.
+
+## Legal texts, cookies and DSA (M8)
+
+Drafts live in `packages/attributes/legal/{cs,en}/` (terms, privacy, cookies, dsa) and are served at
+`/podminky`, `/soukromi`, `/cookies`, `/dsa` (+ `/en/...`), marked as drafts. DPAs: `docs/legal/dpa-checklist.md`.
+
+- **Q-LEGAL-1 Review of the drafts.** All four texts need review and the operator's details (company, ID,
+  addresses, e-mails, effective date). The Czech version is declared prevailing. The consumer withdrawal
+  wording for paid promotion (terms 5.4: 14 days, express request to start performance, proportionate
+  price) needs confirming, as does whether landlords using the platform for their leases need a separate
+  landlord agreement with a DPA annex (landlord = controller, operator = processor).
+- **Q-LEGAL-2 DSA obligations of a small platform.** We publish one single point of contact for authorities
+  and users (Art. 11–12, Czech/English), a notice-and-action procedure by e-mail (Art. 16), statements of
+  reasons for moderation (Art. 17), human-only removal decisions and an internal complaint route (Art. 20).
+  Which of the online-platform obligations (Art. 20–28, 30 trader traceability) apply if we qualify as a
+  micro or small enterprise (Art. 19), must we designate a legal representative or register with ČTÚ, and
+  is e-mail enough as the Art. 16 mechanism? Since M8 every public listing has a "Nahlásit inzerát" button
+  (`POST /v1/listings/{id}/reports`, anonymous allowed) with draft acknowledgement and statement-of-reasons e-mails.
+- **Q-LEGAL-3 Re-consent on a new version.** Terms and privacy versions (`TERMS_VERSION`,
+  `PRIVACY_VERSION`, currently `2026-10`) are stored in the consent log at sign-up only. When a version is
+  bumped, existing users are not asked again; the terms say users are informed 15 days ahead and may leave.
+  Is notice enough for B2C users, or do we need active re-acceptance (and for which kinds of change), and
+  does the privacy policy need acceptance at all or only acknowledgement?
+- **Q-LEGAL-4 Cookie banner scope.** The web sets only strictly necessary cookies (session, MFA, staff
+  session, selected organization, post-login return, last order, language `PARAGLIDE_LOCALE`, and
+  `terra_consent` recording that the notice was closed). We show an informational notice with a link and a
+  dismiss button, no consent choice; analytics is designed to be off by default behind a future toggle.
+  Is a notice required or advisable at all under § 89(3) ZEK, does the language cookie count as strictly
+  necessary, and does loading map tiles from OpenFreeMap (IP address of the visitor, no cookies) need
+  consent or only a mention in the privacy policy? The mobile apps set no cookies.
+- **Q-GDPR-6 Data protection officer.** The privacy policy has a DPO contact placeholder. Is a DPO
+  mandatory (Art. 37: large-scale regular monitoring through the lease risk score and payment matching?),
+  or is a privacy contact enough?

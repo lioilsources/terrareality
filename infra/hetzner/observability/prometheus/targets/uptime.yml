@@ -1,0 +1,9 @@
+# Public URLs probed for uptime (placeholders until DNS is final).
+- targets: ["https://terrareality.cz/"]
+  labels: { probe: site }
+- targets: ["https://app.terrareality.cz/"]
+  labels: { probe: web }
+# /v1/version answers 200 whenever the api and its database are up (healthz is
+# probed separately and is stricter: it also fails on degraded dependencies).
+- targets: ["https://api.terrareality.cz/v1/version"]
+  labels: { probe: api }

@@ -3,11 +3,14 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"slices"
 
 	"github.com/google/uuid"
 
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
+	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/realtime"
 )
@@ -425,11 +428,17 @@ func (s *Server) DeletePushDevice(ctx context.Context, r gen.DeletePushDeviceReq
 }
 
 func moderationDTO(c db.GetModerationCaseRow) gen.ModerationCase {
-	out := gen.ModerationCase{Id: c.ID, Source: gen.ModerationCaseSource(c.Source), ConversationId: c.ConversationID,
+	out := gen.ModerationCase{Id: c.ID, Kind: gen.ModerationCaseKind(c.Kind), Source: gen.ModerationCaseSource(c.Source),
+		ConversationId: c.ConversationID, ListingId: c.SubjectListingID,
 		MessageId: c.MessageID, Reason: c.Reason, Note: c.Note, Status: gen.ModerationCaseStatus(c.Status),
-		ReporterName: c.ReporterName, ReporterEmail: c.ReporterEmail, ReportedId: c.ReportedID, ReportedName: c.ReportedName,
-		ReportedEmail: c.ReportedEmail, ListingTitle: i18nDTO(c.ListingTitle), MessageBody: c.MessageBody,
-		AiStatus: gen.ModerationCaseAiStatus(c.AiStatus), DecisionNote: c.DecisionNote, CreatedAt: c.CreatedAt}
+		ReporterName: nonEmpty(c.ReporterName), ReporterEmail: nonEmpty(c.ReporterEmail), ReportedId: c.ReportedID,
+		ReportedName: c.ReportedName, ReportedEmail: c.ReportedEmail, ListingTitle: i18nDTO(c.ListingTitle),
+		MessageBody: c.MessageBody, AiStatus: gen.ModerationCaseAiStatus(c.AiStatus), DecisionNote: c.DecisionNote,
+		CreatedAt: c.CreatedAt}
+	if c.Kind == messaging.KindListing {
+		anon := c.ReporterAnonymous
+		out.ReporterAnonymous = &anon
+	}
 	if len(c.AiSuggestion) > 0 {
 		sug := convert[gen.ModerationSuggestion](json.RawMessage(c.AiSuggestion))
 		out.AiSuggestion = &sug
@@ -492,7 +501,11 @@ func (s *Server) BackofficeDecideModeration(ctx context.Context, r gen.Backoffic
 	if r.Body.Note != nil {
 		note = *r.Body.Note
 	}
-	if err := s.Messages.Decide(ctx, p, r.CaseId, string(r.Body.Decision), note); err != nil {
+	decide := s.Messages.Decide
+	if slices.Contains(listing.ReportDecisions, string(r.Body.Decision)) {
+		decide = s.Listings.DecideReport // DSA listing report
+	}
+	if err := decide(ctx, p, r.CaseId, string(r.Body.Decision), note); err != nil {
 		return nil, err
 	}
 	return gen.BackofficeDecideModeration204Response{}, nil
@@ -501,4 +514,31 @@ func (s *Server) BackofficeDecideModeration(ctx context.Context, r gen.Backoffic
 // GetPushConfig implements GET /v1/push/config.
 func (s *Server) GetPushConfig(context.Context, gen.GetPushConfigRequestObject) (gen.GetPushConfigResponseObject, error) {
 	return gen.GetPushConfig200JSONResponse{VapidPublicKey: s.VAPIDPublicKey}, nil
+}
+
+func nonEmpty(v string) *string {
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
+// ReportListing implements POST /v1/listings/{listingId}/reports (DSA
+// notice; signed-in users and anonymous visitors).
+func (s *Server) ReportListing(ctx context.Context, r gen.ReportListingRequestObject) (gen.ReportListingResponseObject, error) {
+	in := listing.ReportInput{Reason: string(r.Body.Reason), Explanation: r.Body.Explanation}
+	if r.Body.Email != nil {
+		in.Email = string(*r.Body.Email)
+	}
+	if r.Body.Name != nil {
+		in.Name = *r.Body.Name
+	}
+	if r.Body.Locale != nil {
+		in.Locale = string(*r.Body.Locale)
+	}
+	id, err := s.Listings.Report(ctx, auth.FromContext(ctx), r.ListingId, in)
+	if err != nil {
+		return nil, err
+	}
+	return gen.ReportListing201JSONResponse{Id: id}, nil
 }

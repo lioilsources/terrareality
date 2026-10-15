@@ -1,0 +1,124 @@
+# Observability stack for production (app VM). Included from the app compose
+# (`include: [../observability/docker-compose.yml]`) or run on its own:
+#   docker compose -f infra/hetzner/observability/docker-compose.yml --env-file observability.env up -d
+# Nothing here is reachable from the internet: UIs bind to 127.0.0.1 (SSH tunnel)
+# and services talk over the `observability` network, which api/worker/web join.
+name: terra-observability
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+networks:
+  observability:
+    name: terra-observability
+
+secrets:
+  alert_smtp_password:
+    # One line, no newline; created by the operator (see README). Not in git.
+    file: ${ALERT_SMTP_PASSWORD_FILE:-/etc/terrareality/secrets/alert_smtp_password}
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
+  alloy-data:
+
+services:
+  prometheus:
+    <<: *restart
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports: ["127.0.0.1:9091:9090"]
+    networks: [observability]
+
+  alertmanager:
+    <<: *restart
+    image: prom/alertmanager:v0.28.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    secrets: [alert_smtp_password]
+    volumes:
+      - ./alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    ports: ["127.0.0.1:9093:9093"]
+    networks: [observability]
+
+  blackbox:
+    <<: *restart
+    image: prom/blackbox-exporter:v0.27.0
+    command: [--config.file=/etc/blackbox/blackbox.yml]
+    volumes: ["./blackbox:/etc/blackbox:ro"]
+    networks: [observability]
+
+  node-exporter:
+    <<: *restart
+    image: prom/node-exporter:v1.9.1
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/var/lib/node_exporter/textfile
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+      - /var/lib/node_exporter/textfile:/var/lib/node_exporter/textfile:ro
+    networks: [observability]
+
+  loki:
+    <<: *restart
+    image: grafana/loki:3.5.3
+    command: [-config.file=/etc/loki/loki.yml]
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    networks: [observability]
+
+  tempo:
+    <<: *restart
+    image: grafana/tempo:2.8.1
+    command: [-config.file=/etc/tempo/tempo.yml]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo-data:/var/tempo
+    # api/worker export to http://tempo:4318/v1/traces (OTEL_EXPORTER_OTLP_ENDPOINT).
+    networks: [observability]
+
+  # Grafana Alloy ships Docker container logs (slog JSON) to Loki. Promtail is EOL.
+  alloy:
+    <<: *restart
+    image: grafana/alloy:v1.10.0
+    command: [run, --storage.path=/var/lib/alloy, /etc/alloy/config.alloy]
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy
+    networks: [observability]
+
+  grafana:
+    <<: *restart
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["127.0.0.1:3001:3000"]
+    depends_on: [prometheus, loki, tempo]
+    networks: [observability]

@@ -31,7 +31,14 @@ class ApplicationsScreen extends ConsumerWidget {
     final locale = Localizations.localeOf(context).languageCode;
     final list = ref.watch(myApplicationsProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(t.applicationsTitle)),
+      appBar: AppBar(title: Text(t.applicationsTitle), actions: [
+        IconButton(
+          key: const Key('open-viewings'),
+          icon: const Icon(Icons.event_outlined),
+          tooltip: t.viewingsTitle,
+          onPressed: () => context.push('/prohlidky'),
+        ),
+      ]),
       body: list.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(t.statusUnreachable)),

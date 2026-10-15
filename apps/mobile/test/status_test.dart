@@ -15,7 +15,7 @@ Health _health(HealthStatusEnum status) => Health(
 
 Widget _app(PlatformStatus s) => ProviderScope(
       overrides: [platformStatusProvider.overrideWith((ref) async => s)],
-      child: TerraApp(locale: const Locale('cs')),
+      child: TerraApp(locale: const Locale('cs'), router: createRouter(initialLocation: '/stav')),
     );
 
 void main() {

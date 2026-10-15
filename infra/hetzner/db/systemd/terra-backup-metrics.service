@@ -1,0 +1,13 @@
+[Unit]
+Description=TerraReality: pgBackRest metrics textfile
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/terra
+ExecStart=/opt/terra/scripts/backup-metrics.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

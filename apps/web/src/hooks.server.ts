@@ -1,10 +1,23 @@
 import { redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
+import { version } from '$app/env';
+import { SENTRY_DSN } from '$app/env/private';
+import { PUBLIC_SENTRY_ENVIRONMENT, PUBLIC_SENTRY_RELEASE } from '$app/env/public';
 import { sequence } from '@sveltejs/kit/hooks';
 import { getTextDirection, localizeHref } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 import { api } from '#lib/server/api.js';
 import { SESSION_COOKIE, clearSession } from '#lib/server/session.js';
+import { createReporter } from '#lib/sentry.js';
+import { cspExtras, extendCsp } from '#lib/server/csp.js';
+import {
+	API_PUBLIC_URL,
+	CSP_FORM_ACTION_ORIGINS,
+	CSP_MAP_ORIGINS,
+	CSP_MEDIA_ORIGINS,
+	CSP_REALTIME_ORIGIN
+} from '$app/env/private';
+import { MAP_STYLE, PUBLIC_SENTRY_DSN } from '$app/env/public';
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -62,4 +75,45 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle: Handle = sequence(handleParaglide, handleAuth);
+const csp = cspExtras({
+	apiPublicUrl: API_PUBLIC_URL,
+	mapStyle: MAP_STYLE,
+	mapOrigins: CSP_MAP_ORIGINS,
+	mediaOrigins: CSP_MEDIA_ORIGINS,
+	realtimeOrigin: CSP_REALTIME_ORIGIN,
+	sentryDsn: PUBLIC_SENTRY_DSN,
+	formActionOrigins: CSP_FORM_ACTION_ORIGINS
+});
+
+/** Adds runtime origins to SvelteKit's CSP (vite.config.ts) and other security headers. */
+const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	try {
+		const h = response.headers;
+		const policy = h.get('content-security-policy');
+		if (policy) h.set('content-security-policy', extendCsp(policy, csp));
+		h.set('x-content-type-options', 'nosniff');
+		h.set('referrer-policy', 'strict-origin-when-cross-origin');
+		h.set('permissions-policy', 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()');
+		h.set('x-frame-options', 'DENY');
+	} catch {
+		// immutable headers (e.g. proxied fetch responses): leave them as they are
+	}
+	return response;
+};
+
+export const handle: Handle = sequence(handleSecurityHeaders, handleParaglide, handleAuth);
+
+const sentry = createReporter({
+	dsn: SENTRY_DSN,
+	release: PUBLIC_SENTRY_RELEASE || version,
+	environment: PUBLIC_SENTRY_ENVIRONMENT,
+	platform: 'node'
+});
+
+/** Reports unexpected server errors (not 4xx/framework errors) to Sentry, without PII. */
+export const handleError: HandleServerError = ({ error, event, kind }) => {
+	if (sentry && kind === 'unknown') {
+		void sentry.capture(error, { route: event.route.id, kind, tags: { runtime: 'server' } });
+	}
+};

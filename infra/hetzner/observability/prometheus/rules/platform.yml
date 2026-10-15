@@ -1,0 +1,95 @@
+groups:
+  - name: terra-platform
+    rules:
+      - alert: ApiHealthzDown
+        expr: probe_success{job="blackbox-healthz"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: api /healthz is failing
+          description: /healthz is not 200 or does not report the worker as ok. Check `curl -s https://api.terrareality.cz/healthz | jq`.
+      - alert: ScrapeTargetDown
+        expr: up{job=~"terra-api|terra-worker|node|blackbox-exporter"} == 0
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.instance }} is not being scraped"
+      - alert: WorkerHeartbeatMissing
+        # The worker refreshes app_meta.worker_heartbeat; /healthz fails after 90 s.
+        # This fires on the worker's own signals, independent of the probe.
+        expr: absent(up{job="terra-worker"} == 1) or sum(increase(terra_river_job_runs_total[30m])) == 0 and sum(terra_river_jobs{state="available"}) > 0
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: Worker is down or not processing jobs
+      - alert: JobQueueBacklog
+        expr: max by (queue) (terra_river_oldest_available_seconds) > 600
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: River queue {{ $labels.queue }} has jobs waiting for over 10 minutes
+      - alert: JobFailuresHigh
+        expr: sum by (kind) (increase(terra_river_job_runs_total{outcome="job_failed"}[1h])) > 10
+        labels: { severity: ticket }
+        annotations:
+          summary: River job {{ $labels.kind }} failed {{ $value }} times in the last hour
+      - alert: DbPoolSaturated
+        expr: max by (job) (terra_db_pool_acquired_conns / terra_db_pool_max_conns) > 0.9
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: "{{ $labels.job }} uses over 90 % of its database pool"
+
+  - name: terra-host
+    rules:
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) < 0.15
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: Less than 15 % disk free on {{ $labels.vm }} {{ $labels.mountpoint }}
+      - alert: DiskWillFillIn24h
+        expr: predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 24 * 3600) < 0
+        for: 30m
+        labels: { severity: page }
+        annotations:
+          summary: Disk {{ $labels.mountpoint }} on {{ $labels.vm }} fills up within 24 h
+
+  # pgBackRest metrics come from /var/lib/node_exporter/textfile/pgbackrest.prom on the
+  # DB VM, written by scripts/backup-metrics.sh (repo root; stanza `terra`, systemd timer
+  # terra-backup-metrics) after every backup and every 10 min (see README).
+  - name: terra-backup
+    rules:
+      - alert: BackupMetricsMissing
+        expr: absent(pgbackrest_last_backup_timestamp_seconds)
+        for: 2h
+        labels: { severity: ticket }
+        annotations:
+          summary: No pgBackRest metrics (textfile pgbackrest.prom missing on the DB VM)
+      - alert: BackupTooOld
+        # Full/diff/incr backups at least daily; WAL archiving gives the 1 h RPO.
+        expr: time() - max(pgbackrest_last_backup_timestamp_seconds) > 26 * 3600
+        for: 15m
+        labels: { severity: page }
+        annotations:
+          summary: Last successful pgBackRest backup is {{ $value | humanizeDuration }} old
+      - alert: WalArchiveStale
+        # RPO 1 h: archive_timeout forces a WAL switch at least hourly.
+        expr: time() - max(pgbackrest_last_archive_timestamp_seconds) > 3600 + 900
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: WAL archive is {{ $value | humanizeDuration }} behind (RPO 1 h at risk)
+      - alert: BackupFailed
+        expr: min(pgbackrest_backup_ok) == 0
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: pgBackRest reports a failed backup or stanza check
+      - alert: BackupMetricsStale
+        expr: time() - max(pgbackrest_textfile_updated_timestamp_seconds) > 2 * 3600
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: pgbackrest.prom was not refreshed for over 2 h (cron or script broken)

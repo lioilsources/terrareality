@@ -136,7 +136,8 @@ func (c *Client) SummarizePortfolio(ctx context.Context, f PortfolioFacts) (Port
 		"summary": map[string]any{"type": "string"}, "changes": list, "actions": list,
 	}, "required": []string{"summary", "changes", "actions"}}
 	var out PortfolioSummary
-	if err := c.complete(ctx, portfolioSystem, "Portfolio:\n"+string(in), "portfolio_summary", schema, &out); err != nil {
+	model, err := c.complete(ctx, portfolioSystem, "Portfolio:\n"+string(in), "portfolio_summary", schema, &out)
+	if err != nil {
 		return PortfolioSummary{}, err
 	}
 	if out.Changes == nil {
@@ -145,6 +146,6 @@ func (c *Client) SummarizePortfolio(ctx context.Context, f PortfolioFacts) (Port
 	if out.Actions == nil {
 		out.Actions = []string{}
 	}
-	out.Model = c.Model
+	out.Model = model
 	return out, nil
 }

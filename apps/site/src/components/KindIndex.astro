@@ -1,0 +1,56 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { alternates, czk, kindsByLang, pagePath, type Lang, type LocalityPage } from '../lib/localities';
+
+interface Props {
+  lang: Lang;
+  kindSlug: string;
+  pages: LocalityPage[];
+}
+const { lang, kindSlug, pages } = Astro.props;
+const k = kindsByLang[lang][kindSlug];
+const alt = alternates(lang, kindSlug);
+const groups =
+  lang === 'cs'
+    ? [
+        { title: 'Praha', items: pages.filter((p) => p.praha && p.praha.kind !== 'municipality') },
+        { title: 'Okolí Prahy', items: pages.filter((p) => p.praha?.kind === 'municipality') },
+        { title: 'Další obce', items: pages.filter((p) => !p.praha) }
+      ]
+    : [
+        { title: 'Prague', items: pages.filter((p) => p.praha && p.praha.kind !== 'municipality') },
+        { title: 'Around Prague', items: pages.filter((p) => p.praha?.kind === 'municipality') }
+      ];
+const description =
+  lang === 'cs'
+    ? `${k.title} v Praze, jejím okolí a dalších obcích – aktuální nabídky a mediány nájmů.`
+    : `${k.title} in Prague and around – current offers and median rents.`;
+---
+
+<Layout
+  title={`${k.title} | TerraReality`}
+  description={description}
+  lang={lang}
+  altHref={alt![lang === 'cs' ? 'en' : 'cs']}
+  altLabel={lang === 'cs' ? 'English' : 'Čeština'}
+  alternates={alt}
+>
+  <h1 class="text-3xl font-semibold">{k.title}</h1>
+  {groups.filter((g) => g.items.length).map((g) => (
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold">{g.title}</h2>
+      <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {g.items.map((p) => (
+          <li class="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+            <a href={pagePath(lang, kindSlug, p.slug)} class="font-medium">{p.name}</a>
+            {p.stat?.listings ? (
+              <p class="text-sm text-[var(--muted)]">{p.stat.listings} {k.noun} · {lang === 'cs' ? 'medián' : 'median'} {czk(p.stat.median_rent)}</p>
+            ) : p.praha?.okres ? (
+              <p class="text-sm text-[var(--muted)]">{lang === 'cs' ? `okres ${p.praha.okres}` : `${p.praha.okres} district`}</p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Layout>

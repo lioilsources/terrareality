@@ -41,8 +41,20 @@ var columns = map[string]string{
 	"Souřadnice Y": "y", "Souřadnice X": "x",
 }
 
+// Keep decides whether rows of a municipality (RÚIAN "Kód obce") are imported.
+// A nil Keep imports everything.
+type Keep func(municipalityCode int32) bool
+
 // ImportFile imports a CSV file or a ZIP archive of CSV files.
 func ImportFile(ctx context.Context, pool *pgxpool.Pool, path string) (int64, error) {
+	return ImportFileFiltered(ctx, pool, path, nil)
+}
+
+// ImportFileFiltered imports a CSV file or a ZIP archive of CSV files, keeping
+// only rows accepted by keep. ZIP entries named like the official per-municipality
+// export ("20260930_OB_554782_ADR.csv") are skipped without reading when keep
+// rejects their code.
+func ImportFileFiltered(ctx context.Context, pool *pgxpool.Pool, path string, keep Keep) (int64, error) {
 	if strings.EqualFold(filepath.Ext(path), ".zip") {
 		zr, err := zip.OpenReader(path)
 		if err != nil {
@@ -54,11 +66,14 @@ func ImportFile(ctx context.Context, pool *pgxpool.Pool, path string) (int64, er
 			if !strings.EqualFold(filepath.Ext(f.Name), ".csv") {
 				continue
 			}
+			if code, ok := FileMunicipalityCode(f.Name); ok && keep != nil && !keep(code) {
+				continue
+			}
 			rc, err := f.Open()
 			if err != nil {
 				return total, err
 			}
-			n, err := Import(ctx, pool, rc)
+			n, err := ImportFiltered(ctx, pool, rc, keep)
 			rc.Close()
 			total += n
 			if err != nil {
@@ -72,11 +87,16 @@ func ImportFile(ctx context.Context, pool *pgxpool.Pool, path string) (int64, er
 		return 0, err
 	}
 	defer f.Close()
-	return Import(ctx, pool, f)
+	return ImportFiltered(ctx, pool, f, keep)
 }
 
 // Import reads one CSV (UTF-8 or windows-1250) and upserts its address points.
 func Import(ctx context.Context, pool *pgxpool.Pool, r io.Reader) (int64, error) {
+	return ImportFiltered(ctx, pool, r, nil)
+}
+
+// ImportFiltered is Import restricted to the municipalities accepted by keep.
+func ImportFiltered(ctx context.Context, pool *pgxpool.Pool, r io.Reader, keep Keep) (int64, error) {
 	br := bufio.NewReader(r)
 	head, _ := br.Peek(4096)
 	var src io.Reader = br
@@ -121,7 +141,7 @@ func Import(ctx context.Context, pool *pgxpool.Pool, r io.Reader) (int64, error)
 			return total, err
 		}
 		row, ok := parseRow(rec, idx)
-		if !ok {
+		if !ok || (keep != nil && !keep(row.MunicipalityCode)) {
 			continue
 		}
 		batch = append(batch, row)

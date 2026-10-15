@@ -132,6 +132,8 @@ type RouterConfig struct {
 	DevLeases      http.Handler    // dev/test lease lifecycle shortcuts (/dev/leases/{id}/escalate)
 	MockStripe     http.Handler    // mock Stripe Checkout pages (/mock/stripe/...), STRIPE_MODE=mock only
 	MockRevolut    http.Handler    // mock Revolut payment pages (/mock/revolut/...), REVOLUT_MODE=mock only
+	HSTS           bool            // Strict-Transport-Security (prod)
+	RateLimits     RateLimits      // per-route limits; zero rules are off
 }
 
 // NewRouter builds the chi router with the standard middleware chain.
@@ -139,13 +141,15 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, httpx.TrustedProxies(rc.TrustedProxies),
 		httpx.Recover(rc.Log), httpx.AccessLog(rc.Log),
-		httpx.SecurityHeaders, httpx.CORS(rc.CORSOrigins),
+		httpx.Security(httpx.SecurityOptions{HSTS: rc.HSTS, DocumentPrefixes: httpx.DefaultDocumentPrefixes}),
+		httpx.CORS(rc.CORSOrigins),
 		middleware.Timeout(30*time.Second))
 	r.NotFound(httpx.NotFound)
 	r.MethodNotAllowed(httpx.MethodNotAllowed)
 	if rc.Sessions != nil {
 		r.Use(auth.Middleware(rc.Sessions, rc.SessionTTL, rc.Log))
 	}
+	r.Use(rateLimit(rc.RateLimits))
 	if rc.MockIdP != nil {
 		r.Handle("/dev/idp/authorize", rc.MockIdP)
 	}
@@ -182,6 +186,9 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 				return
 			}
 			if e, ok := apperr.As(err); ok {
+				if e.Status == http.StatusTooManyRequests {
+					w.Header().Set("Retry-After", "60") // handler-level limiters (credentials, autocomplete)
+				}
 				httpx.WriteProblem(w, httpx.Problem{Status: e.Status, Code: e.Code, Detail: e.Detail, Instance: r.URL.Path})
 				return
 			}

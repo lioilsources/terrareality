@@ -73,6 +73,9 @@ String parameterToString(dynamic value) {
   if (value is LeaseTemplate) {
     return LeaseTemplateTypeTransformer().encode(value).toString();
   }
+  if (value is ListingReportReason) {
+    return ListingReportReasonTypeTransformer().encode(value).toString();
+  }
   if (value is ListingStatus) {
     return ListingStatusTypeTransformer().encode(value).toString();
   }

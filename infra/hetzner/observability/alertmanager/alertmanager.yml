@@ -1,0 +1,32 @@
+# Alertmanager: e-mail only for now. Replace the placeholders before launch;
+# the SMTP password is read from a Docker secret (never commit it).
+global:
+  smtp_smarthost: smtp.example.com:587
+  smtp_from: alerts@terrareality.cz
+  smtp_auth_username: alerts@terrareality.cz
+  smtp_auth_password_file: /run/secrets/alert_smtp_password
+  smtp_require_tls: true
+  resolve_timeout: 5m
+
+route:
+  receiver: ops-email
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="page"]
+      receiver: ops-email
+      repeat_interval: 1h
+
+receivers:
+  - name: ops-email
+    email_configs:
+      - to: ops@terrareality.cz # placeholder
+        send_resolved: true
+
+inhibit_rules:
+  # A dead API makes every SLO alert fire; keep only the root cause.
+  - source_matchers: [alertname="ApiHealthzDown"]
+    target_matchers: [slo=~".+"]
+    equal: []

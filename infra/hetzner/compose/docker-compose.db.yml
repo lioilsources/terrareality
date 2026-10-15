@@ -1,0 +1,78 @@
+# Production DB VM (Hetzner): PostgreSQL 17 + PostGIS + pgvector with
+# pgBackRest (WAL archiving + backups to Object Storage), node_exporter and
+# postgres_exporter for the observability stack on the app VM.
+# PostgreSQL listens on the private network only (DB_BIND_IP).
+#
+# Build the image on the VM (once per change of infra/hetzner/db or infra/dev/postgres):
+#   docker build -t terra/postgres:17-postgis-pgvector infra/dev/postgres
+#   cd infra/hetzner/compose && docker compose -f docker-compose.db.yml build   (.env from .env.example)
+# Backups: infra/hetzner/db/systemd timers call scripts/backup-run.sh.
+name: terra-db
+
+services:
+  db:
+    image: terra/postgres-backrest:17
+    build:
+      context: ../db
+      args:
+        BASE_IMAGE: terra/postgres:17-postgis-pgvector
+    container_name: terra-db
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    shm_size: 1g
+    stop_grace_period: 2m
+    environment:
+      POSTGRES_USER: terra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: terra
+      TEMPORAL_DB_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD}
+      MONITORING_DB_PASSWORD: ${MONITORING_DB_PASSWORD:?set MONITORING_DB_PASSWORD}
+      # pgBackRest repository on Hetzner Object Storage (see infra/hetzner/db/pgbackrest.conf)
+      PGBACKREST_REPO1_S3_BUCKET: ${PGBACKREST_BUCKET:-terrareality-pgbackrest}
+      PGBACKREST_REPO1_S3_ENDPOINT: ${S3_ENDPOINT:-fsn1.your-objectstorage.com}
+      PGBACKREST_REPO1_S3_REGION: ${S3_REGION:-fsn1}
+      PGBACKREST_REPO1_S3_KEY: ${PGBACKREST_S3_KEY:?set PGBACKREST_S3_KEY}
+      PGBACKREST_REPO1_S3_KEY_SECRET: ${PGBACKREST_S3_KEY_SECRET:?set PGBACKREST_S3_KEY_SECRET}
+      PGBACKREST_REPO1_CIPHER_PASS: ${PGBACKREST_CIPHER_PASS:?set PGBACKREST_CIPHER_PASS}
+    ports:
+      - "${DB_BIND_IP:-10.10.1.20}:5432:5432"
+    volumes:
+      - ${PGDATA_DIR:-/srv/pgdata}:/var/lib/postgresql/data
+      - ${PGBACKREST_SPOOL_DIR:-/srv/pgbackrest-spool}:/var/spool/pgbackrest
+      - pgbackrest_log:/var/log/pgbackrest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U terra -d terra"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_URI: db:5432/terra?sslmode=disable
+      DATA_SOURCE_USER: monitoring
+      DATA_SOURCE_PASS: ${MONITORING_DB_PASSWORD}
+    ports:
+      - "${DB_BIND_IP:-10.10.1.20}:9187:9187"
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.9.1
+    command:
+      - --path.rootfs=/host
+      - --web.listen-address=${DB_BIND_IP:-10.10.1.20}:9100
+      - --collector.textfile.directory=/var/lib/node_exporter/textfile
+    network_mode: host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+      - /var/lib/node_exporter/textfile:/var/lib/node_exporter/textfile:ro
+    restart: unless-stopped
+
+volumes:
+  pgbackrest_log:

@@ -1193,6 +1193,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/listings/{listingId}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a published listing to the moderators (DSA notice, art. 16)
+         * @description Open to signed-in users and anonymous visitors. Anonymous reporters give an e-mail address for the acknowledgement and the statement of reasons; signed-in reporters use their account e-mail. Staff decide every report (ADR 0003). Rate-limited per user or client IP.
+         */
+        post: operations["reportListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/seo/municipalities": {
         parameters: {
             query?: never;
@@ -3919,6 +3939,32 @@ export interface components {
             message_id?: string;
             note?: string;
         };
+        /** @enum {string} */
+        ListingReportReason: "illegal_content" | "fraud" | "discrimination" | "wrong_info" | "other";
+        ListingReportCreated: {
+            /**
+             * Format: uuid
+             * @description Notice number (moderation case id) quoted in the e-mails.
+             */
+            id: string;
+        };
+        ListingReportInput: {
+            reason: components["schemas"]["ListingReportReason"];
+            /** @description Why the reporter considers the listing illegal or in breach of the terms (DSA art. 16(2)(a)). */
+            explanation: string;
+            /**
+             * Format: email
+             * @description Required for anonymous reporters; ignored when signed in (the account e-mail is used).
+             */
+            email?: string;
+            /** @description Optional reporter name (anonymous reporters). */
+            name?: string;
+            /**
+             * @description Language of the e-mails for anonymous reporters.
+             * @enum {string}
+             */
+            locale?: "cs" | "en";
+        };
         RealtimeToken: {
             /** @description Centrifugo websocket URL. */
             url: string;
@@ -3995,8 +4041,11 @@ export interface components {
             /** Format: date-time */
             last_seen_at: string;
         };
-        /** @enum {string} */
-        ModerationVerdict: "dismiss" | "warn" | "remove_message" | "suspend_user";
+        /**
+         * @description Conversation cases take dismiss, warn, remove_message or suspend_user; listing cases (DSA reports) take keep, unpublish or request_change.
+         * @enum {string}
+         */
+        ModerationVerdict: "dismiss" | "warn" | "remove_message" | "suspend_user" | "keep" | "unpublish" | "request_change";
         ModerationSuggestion: {
             verdict: components["schemas"]["ModerationVerdict"];
             reason: string;
@@ -4007,10 +4056,23 @@ export interface components {
         ModerationCase: {
             /** Format: uuid */
             id: string;
+            /**
+             * @description What was reported.
+             * @enum {string}
+             */
+            kind: "conversation" | "listing";
             /** @enum {string} */
             source: "report" | "auto";
-            /** Format: uuid */
-            conversation_id: string;
+            /**
+             * Format: uuid
+             * @description Set for conversation cases.
+             */
+            conversation_id?: string;
+            /**
+             * Format: uuid
+             * @description The reported listing (listing cases) or the conversation's listing.
+             */
+            listing_id?: string;
             /** Format: uuid */
             message_id?: string;
             reason: string;
@@ -4019,6 +4081,8 @@ export interface components {
             status: "open" | "resolved";
             reporter_name?: string;
             reporter_email?: string;
+            /** @description The reporter was not signed in (listing reports). */
+            reporter_anonymous?: boolean;
             /** Format: uuid */
             reported_id?: string;
             reported_name?: string;
@@ -6795,6 +6859,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListingCard"][];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reportListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingReportInput"];
+            };
+        };
+        responses: {
+            /** @description Report filed; an acknowledgement e-mail is on its way */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingReportCreated"];
                 };
             };
             default: components["responses"]["Problem"];

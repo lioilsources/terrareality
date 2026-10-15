@@ -100,7 +100,8 @@ func (c *Client) SummarizeApplication(ctx context.Context, f ApplicationFacts) (
 		"summary": map[string]any{"type": "string"}, "strengths": list, "gaps": list,
 	}, "required": []string{"summary", "strengths", "gaps"}}
 	var out ApplicationSummary
-	if err := c.complete(ctx, summarySystem, "Application:\n"+string(in), "application_summary", schema, &out); err != nil {
+	model, err := c.complete(ctx, summarySystem, "Application:\n"+string(in), "application_summary", schema, &out)
+	if err != nil {
 		return ApplicationSummary{}, err
 	}
 	if out.Strengths == nil {
@@ -109,6 +110,6 @@ func (c *Client) SummarizeApplication(ctx context.Context, f ApplicationFacts) (
 	if out.Gaps == nil {
 		out.Gaps = []string{}
 	}
-	out.Model = c.Model
+	out.Model = model
 	return out, nil
 }

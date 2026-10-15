@@ -140,7 +140,7 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	d.Vision = vision.New(cfg.VisionURL)
 	d.AI = ai.Mock{}
 	if cfg.LLMBaseURL != "" {
-		d.AI = ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel)
+		d.AI = LLM(cfg, log)
 	}
 
 	if cfg.CentrifugoURL != "" {
@@ -173,6 +173,26 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	}
 	d.Pusher = notify.PlatformRouter{Web: web, Mobile: mobile}
 	return d, nil
+}
+
+// LLM returns the Spark gateway client. With CLOUD_LLM_BASE_URL set it carries
+// the cloud fallback, which stays inactive until GateCloudFallback ties it to
+// the flag ai.cloud_fallback.
+func LLM(cfg config.Config, log *slog.Logger) *ai.Client {
+	c := ai.NewClient(cfg.LLMBaseURL, cfg.LLMAPIKey, cfg.LLMModel)
+	c.Log = log
+	c.Fallback = ai.NewEndpoint(cfg.CloudLLMBaseURL, cfg.CloudLLMAPIKey, cfg.CloudLLMModel)
+	return c
+}
+
+// GateCloudFallback enables the cloud fallback of the given LLM clients per
+// request while the flag ai.cloud_fallback is on (backoffice-editable).
+func GateCloudFallback(fl *flags.Store, clients ...any) {
+	for _, x := range clients {
+		if c, ok := x.(*ai.Client); ok && c != nil {
+			c.FallbackOn = func(ctx context.Context) bool { return fl.Enabled(ctx, ai.FlagCloudFallback) }
+		}
+	}
 }
 
 // Moderator returns the AI used for moderation verdicts.

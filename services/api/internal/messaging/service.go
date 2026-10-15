@@ -611,7 +611,7 @@ func (s *Service) Report(ctx context.Context, p *auth.Principal, id uuid.UUID, m
 		if note = strings.TrimSpace(note); note != "" {
 			notePtr = &note
 		}
-		caseID, err = q.CreateReport(ctx, db.CreateReportParams{ConversationID: id, MessageID: messageID,
+		caseID, err = q.CreateReport(ctx, db.CreateReportParams{ConversationID: &id, MessageID: messageID,
 			ReporterID: &p.UserID, ReportedID: reported, Reason: reason, Note: notePtr, AiStatus: "pending"})
 		if err != nil {
 			return err

@@ -69,14 +69,3 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 		})
 	}
 }
-
-// SecurityHeaders sets conservative defaults for an API (no HTML served).
-func SecurityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("Referrer-Policy", "no-referrer")
-		h.Set("X-Frame-Options", "DENY")
-		next.ServeHTTP(w, r)
-	})
-}

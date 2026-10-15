@@ -9,14 +9,17 @@ import 'package:terra_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
+**kind** | **String** | What was reported. | 
 **source_** | **String** |  | 
-**conversationId** | **String** |  | 
+**conversationId** | **String** | Set for conversation cases. | [optional] 
+**listingId** | **String** | The reported listing (listing cases) or the conversation's listing. | [optional] 
 **messageId** | **String** |  | [optional] 
 **reason** | **String** |  | 
 **note** | **String** |  | [optional] 
 **status** | **String** |  | 
 **reporterName** | **String** |  | [optional] 
 **reporterEmail** | **String** |  | [optional] 
+**reporterAnonymous** | **bool** | The reporter was not signed in (listing reports). | [optional] 
 **reportedId** | **String** |  | [optional] 
 **reportedName** | **String** |  | [optional] 
 **reportedEmail** | **String** |  | [optional] 

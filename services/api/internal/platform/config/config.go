@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/terrareality/terrareality/services/api/internal/platform/ratelimit"
 )
 
 // Config holds all runtime settings. Every field maps to one env var so that
@@ -65,6 +67,21 @@ type Config struct {
 	S3Region    string
 
 	RateBurst int // credential endpoint burst per client IP
+
+	// Security (M8): per-route rate limits ("N/unit:burst" or "off") and HSTS.
+	RateSearch  ratelimit.Rule // RATE_LIMIT_SEARCH, public search per IP
+	RateChat    ratelimit.Rule // RATE_LIMIT_CHAT, chat-first search (LLM)
+	RateWebhook ratelimit.Rule // RATE_LIMIT_WEBHOOK, payment webhooks per IP
+	RateApply   ratelimit.Rule // RATE_LIMIT_APPLY, application submissions per user
+	RateMessage ratelimit.Rule // RATE_LIMIT_MESSAGE, messages and new conversations per user
+	RateReport  ratelimit.Rule // RATE_LIMIT_REPORT, listing/conversation reports per user or IP
+	HSTS        bool           // Strict-Transport-Security on API responses (default: prod)
+
+	// Cloud LLM fallback (M8), used only when the Spark gateway fails and the
+	// flag ai.cloud_fallback is on. OpenAI-compatible gateway in front of Claude.
+	CloudLLMBaseURL string // CLOUD_LLM_BASE_URL, empty = no fallback
+	CloudLLMAPIKey  string
+	CloudLLMModel   string // default claude-sonnet-5-5
 
 	// Catalog (M2).
 	LLMAPIKey    string
@@ -223,6 +240,33 @@ func Load() (Config, error) {
 	}
 	if n, err := strconv.Atoi(get("AUTH_RATE_BURST", "10")); err == nil {
 		c.RateBurst = n
+	}
+	c.HSTS = MustBool("HSTS", c.Env == "prod")
+	c.CloudLLMBaseURL = strings.TrimRight(get("CLOUD_LLM_BASE_URL", ""), "/")
+	c.CloudLLMAPIKey = get("CLOUD_LLM_API_KEY", "")
+	c.CloudLLMModel = get("CLOUD_LLM_MODEL", "claude-sonnet-5-5")
+	// Production defaults; dev/test (one IP runs the whole e2e suite) are 20x looser.
+	rates := []struct {
+		key, prod, dev string
+		dst            *ratelimit.Rule
+	}{
+		{"RATE_LIMIT_SEARCH", "120/m:60", "2400/m:1200", &c.RateSearch},
+		{"RATE_LIMIT_CHAT", "10/m:5", "200/m:100", &c.RateChat},
+		{"RATE_LIMIT_WEBHOOK", "600/m:300", "12000/m:6000", &c.RateWebhook},
+		{"RATE_LIMIT_APPLY", "20/h:10", "400/h:200", &c.RateApply},
+		{"RATE_LIMIT_MESSAGE", "30/m:20", "600/m:400", &c.RateMessage},
+		{"RATE_LIMIT_REPORT", "10/h:5", "200/h:100", &c.RateReport},
+	}
+	for _, r := range rates {
+		def := r.prod
+		if devLike {
+			def = r.dev
+		}
+		rule, err := ratelimit.ParseRule(get(r.key, def))
+		if err != nil {
+			return c, fmt.Errorf("%s: %w", r.key, err)
+		}
+		*r.dst = rule
 	}
 
 	durations := []struct {

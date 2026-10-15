@@ -1152,6 +1152,30 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/ListingCard" }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/listings/{listingId}/reports:
+    post:
+      security: []
+      tags: [search]
+      operationId: reportListing
+      summary: Report a published listing to the moderators (DSA notice, art. 16)
+      description: >-
+        Open to signed-in users and anonymous visitors. Anonymous reporters give an e-mail address for the
+        acknowledgement and the statement of reasons; signed-in reporters use their account e-mail. Staff decide
+        every report (ADR 0003). Rate-limited per user or client IP.
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingReportInput" }
+      responses:
+        "201":
+          description: Report filed; an acknowledgement e-mail is on its way
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingReportCreated" }
+        default: { $ref: "#/components/responses/Problem" }
   /v1/seo/municipalities:
     get:
       security: []
@@ -4073,6 +4097,29 @@ components:
         reason: { type: string, enum: [scam, advance_payment, harassment, discrimination, spam, other] }
         message_id: { type: string, format: uuid }
         note: { type: string, maxLength: 2000 }
+    ListingReportReason: { type: string, enum: [illegal_content, fraud, discrimination, wrong_info, other] }
+    ListingReportCreated:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid, description: Notice number (moderation case id) quoted in the e-mails. }
+    ListingReportInput:
+      type: object
+      required: [reason, explanation]
+      properties:
+        reason: { $ref: "#/components/schemas/ListingReportReason" }
+        explanation:
+          type: string
+          minLength: 20
+          maxLength: 2000
+          description: Why the reporter considers the listing illegal or in breach of the terms (DSA art. 16(2)(a)).
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Required for anonymous reporters; ignored when signed in (the account e-mail is used).
+        name: { type: string, maxLength: 200, description: Optional reporter name (anonymous reporters). }
+        locale: { type: string, enum: [cs, en], description: Language of the e-mails for anonymous reporters. }
     RealtimeToken:
       type: object
       required: [url, token, expires_at, channel]
@@ -4146,7 +4193,12 @@ components:
         label: { type: string }
         created_at: { type: string, format: date-time }
         last_seen_at: { type: string, format: date-time }
-    ModerationVerdict: { type: string, enum: [dismiss, warn, remove_message, suspend_user] }
+    ModerationVerdict:
+      type: string
+      description: >-
+        Conversation cases take dismiss, warn, remove_message or suspend_user; listing cases (DSA reports) take keep,
+        unpublish or request_change.
+      enum: [dismiss, warn, remove_message, suspend_user, keep, unpublish, request_change]
     ModerationSuggestion:
       type: object
       required: [verdict, reason, confidence]
@@ -4157,17 +4209,20 @@ components:
         model: { type: string }
     ModerationCase:
       type: object
-      required: [id, source, conversation_id, reason, status, ai_status, listing_title, message_body, created_at]
+      required: [id, kind, source, reason, status, ai_status, listing_title, message_body, created_at]
       properties:
         id: { type: string, format: uuid }
+        kind: { type: string, enum: [conversation, listing], description: What was reported. }
         source: { type: string, enum: [report, auto] }
-        conversation_id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid, description: Set for conversation cases. }
+        listing_id: { type: string, format: uuid, description: The reported listing (listing cases) or the conversation's listing. }
         message_id: { type: string, format: uuid }
         reason: { type: string }
         note: { type: string }
         status: { type: string, enum: [open, resolved] }
         reporter_name: { type: string }
         reporter_email: { type: string }
+        reporter_anonymous: { type: boolean, description: The reporter was not signed in (listing reports). }
         reported_id: { type: string, format: uuid }
         reported_name: { type: string }
         reported_email: { type: string }
