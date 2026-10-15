@@ -93,3 +93,7 @@ FROM ruian_places WHERE id = $1;
 
 -- name: CountRuianPlaces :one
 SELECT count(*) FROM ruian_places;
+
+-- name: CountRuianSamplePlaces :one
+-- Addresses of the embedded dev sample (synthetic ids 99000000-99999999).
+SELECT count(*) FROM ruian_places WHERE id BETWEEN 99000000 AND 99999999;

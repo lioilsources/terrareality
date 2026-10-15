@@ -458,6 +458,7 @@ const (
 	InvitationInputRoleAccountant  InvitationInputRole = "accountant"
 	InvitationInputRoleAdmin       InvitationInputRole = "admin"
 	InvitationInputRoleAgent       InvitationInputRole = "agent"
+	InvitationInputRoleInvestor    InvitationInputRole = "investor"
 	InvitationInputRoleMaintenance InvitationInputRole = "maintenance"
 	InvitationInputRoleViewer      InvitationInputRole = "viewer"
 )
@@ -470,6 +471,8 @@ func (e InvitationInputRole) Valid() bool {
 	case InvitationInputRoleAdmin:
 		return true
 	case InvitationInputRoleAgent:
+		return true
+	case InvitationInputRoleInvestor:
 		return true
 	case InvitationInputRoleMaintenance:
 		return true
@@ -986,22 +989,22 @@ func (e NotificationPreferencesEmailMessages) Valid() bool {
 
 // Defines values for ObligationShareKind.
 const (
-	Deposit  ObligationShareKind = "deposit"
-	Oneoff   ObligationShareKind = "oneoff"
-	Rent     ObligationShareKind = "rent"
-	Services ObligationShareKind = "services"
+	ObligationShareKindDeposit  ObligationShareKind = "deposit"
+	ObligationShareKindOneoff   ObligationShareKind = "oneoff"
+	ObligationShareKindRent     ObligationShareKind = "rent"
+	ObligationShareKindServices ObligationShareKind = "services"
 )
 
 // Valid indicates whether the value is a known member of the ObligationShareKind enum.
 func (e ObligationShareKind) Valid() bool {
 	switch e {
-	case Deposit:
+	case ObligationShareKindDeposit:
 		return true
-	case Oneoff:
+	case ObligationShareKindOneoff:
 		return true
-	case Rent:
+	case ObligationShareKindRent:
 		return true
-	case Services:
+	case ObligationShareKindServices:
 		return true
 	default:
 		return false
@@ -1065,6 +1068,54 @@ func (e PassportInsolvency) Valid() bool {
 	case PassportInsolvencyRecord:
 		return true
 	case PassportInsolvencyUnchecked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PortfolioAttentionKind.
+const (
+	PortfolioAttentionKindDebt       PortfolioAttentionKind = "debt"
+	PortfolioAttentionKindEnding     PortfolioAttentionKind = "ending"
+	PortfolioAttentionKindEscalation PortfolioAttentionKind = "escalation"
+	PortfolioAttentionKindHighRisk   PortfolioAttentionKind = "high_risk"
+	PortfolioAttentionKindNotice     PortfolioAttentionKind = "notice"
+	PortfolioAttentionKindVacant     PortfolioAttentionKind = "vacant"
+)
+
+// Valid indicates whether the value is a known member of the PortfolioAttentionKind enum.
+func (e PortfolioAttentionKind) Valid() bool {
+	switch e {
+	case PortfolioAttentionKindDebt:
+		return true
+	case PortfolioAttentionKindEnding:
+		return true
+	case PortfolioAttentionKindEscalation:
+		return true
+	case PortfolioAttentionKindHighRisk:
+		return true
+	case PortfolioAttentionKindNotice:
+		return true
+	case PortfolioAttentionKindVacant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PortfolioRuleScope.
+const (
+	PortfolioRuleScopeGroup        PortfolioRuleScope = "group"
+	PortfolioRuleScopeMunicipality PortfolioRuleScope = "municipality"
+)
+
+// Valid indicates whether the value is a known member of the PortfolioRuleScope enum.
+func (e PortfolioRuleScope) Valid() bool {
+	switch e {
+	case PortfolioRuleScopeGroup:
+		return true
+	case PortfolioRuleScopeMunicipality:
 		return true
 	default:
 		return false
@@ -1206,6 +1257,24 @@ func (e RejectReason) Valid() bool {
 	}
 }
 
+// Defines values for RentRollRowKind.
+const (
+	RentRollRowKindLease  RentRollRowKind = "lease"
+	RentRollRowKindVacant RentRollRowKind = "vacant"
+)
+
+// Valid indicates whether the value is a known member of the RentRollRowKind enum.
+func (e RentRollRowKind) Valid() bool {
+	switch e {
+	case RentRollRowKindLease:
+		return true
+	case RentRollRowKindVacant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ReportInputReason.
 const (
 	ReportInputReasonAdvancePayment ReportInputReason = "advance_payment"
@@ -1236,11 +1305,123 @@ func (e ReportInputReason) Valid() bool {
 	}
 }
 
+// Defines values for ResolvedRulesSources.
+const (
+	ResolvedRulesSourcesGroup        ResolvedRulesSources = "group"
+	ResolvedRulesSourcesJurisdiction ResolvedRulesSources = "jurisdiction"
+	ResolvedRulesSourcesMunicipality ResolvedRulesSources = "municipality"
+)
+
+// Valid indicates whether the value is a known member of the ResolvedRulesSources enum.
+func (e ResolvedRulesSources) Valid() bool {
+	switch e {
+	case ResolvedRulesSourcesGroup:
+		return true
+	case ResolvedRulesSourcesJurisdiction:
+		return true
+	case ResolvedRulesSourcesMunicipality:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiskBand.
+const (
+	High   RiskBand = "high"
+	Low    RiskBand = "low"
+	Medium RiskBand = "medium"
+)
+
+// Valid indicates whether the value is a known member of the RiskBand enum.
+func (e RiskBand) Valid() bool {
+	switch e {
+	case High:
+		return true
+	case Low:
+		return true
+	case Medium:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiskFactorGroup.
+const (
+	RiskFactorGroupContract RiskFactorGroup = "contract"
+	RiskFactorGroupDeposit  RiskFactorGroup = "deposit"
+	RiskFactorGroupLocation RiskFactorGroup = "location"
+	RiskFactorGroupPassport RiskFactorGroup = "passport"
+	RiskFactorGroupPayments RiskFactorGroup = "payments"
+)
+
+// Valid indicates whether the value is a known member of the RiskFactorGroup enum.
+func (e RiskFactorGroup) Valid() bool {
+	switch e {
+	case RiskFactorGroupContract:
+		return true
+	case RiskFactorGroupDeposit:
+		return true
+	case RiskFactorGroupLocation:
+		return true
+	case RiskFactorGroupPassport:
+		return true
+	case RiskFactorGroupPayments:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RiskFactorKey.
+const (
+	RiskFactorKeyDebt            RiskFactorKey = "debt"
+	RiskFactorKeyDepositCoverage RiskFactorKey = "deposit_coverage"
+	RiskFactorKeyEscalations     RiskFactorKey = "escalations"
+	RiskFactorKeyJointNonpayer   RiskFactorKey = "joint_nonpayer"
+	RiskFactorKeyMarketRent      RiskFactorKey = "market_rent"
+	RiskFactorKeyMarketSupply    RiskFactorKey = "market_supply"
+	RiskFactorKeyNotice          RiskFactorKey = "notice"
+	RiskFactorKeyOverdueDays     RiskFactorKey = "overdue_days"
+	RiskFactorKeyPassport        RiskFactorKey = "passport"
+	RiskFactorKeyTermEnd         RiskFactorKey = "term_end"
+)
+
+// Valid indicates whether the value is a known member of the RiskFactorKey enum.
+func (e RiskFactorKey) Valid() bool {
+	switch e {
+	case RiskFactorKeyDebt:
+		return true
+	case RiskFactorKeyDepositCoverage:
+		return true
+	case RiskFactorKeyEscalations:
+		return true
+	case RiskFactorKeyJointNonpayer:
+		return true
+	case RiskFactorKeyMarketRent:
+		return true
+	case RiskFactorKeyMarketSupply:
+		return true
+	case RiskFactorKeyNotice:
+		return true
+	case RiskFactorKeyOverdueDays:
+		return true
+	case RiskFactorKeyPassport:
+		return true
+	case RiskFactorKeyTermEnd:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Role.
 const (
 	RoleAccountant  Role = "accountant"
 	RoleAdmin       Role = "admin"
 	RoleAgent       Role = "agent"
+	RoleInvestor    Role = "investor"
 	RoleMaintenance Role = "maintenance"
 	RoleOwner       Role = "owner"
 	RoleViewer      Role = "viewer"
@@ -1254,6 +1435,8 @@ func (e Role) Valid() bool {
 	case RoleAdmin:
 		return true
 	case RoleAgent:
+		return true
+	case RoleInvestor:
 		return true
 	case RoleMaintenance:
 		return true
@@ -1586,16 +1769,16 @@ func (e CreateAttachmentUploadJSONBodyContentType) Valid() bool {
 
 // Defines values for GetLeaseLedgerParamsFormat.
 const (
-	Csv  GetLeaseLedgerParamsFormat = "csv"
-	Json GetLeaseLedgerParamsFormat = "json"
+	GetLeaseLedgerParamsFormatCsv  GetLeaseLedgerParamsFormat = "csv"
+	GetLeaseLedgerParamsFormatJson GetLeaseLedgerParamsFormat = "json"
 )
 
 // Valid indicates whether the value is a known member of the GetLeaseLedgerParamsFormat enum.
 func (e GetLeaseLedgerParamsFormat) Valid() bool {
 	switch e {
-	case Csv:
+	case GetLeaseLedgerParamsFormatCsv:
 		return true
-	case Json:
+	case GetLeaseLedgerParamsFormatJson:
 		return true
 	default:
 		return false
@@ -1722,6 +1905,27 @@ func (e RequestSuggestionJSONBodyKind) Valid() bool {
 	case RequestSuggestionJSONBodyKindAttributes:
 		return true
 	case RequestSuggestionJSONBodyKindText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetRentRollParamsFormat.
+const (
+	GetRentRollParamsFormatCsv  GetRentRollParamsFormat = "csv"
+	GetRentRollParamsFormatJson GetRentRollParamsFormat = "json"
+	GetRentRollParamsFormatXlsx GetRentRollParamsFormat = "xlsx"
+)
+
+// Valid indicates whether the value is a known member of the GetRentRollParamsFormat enum.
+func (e GetRentRollParamsFormat) Valid() bool {
+	switch e {
+	case GetRentRollParamsFormatCsv:
+		return true
+	case GetRentRollParamsFormatJson:
+		return true
+	case GetRentRollParamsFormatXlsx:
 		return true
 	default:
 		return false
@@ -2264,7 +2468,9 @@ type Invitation struct {
 	Email     string             `json:"email"`
 	ExpiresAt time.Time          `json:"expires_at"`
 	Id        openapi_types.UUID `json:"id"`
-	Role      Role               `json:"role"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role Role `json:"role"`
 }
 
 // InvitationInput defines model for InvitationInput.
@@ -2279,12 +2485,14 @@ type InvitationInputRole string
 
 // InvitationPreview defines model for InvitationPreview.
 type InvitationPreview struct {
-	Email       string                  `json:"email"`
-	ExpiresAt   time.Time               `json:"expires_at"`
-	InviterName string                  `json:"inviter_name"`
-	OrgName     string                  `json:"org_name"`
-	Role        Role                    `json:"role"`
-	Status      InvitationPreviewStatus `json:"status"`
+	Email       string    `json:"email"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	InviterName string    `json:"inviter_name"`
+	OrgName     string    `json:"org_name"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role   Role                    `json:"role"`
+	Status InvitationPreviewStatus `json:"status"`
 }
 
 // InvitationPreviewStatus defines model for InvitationPreview.Status.
@@ -2360,22 +2568,27 @@ type LeaseEventLog struct {
 
 // LeaseInput defines model for LeaseInput.
 type LeaseInput struct {
-	ApplicationId   *openapi_types.UUID  `json:"application_id,omitempty"`
-	Clauses         *[]LeaseInputClauses `json:"clauses,omitempty"`
-	DepositAmount   *int64               `json:"deposit_amount,omitempty"`
-	DueDay          *int                 `json:"due_day,omitempty"`
-	EndsOn          *openapi_types.Date  `json:"ends_on,omitempty"`
-	ListingId       *openapi_types.UUID  `json:"listing_id,omitempty"`
-	NoticeMonths    *int                 `json:"notice_months,omitempty"`
-	Parties         *[]LeasePartyInput   `json:"parties,omitempty"`
-	PayeeIban       string               `json:"payee_iban"`
-	PayeeName       string               `json:"payee_name"`
-	PropertyAddress *string              `json:"property_address,omitempty"`
-	RentAmount      int64                `json:"rent_amount"`
-	ServicesAmount  *int64               `json:"services_amount,omitempty"`
-	StartsOn        openapi_types.Date   `json:"starts_on"`
-	Template        LeaseTemplate        `json:"template"`
-	UnitLabel       *string              `json:"unit_label,omitempty"`
+	ApplicationId *openapi_types.UUID  `json:"application_id,omitempty"`
+	Clauses       *[]LeaseInputClauses `json:"clauses,omitempty"`
+	DepositAmount *int64               `json:"deposit_amount,omitempty"`
+	DueDay        *int                 `json:"due_day,omitempty"`
+	EndsOn        *openapi_types.Date  `json:"ends_on,omitempty"`
+	ListingId     *openapi_types.UUID  `json:"listing_id,omitempty"`
+
+	// NoticeMonths Default: the portfolio rules of the place, else 3.
+	NoticeMonths    *int               `json:"notice_months,omitempty"`
+	Parties         *[]LeasePartyInput `json:"parties,omitempty"`
+	PayeeIban       string             `json:"payee_iban"`
+	PayeeName       string             `json:"payee_name"`
+	PropertyAddress *string            `json:"property_address,omitempty"`
+	RentAmount      int64              `json:"rent_amount"`
+
+	// RuianId RÚIAN address of a lease without a listing (where the lease is in the portfolio).
+	RuianId        *int64             `json:"ruian_id,omitempty"`
+	ServicesAmount *int64             `json:"services_amount,omitempty"`
+	StartsOn       openapi_types.Date `json:"starts_on"`
+	Template       LeaseTemplate      `json:"template"`
+	UnitLabel      *string            `json:"unit_label,omitempty"`
 }
 
 // LeaseInputClauses defines model for LeaseInput.Clauses.
@@ -2412,6 +2625,18 @@ type LeasePartyInput struct {
 
 // LeasePartyInputRole defines model for LeasePartyInput.Role.
 type LeasePartyInputRole string
+
+// LeaseRisk defines model for LeaseRisk.
+type LeaseRisk struct {
+	Band         *RiskBand    `json:"band,omitempty"`
+	ComputedAt   time.Time    `json:"computed_at"`
+	Factors      []RiskFactor `json:"factors"`
+	Landlord     bool         `json:"landlord"`
+	ModelVersion string       `json:"model_version"`
+
+	// Score Absent for tenants.
+	Score *int `json:"score,omitempty"`
+}
 
 // LeaseState defines model for LeaseState.
 type LeaseState string
@@ -2689,11 +2914,13 @@ type MediaUploadRequestContentType string
 
 // Member defines model for Member.
 type Member struct {
-	DisplayName string             `json:"display_name"`
-	Email       string             `json:"email"`
-	JoinedAt    time.Time          `json:"joined_at"`
-	Role        Role               `json:"role"`
-	UserId      openapi_types.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
+	JoinedAt    time.Time `json:"joined_at"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role   Role               `json:"role"`
+	UserId openapi_types.UUID `json:"user_id"`
 
 	// VerificationLevel none → email → phone → identity (BankID). Features require a minimum level.
 	VerificationLevel VerificationLevel `json:"verification_level"`
@@ -2876,7 +3103,9 @@ type OrgInput struct {
 // OrgMembership defines model for OrgMembership.
 type OrgMembership struct {
 	Organization Organization `json:"organization"`
-	Role         Role         `json:"role"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role Role `json:"role"`
 }
 
 // Organization defines model for Organization.
@@ -2937,6 +3166,166 @@ type Place struct {
 	Bbox []float64 `json:"bbox"`
 	Name string    `json:"name"`
 	Path string    `json:"path"`
+}
+
+// PortfolioAttention defines model for PortfolioAttention.
+type PortfolioAttention struct {
+	Amount   *int64                 `json:"amount,omitempty"`
+	City     string                 `json:"city"`
+	Date     *openapi_types.Date    `json:"date,omitempty"`
+	Kind     PortfolioAttentionKind `json:"kind"`
+	Label    string                 `json:"label"`
+	LeaseId  *openapi_types.UUID    `json:"lease_id,omitempty"`
+	Score    *int                   `json:"score,omitempty"`
+	Severity int                    `json:"severity"`
+	UnitId   *openapi_types.UUID    `json:"unit_id,omitempty"`
+}
+
+// PortfolioAttentionKind defines model for PortfolioAttention.Kind.
+type PortfolioAttentionKind string
+
+// PortfolioCity defines model for PortfolioCity.
+type PortfolioCity struct {
+	Band         *RiskBand `json:"band,omitempty"`
+	Debt         int64     `json:"debt"`
+	Expected     int64     `json:"expected"`
+	Lat          *float32  `json:"lat,omitempty"`
+	Leases       int       `json:"leases"`
+	Lng          *float32  `json:"lng,omitempty"`
+	Monthly      int64     `json:"monthly"`
+	Name         string    `json:"name"`
+	Path         string    `json:"path"`
+	Received     int64     `json:"received"`
+	Region       string    `json:"region"`
+	Share        float32   `json:"share"`
+	Vacant       int       `json:"vacant"`
+	WeightedRisk *int      `json:"weighted_risk,omitempty"`
+}
+
+// PortfolioDashboard defines model for PortfolioDashboard.
+type PortfolioDashboard struct {
+	Attention     []PortfolioAttention `json:"attention"`
+	Band          *RiskBand            `json:"band,omitempty"`
+	Cities        []PortfolioCity      `json:"cities"`
+	Concentration struct {
+		EndingPeak *PortfolioShare `json:"ending_peak,omitempty"`
+
+		// Hhi Herfindahl index of income over municipalities (0..1).
+		Hhi       float32         `json:"hhi"`
+		TopCity   *PortfolioShare `json:"top_city,omitempty"`
+		TopTenant *PortfolioShare `json:"top_tenant,omitempty"`
+	} `json:"concentration"`
+	Currency string `json:"currency"`
+	Debt     int64  `json:"debt"`
+	Expected int64  `json:"expected"`
+	Leases   int    `json:"leases"`
+	Monthly  int64  `json:"monthly"`
+
+	// Period YYYY-MM of the current month.
+	Period   string `json:"period"`
+	Received int64  `json:"received"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role  Role `json:"role"`
+	Trend []struct {
+		Expected     int64  `json:"expected"`
+		Period       string `json:"period"`
+		Received     int64  `json:"received"`
+		WeightedRisk *int   `json:"weighted_risk,omitempty"`
+	} `json:"trend"`
+	Vacant       int  `json:"vacant"`
+	WeightedRisk *int `json:"weighted_risk,omitempty"`
+}
+
+// PortfolioGroup defines model for PortfolioGroup.
+type PortfolioGroup struct {
+	Color       string               `json:"color"`
+	Id          openapi_types.UUID   `json:"id"`
+	LeaseIds    []openapi_types.UUID `json:"lease_ids"`
+	Name        string               `json:"name"`
+	PropertyIds []openapi_types.UUID `json:"property_ids"`
+}
+
+// PortfolioGroupInput defines model for PortfolioGroupInput.
+type PortfolioGroupInput struct {
+	Color       *string               `json:"color,omitempty"`
+	LeaseIds    *[]openapi_types.UUID `json:"lease_ids,omitempty"`
+	Name        string                `json:"name"`
+	PropertyIds *[]openapi_types.UUID `json:"property_ids,omitempty"`
+}
+
+// PortfolioGroups defines model for PortfolioGroups.
+type PortfolioGroups struct {
+	Groups     []PortfolioGroup `json:"groups"`
+	Properties []struct {
+		Address string             `json:"address"`
+		Id      openapi_types.UUID `json:"id"`
+		Name    string             `json:"name"`
+	} `json:"properties"`
+}
+
+// PortfolioRule defines model for PortfolioRule.
+type PortfolioRule struct {
+	GroupId      *openapi_types.UUID `json:"group_id,omitempty"`
+	Id           openapi_types.UUID  `json:"id"`
+	Municipality *string             `json:"municipality,omitempty"`
+
+	// Rules Unset fields inherit (jurisdiction defaults, then municipality, then group).
+	Rules     PortfolioRules     `json:"rules"`
+	Scope     PortfolioRuleScope `json:"scope"`
+	ScopeName string             `json:"scope_name"`
+	UpdatedAt time.Time          `json:"updated_at"`
+}
+
+// PortfolioRuleScope defines model for PortfolioRule.Scope.
+type PortfolioRuleScope string
+
+// PortfolioRuleInput defines model for PortfolioRuleInput.
+type PortfolioRuleInput struct {
+	GroupId *openapi_types.UUID `json:"group_id,omitempty"`
+
+	// Municipality Admin path of the municipality.
+	Municipality *string `json:"municipality,omitempty"`
+
+	// Rules Unset fields inherit (jurisdiction defaults, then municipality, then group).
+	Rules PortfolioRules `json:"rules"`
+}
+
+// PortfolioRuleList defines model for PortfolioRuleList.
+type PortfolioRuleList struct {
+	// Defaults Unset fields inherit (jurisdiction defaults, then municipality, then group).
+	Defaults       PortfolioRules `json:"defaults"`
+	Municipalities []struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	} `json:"municipalities"`
+	Rules []PortfolioRule `json:"rules"`
+}
+
+// PortfolioRules Unset fields inherit (jurisdiction defaults, then municipality, then group).
+type PortfolioRules struct {
+	DepositMonths      *int `json:"deposit_months,omitempty"`
+	EscalationDays     *int `json:"escalation_days,omitempty"`
+	NoticeMonths       *int `json:"notice_months,omitempty"`
+	OverdueDays        *int `json:"overdue_days,omitempty"`
+	ReminderBeforeDays *int `json:"reminder_before_days,omitempty"`
+}
+
+// PortfolioShare defines model for PortfolioShare.
+type PortfolioShare struct {
+	Amount int64   `json:"amount"`
+	Count  int     `json:"count"`
+	Name   string  `json:"name"`
+	Share  float32 `json:"share"`
+}
+
+// PortfolioSummary An AI suggestion for the owner; it decides nothing (ADR 0003).
+type PortfolioSummary struct {
+	Actions   []string  `json:"actions"`
+	Changes   []string  `json:"changes"`
+	CreatedAt time.Time `json:"created_at"`
+	Model     string    `json:"model"`
+	Summary   string    `json:"summary"`
 }
 
 // PrescreenAnswer defines model for PrescreenAnswer.
@@ -3090,6 +3479,69 @@ type RegisterRequest struct {
 // RejectReason defines model for RejectReason.
 type RejectReason string
 
+// RentRoll defines model for RentRoll.
+type RentRoll struct {
+	Groups []PortfolioGroup `json:"groups"`
+
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
+	Role   Role          `json:"role"`
+	Rows   []RentRollRow `json:"rows"`
+	Totals struct {
+		Billed  int64 `json:"billed"`
+		Debt    int64 `json:"debt"`
+		Leases  int   `json:"leases"`
+		Monthly int64 `json:"monthly"`
+		Paid    int64 `json:"paid"`
+		Vacant  int   `json:"vacant"`
+	} `json:"totals"`
+}
+
+// RentRollRow defines model for RentRollRow.
+type RentRollRow struct {
+	Address    string `json:"address"`
+	AskingRent *int64 `json:"asking_rent,omitempty"`
+
+	// Billed Receivables due by today (ledger).
+	Billed   *int64 `json:"billed,omitempty"`
+	Code     *int64 `json:"code,omitempty"`
+	Currency string `json:"currency"`
+
+	// Debt Receivable balance by today.
+	Debt             *int64               `json:"debt,omitempty"`
+	Deposit          *int64               `json:"deposit,omitempty"`
+	DepositPaid      *int64               `json:"deposit_paid,omitempty"`
+	DueDay           *int                 `json:"due_day,omitempty"`
+	EndsOn           *openapi_types.Date  `json:"ends_on,omitempty"`
+	GroupIds         []openapi_types.UUID `json:"group_ids"`
+	Kind             RentRollRowKind      `json:"kind"`
+	Lat              *float32             `json:"lat,omitempty"`
+	LeaseId          *openapi_types.UUID  `json:"lease_id,omitempty"`
+	ListingStatus    *string              `json:"listing_status,omitempty"`
+	Lng              *float32             `json:"lng,omitempty"`
+	Municipality     string               `json:"municipality"`
+	MunicipalityPath string               `json:"municipality_path"`
+	NoticeOn         *openapi_types.Date  `json:"notice_on,omitempty"`
+
+	// Paid Payments booked by today (ledger).
+	Paid       *int64              `json:"paid,omitempty"`
+	Region     string              `json:"region"`
+	RegionPath *string             `json:"region_path,omitempty"`
+	Rent       *int64              `json:"rent,omitempty"`
+	RiskBand   *RiskBand           `json:"risk_band,omitempty"`
+	RiskScore  *int                `json:"risk_score,omitempty"`
+	Services   *int64              `json:"services,omitempty"`
+	StartsOn   *openapi_types.Date `json:"starts_on,omitempty"`
+	State      string              `json:"state"`
+
+	// Tenants Initials only for the investor role.
+	Tenants *string             `json:"tenants,omitempty"`
+	Unit    string              `json:"unit"`
+	UnitId  *openapi_types.UUID `json:"unit_id,omitempty"`
+}
+
+// RentRollRowKind defines model for RentRollRow.Kind.
+type RentRollRowKind string
+
 // ReplyTemplate defines model for ReplyTemplate.
 type ReplyTemplate struct {
 	Body      string             `json:"body"`
@@ -3113,6 +3565,19 @@ type ReportInput struct {
 
 // ReportInputReason defines model for ReportInput.Reason.
 type ReportInputReason string
+
+// ResolvedRules defines model for ResolvedRules.
+type ResolvedRules struct {
+	// Place Municipality name; empty when unknown.
+	Place string `json:"place"`
+
+	// Rules Unset fields inherit (jurisdiction defaults, then municipality, then group).
+	Rules   PortfolioRules         `json:"rules"`
+	Sources []ResolvedRulesSources `json:"sources"`
+}
+
+// ResolvedRulesSources defines model for ResolvedRules.Sources.
+type ResolvedRulesSources string
 
 // ReviewDecision defines model for ReviewDecision.
 type ReviewDecision struct {
@@ -3143,11 +3608,44 @@ type ReviewItem struct {
 	VersionId        openapi_types.UUID `json:"version_id"`
 }
 
-// Role defines model for Role.
+// RiskBand defines model for RiskBand.
+type RiskBand string
+
+// RiskFactor defines model for RiskFactor.
+type RiskFactor struct {
+	Detail *map[string]interface{} `json:"detail,omitempty"`
+	Group  RiskFactorGroup         `json:"group"`
+	Key    RiskFactorKey           `json:"key"`
+
+	// Known false when there is no data (counted as 0).
+	Known bool `json:"known"`
+
+	// Points Contribution to the score; absent for tenants.
+	Points *float32 `json:"points,omitempty"`
+	Value  float32  `json:"value"`
+
+	// Weight Absent for tenants.
+	Weight *int `json:"weight,omitempty"`
+}
+
+// RiskFactorGroup defines model for RiskFactor.Group.
+type RiskFactorGroup string
+
+// RiskFactorKey defines model for RiskFactor.Key.
+type RiskFactorKey string
+
+// RiskWeights defines model for RiskWeights.
+type RiskWeights struct {
+	Defaults map[string]int `json:"defaults"`
+	Weights  map[string]int `json:"weights"`
+}
+
+// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
 type Role string
 
 // RoleInput defines model for RoleInput.
 type RoleInput struct {
+	// Role investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
 	Role Role `json:"role"`
 }
 
@@ -3428,6 +3926,18 @@ type MediaId = openapi_types.UUID
 // OrgId defines model for OrgId.
 type OrgId = openapi_types.UUID
 
+// PortfolioGroupFilter defines model for PortfolioGroupFilter.
+type PortfolioGroupFilter = openapi_types.UUID
+
+// PortfolioGroupId defines model for PortfolioGroupId.
+type PortfolioGroupId = openapi_types.UUID
+
+// PortfolioMunicipality defines model for PortfolioMunicipality.
+type PortfolioMunicipality = string
+
+// PortfolioRegion defines model for PortfolioRegion.
+type PortfolioRegion = string
+
 // Provider defines model for Provider.
 type Provider string
 
@@ -3658,6 +4168,42 @@ type MarkSharePaidJSONBody struct {
 	PaidOn *openapi_types.Date `json:"paid_on,omitempty"`
 }
 
+// GetPortfolioParams defines parameters for GetPortfolio.
+type GetPortfolioParams struct {
+	// Municipality Admin path of a municipality.
+	Municipality *PortfolioMunicipality `form:"municipality,omitempty" json:"municipality,omitempty"`
+
+	// Region Admin path of a region.
+	Region  *PortfolioRegion      `form:"region,omitempty" json:"region,omitempty"`
+	GroupId *PortfolioGroupFilter `form:"group_id,omitempty" json:"group_id,omitempty"`
+}
+
+// GetRentRollParams defines parameters for GetRentRoll.
+type GetRentRollParams struct {
+	// Municipality Admin path of a municipality.
+	Municipality *PortfolioMunicipality `form:"municipality,omitempty" json:"municipality,omitempty"`
+
+	// Region Admin path of a region.
+	Region  *PortfolioRegion         `form:"region,omitempty" json:"region,omitempty"`
+	GroupId *PortfolioGroupFilter    `form:"group_id,omitempty" json:"group_id,omitempty"`
+	Format  *GetRentRollParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+}
+
+// GetRentRollParamsFormat defines parameters for GetRentRoll.
+type GetRentRollParamsFormat string
+
+// SetRiskWeightsJSONBody defines parameters for SetRiskWeights.
+type SetRiskWeightsJSONBody struct {
+	Weights map[string]int `json:"weights"`
+}
+
+// ResolvePortfolioRulesParams defines parameters for ResolvePortfolioRules.
+type ResolvePortfolioRulesParams struct {
+	ListingId *openapi_types.UUID `form:"listing_id,omitempty" json:"listing_id,omitempty"`
+	RuianId   *int64              `form:"ruian_id,omitempty" json:"ruian_id,omitempty"`
+	Address   *string             `form:"address,omitempty" json:"address,omitempty"`
+}
+
 // ListRoommatesParams defines parameters for ListRoommates.
 type ListRoommatesParams struct {
 	// Area Admin unit path.
@@ -3851,6 +4397,18 @@ type UpdateOrgMemberJSONRequestBody = RoleInput
 
 // MarkSharePaidJSONRequestBody defines body for MarkSharePaid for application/json ContentType.
 type MarkSharePaidJSONRequestBody MarkSharePaidJSONBody
+
+// CreatePortfolioGroupJSONRequestBody defines body for CreatePortfolioGroup for application/json ContentType.
+type CreatePortfolioGroupJSONRequestBody = PortfolioGroupInput
+
+// UpdatePortfolioGroupJSONRequestBody defines body for UpdatePortfolioGroup for application/json ContentType.
+type UpdatePortfolioGroupJSONRequestBody = PortfolioGroupInput
+
+// SetRiskWeightsJSONRequestBody defines body for SetRiskWeights for application/json ContentType.
+type SetRiskWeightsJSONRequestBody SetRiskWeightsJSONBody
+
+// SavePortfolioRuleJSONRequestBody defines body for SavePortfolioRule for application/json ContentType.
+type SavePortfolioRuleJSONRequestBody = PortfolioRuleInput
 
 // CreateReplyTemplateJSONRequestBody defines body for CreateReplyTemplate for application/json ContentType.
 type CreateReplyTemplateJSONRequestBody = ReplyTemplateInput
@@ -4058,6 +4616,9 @@ type ServerInterface interface {
 	// RequestLeaseChanges Tenant asks the landlord to change the proposal
 	// (POST /v1/leases/{leaseId}/request-changes)
 	RequestLeaseChanges(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
+	// GetLeaseRisk Risk of a lease with its factors (tenants see only the payment factors)
+	// (GET /v1/leases/{leaseId}/risk)
+	GetLeaseRisk(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
 	// ConfirmLeaseSettlement Confirm the deposit settlement after the lease ended (all parties settle the lease)
 	// (POST /v1/leases/{leaseId}/settlement)
 	ConfirmLeaseSettlement(w http.ResponseWriter, r *http.Request, leaseId LeaseId)
@@ -4304,6 +4865,48 @@ type ServerInterface interface {
 	// MarkSharePaid The landlord confirms a payment arrived ("přišlo")
 	// (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
 	MarkSharePaid(w http.ResponseWriter, r *http.Request, orgId OrgId, shareId openapi_types.UUID)
+	// GetPortfolio Portfolio dashboard across municipalities (risk, concentration, income, attention, trend)
+	// (GET /v1/orgs/{orgId}/portfolio)
+	GetPortfolio(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetPortfolioParams)
+	// ListPortfolioGroups Groups (tags) of properties and leases
+	// (GET /v1/orgs/{orgId}/portfolio/groups)
+	ListPortfolioGroups(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// CreatePortfolioGroup Create a group
+	// (POST /v1/orgs/{orgId}/portfolio/groups)
+	CreatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// DeletePortfolioGroup Delete a group (and its rules)
+	// (DELETE /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+	DeletePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId)
+	// UpdatePortfolioGroup Rename a group and replace its members
+	// (PUT /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+	UpdatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId)
+	// GetRentRoll Rent roll of all units and running leases (JSON, CSV or XLSX)
+	// (GET /v1/orgs/{orgId}/portfolio/rent-roll)
+	GetRentRoll(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetRentRollParams)
+	// GetRiskWeights Factor weights of the lease risk score
+	// (GET /v1/orgs/{orgId}/portfolio/risk-weights)
+	GetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// SetRiskWeights Set factor weights (0 switches a factor off); leases are rescored
+	// (PUT /v1/orgs/{orgId}/portfolio/risk-weights)
+	SetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// ListPortfolioRules Rules per municipality or group (overrides of the jurisdiction defaults)
+	// (GET /v1/orgs/{orgId}/portfolio/rules)
+	ListPortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// SavePortfolioRule Set the rules of a municipality or a group (applies to new leases)
+	// (PUT /v1/orgs/{orgId}/portfolio/rules)
+	SavePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// ResolvePortfolioRules Rules a new lease at a place would get (lease form defaults)
+	// (GET /v1/orgs/{orgId}/portfolio/rules/resolve)
+	ResolvePortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId, params ResolvePortfolioRulesParams)
+	// DeletePortfolioRule Delete a rule
+	// (DELETE /v1/orgs/{orgId}/portfolio/rules/{ruleId})
+	DeletePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId, ruleId openapi_types.UUID)
+	// GetPortfolioSummary The latest AI summary of the portfolio (a suggestion)
+	// (GET /v1/orgs/{orgId}/portfolio/summary)
+	GetPortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId)
+	// CreatePortfolioSummary Ask the AI to summarize the portfolio (aggregates only, no personal data)
+	// (POST /v1/orgs/{orgId}/portfolio/summary)
+	CreatePortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId)
 	// ListReplyTemplates Reply templates of the organization
 	// (GET /v1/orgs/{orgId}/reply-templates)
 	ListReplyTemplates(w http.ResponseWriter, r *http.Request, orgId OrgId)
@@ -4727,6 +5330,12 @@ func (_ Unimplemented) ListLeaseObligations(w http.ResponseWriter, r *http.Reque
 // RequestLeaseChanges Tenant asks the landlord to change the proposal
 // (POST /v1/leases/{leaseId}/request-changes)
 func (_ Unimplemented) RequestLeaseChanges(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLeaseRisk Risk of a lease with its factors (tenants see only the payment factors)
+// (GET /v1/leases/{leaseId}/risk)
+func (_ Unimplemented) GetLeaseRisk(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5219,6 +5828,90 @@ func (_ Unimplemented) UpdateOrgMember(w http.ResponseWriter, r *http.Request, o
 // MarkSharePaid The landlord confirms a payment arrived ("přišlo")
 // (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
 func (_ Unimplemented) MarkSharePaid(w http.ResponseWriter, r *http.Request, orgId OrgId, shareId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPortfolio Portfolio dashboard across municipalities (risk, concentration, income, attention, trend)
+// (GET /v1/orgs/{orgId}/portfolio)
+func (_ Unimplemented) GetPortfolio(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetPortfolioParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPortfolioGroups Groups (tags) of properties and leases
+// (GET /v1/orgs/{orgId}/portfolio/groups)
+func (_ Unimplemented) ListPortfolioGroups(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePortfolioGroup Create a group
+// (POST /v1/orgs/{orgId}/portfolio/groups)
+func (_ Unimplemented) CreatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeletePortfolioGroup Delete a group (and its rules)
+// (DELETE /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+func (_ Unimplemented) DeletePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePortfolioGroup Rename a group and replace its members
+// (PUT /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+func (_ Unimplemented) UpdatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRentRoll Rent roll of all units and running leases (JSON, CSV or XLSX)
+// (GET /v1/orgs/{orgId}/portfolio/rent-roll)
+func (_ Unimplemented) GetRentRoll(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetRentRollParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRiskWeights Factor weights of the lease risk score
+// (GET /v1/orgs/{orgId}/portfolio/risk-weights)
+func (_ Unimplemented) GetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetRiskWeights Set factor weights (0 switches a factor off); leases are rescored
+// (PUT /v1/orgs/{orgId}/portfolio/risk-weights)
+func (_ Unimplemented) SetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPortfolioRules Rules per municipality or group (overrides of the jurisdiction defaults)
+// (GET /v1/orgs/{orgId}/portfolio/rules)
+func (_ Unimplemented) ListPortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SavePortfolioRule Set the rules of a municipality or a group (applies to new leases)
+// (PUT /v1/orgs/{orgId}/portfolio/rules)
+func (_ Unimplemented) SavePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ResolvePortfolioRules Rules a new lease at a place would get (lease form defaults)
+// (GET /v1/orgs/{orgId}/portfolio/rules/resolve)
+func (_ Unimplemented) ResolvePortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId, params ResolvePortfolioRulesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeletePortfolioRule Delete a rule
+// (DELETE /v1/orgs/{orgId}/portfolio/rules/{ruleId})
+func (_ Unimplemented) DeletePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId, ruleId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPortfolioSummary The latest AI summary of the portfolio (a suggestion)
+// (GET /v1/orgs/{orgId}/portfolio/summary)
+func (_ Unimplemented) GetPortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePortfolioSummary Ask the AI to summarize the portfolio (aggregates only, no personal data)
+// (POST /v1/orgs/{orgId}/portfolio/summary)
+func (_ Unimplemented) CreatePortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6883,6 +7576,32 @@ func (siw *ServerInterfaceWrapper) RequestLeaseChanges(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RequestLeaseChanges(w, r, leaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLeaseRisk operation middleware
+func (siw *ServerInterfaceWrapper) GetLeaseRisk(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "leaseId" -------------
+	var leaseId LeaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "leaseId", chi.URLParam(r, "leaseId"), &leaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "leaseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLeaseRisk(w, r, leaseId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8869,6 +9588,536 @@ func (siw *ServerInterfaceWrapper) MarkSharePaid(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetPortfolio operation middleware
+func (siw *ServerInterfaceWrapper) GetPortfolio(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPortfolioParams
+
+	// ------------- Optional query parameter "municipality" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "municipality", r.URL.Query(), &params.Municipality, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "municipality"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "municipality", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "region" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "region", r.URL.Query(), &params.Region, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "region"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "region", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "group_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "group_id", r.URL.Query(), &params.GroupId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "group_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPortfolio(w, r, orgId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPortfolioGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListPortfolioGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPortfolioGroups(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePortfolioGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreatePortfolioGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePortfolioGroup(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePortfolioGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeletePortfolioGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "portfolioGroupId" -------------
+	var portfolioGroupId PortfolioGroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "portfolioGroupId", chi.URLParam(r, "portfolioGroupId"), &portfolioGroupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "portfolioGroupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePortfolioGroup(w, r, orgId, portfolioGroupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePortfolioGroup operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePortfolioGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "portfolioGroupId" -------------
+	var portfolioGroupId PortfolioGroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "portfolioGroupId", chi.URLParam(r, "portfolioGroupId"), &portfolioGroupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "portfolioGroupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePortfolioGroup(w, r, orgId, portfolioGroupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRentRoll operation middleware
+func (siw *ServerInterfaceWrapper) GetRentRoll(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRentRollParams
+
+	// ------------- Optional query parameter "municipality" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "municipality", r.URL.Query(), &params.Municipality, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "municipality"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "municipality", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "region" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "region", r.URL.Query(), &params.Region, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "region"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "region", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "group_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "group_id", r.URL.Query(), &params.GroupId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "group_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRentRoll(w, r, orgId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRiskWeights operation middleware
+func (siw *ServerInterfaceWrapper) GetRiskWeights(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRiskWeights(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetRiskWeights operation middleware
+func (siw *ServerInterfaceWrapper) SetRiskWeights(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetRiskWeights(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPortfolioRules operation middleware
+func (siw *ServerInterfaceWrapper) ListPortfolioRules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPortfolioRules(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SavePortfolioRule operation middleware
+func (siw *ServerInterfaceWrapper) SavePortfolioRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SavePortfolioRule(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolvePortfolioRules operation middleware
+func (siw *ServerInterfaceWrapper) ResolvePortfolioRules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ResolvePortfolioRulesParams
+
+	// ------------- Optional query parameter "listing_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "listing_id", r.URL.Query(), &params.ListingId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "listing_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listing_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "ruian_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "ruian_id", r.URL.Query(), &params.RuianId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ruian_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ruian_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "address" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "address", r.URL.Query(), &params.Address, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "address"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolvePortfolioRules(w, r, orgId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePortfolioRule operation middleware
+func (siw *ServerInterfaceWrapper) DeletePortfolioRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "ruleId" -------------
+	var ruleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ruleId", chi.URLParam(r, "ruleId"), &ruleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ruleId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePortfolioRule(w, r, orgId, ruleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPortfolioSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetPortfolioSummary(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPortfolioSummary(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePortfolioSummary operation middleware
+func (siw *ServerInterfaceWrapper) CreatePortfolioSummary(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId OrgId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePortfolioSummary(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListReplyTemplates operation middleware
 func (siw *ServerInterfaceWrapper) ListReplyTemplates(w http.ResponseWriter, r *http.Request) {
 
@@ -9812,6 +11061,51 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/orgs/{orgId}/bank/transactions/{transactionId}/match", wrapper.MatchBankTransaction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio", wrapper.GetPortfolio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/rent-roll", wrapper.GetRentRoll)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/groups", wrapper.ListPortfolioGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/portfolio/groups", wrapper.CreatePortfolioGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId}", wrapper.DeletePortfolioGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId}", wrapper.UpdatePortfolioGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/rules", wrapper.ListPortfolioRules)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/v1/orgs/{orgId}/portfolio/rules", wrapper.SavePortfolioRule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/orgs/{orgId}/portfolio/rules/{ruleId}", wrapper.DeletePortfolioRule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/rules/resolve", wrapper.ResolvePortfolioRules)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/risk-weights", wrapper.GetRiskWeights)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/v1/orgs/{orgId}/portfolio/risk-weights", wrapper.SetRiskWeights)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/orgs/{orgId}/portfolio/summary", wrapper.GetPortfolioSummary)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/orgs/{orgId}/portfolio/summary", wrapper.CreatePortfolioSummary)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/leases/{leaseId}/risk", wrapper.GetLeaseRisk)
 	})
 
 	return r
@@ -12150,6 +13444,45 @@ type RequestLeaseChangesdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response RequestLeaseChangesdefaultApplicationProblemPlusJSONResponse) VisitRequestLeaseChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseRiskRequestObject struct {
+	LeaseId LeaseId `json:"leaseId"`
+}
+
+type GetLeaseRiskResponseObject interface {
+	VisitGetLeaseRiskResponse(w http.ResponseWriter) error
+}
+
+type GetLeaseRisk200JSONResponse LeaseRisk
+
+func (response GetLeaseRisk200JSONResponse) VisitGetLeaseRiskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLeaseRiskdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLeaseRiskdefaultApplicationProblemPlusJSONResponse) VisitGetLeaseRiskResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -15307,6 +16640,595 @@ func (response MarkSharePaiddefaultApplicationProblemPlusJSONResponse) VisitMark
 	return err
 }
 
+type GetPortfolioRequestObject struct {
+	OrgId  OrgId `json:"orgId"`
+	Params GetPortfolioParams
+}
+
+type GetPortfolioResponseObject interface {
+	VisitGetPortfolioResponse(w http.ResponseWriter) error
+}
+
+type GetPortfolio200JSONResponse PortfolioDashboard
+
+func (response GetPortfolio200JSONResponse) VisitGetPortfolioResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPortfoliodefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPortfoliodefaultApplicationProblemPlusJSONResponse) VisitGetPortfolioResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPortfolioGroupsRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type ListPortfolioGroupsResponseObject interface {
+	VisitListPortfolioGroupsResponse(w http.ResponseWriter) error
+}
+
+type ListPortfolioGroups200JSONResponse PortfolioGroups
+
+func (response ListPortfolioGroups200JSONResponse) VisitListPortfolioGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPortfolioGroupsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListPortfolioGroupsdefaultApplicationProblemPlusJSONResponse) VisitListPortfolioGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePortfolioGroupRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *CreatePortfolioGroupJSONRequestBody
+}
+
+type CreatePortfolioGroupResponseObject interface {
+	VisitCreatePortfolioGroupResponse(w http.ResponseWriter) error
+}
+
+type CreatePortfolioGroup201JSONResponse PortfolioGroup
+
+func (response CreatePortfolioGroup201JSONResponse) VisitCreatePortfolioGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePortfolioGroupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreatePortfolioGroupdefaultApplicationProblemPlusJSONResponse) VisitCreatePortfolioGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePortfolioGroupRequestObject struct {
+	OrgId            OrgId            `json:"orgId"`
+	PortfolioGroupId PortfolioGroupId `json:"portfolioGroupId"`
+}
+
+type DeletePortfolioGroupResponseObject interface {
+	VisitDeletePortfolioGroupResponse(w http.ResponseWriter) error
+}
+
+type DeletePortfolioGroup204Response struct {
+}
+
+func (response DeletePortfolioGroup204Response) VisitDeletePortfolioGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePortfolioGroupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeletePortfolioGroupdefaultApplicationProblemPlusJSONResponse) VisitDeletePortfolioGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePortfolioGroupRequestObject struct {
+	OrgId            OrgId            `json:"orgId"`
+	PortfolioGroupId PortfolioGroupId `json:"portfolioGroupId"`
+	Body             *UpdatePortfolioGroupJSONRequestBody
+}
+
+type UpdatePortfolioGroupResponseObject interface {
+	VisitUpdatePortfolioGroupResponse(w http.ResponseWriter) error
+}
+
+type UpdatePortfolioGroup200JSONResponse PortfolioGroup
+
+func (response UpdatePortfolioGroup200JSONResponse) VisitUpdatePortfolioGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePortfolioGroupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdatePortfolioGroupdefaultApplicationProblemPlusJSONResponse) VisitUpdatePortfolioGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRentRollRequestObject struct {
+	OrgId  OrgId `json:"orgId"`
+	Params GetRentRollParams
+}
+
+type GetRentRollResponseObject interface {
+	VisitGetRentRollResponse(w http.ResponseWriter) error
+}
+
+type GetRentRoll200JSONResponse RentRoll
+
+func (response GetRentRoll200JSONResponse) VisitGetRentRollResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRentRoll200ApplicationvndOpenxmlformatsOfficedocumentSpreadsheetmlSheetResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetRentRoll200ApplicationvndOpenxmlformatsOfficedocumentSpreadsheetmlSheetResponse) VisitGetRentRollResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetRentRoll200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetRentRoll200TextcsvResponse) VisitGetRentRollResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetRentRolldefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetRentRolldefaultApplicationProblemPlusJSONResponse) VisitGetRentRollResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRiskWeightsRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type GetRiskWeightsResponseObject interface {
+	VisitGetRiskWeightsResponse(w http.ResponseWriter) error
+}
+
+type GetRiskWeights200JSONResponse RiskWeights
+
+func (response GetRiskWeights200JSONResponse) VisitGetRiskWeightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRiskWeightsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetRiskWeightsdefaultApplicationProblemPlusJSONResponse) VisitGetRiskWeightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRiskWeightsRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *SetRiskWeightsJSONRequestBody
+}
+
+type SetRiskWeightsResponseObject interface {
+	VisitSetRiskWeightsResponse(w http.ResponseWriter) error
+}
+
+type SetRiskWeights200JSONResponse RiskWeights
+
+func (response SetRiskWeights200JSONResponse) VisitSetRiskWeightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRiskWeightsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SetRiskWeightsdefaultApplicationProblemPlusJSONResponse) VisitSetRiskWeightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPortfolioRulesRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type ListPortfolioRulesResponseObject interface {
+	VisitListPortfolioRulesResponse(w http.ResponseWriter) error
+}
+
+type ListPortfolioRules200JSONResponse PortfolioRuleList
+
+func (response ListPortfolioRules200JSONResponse) VisitListPortfolioRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPortfolioRulesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListPortfolioRulesdefaultApplicationProblemPlusJSONResponse) VisitListPortfolioRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SavePortfolioRuleRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+	Body  *SavePortfolioRuleJSONRequestBody
+}
+
+type SavePortfolioRuleResponseObject interface {
+	VisitSavePortfolioRuleResponse(w http.ResponseWriter) error
+}
+
+type SavePortfolioRule200JSONResponse struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+func (response SavePortfolioRule200JSONResponse) VisitSavePortfolioRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SavePortfolioRuledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SavePortfolioRuledefaultApplicationProblemPlusJSONResponse) VisitSavePortfolioRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolvePortfolioRulesRequestObject struct {
+	OrgId  OrgId `json:"orgId"`
+	Params ResolvePortfolioRulesParams
+}
+
+type ResolvePortfolioRulesResponseObject interface {
+	VisitResolvePortfolioRulesResponse(w http.ResponseWriter) error
+}
+
+type ResolvePortfolioRules200JSONResponse ResolvedRules
+
+func (response ResolvePortfolioRules200JSONResponse) VisitResolvePortfolioRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolvePortfolioRulesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ResolvePortfolioRulesdefaultApplicationProblemPlusJSONResponse) VisitResolvePortfolioRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePortfolioRuleRequestObject struct {
+	OrgId  OrgId              `json:"orgId"`
+	RuleId openapi_types.UUID `json:"ruleId"`
+}
+
+type DeletePortfolioRuleResponseObject interface {
+	VisitDeletePortfolioRuleResponse(w http.ResponseWriter) error
+}
+
+type DeletePortfolioRule204Response struct {
+}
+
+func (response DeletePortfolioRule204Response) VisitDeletePortfolioRuleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePortfolioRuledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeletePortfolioRuledefaultApplicationProblemPlusJSONResponse) VisitDeletePortfolioRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPortfolioSummaryRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type GetPortfolioSummaryResponseObject interface {
+	VisitGetPortfolioSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetPortfolioSummary200JSONResponse struct {
+	// Summary An AI suggestion for the owner; it decides nothing (ADR 0003).
+	Summary *PortfolioSummary `json:"summary,omitempty"`
+}
+
+func (response GetPortfolioSummary200JSONResponse) VisitGetPortfolioSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPortfolioSummarydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPortfolioSummarydefaultApplicationProblemPlusJSONResponse) VisitGetPortfolioSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePortfolioSummaryRequestObject struct {
+	OrgId OrgId `json:"orgId"`
+}
+
+type CreatePortfolioSummaryResponseObject interface {
+	VisitCreatePortfolioSummaryResponse(w http.ResponseWriter) error
+}
+
+type CreatePortfolioSummary201JSONResponse PortfolioSummary
+
+func (response CreatePortfolioSummary201JSONResponse) VisitCreatePortfolioSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePortfolioSummarydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreatePortfolioSummarydefaultApplicationProblemPlusJSONResponse) VisitCreatePortfolioSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListReplyTemplatesRequestObject struct {
 	OrgId OrgId `json:"orgId"`
 }
@@ -16016,6 +17938,9 @@ type StrictServerInterface interface {
 	// RequestLeaseChanges Tenant asks the landlord to change the proposal
 	// (POST /v1/leases/{leaseId}/request-changes)
 	RequestLeaseChanges(ctx context.Context, request RequestLeaseChangesRequestObject) (RequestLeaseChangesResponseObject, error)
+	// GetLeaseRisk Risk of a lease with its factors (tenants see only the payment factors)
+	// (GET /v1/leases/{leaseId}/risk)
+	GetLeaseRisk(ctx context.Context, request GetLeaseRiskRequestObject) (GetLeaseRiskResponseObject, error)
 	// ConfirmLeaseSettlement Confirm the deposit settlement after the lease ended (all parties settle the lease)
 	// (POST /v1/leases/{leaseId}/settlement)
 	ConfirmLeaseSettlement(ctx context.Context, request ConfirmLeaseSettlementRequestObject) (ConfirmLeaseSettlementResponseObject, error)
@@ -16262,6 +18187,48 @@ type StrictServerInterface interface {
 	// MarkSharePaid The landlord confirms a payment arrived ("přišlo")
 	// (POST /v1/orgs/{orgId}/obligation-shares/{shareId}/paid)
 	MarkSharePaid(ctx context.Context, request MarkSharePaidRequestObject) (MarkSharePaidResponseObject, error)
+	// GetPortfolio Portfolio dashboard across municipalities (risk, concentration, income, attention, trend)
+	// (GET /v1/orgs/{orgId}/portfolio)
+	GetPortfolio(ctx context.Context, request GetPortfolioRequestObject) (GetPortfolioResponseObject, error)
+	// ListPortfolioGroups Groups (tags) of properties and leases
+	// (GET /v1/orgs/{orgId}/portfolio/groups)
+	ListPortfolioGroups(ctx context.Context, request ListPortfolioGroupsRequestObject) (ListPortfolioGroupsResponseObject, error)
+	// CreatePortfolioGroup Create a group
+	// (POST /v1/orgs/{orgId}/portfolio/groups)
+	CreatePortfolioGroup(ctx context.Context, request CreatePortfolioGroupRequestObject) (CreatePortfolioGroupResponseObject, error)
+	// DeletePortfolioGroup Delete a group (and its rules)
+	// (DELETE /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+	DeletePortfolioGroup(ctx context.Context, request DeletePortfolioGroupRequestObject) (DeletePortfolioGroupResponseObject, error)
+	// UpdatePortfolioGroup Rename a group and replace its members
+	// (PUT /v1/orgs/{orgId}/portfolio/groups/{portfolioGroupId})
+	UpdatePortfolioGroup(ctx context.Context, request UpdatePortfolioGroupRequestObject) (UpdatePortfolioGroupResponseObject, error)
+	// GetRentRoll Rent roll of all units and running leases (JSON, CSV or XLSX)
+	// (GET /v1/orgs/{orgId}/portfolio/rent-roll)
+	GetRentRoll(ctx context.Context, request GetRentRollRequestObject) (GetRentRollResponseObject, error)
+	// GetRiskWeights Factor weights of the lease risk score
+	// (GET /v1/orgs/{orgId}/portfolio/risk-weights)
+	GetRiskWeights(ctx context.Context, request GetRiskWeightsRequestObject) (GetRiskWeightsResponseObject, error)
+	// SetRiskWeights Set factor weights (0 switches a factor off); leases are rescored
+	// (PUT /v1/orgs/{orgId}/portfolio/risk-weights)
+	SetRiskWeights(ctx context.Context, request SetRiskWeightsRequestObject) (SetRiskWeightsResponseObject, error)
+	// ListPortfolioRules Rules per municipality or group (overrides of the jurisdiction defaults)
+	// (GET /v1/orgs/{orgId}/portfolio/rules)
+	ListPortfolioRules(ctx context.Context, request ListPortfolioRulesRequestObject) (ListPortfolioRulesResponseObject, error)
+	// SavePortfolioRule Set the rules of a municipality or a group (applies to new leases)
+	// (PUT /v1/orgs/{orgId}/portfolio/rules)
+	SavePortfolioRule(ctx context.Context, request SavePortfolioRuleRequestObject) (SavePortfolioRuleResponseObject, error)
+	// ResolvePortfolioRules Rules a new lease at a place would get (lease form defaults)
+	// (GET /v1/orgs/{orgId}/portfolio/rules/resolve)
+	ResolvePortfolioRules(ctx context.Context, request ResolvePortfolioRulesRequestObject) (ResolvePortfolioRulesResponseObject, error)
+	// DeletePortfolioRule Delete a rule
+	// (DELETE /v1/orgs/{orgId}/portfolio/rules/{ruleId})
+	DeletePortfolioRule(ctx context.Context, request DeletePortfolioRuleRequestObject) (DeletePortfolioRuleResponseObject, error)
+	// GetPortfolioSummary The latest AI summary of the portfolio (a suggestion)
+	// (GET /v1/orgs/{orgId}/portfolio/summary)
+	GetPortfolioSummary(ctx context.Context, request GetPortfolioSummaryRequestObject) (GetPortfolioSummaryResponseObject, error)
+	// CreatePortfolioSummary Ask the AI to summarize the portfolio (aggregates only, no personal data)
+	// (POST /v1/orgs/{orgId}/portfolio/summary)
+	CreatePortfolioSummary(ctx context.Context, request CreatePortfolioSummaryRequestObject) (CreatePortfolioSummaryResponseObject, error)
 	// ListReplyTemplates Reply templates of the organization
 	// (GET /v1/orgs/{orgId}/reply-templates)
 	ListReplyTemplates(ctx context.Context, request ListReplyTemplatesRequestObject) (ListReplyTemplatesResponseObject, error)
@@ -18118,6 +20085,32 @@ func (sh *strictHandler) RequestLeaseChanges(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RequestLeaseChangesResponseObject); ok {
 		if err := validResponse.VisitRequestLeaseChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLeaseRisk operation middleware
+func (sh *strictHandler) GetLeaseRisk(w http.ResponseWriter, r *http.Request, leaseId LeaseId) {
+	var request GetLeaseRiskRequestObject
+
+	request.LeaseId = leaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLeaseRisk(ctx, request.(GetLeaseRiskRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLeaseRisk")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLeaseRiskResponseObject); ok {
+		if err := validResponse.VisitGetLeaseRiskResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -20463,6 +22456,404 @@ func (sh *strictHandler) MarkSharePaid(w http.ResponseWriter, r *http.Request, o
 	}
 }
 
+// GetPortfolio operation middleware
+func (sh *strictHandler) GetPortfolio(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetPortfolioParams) {
+	var request GetPortfolioRequestObject
+
+	request.OrgId = orgId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPortfolio(ctx, request.(GetPortfolioRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPortfolio")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPortfolioResponseObject); ok {
+		if err := validResponse.VisitGetPortfolioResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPortfolioGroups operation middleware
+func (sh *strictHandler) ListPortfolioGroups(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request ListPortfolioGroupsRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPortfolioGroups(ctx, request.(ListPortfolioGroupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPortfolioGroups")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPortfolioGroupsResponseObject); ok {
+		if err := validResponse.VisitListPortfolioGroupsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePortfolioGroup operation middleware
+func (sh *strictHandler) CreatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request CreatePortfolioGroupRequestObject
+
+	request.OrgId = orgId
+
+	var body CreatePortfolioGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePortfolioGroup(ctx, request.(CreatePortfolioGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePortfolioGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePortfolioGroupResponseObject); ok {
+		if err := validResponse.VisitCreatePortfolioGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePortfolioGroup operation middleware
+func (sh *strictHandler) DeletePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId) {
+	var request DeletePortfolioGroupRequestObject
+
+	request.OrgId = orgId
+	request.PortfolioGroupId = portfolioGroupId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePortfolioGroup(ctx, request.(DeletePortfolioGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePortfolioGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePortfolioGroupResponseObject); ok {
+		if err := validResponse.VisitDeletePortfolioGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePortfolioGroup operation middleware
+func (sh *strictHandler) UpdatePortfolioGroup(w http.ResponseWriter, r *http.Request, orgId OrgId, portfolioGroupId PortfolioGroupId) {
+	var request UpdatePortfolioGroupRequestObject
+
+	request.OrgId = orgId
+	request.PortfolioGroupId = portfolioGroupId
+
+	var body UpdatePortfolioGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePortfolioGroup(ctx, request.(UpdatePortfolioGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePortfolioGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePortfolioGroupResponseObject); ok {
+		if err := validResponse.VisitUpdatePortfolioGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRentRoll operation middleware
+func (sh *strictHandler) GetRentRoll(w http.ResponseWriter, r *http.Request, orgId OrgId, params GetRentRollParams) {
+	var request GetRentRollRequestObject
+
+	request.OrgId = orgId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRentRoll(ctx, request.(GetRentRollRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRentRoll")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRentRollResponseObject); ok {
+		if err := validResponse.VisitGetRentRollResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRiskWeights operation middleware
+func (sh *strictHandler) GetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request GetRiskWeightsRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRiskWeights(ctx, request.(GetRiskWeightsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRiskWeights")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRiskWeightsResponseObject); ok {
+		if err := validResponse.VisitGetRiskWeightsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetRiskWeights operation middleware
+func (sh *strictHandler) SetRiskWeights(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request SetRiskWeightsRequestObject
+
+	request.OrgId = orgId
+
+	var body SetRiskWeightsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetRiskWeights(ctx, request.(SetRiskWeightsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetRiskWeights")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetRiskWeightsResponseObject); ok {
+		if err := validResponse.VisitSetRiskWeightsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPortfolioRules operation middleware
+func (sh *strictHandler) ListPortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request ListPortfolioRulesRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPortfolioRules(ctx, request.(ListPortfolioRulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPortfolioRules")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPortfolioRulesResponseObject); ok {
+		if err := validResponse.VisitListPortfolioRulesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SavePortfolioRule operation middleware
+func (sh *strictHandler) SavePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request SavePortfolioRuleRequestObject
+
+	request.OrgId = orgId
+
+	var body SavePortfolioRuleJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SavePortfolioRule(ctx, request.(SavePortfolioRuleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SavePortfolioRule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SavePortfolioRuleResponseObject); ok {
+		if err := validResponse.VisitSavePortfolioRuleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolvePortfolioRules operation middleware
+func (sh *strictHandler) ResolvePortfolioRules(w http.ResponseWriter, r *http.Request, orgId OrgId, params ResolvePortfolioRulesParams) {
+	var request ResolvePortfolioRulesRequestObject
+
+	request.OrgId = orgId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolvePortfolioRules(ctx, request.(ResolvePortfolioRulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolvePortfolioRules")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolvePortfolioRulesResponseObject); ok {
+		if err := validResponse.VisitResolvePortfolioRulesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePortfolioRule operation middleware
+func (sh *strictHandler) DeletePortfolioRule(w http.ResponseWriter, r *http.Request, orgId OrgId, ruleId openapi_types.UUID) {
+	var request DeletePortfolioRuleRequestObject
+
+	request.OrgId = orgId
+	request.RuleId = ruleId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePortfolioRule(ctx, request.(DeletePortfolioRuleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePortfolioRule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePortfolioRuleResponseObject); ok {
+		if err := validResponse.VisitDeletePortfolioRuleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPortfolioSummary operation middleware
+func (sh *strictHandler) GetPortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request GetPortfolioSummaryRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPortfolioSummary(ctx, request.(GetPortfolioSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPortfolioSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPortfolioSummaryResponseObject); ok {
+		if err := validResponse.VisitGetPortfolioSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePortfolioSummary operation middleware
+func (sh *strictHandler) CreatePortfolioSummary(w http.ResponseWriter, r *http.Request, orgId OrgId) {
+	var request CreatePortfolioSummaryRequestObject
+
+	request.OrgId = orgId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePortfolioSummary(ctx, request.(CreatePortfolioSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePortfolioSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePortfolioSummaryResponseObject); ok {
+		if err := validResponse.VisitCreatePortfolioSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListReplyTemplates operation middleware
 func (sh *strictHandler) ListReplyTemplates(w http.ResponseWriter, r *http.Request, orgId OrgId) {
 	var request ListReplyTemplatesRequestObject
@@ -20861,329 +23252,374 @@ func (sh *strictHandler) CancelViewing(w http.ResponseWriter, r *http.Request, b
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"t7wendHrD8snmPd3d83x8d3H/y8AAP//",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

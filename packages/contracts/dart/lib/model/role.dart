@@ -10,7 +10,7 @@
 
 part of openapi.api;
 
-
+/// investor reads the portfolio (rent roll, risk, dashboard) and nothing else.
 class Role {
   /// Instantiate a new enum with the provided [value].
   const Role._(this.value);
@@ -29,6 +29,7 @@ class Role {
   static const accountant = Role._(r'accountant');
   static const maintenance = Role._(r'maintenance');
   static const viewer = Role._(r'viewer');
+  static const investor = Role._(r'investor');
 
   /// List of all possible values in this [enum][Role].
   static const values = <Role>[
@@ -38,6 +39,7 @@ class Role {
     accountant,
     maintenance,
     viewer,
+    investor,
   ];
 
   static Role? fromJson(dynamic value) => RoleTypeTransformer().decode(value);
@@ -82,6 +84,7 @@ class RoleTypeTransformer {
         case r'accountant': return Role.accountant;
         case r'maintenance': return Role.maintenance;
         case r'viewer': return Role.viewer;
+        case r'investor': return Role.investor;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

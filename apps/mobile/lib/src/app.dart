@@ -8,6 +8,7 @@ import 'auth/login_screen.dart';
 import 'leases/leases_screen.dart';
 import 'messaging/conversations_screen.dart';
 import 'messaging/thread_screen.dart';
+import 'portfolio/portfolio_screen.dart';
 import 'status/status_screen.dart';
 
 GoRouter createRouter() => GoRouter(
@@ -21,6 +22,7 @@ GoRouter createRouter() => GoRouter(
     ),
     GoRoute(path: '/zadosti', builder: (_, _) => const ApplicationsScreen()),
     GoRoute(path: '/smlouvy', builder: (_, _) => const LeasesScreen()),
+    GoRoute(path: '/portfolio', builder: (_, _) => const PortfolioScreen()),
     GoRoute(
       path: '/smlouvy/:id',
       builder: (_, s) => LeaseScreen(id: s.pathParameters['id']!),

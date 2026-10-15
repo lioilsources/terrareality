@@ -34,6 +34,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
 )
 
@@ -170,6 +171,7 @@ type Input struct {
 	PayeeName       string
 	Clauses         []string
 	PropertyAddress string
+	RuianID         *int64 // optional RÚIAN address of a lease without a listing (portfolio place)
 	UnitLabel       string
 	Parties         []PartyInput // empty with ApplicationID: taken from the application
 }
@@ -261,6 +263,8 @@ func date(t *time.Time) pgtype.Date {
 func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID, in Input) (uuid.UUID, error) {
 	sys := db.New(s.Pool)
 	var juris string
+	var place portfolio.Place
+	var rules portfolio.Resolved
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		m, err := org.Access(ctx, q, p.UserID, orgID, org.PermLeases)
 		if err != nil {
@@ -286,10 +290,17 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 				in.UnitLabel = strings.TrimSpace(strings.Join([]string{ptr(lc.Layout), lc.UnitLabel}, " "))
 			}
 		}
-		return nil
+		if place, err = portfolio.Locate(ctx, q, in.ListingID, in.RuianID, in.PropertyAddress); err != nil {
+			return err
+		}
+		rules, err = portfolio.Resolve(ctx, q, orgID, place, uuid.Nil)
+		return err
 	})
 	if err != nil {
 		return uuid.Nil, err
+	}
+	if in.NoticeMonths == 0 && rules.Rules.NoticeMonths != nil {
+		in.NoticeMonths = int32(*rules.Rules.NoticeMonths)
 	}
 	if len(in.Parties) == 0 && in.ApplicationID != nil {
 		people, err := sys.ApplicationPeople(ctx, *in.ApplicationID)
@@ -326,6 +337,9 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 			return err
 		}
 		id = l.ID
+		if err := portfolio.Apply(ctx, q, l, place, rules); err != nil {
+			return err
+		}
 		if err := s.writeParties(ctx, q, l, p.UserID, in); err != nil {
 			return err
 		}
@@ -413,6 +427,17 @@ func (s *Service) Update(ctx context.Context, p *auth.Principal, orgID, id uuid.
 		}
 		if n == 0 {
 			return apperr.Conflict("lease_locked", "only drafts and leases in negotiation can be edited")
+		}
+		place, err := portfolio.Locate(ctx, q, a.Lease.ListingID, in.RuianID, in.PropertyAddress)
+		if err != nil {
+			return err
+		}
+		rules, err := portfolio.Resolve(ctx, q, orgID, place, id)
+		if err != nil {
+			return err
+		}
+		if err := portfolio.Apply(ctx, q, a.Lease, place, rules); err != nil {
+			return err
 		}
 		if err := s.writeParties(ctx, q, a.Lease, p.UserID, in); err != nil {
 			return err

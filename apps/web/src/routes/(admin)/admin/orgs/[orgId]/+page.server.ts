@@ -1,3 +1,4 @@
+import { invitableRoles } from '#lib/labels.js';
 import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
@@ -51,7 +52,7 @@ export const actions: Actions = {
 			...path(params.orgId),
 			body: {
 				email,
-				role: String(f.get('role')) as 'admin' | 'agent' | 'accountant' | 'maintenance' | 'viewer',
+				role: String(f.get('role')) as (typeof invitableRoles)[number],
 				locale: getLocale() === 'en' ? 'en' : 'cs'
 			}
 		});

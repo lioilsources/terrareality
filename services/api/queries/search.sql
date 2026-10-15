@@ -12,6 +12,10 @@ ON CONFLICT (code) DO UPDATE SET level = EXCLUDED.level, name = EXCLUDED.name, s
 -- name: CountAdminUnits :one
 SELECT count(*) FROM admin_units;
 
+-- name: CountRuianMunicipalitiesWithoutUnit :one
+SELECT count(DISTINCT r.municipality_code) FROM ruian_places r
+WHERE NOT EXISTS (SELECT 1 FROM admin_units a WHERE a.code = r.municipality_code::text);
+
 -- name: RuianMunicipalityHull :many
 -- Dev seed: approximate polygons from address points (500 m around their hull).
 SELECT municipality_code, municipality,

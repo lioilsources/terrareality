@@ -23,6 +23,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/platform/logx"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/search"
 	"github.com/terrareality/terrareality/services/api/internal/workflows"
 )
@@ -68,9 +69,10 @@ func run() error {
 	notifyW, msgDigestW, verdictW := &jobs.MessageNotifyWorker{}, &jobs.MessagesDigestWorker{}, &jobs.VerdictWorker{}
 	summaryW, reminderW := &jobs.ApplicationSummaryWorker{}, &jobs.ViewingReminderWorker{}
 	startLeaseW, bankSyncW := &jobs.StartLeaseWorker{Log: log, Enabled: cfg.TemporalAddress != ""}, &jobs.BankSyncWorker{}
+	riskW := &jobs.LeaseRiskWorker{Scorer: &portfolio.Scorer{Pool: pool}}
 	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
 		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW,
-		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW})
+		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW, LeaseRisk: riskW})
 	if err != nil {
 		return err
 	}

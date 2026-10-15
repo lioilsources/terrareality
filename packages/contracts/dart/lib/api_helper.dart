@@ -85,6 +85,9 @@ String parameterToString(dynamic value) {
   if (value is RejectReason) {
     return RejectReasonTypeTransformer().encode(value).toString();
   }
+  if (value is RiskBand) {
+    return RiskBandTypeTransformer().encode(value).toString();
+  }
   if (value is Role) {
     return RoleTypeTransformer().encode(value).toString();
   }

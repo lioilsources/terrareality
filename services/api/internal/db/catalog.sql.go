@@ -54,6 +54,18 @@ func (q *Queries) CountRuianPlaces(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countRuianSamplePlaces = `-- name: CountRuianSamplePlaces :one
+SELECT count(*) FROM ruian_places WHERE id BETWEEN 99000000 AND 99999999
+`
+
+// Addresses of the embedded dev sample (synthetic ids 99000000-99999999).
+func (q *Queries) CountRuianSamplePlaces(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countRuianSamplePlaces)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const decideFilterProposal = `-- name: DecideFilterProposal :execrows
 UPDATE filter_schema_proposals SET status = $2, note = $3, decided_by = $4, decided_at = now()
 WHERE id = $1 AND status = 'pending'

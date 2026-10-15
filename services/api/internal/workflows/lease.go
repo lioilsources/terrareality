@@ -46,6 +46,10 @@ func LeaseLifecycle(ctx workflow.Context, leaseID uuid.UUID, after time.Time) er
 			return err
 		}
 	}
+	stages := leasing.ReminderStages
+	if len(info.Stages) > 0 {
+		stages = info.Stages // rules per municipality or group, stored on the lease
+	}
 	for done := 0; done < lifecycleBatch; {
 		var dates []time.Time
 		if err := workflow.ExecuteActivity(ctx, a.DueDates, leaseID, after.AddDate(0, 0, 1)).Get(ctx, &dates); err != nil {
@@ -68,7 +72,7 @@ func LeaseLifecycle(ctx workflow.Context, leaseID uuid.UUID, after time.Time) er
 			continue
 		}
 		due := dates[0]
-		for _, st := range leasing.ReminderStages {
+		for _, st := range stages {
 			at := due.AddDate(0, 0, st.Offset)
 			if at.Before(workflow.Now(ctx).Add(-12 * time.Hour)) {
 				continue // long past (lease signed late): skip stale reminders

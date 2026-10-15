@@ -23,6 +23,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/realtime"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
 	"github.com/terrareality/terrareality/services/api/internal/vision"
@@ -212,6 +213,15 @@ func Leasing(cfg config.Config, d Deps, pool *pgxpool.Pool, jobs leasing.Jobs, o
 		svc.Bank = mock
 	}
 	return svc, mock
+}
+
+// Portfolio builds the portfolio service (rent roll, risk, dashboard).
+func Portfolio(d Deps, pool *pgxpool.Pool) *portfolio.Service {
+	var sum ai.PortfolioSummarizer = ai.Mock{}
+	if s, ok := d.AI.(ai.PortfolioSummarizer); ok {
+		sum = s
+	}
+	return &portfolio.Service{Pool: pool, Scorer: &portfolio.Scorer{Pool: pool}, AI: sum}
 }
 
 // Tokens signs Centrifugo client tokens.

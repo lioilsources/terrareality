@@ -87,5 +87,50 @@
   "leaseToPay": "Co mám zaplatit",
   "leaseDeposit": "Kauce",
   "leaseHistory": "Zaplaceno",
-  "leaseMoneyNote": "Platby jdou přímo na účet pronajímatele; TerraReality peníze nedrží."
+  "leaseMoneyNote": "Platby jdou přímo na účet pronajímatele; TerraReality peníze nedrží.",
+  "portfolioTitle": "Portfolio",
+  "portfolioEmpty": "Žádné portfolio k zobrazení.",
+  "portfolioWeighted": "Vážené riziko",
+  "portfolioIncome": "Tento měsíc přišlo {received} z {expected}",
+  "@portfolioIncome": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+  "portfolioCities": "Obce",
+  "portfolioUnknownCity": "Neurčená obec",
+  "portfolioCityLine": "Nájmy: {leases} · {monthly} · {share} % příjmu · dluh {debt}",
+  "@portfolioCityLine": {
+    "placeholders": {
+      "leases": {
+        "type": "int"
+      },
+      "monthly": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      },
+      "debt": {
+        "type": "String"
+      }
+    }
+  },
+  "portfolioAttention": "Vyžaduje pozornost",
+  "portfolioNothing": "Nic nehoří.",
+  "riskLow": "nízké",
+  "riskMedium": "střední",
+  "riskHigh": "vysoké",
+  "riskNone": "bez skóre",
+  "attentionEscalation": "Eskalace platby",
+  "attentionDebt": "Dluh",
+  "attentionEnding": "Konec smlouvy do 90 dní",
+  "attentionNotice": "Výpověď",
+  "attentionVacant": "Volná jednotka",
+  "attentionHighRisk": "Vysoké riziko"
 }

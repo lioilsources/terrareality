@@ -60,6 +60,7 @@ func leaseInput(b gen.LeaseInput) leasing.Input {
 	if b.PropertyAddress != nil {
 		in.PropertyAddress = *b.PropertyAddress
 	}
+	in.RuianID = b.RuianId
 	if b.UnitLabel != nil {
 		in.UnitLabel = *b.UnitLabel
 	}
@@ -315,7 +316,7 @@ func (s *Server) GetLeaseLedger(ctx context.Context, r gen.GetLeaseLedgerRequest
 	if err != nil {
 		return nil, err
 	}
-	if r.Params.Format != nil && *r.Params.Format == gen.Csv {
+	if r.Params.Format != nil && *r.Params.Format == gen.GetLeaseLedgerParamsFormatCsv {
 		csv := leasing.LedgerCSV(rows)
 		return gen.GetLeaseLedger200TextcsvResponse{Body: bytes.NewReader(csv), ContentLength: int64(len(csv))}, nil
 	}

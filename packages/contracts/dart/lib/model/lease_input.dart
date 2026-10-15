@@ -22,11 +22,12 @@ class LeaseInput {
     this.servicesAmount,
     this.depositAmount,
     this.dueDay = 15,
-    this.noticeMonths = 3,
+    this.noticeMonths,
     required this.payeeIban,
     required this.payeeName,
     this.clauses = const [],
     this.propertyAddress,
+    this.ruianId,
     this.unitLabel,
     this.parties = const [],
   });
@@ -84,9 +85,17 @@ class LeaseInput {
   /// Maximum value: 28
   int dueDay;
 
+  /// Default: the portfolio rules of the place, else 3.
+  ///
   /// Minimum value: 1
   /// Maximum value: 12
-  int noticeMonths;
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? noticeMonths;
 
   String payeeIban;
 
@@ -101,6 +110,15 @@ class LeaseInput {
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
   String? propertyAddress;
+
+  /// RÚIAN address of a lease without a listing (where the lease is in the portfolio).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? ruianId;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -128,6 +146,7 @@ class LeaseInput {
     other.payeeName == payeeName &&
     _deepEquality.equals(other.clauses, clauses) &&
     other.propertyAddress == propertyAddress &&
+    other.ruianId == ruianId &&
     other.unitLabel == unitLabel &&
     _deepEquality.equals(other.parties, parties);
 
@@ -143,16 +162,17 @@ class LeaseInput {
     (servicesAmount == null ? 0 : servicesAmount!.hashCode) +
     (depositAmount == null ? 0 : depositAmount!.hashCode) +
     (dueDay.hashCode) +
-    (noticeMonths.hashCode) +
+    (noticeMonths == null ? 0 : noticeMonths!.hashCode) +
     (payeeIban.hashCode) +
     (payeeName.hashCode) +
     (clauses.hashCode) +
     (propertyAddress == null ? 0 : propertyAddress!.hashCode) +
+    (ruianId == null ? 0 : ruianId!.hashCode) +
     (unitLabel == null ? 0 : unitLabel!.hashCode) +
     (parties.hashCode);
 
   @override
-  String toString() => 'LeaseInput[applicationId=$applicationId, listingId=$listingId, template=$template, startsOn=$startsOn, endsOn=$endsOn, rentAmount=$rentAmount, servicesAmount=$servicesAmount, depositAmount=$depositAmount, dueDay=$dueDay, noticeMonths=$noticeMonths, payeeIban=$payeeIban, payeeName=$payeeName, clauses=$clauses, propertyAddress=$propertyAddress, unitLabel=$unitLabel, parties=$parties]';
+  String toString() => 'LeaseInput[applicationId=$applicationId, listingId=$listingId, template=$template, startsOn=$startsOn, endsOn=$endsOn, rentAmount=$rentAmount, servicesAmount=$servicesAmount, depositAmount=$depositAmount, dueDay=$dueDay, noticeMonths=$noticeMonths, payeeIban=$payeeIban, payeeName=$payeeName, clauses=$clauses, propertyAddress=$propertyAddress, ruianId=$ruianId, unitLabel=$unitLabel, parties=$parties]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -185,7 +205,11 @@ class LeaseInput {
       json[r'deposit_amount'] = null;
     }
       json[r'due_day'] = this.dueDay;
+    if (this.noticeMonths != null) {
       json[r'notice_months'] = this.noticeMonths;
+    } else {
+      json[r'notice_months'] = null;
+    }
       json[r'payee_iban'] = this.payeeIban;
       json[r'payee_name'] = this.payeeName;
       json[r'clauses'] = this.clauses;
@@ -193,6 +217,11 @@ class LeaseInput {
       json[r'property_address'] = this.propertyAddress;
     } else {
       json[r'property_address'] = null;
+    }
+    if (this.ruianId != null) {
+      json[r'ruian_id'] = this.ruianId;
+    } else {
+      json[r'ruian_id'] = null;
     }
     if (this.unitLabel != null) {
       json[r'unit_label'] = this.unitLabel;
@@ -231,11 +260,12 @@ class LeaseInput {
         servicesAmount: mapValueOfType<int>(json, r'services_amount'),
         depositAmount: mapValueOfType<int>(json, r'deposit_amount'),
         dueDay: mapValueOfType<int>(json, r'due_day') ?? 15,
-        noticeMonths: mapValueOfType<int>(json, r'notice_months') ?? 3,
+        noticeMonths: mapValueOfType<int>(json, r'notice_months'),
         payeeIban: mapValueOfType<String>(json, r'payee_iban')!,
         payeeName: mapValueOfType<String>(json, r'payee_name')!,
         clauses: LeaseInputClausesEnum.listFromJson(json[r'clauses']),
         propertyAddress: mapValueOfType<String>(json, r'property_address'),
+        ruianId: mapValueOfType<int>(json, r'ruian_id'),
         unitLabel: mapValueOfType<String>(json, r'unit_label'),
         parties: LeasePartyInput.listFromJson(json[r'parties']),
       );

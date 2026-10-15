@@ -9,6 +9,7 @@
 	import LeaseForm from '#lib/components/LeaseForm.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
 	import LeaseSummary from '#lib/components/LeaseSummary.svelte';
+	import LeaseRisk from '#lib/components/portfolio/LeaseRisk.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form, params }: PageProps = $props();
@@ -70,6 +71,7 @@
 		{/if}
 	</div>
 	<div class="grid content-start gap-4">
+		<LeaseRisk risk={data.risk} {locale} />
 		{#if d.change_request && l.state === 'negotiating'}
 			<Alert kind="info">{m.lease_change_request()}: „{d.change_request}“</Alert>
 		{/if}

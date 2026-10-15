@@ -14,7 +14,9 @@ import (
 type Querier interface {
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) (int64, error)
 	AddFilterOption(ctx context.Context, arg AddFilterOptionParams) error
+	AddGroupLease(ctx context.Context, arg AddGroupLeaseParams) error
 	AddGroupMember(ctx context.Context, arg AddGroupMemberParams) (GroupMember, error)
+	AddGroupProperty(ctx context.Context, arg AddGroupPropertyParams) error
 	AddLeaseParty(ctx context.Context, arg AddLeasePartyParams) (LeaseParty, error)
 	AddMembership(ctx context.Context, arg AddMembershipParams) error
 	AddSplitPayment(ctx context.Context, arg AddSplitPaymentParams) (ObligationSplit, error)
@@ -35,6 +37,8 @@ type Querier interface {
 	CancelObligationsAfter(ctx context.Context, arg CancelObligationsAfterParams) error
 	// Links parties invited by e-mail to the account with that address.
 	ClaimLeaseParties(ctx context.Context, arg ClaimLeasePartiesParams) error
+	ClearGroupItems(ctx context.Context, groupID uuid.UUID) error
+	ClearLeaseRisk(ctx context.Context, leaseID uuid.UUID) error
 	ClearPassportIncome(ctx context.Context, userID uuid.UUID) error
 	CloseObligationIfPaid(ctx context.Context, id uuid.UUID) error
 	CompleteSignature(ctx context.Context, arg CompleteSignatureParams) (int64, error)
@@ -48,12 +52,16 @@ type Querier interface {
 	CopyRuianStaging(ctx context.Context, arg []CopyRuianStagingParams) (int64, error)
 	CountAdminUnits(ctx context.Context) (int64, error)
 	CountLeaseDocuments(ctx context.Context, leaseID uuid.UUID) (int32, error)
+	CountLeaseEventsSince(ctx context.Context, arg CountLeaseEventsSinceParams) (int32, error)
 	CountMissingConsents(ctx context.Context, applicationID uuid.UUID) (int32, error)
 	CountOwners(ctx context.Context, orgID uuid.UUID) (int64, error)
 	CountPendingSignatures(ctx context.Context, documentID uuid.UUID) (int32, error)
 	CountReadyPhotos(ctx context.Context, listingID *uuid.UUID) (int64, error)
 	CountRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountRuianMunicipalitiesWithoutUnit(ctx context.Context) (int64, error)
 	CountRuianPlaces(ctx context.Context) (int64, error)
+	// Addresses of the embedded dev sample (synthetic ids 99000000-99999999).
+	CountRuianSamplePlaces(ctx context.Context) (int64, error)
 	CountSlotBookings(ctx context.Context, slotID uuid.UUID) (int32, error)
 	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int32, error)
 	// Org-scoped queries run in db.AsUser transactions (row-level security).
@@ -78,6 +86,7 @@ type Querier interface {
 	CreateOAuthIdentity(ctx context.Context, arg CreateOAuthIdentityParams) error
 	// Queries on RLS tables run inside db.WithUser transactions unless noted.
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
+	CreatePortfolioGroup(ctx context.Context, arg CreatePortfolioGroupParams) (PortfolioGroup, error)
 	CreateProperty(ctx context.Context, arg CreatePropertyParams) (Property, error)
 	CreateReplyTemplate(ctx context.Context, arg CreateReplyTemplateParams) (ReplyTemplate, error)
 	CreateReport(ctx context.Context, arg CreateReportParams) (uuid.UUID, error)
@@ -104,6 +113,8 @@ type Querier interface {
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
 	DeleteOAuthIdentities(ctx context.Context, userID uuid.UUID) error
 	DeletePassport(ctx context.Context, userID uuid.UUID) (*string, error)
+	DeletePortfolioGroup(ctx context.Context, arg DeletePortfolioGroupParams) (int64, error)
+	DeletePortfolioRule(ctx context.Context, arg DeletePortfolioRuleParams) (int64, error)
 	DeletePushDevice(ctx context.Context, arg DeletePushDeviceParams) (int64, error)
 	DeletePushDeviceByToken(ctx context.Context, arg DeletePushDeviceByTokenParams) error
 	DeletePushDeviceOfOthers(ctx context.Context, arg DeletePushDeviceOfOthersParams) error
@@ -149,6 +160,7 @@ type Querier interface {
 	GetInvitationByToken(ctx context.Context, tokenHash []byte) (GetInvitationByTokenRow, error)
 	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
 	GetLease(ctx context.Context, id uuid.UUID) (Lease, error)
+	GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error)
 	GetListing(ctx context.Context, arg GetListingParams) (Listing, error)
 	// Unit, parent unit, property and address of a listing.
 	GetListingContext(ctx context.Context, id uuid.UUID) (GetListingContextRow, error)
@@ -171,6 +183,9 @@ type Querier interface {
 	GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error)
 	GetPublishedSnapshot(ctx context.Context, id uuid.UUID) (ListingVersion, error)
 	// ---------------------------------------------------------------------------
+	// Risk settings and scores.
+	GetRiskSettings(ctx context.Context, orgID uuid.UUID) ([]byte, error)
+	// ---------------------------------------------------------------------------
 	// Roommate profiles.
 	GetRoommateProfile(ctx context.Context, userID uuid.UUID) (GetRoommateProfileRow, error)
 	GetRuianPlace(ctx context.Context, id int64) (GetRuianPlaceRow, error)
@@ -180,6 +195,7 @@ type Querier interface {
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GiveConsent(ctx context.Context, arg GiveConsentParams) (int64, error)
+	GroupItems(ctx context.Context, orgID uuid.UUID) ([]GroupItemsRow, error)
 	// Joined members (system context, realtime fan-out and notifications).
 	GroupMemberUserIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error)
 	IncrementAuthTokenAttempts(ctx context.Context, id uuid.UUID) (int32, error)
@@ -201,6 +217,7 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	// Schedule and ledger.
 	InsertObligation(ctx context.Context, arg InsertObligationParams) (PaymentObligation, error)
+	InsertPortfolioSummary(ctx context.Context, arg InsertPortfolioSummaryParams) (PortfolioSummary, error)
 	InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error
 	InsertSignature(ctx context.Context, arg InsertSignatureParams) (Signature, error)
 	InsertSplit(ctx context.Context, arg InsertSplitParams) (ObligationSplit, error)
@@ -209,7 +226,15 @@ type Querier interface {
 	LastLeaseEvent(ctx context.Context, leaseID uuid.UUID) (LastLeaseEventRow, error)
 	LastRentPeriod(ctx context.Context, leaseID uuid.UUID) (string, error)
 	LatestLeaseDocument(ctx context.Context, arg LatestLeaseDocumentParams) (LeaseDocument, error)
+	LatestPortfolioSummary(ctx context.Context, orgID uuid.UUID) (PortfolioSummary, error)
 	LeaseDueDates(ctx context.Context, arg LeaseDueDatesParams) ([]pgtype.Date, error)
+	// Groups of a lease: tagged directly or through its unit's property.
+	LeaseGroupIDs(ctx context.Context, arg LeaseGroupIDsParams) ([]uuid.UUID, error)
+	// M6b: portfolio across municipalities, groups, rules and lease risk.
+	// ---------------------------------------------------------------------------
+	// Where a lease is.
+	LeaseLocationFromListing(ctx context.Context, id uuid.UUID) (LeaseLocationFromListingRow, error)
+	LeaseLocationFromRuian(ctx context.Context, id int64) (LeaseLocationFromRuianRow, error)
 	LeaveGroup(ctx context.Context, arg LeaveGroupParams) (int64, error)
 	LinkedBankConnections(ctx context.Context) ([]BankConnection, error)
 	ListAdminBySlug(ctx context.Context, slug string) ([]ListAdminBySlugRow, error)
@@ -245,6 +270,7 @@ type Querier interface {
 	ListListings(ctx context.Context, arg ListListingsParams) ([]ListListingsRow, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error)
 	ListMessages(ctx context.Context, arg ListMessagesParams) ([]ListMessagesRow, error)
+	ListMunicipalities(ctx context.Context) ([]ListMunicipalitiesRow, error)
 	ListMyApplications(ctx context.Context, userID uuid.UUID) ([]ListMyApplicationsRow, error)
 	ListMyGroups(ctx context.Context, arg ListMyGroupsParams) ([]ListMyGroupsRow, error)
 	ListMyLeases(ctx context.Context, userID *uuid.UUID) ([]ListMyLeasesRow, error)
@@ -254,8 +280,15 @@ type Querier interface {
 	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error)
 	ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error)
+	ListOrgProperties(ctx context.Context, orgID uuid.UUID) ([]ListOrgPropertiesRow, error)
 	// Backoffice moderation queue (system context).
 	ListPendingVersions(ctx context.Context) ([]ListPendingVersionsRow, error)
+	// ---------------------------------------------------------------------------
+	// Groups.
+	ListPortfolioGroups(ctx context.Context, orgID uuid.UUID) ([]ListPortfolioGroupsRow, error)
+	// ---------------------------------------------------------------------------
+	// Rules.
+	ListPortfolioRules(ctx context.Context, orgID uuid.UUID) ([]ListPortfolioRulesRow, error)
 	ListProperties(ctx context.Context, orgID uuid.UUID) ([]ListPropertiesRow, error)
 	ListPushDevices(ctx context.Context, userID uuid.UUID) ([]PushDevice, error)
 	ListReads(ctx context.Context, conversationID uuid.UUID) ([]ConversationRead, error)
@@ -288,6 +321,9 @@ type Querier interface {
 	MarkPhoneVerified(ctx context.Context, arg MarkPhoneVerifiedParams) error
 	MarkRead(ctx context.Context, arg MarkReadParams) error
 	MarkSavedSearchNotified(ctx context.Context, arg MarkSavedSearchNotifiedParams) error
+	// Local market from our own search data: median asking rent and the mean
+	// age of listings still published in the municipality.
+	MarketStats(ctx context.Context, arg MarketStatsParams) (MarketStatsRow, error)
 	// S-JTSK coordinates in the CSV are positive; EPSG:5514 uses negative axes.
 	MergeRuianStaging(ctx context.Context) (int64, error)
 	// Everyone on the other side of a message: the seeker or the organization's
@@ -297,9 +333,14 @@ type Querier interface {
 	ModerationTranscript(ctx context.Context, conversationID uuid.UUID) ([]ModerationTranscriptRow, error)
 	// Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
 	MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error)
+	// The municipality named in a free-text address ("Dejvická 12, Praha 6"):
+	// the longest municipality name found as a whole word.
+	MunicipalityInText(ctx context.Context, address string) (MunicipalityInTextRow, error)
 	MyViewings(ctx context.Context, userID uuid.UUID) ([]MyViewingsRow, error)
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
 	NextListingVersion(ctx context.Context, listingID uuid.UUID) (int32, error)
+	// Dev: the oldest due date with an unpaid share (simulated escalation).
+	OldestOverdueDue(ctx context.Context, arg OldestOverdueDueParams) (pgtype.Date, error)
 	// Unpaid splits of the organization with this exact outstanding amount, due around a date.
 	OpenSplitsByAmount(ctx context.Context, arg OpenSplitsByAmountParams) ([]OpenSplitsByAmountRow, error)
 	// Unpaid splits of the organization's lease with this variable symbol, oldest first.
@@ -308,6 +349,10 @@ type Querier interface {
 	// Open splits of a lease due on a given date (workflow reminders, system context).
 	OverdueSplitsForReminder(ctx context.Context, arg OverdueSplitsForReminderParams) ([]OverdueSplitsForReminderRow, error)
 	PendingModerationAI(ctx context.Context) ([]uuid.UUID, error)
+	// Expected (rent and services due) and received amounts per month and
+	// municipality, for the trend and this month's income.
+	PortfolioMonthly(ctx context.Context, arg PortfolioMonthlyParams) ([]PortfolioMonthlyRow, error)
+	PortfolioRiskTrend(ctx context.Context, arg PortfolioRiskTrendParams) ([]PortfolioRiskTrendRow, error)
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
 	// System context (backoffice review).
 	PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error
@@ -317,15 +362,28 @@ type Querier interface {
 	RejectOtherApplications(ctx context.Context, arg RejectOtherApplicationsParams) ([]uuid.UUID, error)
 	RemoveGroupInvite(ctx context.Context, arg RemoveGroupInviteParams) (int64, error)
 	RemoveMessage(ctx context.Context, id uuid.UUID) error
+	// ---------------------------------------------------------------------------
+	// Rent roll and dashboard.
+	RentRollLeases(ctx context.Context, arg RentRollLeasesParams) ([]RentRollLeasesRow, error)
+	// Units without a running lease (apartments split into rooms count by room).
+	RentRollVacantUnits(ctx context.Context, orgID uuid.UUID) ([]RentRollVacantUnitsRow, error)
 	ReviewListingVersion(ctx context.Context, arg ReviewListingVersionParams) (int64, error)
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOpenInvitationsForEmail(ctx context.Context, arg RevokeOpenInvitationsForEmailParams) error
 	RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error)
 	RevokeUserSessions(ctx context.Context, arg RevokeUserSessionsParams) error
+	// Leases whose risk is tracked (system context, daily recompute).
+	RiskLeaseIDs(ctx context.Context) ([]uuid.UUID, error)
+	// Per tenant party: overdue amounts (rent, services, one-off items due by
+	// the date), the oldest unpaid due date and passport facts.
+	RiskPartyStats(ctx context.Context, arg RiskPartyStatsParams) ([]RiskPartyStatsRow, error)
 	RuianDistrictHull(ctx context.Context) ([]RuianDistrictHullRow, error)
 	// Dev seed: approximate polygons from address points (500 m around their hull).
 	RuianMunicipalityHull(ctx context.Context) ([]RuianMunicipalityHullRow, error)
 	RuianPartHull(ctx context.Context) ([]RuianPartHullRow, error)
+	// Candidate rules for a place and groups: municipality rules whose unit
+	// contains the place, then group rules (applied in this order).
+	RulesForLease(ctx context.Context, arg RulesForLeaseParams) ([]RulesForLeaseRow, error)
 	SavedSearchesToNotify(ctx context.Context) ([]SavedSearchesToNotifyRow, error)
 	SearchRuian(ctx context.Context, arg SearchRuianParams) ([]SearchRuianRow, error)
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error)
@@ -336,8 +394,10 @@ type Querier interface {
 	SetBankConnectionLinked(ctx context.Context, arg SetBankConnectionLinkedParams) error
 	SetConversationBlock(ctx context.Context, arg SetConversationBlockParams) error
 	SetLeaseEnd(ctx context.Context, arg SetLeaseEndParams) error
+	SetLeaseLocation(ctx context.Context, arg SetLeaseLocationParams) error
 	SetLeaseNotice(ctx context.Context, arg SetLeaseNoticeParams) (int64, error)
 	SetLeaseState(ctx context.Context, arg SetLeaseStateParams) (int64, error)
+	SetLeaseTerms(ctx context.Context, arg SetLeaseTermsParams) error
 	SetListingAttributes(ctx context.Context, arg SetListingAttributesParams) error
 	SetListingEmbedding(ctx context.Context, arg SetListingEmbeddingParams) error
 	SetListingStatus(ctx context.Context, arg SetListingStatusParams) error
@@ -361,6 +421,9 @@ type Querier interface {
 	SlotsWithAvailability(ctx context.Context, listingID uuid.UUID) ([]SlotsWithAvailabilityRow, error)
 	SoftDeleteListing(ctx context.Context, arg SoftDeleteListingParams) error
 	SoftDeleteOrganization(ctx context.Context, id uuid.UUID) error
+	// Leases whose score is missing, older than a new event, a day old or from
+	// an older model (the recompute job runs every minute).
+	StaleRiskLeaseIDs(ctx context.Context, modelVersion string) ([]uuid.UUID, error)
 	SubmitApplication(ctx context.Context, id uuid.UUID) (int64, error)
 	SuspendMessaging(ctx context.Context, id uuid.UUID) error
 	SystemConversationSummary(ctx context.Context, id uuid.UUID) (SystemConversationSummaryRow, error)
@@ -385,6 +448,7 @@ type Querier interface {
 	UpdateMediaMeta(ctx context.Context, arg UpdateMediaMetaParams) (Medium, error)
 	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error)
+	UpdatePortfolioGroup(ctx context.Context, arg UpdatePortfolioGroupParams) (PortfolioGroup, error)
 	UpdateReplyTemplate(ctx context.Context, arg UpdateReplyTemplateParams) (ReplyTemplate, error)
 	UpdateUnit(ctx context.Context, arg UpdateUnitParams) (Unit, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
@@ -397,11 +461,16 @@ type Querier interface {
 	// Catalog attributes are overwritten from catalog.json; option values that
 	// were added through approved ingest proposals are kept.
 	UpsertFilterSchema(ctx context.Context, arg UpsertFilterSchemaParams) error
+	UpsertGroupRule(ctx context.Context, arg UpsertGroupRuleParams) (uuid.UUID, error)
 	UpsertIdentityVerification(ctx context.Context, arg UpsertIdentityVerificationParams) (IdentityVerification, error)
+	UpsertLeaseRisk(ctx context.Context, arg UpsertLeaseRiskParams) error
+	UpsertLeaseRiskHistory(ctx context.Context, arg UpsertLeaseRiskHistoryParams) error
 	// Search index ---------------------------------------------------------------
 	UpsertListingSearch(ctx context.Context, arg UpsertListingSearchParams) error
+	UpsertMunicipalityRule(ctx context.Context, arg UpsertMunicipalityRuleParams) (uuid.UUID, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertPushDevice(ctx context.Context, arg UpsertPushDeviceParams) (PushDevice, error)
+	UpsertRiskSettings(ctx context.Context, arg UpsertRiskSettingsParams) error
 	UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateProfileParams) (uuid.UUID, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 	UserMessagingSuspended(ctx context.Context, id uuid.UUID) (bool, error)

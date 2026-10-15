@@ -296,6 +296,8 @@ class ApiClient {
           return FilterProposal.fromJson(value);
         case 'GdprRequest':
           return GdprRequest.fromJson(value);
+        case 'GetPortfolioSummary200Response':
+          return GetPortfolioSummary200Response.fromJson(value);
         case 'GetPushConfig200Response':
           return GetPushConfig200Response.fromJson(value);
         case 'GiveLeaseNotice200Response':
@@ -342,6 +344,8 @@ class ApiClient {
           return LeaseParty.fromJson(value);
         case 'LeasePartyInput':
           return LeasePartyInput.fromJson(value);
+        case 'LeaseRisk':
+          return LeaseRisk.fromJson(value);
         case 'LeaseState':
           return LeaseStateTypeTransformer().decode(value);
         case 'LeaseSummary':
@@ -440,6 +444,38 @@ class ApiClient {
           return PhotoVariants.fromJson(value);
         case 'Place':
           return Place.fromJson(value);
+        case 'PortfolioAttention':
+          return PortfolioAttention.fromJson(value);
+        case 'PortfolioCity':
+          return PortfolioCity.fromJson(value);
+        case 'PortfolioDashboard':
+          return PortfolioDashboard.fromJson(value);
+        case 'PortfolioDashboardConcentration':
+          return PortfolioDashboardConcentration.fromJson(value);
+        case 'PortfolioDashboardTrendInner':
+          return PortfolioDashboardTrendInner.fromJson(value);
+        case 'PortfolioGroup':
+          return PortfolioGroup.fromJson(value);
+        case 'PortfolioGroupInput':
+          return PortfolioGroupInput.fromJson(value);
+        case 'PortfolioGroups':
+          return PortfolioGroups.fromJson(value);
+        case 'PortfolioGroupsPropertiesInner':
+          return PortfolioGroupsPropertiesInner.fromJson(value);
+        case 'PortfolioRule':
+          return PortfolioRule.fromJson(value);
+        case 'PortfolioRuleInput':
+          return PortfolioRuleInput.fromJson(value);
+        case 'PortfolioRuleList':
+          return PortfolioRuleList.fromJson(value);
+        case 'PortfolioRuleListMunicipalitiesInner':
+          return PortfolioRuleListMunicipalitiesInner.fromJson(value);
+        case 'PortfolioRules':
+          return PortfolioRules.fromJson(value);
+        case 'PortfolioShare':
+          return PortfolioShare.fromJson(value);
+        case 'PortfolioSummary':
+          return PortfolioSummary.fromJson(value);
         case 'PrescreenAnswer':
           return PrescreenAnswer.fromJson(value);
         case 'PrescreenAnswerQuestion':
@@ -472,6 +508,12 @@ class ApiClient {
           return RegisterRequest.fromJson(value);
         case 'RejectReason':
           return RejectReasonTypeTransformer().decode(value);
+        case 'RentRoll':
+          return RentRoll.fromJson(value);
+        case 'RentRollRow':
+          return RentRollRow.fromJson(value);
+        case 'RentRollTotals':
+          return RentRollTotals.fromJson(value);
         case 'ReplyTemplate':
           return ReplyTemplate.fromJson(value);
         case 'ReplyTemplateInput':
@@ -484,12 +526,20 @@ class ApiClient {
           return RequestLeaseChangesRequest.fromJson(value);
         case 'RequestSuggestionRequest':
           return RequestSuggestionRequest.fromJson(value);
+        case 'ResolvedRules':
+          return ResolvedRules.fromJson(value);
         case 'ReviewDecision':
           return ReviewDecision.fromJson(value);
         case 'ReviewDetail':
           return ReviewDetail.fromJson(value);
         case 'ReviewItem':
           return ReviewItem.fromJson(value);
+        case 'RiskBand':
+          return RiskBandTypeTransformer().decode(value);
+        case 'RiskFactor':
+          return RiskFactor.fromJson(value);
+        case 'RiskWeights':
+          return RiskWeights.fromJson(value);
         case 'Role':
           return RoleTypeTransformer().decode(value);
         case 'RoleInput':
@@ -516,6 +566,8 @@ class ApiClient {
           return SessionToken.fromJson(value);
         case 'SetConversationBlockedRequest':
           return SetConversationBlockedRequest.fromJson(value);
+        case 'SetRiskWeightsRequest':
+          return SetRiskWeightsRequest.fromJson(value);
         case 'SignLease200Response':
           return SignLease200Response.fromJson(value);
         case 'SignLeaseRequest':

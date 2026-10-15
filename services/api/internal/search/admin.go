@@ -111,14 +111,15 @@ func ImportGeoJSON(ctx context.Context, pool *pgxpool.Pool, r io.Reader) (int, e
 var devRegions = map[int32][2]string{
 	554782: {"CZ010", "Hlavní město Praha"},
 	582786: {"CZ064", "Jihomoravský kraj"},
+	554821: {"CZ080", "Moravskoslezský kraj"},
 }
 
 // SeedFromRuian builds an approximate hierarchy with polygons around the
 // RÚIAN address points (dev and tests only; production imports real
-// boundaries). It runs only when admin_units is empty.
+// boundaries). It runs only when a sample municipality has no unit yet.
 func SeedFromRuian(ctx context.Context, pool *pgxpool.Pool) (int, error) {
 	q := db.New(pool)
-	if n, err := q.CountAdminUnits(ctx); err != nil || n > 0 {
+	if n, err := q.CountRuianMunicipalitiesWithoutUnit(ctx); err != nil || n == 0 {
 		return 0, err
 	}
 	munis, err := q.RuianMunicipalityHull(ctx)

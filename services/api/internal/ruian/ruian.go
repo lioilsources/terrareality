@@ -25,7 +25,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 )
 
-// Sample is a small synthetic Prague/Brno data set (realistic format and
+// Sample is a small synthetic Prague/Brno/Ostrava data set (realistic format and
 // coordinates, not official codes) so autocomplete works offline in dev.
 //
 //go:embed testdata/sample.csv
@@ -190,10 +190,10 @@ func mergeBatch(ctx context.Context, pool *pgxpool.Pool, rows []db.CopyRuianStag
 	return n, err
 }
 
-// SeedSample loads the embedded sample when the table is empty (dev/test).
+// SeedSample loads the embedded sample when some of its rows are missing (dev/test).
 func SeedSample(ctx context.Context, pool *pgxpool.Pool) (int64, error) {
-	n, err := db.New(pool).CountRuianPlaces(ctx)
-	if err != nil || n > 0 {
+	n, err := db.New(pool).CountRuianSamplePlaces(ctx)
+	if err != nil || n >= int64(bytes.Count(Sample, []byte("\n"))-1) {
 		return 0, err
 	}
 	return Import(ctx, pool, bytes.NewReader(Sample))

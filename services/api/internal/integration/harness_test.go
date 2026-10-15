@@ -36,6 +36,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/realtime"
 	"github.com/terrareality/terrareality/services/api/internal/ruian"
 	"github.com/terrareality/terrareality/services/api/internal/search"
@@ -184,6 +185,7 @@ type env struct {
 	leases   *leasing.Service
 	bank     *leasing.MockBank
 	leaseJob *recLeaseJobs
+	risk     *portfolio.Scorer
 }
 
 func newEnv(t *testing.T) *env {
@@ -249,8 +251,11 @@ func newEnv(t *testing.T) *env {
 	e.bank, e.leaseJob = &leasing.MockBank{}, &recLeaseJobs{}
 	e.leases = &leasing.Service{Pool: pool, Render: leasing.Typst{}, Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}},
 		Bank: e.bank, Blob: e.blob, Jobs: e.leaseJob, Outbox: e.outbox, Mail: render, WebBaseURL: "http://web.test", Log: log}
+	e.risk = &portfolio.Scorer{Pool: pool}
+	folio := &portfolio.Service{Pool: pool, Scorer: e.risk, AI: ai.Mock{}}
 	h := api.NewRouter(api.NewServer(pool, health.New(time.Second), api.Services{Account: e.acct, Orgs: orgs, IDP: idp, Listings: e.listings, RateBurst: 10000,
-		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps, Leases: e.leases}),
+		Engine: &search.Engine{Pool: pool}, Chat: &search.Chat{Pool: pool, Model: "rules"}, Messages: messages, Applications: apps, Leases: e.leases,
+		Portfolio: folio}),
 		api.RouterConfig{Log: log, Sessions: db.New(pool), SessionTTL: e.acct.TTL, MockIdP: identity.MockHandler(mocks)})
 	mux.Handle("/", h)
 	return e

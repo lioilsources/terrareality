@@ -234,3 +234,8 @@ UPDATE leases SET ends_on = $2 WHERE id = $1;
 
 -- name: SystemSetLeaseState :exec
 UPDATE leases SET state = $2 WHERE id = $1;
+
+-- name: OldestOverdueDue :one
+-- Dev: the oldest due date with an unpaid share (simulated escalation).
+SELECT min(o.due_on)::date FROM payment_obligations o JOIN obligation_splits s ON s.obligation_id = o.id
+WHERE o.lease_id = $1 AND o.status = 'open' AND s.paid_amount < s.amount AND o.due_on <= $2;

@@ -18,6 +18,11 @@ class StatusScreen extends ConsumerWidget {
         title: Text(t.appName),
         actions: [
           IconButton(
+            icon: const Icon(Icons.pie_chart_outline),
+            tooltip: t.portfolioTitle,
+            onPressed: () => context.push('/portfolio'),
+          ),
+          IconButton(
             icon: const Icon(Icons.login),
             tooltip: t.loginTitle,
             onPressed: () => context.push('/login'),

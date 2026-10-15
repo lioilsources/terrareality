@@ -235,7 +235,7 @@ INSERT INTO leases (org_id, listing_id, application_id, jurisdiction_code, curre
   property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day,
   notice_months, payee_iban, payee_name, clauses, terms, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-RETURNING id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at
+RETURNING id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng
 `
 
 type CreateLeaseParams struct {
@@ -319,6 +319,10 @@ func (q *Queries) CreateLease(ctx context.Context, arg CreateLeaseParams) (Lease
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.SignedAt,
+		&i.UnitID,
+		&i.AdminPath,
+		&i.Lat,
+		&i.Lng,
 	)
 	return i, err
 }
@@ -424,7 +428,7 @@ func (q *Queries) GetBankTransaction(ctx context.Context, id uuid.UUID) (BankTra
 }
 
 const getLease = `-- name: GetLease :one
-SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at FROM leases WHERE id = $1
+SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng FROM leases WHERE id = $1
 `
 
 func (q *Queries) GetLease(ctx context.Context, id uuid.UUID) (Lease, error) {
@@ -461,6 +465,10 @@ func (q *Queries) GetLease(ctx context.Context, id uuid.UUID) (Lease, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.SignedAt,
+		&i.UnitID,
+		&i.AdminPath,
+		&i.Lat,
+		&i.Lng,
 	)
 	return i, err
 }
@@ -1171,7 +1179,7 @@ func (q *Queries) ListLedger(ctx context.Context, leaseID uuid.UUID) ([]ListLedg
 }
 
 const listMyLeases = `-- name: ListMyLeases :many
-SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, coalesce(org_display_name(l.org_id), '')::text AS org_name
+SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, coalesce(org_display_name(l.org_id), '')::text AS org_name
 FROM leases l
 WHERE l.id IN (SELECT p.lease_id FROM lease_parties p WHERE p.user_id = $1)
 ORDER BY l.created_at DESC
@@ -1208,6 +1216,10 @@ type ListMyLeasesRow struct {
 	CreatedAt        time.Time   `json:"created_at"`
 	UpdatedAt        time.Time   `json:"updated_at"`
 	SignedAt         *time.Time  `json:"signed_at"`
+	UnitID           *uuid.UUID  `json:"unit_id"`
+	AdminPath        pgtype.Text `json:"admin_path"`
+	Lat              *float64    `json:"lat"`
+	Lng              *float64    `json:"lng"`
 	OrgName          string      `json:"org_name"`
 }
 
@@ -1251,6 +1263,10 @@ func (q *Queries) ListMyLeases(ctx context.Context, userID *uuid.UUID) ([]ListMy
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.SignedAt,
+			&i.UnitID,
+			&i.AdminPath,
+			&i.Lat,
+			&i.Lng,
 			&i.OrgName,
 		); err != nil {
 			return nil, err
@@ -1324,7 +1340,7 @@ func (q *Queries) ListObligations(ctx context.Context, leaseID uuid.UUID) ([]Lis
 }
 
 const listOrgLeases = `-- name: ListOrgLeases :many
-SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
+SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
 FROM leases l WHERE l.org_id = $1 ORDER BY l.created_at DESC
 `
@@ -1360,6 +1376,10 @@ type ListOrgLeasesRow struct {
 	CreatedAt        time.Time   `json:"created_at"`
 	UpdatedAt        time.Time   `json:"updated_at"`
 	SignedAt         *time.Time  `json:"signed_at"`
+	UnitID           *uuid.UUID  `json:"unit_id"`
+	AdminPath        pgtype.Text `json:"admin_path"`
+	Lat              *float64    `json:"lat"`
+	Lng              *float64    `json:"lng"`
 	TenantNames      string      `json:"tenant_names"`
 }
 
@@ -1403,6 +1423,10 @@ func (q *Queries) ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrg
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.SignedAt,
+			&i.UnitID,
+			&i.AdminPath,
+			&i.Lat,
+			&i.Lng,
 			&i.TenantNames,
 		); err != nil {
 			return nil, err
@@ -1493,6 +1517,24 @@ type MarkLeaseSignedParams struct {
 func (q *Queries) MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) error {
 	_, err := q.db.Exec(ctx, markLeaseSigned, arg.ID, arg.WorkflowID)
 	return err
+}
+
+const oldestOverdueDue = `-- name: OldestOverdueDue :one
+SELECT min(o.due_on)::date FROM payment_obligations o JOIN obligation_splits s ON s.obligation_id = o.id
+WHERE o.lease_id = $1 AND o.status = 'open' AND s.paid_amount < s.amount AND o.due_on <= $2
+`
+
+type OldestOverdueDueParams struct {
+	LeaseID uuid.UUID   `json:"lease_id"`
+	DueOn   pgtype.Date `json:"due_on"`
+}
+
+// Dev: the oldest due date with an unpaid share (simulated escalation).
+func (q *Queries) OldestOverdueDue(ctx context.Context, arg OldestOverdueDueParams) (pgtype.Date, error) {
+	row := q.db.QueryRow(ctx, oldestOverdueDue, arg.LeaseID, arg.DueOn)
+	var column_1 pgtype.Date
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const openSplitsByAmount = `-- name: OpenSplitsByAmount :many
