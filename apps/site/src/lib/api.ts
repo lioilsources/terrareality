@@ -5,8 +5,28 @@
  */
 import type { ListingCard, MunicipalityStat, SearchResult } from '@terra/contracts';
 
-const API_URL = (import.meta.env.API_URL ?? process.env.API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
-export const APP_URL = (import.meta.env.PUBLIC_APP_URL ?? process.env.PUBLIC_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
+const env = (name: string): string | undefined =>
+  (import.meta.env[name] as string | undefined) || process.env[name] || undefined;
+const isLocal = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(url);
+
+const API_URL = (env('API_URL') ?? 'http://localhost:8080').replace(/\/$/, '');
+
+/**
+ * A production build is a `astro build` against a non-local api (deploy runbook)
+ * or one with SITE_ENV=production. It must link to the real web app: every CTA,
+ * footer link and locality page would otherwise point at localhost.
+ */
+const productionBuild =
+  import.meta.env.PROD && (env('SITE_ENV') === 'production' || !isLocal(API_URL));
+const appUrl = env('PUBLIC_APP_URL');
+if (productionBuild && (!appUrl || isLocal(appUrl))) {
+  throw new Error(
+    `[site] PUBLIC_APP_URL must be set to the public web app URL for a production build (got ${appUrl ? `"${appUrl}"` : 'nothing'}; API_URL=${API_URL}).`
+  );
+}
+
+/** Origin of the SvelteKit app (CTAs, footer, listing links). The only place it is read. */
+export const APP_URL = (appUrl ?? 'http://localhost:5173').replace(/\/$/, '');
 
 let unreachable = false;
 
@@ -42,4 +62,6 @@ export async function topListings(kind: string, path: string): Promise<{ items: 
   return { items: res?.items ?? [], total: res?.total ?? 0 };
 }
 
-export const czk = (minor: number) => new Intl.NumberFormat('cs-CZ').format(Math.round(minor / 100)) + ' Kč';
+/** Median rents from /v1/seo/municipalities are CZK minor units (the stat has no currency). */
+export const czk = (minor: number) =>
+  new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(Math.round(minor / 100));

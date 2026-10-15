@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -43,6 +44,13 @@ func (d *Digest) Run(ctx context.Context) (int, error) {
 		now := time.Now()
 		query.PublishedAfter, query.Limit, query.Offset, query.Sort = &since, 10, 0, "newest"
 		res, err := d.Engine.Search(ctx, query, schema)
+		var inv *InvalidQueryError
+		if errors.As(err, &inv) || (err != nil && strings.Contains(err.Error(), "unknown attribute")) {
+			// A stored query that no longer runs (attribute removed from
+			// the schema, saved before validation existed) must not block
+			// the digests of everyone after it.
+			continue
+		}
 		if err != nil {
 			return sent, fmt.Errorf("saved search %s: %w", s.ID, err)
 		}

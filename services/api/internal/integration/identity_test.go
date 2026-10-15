@@ -369,8 +369,23 @@ func TestValidationAndAuthErrors(t *testing.T) {
 	if c := e.call("GET", "/v1/me", "garbage-token", nil, &p); c != 401 {
 		t.Fatalf("bad token: %d", c)
 	}
+	// ASVS V2.1.1 / V2.1.7: 12-character minimum and breached-password check.
+	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": uniqueEmail("short"), "password": "Short-pw-11",
+		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 400 {
+		t.Fatalf("11-character password: %d %+v", c, p)
+	}
+	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": uniqueEmail("pwned"), "password": "Password1234",
+		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 422 || p.Code != "password_breached" {
+		t.Fatalf("breached password: %d %+v", c, p)
+	}
 	em := uniqueEmail("dup")
-	e.register(em)
+	tok := e.register(em)
+	if c := e.call("POST", "/v1/me/password", tok, map[string]any{"current_password": "Sup3r-secret-pw", "new_password": "qwerty123456"}, &p); c != 422 || p.Code != "password_breached" {
+		t.Fatalf("breached new password: %d %+v", c, p)
+	}
+	if c := e.call("POST", "/v1/me/password", tok, map[string]any{"new_password": "An0ther-long-secret"}, &p); c != 401 || p.Code != "invalid_credentials" {
+		t.Fatalf("password change without current password: %d %+v", c, p)
+	}
 	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": strings.ToUpper(em), "password": "Sup3r-secret-pw",
 		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 409 || p.Code != "email_taken" {
 		t.Fatalf("duplicate: %d %+v", c, p)

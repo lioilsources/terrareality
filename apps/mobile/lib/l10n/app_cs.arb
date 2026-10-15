@@ -244,5 +244,64 @@
     }
   },
   "payByCard": "Zaplatit kartou (Revolut)",
-  "cardPaymentUnavailable": "Platbu kartou teď nelze vytvořit: pronajímatel nemá napojený Revolut, nebo je už zaplaceno."
+  "cardPaymentUnavailable": "Platbu kartou teď nelze vytvořit: pronajímatel nemá napojený Revolut, nebo je už zaplaceno.",
+  "errorOffline": "Nejste připojeni k internetu. Zkontrolujte připojení a zkuste to znovu.",
+  "errorForbidden": "K tomuto nemáte přístup.",
+  "errorNotFound": "Tohle už neexistuje.",
+  "errorRateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+  "errorServer": "Něco se pokazilo. Zkuste to prosím znovu.",
+  "signInAction": "Přihlásit se",
+  "mfaTitle": "Ověřovací kód",
+  "mfaHint": "Zadejte 6místný kód z ověřovací aplikace, nebo jeden ze záložních kódů.",
+  "mfaCode": "Kód",
+  "mfaFailed": "Kód nesouhlasí nebo vypršel. Zkuste to znovu.",
+  "mfaRestart": "Začít znovu",
+  "profileTitle": "Profil",
+  "signedInAs": "Přihlášen(a) jako {email}",
+  "@signedInAs": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "signedOutNote": "Nejste přihlášeni.",
+  "signOut": "Odhlásit se",
+  "signOutConfirm": "Odhlásit se na tomto telefonu? Přestanou chodit i notifikace.",
+  "signedOut": "Byli jste odhlášeni.",
+  "about": "O aplikaci",
+  "signConfirmTitle": "Podepsat smlouvu?",
+  "signConfirmBody": "{address}\n\nZpůsob podpisu: {method}. Podpis je právně závazný.",
+  "@signConfirmBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "signMethodSimple": "prostý elektronický podpis",
+  "signMethodBankId": "BankID",
+  "signMethodLabel": "Způsob podpisu: {method}",
+  "@signMethodLabel": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "signDone": "Smlouva je podepsaná.",
+  "signContinue": "Podpis dokončete u poskytovatele, který se otevřel v prohlížeči.",
+  "signUnavailable": "Podepisování teď není dostupné. Zkuste to později nebo na webu.",
+  "bubbleMine": "Vaše zpráva",
+  "bubblePeer": "Zpráva od {name}",
+  "@bubblePeer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

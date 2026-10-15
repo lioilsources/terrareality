@@ -16,6 +16,7 @@
 		description: I18nText;
 		rent_amount?: number;
 		deposit_amount?: number;
+		currency?: string;
 		attributes?: Record<string, unknown>;
 		unit: { kind: string; label: string };
 		address: { label: string };
@@ -39,8 +40,12 @@
 			{kindLabel[s.unit.kind]?.()} · {s.unit.label} · {s.address.label}
 		</p>
 		<p class="mt-2">
-			{m.field_rent()}: <strong>{formatMoney(s.rent_amount, locale)}</strong>
-			{#if s.deposit_amount}· {m.field_deposit()}: {formatMoney(s.deposit_amount, locale)}{/if}
+			{m.field_rent()}: <strong>{formatMoney(s.rent_amount, s.currency, locale)}</strong>
+			{#if s.deposit_amount}· {m.field_deposit()}: {formatMoney(
+					s.deposit_amount,
+					s.currency,
+					locale
+				)}{/if}
 		</p>
 		<p class="mt-4 text-sm whitespace-pre-line">{s.description.cs}</p>
 		{#if s.description.en}<p class="mt-4 text-sm whitespace-pre-line text-[var(--muted)]">

@@ -3168,7 +3168,7 @@ components:
     # --- auth
     UserLocale: { type: string, enum: [cs, en] }
     Email: { type: string, format: email, maxLength: 254 }
-    Password: { type: string, minLength: 10, maxLength: 200 }
+    Password: { type: string, minLength: 12, maxLength: 200, description: "At least 12 characters; checked against breached-password lists (error code password_breached)." }
     ClientKind:
       type: string
       enum: [web, mobile]

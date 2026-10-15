@@ -30,7 +30,8 @@ export const actions: Actions = {
 		});
 		if (error) return fail(400, { error: errorMessage(error) });
 		if (data.connection.status !== 'linked' && data.link) {
-			redirect(303, data.link);
+			// Bank consent page (GoCardless, or the mock bank on API_PUBLIC_URL) is cross-origin.
+			redirect(303, data.link, { external: true });
 		}
 	},
 	sync: async ({ params, locals }) => {

@@ -7,6 +7,7 @@
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
+	import LeaseSignForm from '#lib/components/LeaseSignForm.svelte';
 	import LeaseSummary from '#lib/components/LeaseSummary.svelte';
 	import LeaseRisk from '#lib/components/portfolio/LeaseRisk.svelte';
 	import type { PageProps } from './$types';
@@ -40,9 +41,7 @@
 		<LeaseRisk risk={data.risk} {locale} />
 		{#if l.state === 'proposed' && me && !me.signed_at}
 			<Card>
-				<form method="POST" action="?/sign" use:enhance>
-					<Button type="submit">{m.lease_sign()}</Button>
-				</form>
+				<LeaseSignForm />
 				<details class="mt-4">
 					<summary class="cursor-pointer text-sm">{m.lease_request_changes()}</summary>
 					<form method="POST" action="?/changes" use:enhance class="mt-2 grid gap-2">

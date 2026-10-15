@@ -20,6 +20,8 @@ type Querier interface {
 	AddGroupProperty(ctx context.Context, arg AddGroupPropertyParams) error
 	AddLeaseParty(ctx context.Context, arg AddLeasePartyParams) (LeaseParty, error)
 	AddMembership(ctx context.Context, arg AddMembershipParams) error
+	// Never more than what is due: no row (pgx.ErrNoRows) when the payment
+	// would exceed the share.
 	AddSplitPayment(ctx context.Context, arg AddSplitPaymentParams) (ObligationSplit, error)
 	// Deepest administrative unit covering a point.
 	AdminPathAt(ctx context.Context, arg AdminPathAtParams) (string, error)
@@ -39,8 +41,9 @@ type Querier interface {
 	CancelApplicationBookings(ctx context.Context, applicationID uuid.UUID) error
 	CancelBooking(ctx context.Context, id uuid.UUID) (int64, error)
 	CancelObligationsAfter(ctx context.Context, arg CancelObligationsAfterParams) error
-	// Links parties invited by e-mail to the account with that address.
-	ClaimLeaseParties(ctx context.Context, arg ClaimLeasePartiesParams) error
+	// Links parties invited by e-mail to the account with that address, only
+	// once the account proved it owns the address (verified e-mail).
+	ClaimLeaseParties(ctx context.Context, id uuid.UUID) error
 	ClearGroupItems(ctx context.Context, groupID uuid.UUID) error
 	ClearLeaseRisk(ctx context.Context, leaseID uuid.UUID) error
 	ClearPassportIncome(ctx context.Context, userID uuid.UUID) error
@@ -54,13 +57,18 @@ type Querier interface {
 	ConversationParties(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	// RÚIAN ---------------------------------------------------------------------
 	CopyRuianStaging(ctx context.Context, arg []CopyRuianStagingParams) (int64, error)
+	// Active bookings of a slot that has not started yet (RLS: organization members).
+	CountActiveSlotBookings(ctx context.Context, arg CountActiveSlotBookingsParams) (int32, error)
 	CountAdminUnits(ctx context.Context) (int64, error)
 	CountLeaseDocuments(ctx context.Context, leaseID uuid.UUID) (int32, error)
 	CountLeaseEventsSince(ctx context.Context, arg CountLeaseEventsSinceParams) (int32, error)
 	CountMissingConsents(ctx context.Context, applicationID uuid.UUID) (int32, error)
+	CountOtherAcceptedApplications(ctx context.Context, arg CountOtherAcceptedApplicationsParams) (int32, error)
 	CountOwners(ctx context.Context, orgID uuid.UUID) (int64, error)
 	CountPendingSignatures(ctx context.Context, documentID uuid.UUID) (int32, error)
 	CountReadyPhotos(ctx context.Context, listingID *uuid.UUID) (int64, error)
+	// Rate limits backed by the audit log (system context).
+	CountRecentActorActions(ctx context.Context, arg CountRecentActorActionsParams) (int32, error)
 	CountRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountRuianMunicipalitiesWithoutUnit(ctx context.Context) (int64, error)
 	CountRuianPlaces(ctx context.Context) (int64, error)
@@ -124,6 +132,9 @@ type Querier interface {
 	DecideModerationCase(ctx context.Context, arg DecideModerationCaseParams) (int64, error)
 	DecideSuggestion(ctx context.Context, arg DecideSuggestionParams) (int64, error)
 	DeleteExpiredAuthTokens(ctx context.Context) (int64, error)
+	// Housekeeping (cleanup job): sessions expired or revoked more than 30 days
+	// ago. The window keeps recent ones for "where was I signed in" questions.
+	DeleteExpiredSessions(ctx context.Context) (int64, error)
 	DeleteLeaseTenants(ctx context.Context, leaseID uuid.UUID) error
 	DeleteListingSearch(ctx context.Context, listingID uuid.UUID) error
 	DeleteMedia(ctx context.Context, arg DeleteMediaParams) (string, error)
@@ -154,10 +165,13 @@ type Querier interface {
 	// Place lookup for chat search ("Praha 6", "Dejvice").
 	FindAdminUnits(ctx context.Context, q_ string) ([]FindAdminUnitsRow, error)
 	FindPropertyByRuian(ctx context.Context, arg FindPropertyByRuianParams) (Property, error)
+	FinishSuggestion(ctx context.Context, arg FinishSuggestionParams) (int64, error)
 	// Returns the new case id, or null when the message was already flagged.
 	FlagMessage(ctx context.Context, arg FlagMessageParams) (uuid.UUID, error)
 	GetActivePromoProductByCode(ctx context.Context, code string) (PromoProduct, error)
-	GetActiveSession(ctx context.Context, tokenHash []byte) (GetActiveSessionRow, error)
+	// created_after (now - SESSION_MAX_AGE) enforces the absolute lifetime on
+	// every lookup, also for sessions whose stored expiry predates the cap.
+	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	GetAdminUnit(ctx context.Context, path string) (GetAdminUnitRow, error)
 	GetAppMeta(ctx context.Context, key string) (AppMetum, error)
 	GetApplication(ctx context.Context, id uuid.UUID) (GetApplicationRow, error)
@@ -184,6 +198,7 @@ type Querier interface {
 	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
 	GetLatestPaymentLink(ctx context.Context, shareID uuid.UUID) (PaymentLink, error)
 	GetLease(ctx context.Context, id uuid.UUID) (Lease, error)
+	GetLeaseForUpdate(ctx context.Context, id uuid.UUID) (Lease, error)
 	GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error)
 	GetListing(ctx context.Context, arg GetListingParams) (Listing, error)
 	// Unit, parent unit, property and address of a listing.
@@ -266,6 +281,8 @@ type Querier interface {
 	LatestLeaseDocument(ctx context.Context, arg LatestLeaseDocumentParams) (LeaseDocument, error)
 	LatestPortfolioSummary(ctx context.Context, orgID uuid.UUID) (PortfolioSummary, error)
 	LeaseDueDates(ctx context.Context, arg LeaseDueDatesParams) ([]pgtype.Date, error)
+	// Whether an event of a kind with data.due_on already exists (idempotent reminders).
+	LeaseEventExists(ctx context.Context, arg LeaseEventExistsParams) (bool, error)
 	// Groups of a lease: tagged directly or through its unit's property.
 	LeaseGroupIDs(ctx context.Context, arg LeaseGroupIDsParams) ([]uuid.UUID, error)
 	// M6b: portfolio across municipalities, groups, rules and lease risk.
@@ -329,6 +346,11 @@ type Querier interface {
 	ListOrders(ctx context.Context, orgID uuid.UUID) ([]ListOrdersRow, error)
 	ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error)
 	ListOrgProperties(ctx context.Context, orgID uuid.UUID) ([]ListOrgPropertiesRow, error)
+	// Photo objects deleted from a working copy while a published version still
+	// showed them (DeleteMedia keeps those), which no current or pending
+	// version references any more. Keys come from the media.deleted audit
+	// events (diff.object_key, or the deterministic photo key). Worker.
+	ListOrphanMediaKeys(ctx context.Context, arg ListOrphanMediaKeysParams) ([]string, error)
 	// Backoffice moderation queue (system context).
 	ListPendingVersions(ctx context.Context) ([]ListPendingVersionsRow, error)
 	// ---------------------------------------------------------------------------
@@ -337,6 +359,8 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	// Rules.
 	ListPortfolioRules(ctx context.Context, orgID uuid.UUID) ([]ListPortfolioRulesRow, error)
+	// Privacy blur flags of a listing for the backoffice review (system context).
+	ListPrivacyFlags(ctx context.Context, listingID uuid.UUID) ([]ListPrivacyFlagsRow, error)
 	// M7: promo catalog, orders, promotions, invoices, Revolut payment links and
 	// Stripe webhook idempotency. Owner-facing reads and writes run through
 	// db.AsUser; webhook processing runs in system context (db.InTx).
@@ -354,6 +378,9 @@ type Querier interface {
 	// Bookings of a listing's slots for the landlord (RLS: organization members).
 	ListSlotBookings(ctx context.Context, listingID uuid.UUID) ([]ListSlotBookingsRow, error)
 	ListSuggestions(ctx context.Context, listingID uuid.UUID) ([]AiSuggestion, error)
+	// Photos with a privacy blur suggestion nobody decided yet (or whose
+	// accepted redaction is still being applied).
+	ListUndecidedPrivacyFlags(ctx context.Context, listingID uuid.UUID) ([]uuid.UUID, error)
 	ListUnits(ctx context.Context, propertyID uuid.UUID) ([]Unit, error)
 	// System context: used by GDPR erasure.
 	ListUserMemberships(ctx context.Context, userID uuid.UUID) ([]ListUserMembershipsRow, error)
@@ -367,14 +394,29 @@ type Querier interface {
 	// Owners and admins of the organization behind a listing (DSA art. 17
 	// statement of reasons on unpublish or a change request).
 	ListingOwnerRecipients(ctx context.Context, orgID uuid.UUID) ([]ListingOwnerRecipientsRow, error)
+	// ---------------------------------------------------------------------------
+	// Concurrency guards and limits (review V-7, S-D9, S-D4, S-D5).
+	// Serializes consents of one group application (RLS: parties).
+	LockApplication(ctx context.Context, id uuid.UUID) (LockApplicationRow, error)
 	LockLease(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// Serializes per-listing counters: call first in the transaction that runs
+	// NextListingVersion + CreateListingVersion, CreateMedia (position) or
+	// PromotionEndOf + CreatePromotion.
+	LockListing(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// Serializes decisions on a listing's applications (RLS: organization
+	// members). NO KEY UPDATE leaves new applications (FK checks) unblocked.
+	LockListingForDecision(ctx context.Context, arg LockListingForDecisionParams) (uuid.UUID, error)
 	LockSlot(ctx context.Context, id uuid.UUID) (ViewingSlot, error)
+	LockSplit(ctx context.Context, id uuid.UUID) (ObligationSplit, error)
+	LockSuggestion(ctx context.Context, id uuid.UUID) (AiSuggestion, error)
 	MarkAuthTokenUsed(ctx context.Context, id uuid.UUID) error
 	MarkConversationNotificationsRead(ctx context.Context, arg MarkConversationNotificationsReadParams) error
 	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
 	MarkIdentityVerified(ctx context.Context, id uuid.UUID) error
 	MarkInvoiceSent(ctx context.Context, id uuid.UUID) error
-	MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) error
+	// Only a proposed lease becomes signed (a concurrent request for changes or
+	// a new proposal wins; the caller answers 409 on 0 rows).
+	MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) (int64, error)
 	MarkNotificationEmailed(ctx context.Context, ids []uuid.UUID) error
 	MarkNotificationsRead(ctx context.Context, arg MarkNotificationsReadParams) error
 	// Idempotent: only a pending order flips to paid; a repeated webhook gets no
@@ -386,8 +428,13 @@ type Querier interface {
 	// Local market from our own search data: median asking rent and the mean
 	// age of listings still published in the municipality.
 	MarketStats(ctx context.Context, arg MarketStatsParams) (MarketStatsRow, error)
+	// Marks a transaction matched unless it already is (concurrent confirmations).
+	MatchTransaction(ctx context.Context, arg MatchTransactionParams) (int64, error)
 	// S-JTSK coordinates in the CSV are positive; EPSG:5514 uses negative axes.
 	MergeRuianStaging(ctx context.Context) (int64, error)
+	// Whether a recipient's message notification already covers this message
+	// (job retries after a partial failure must not count it twice).
+	MessageNotified(ctx context.Context, arg MessageNotifiedParams) (bool, error)
 	// Everyone on the other side of a message: the seeker or the organization's
 	// members who handle messages, with their read marker and preferences.
 	MessageRecipients(ctx context.Context, arg MessageRecipientsParams) ([]MessageRecipientsRow, error)
@@ -396,7 +443,9 @@ type Querier interface {
 	// Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
 	MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error)
 	// The municipality named in a free-text address ("Dejvická 12, Praha 6"):
-	// the longest municipality name found as a whole word.
+	// the longest municipality name found as a whole word. Both sides are
+	// reduced to words separated by single spaces, so names from the data are
+	// compared literally (no regular expression built from data).
 	MunicipalityInText(ctx context.Context, address string) (MunicipalityInTextRow, error)
 	MyViewings(ctx context.Context, userID uuid.UUID) ([]MyViewingsRow, error)
 	NewUUIDv7(ctx context.Context) (uuid.UUID, error)
@@ -423,10 +472,13 @@ type Querier interface {
 	// running or scheduled, or at the requested start (purchases extend, not overlap).
 	PromotionEndOf(ctx context.Context, arg PromotionEndOfParams) (time.Time, error)
 	PseudonymizeUser(ctx context.Context, id uuid.UUID) error
-	// System context (backoffice review).
+	// System context (backoffice review). first_published_at is set once.
 	PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error
 	// Only listings with an approved version (synthetic load-test rows have none).
 	PublishedListingIDs(ctx context.Context) ([]uuid.UUID, error)
+	// An accepted privacy blur is recorded but stays pending until the
+	// redacted photo is stored (RedactMedia job).
+	QueueSuggestionDecision(ctx context.Context, arg QueueSuggestionDecisionParams) (int64, error)
 	// Periodic job: starts scheduled promotions, clears expired ones. Touches only
 	// rows whose value changes.
 	RecomputeAllListingPromos(ctx context.Context) (int64, error)
@@ -450,8 +502,9 @@ type Querier interface {
 	RevokeUserSessions(ctx context.Context, arg RevokeUserSessionsParams) error
 	// Leases whose risk is tracked (system context, daily recompute).
 	RiskLeaseIDs(ctx context.Context) ([]uuid.UUID, error)
-	// Per tenant party: overdue amounts (rent, services, one-off items due by
-	// the date), the oldest unpaid due date and passport facts.
+	// Per tenant party: overdue amounts (rent, services, one-off items due
+	// before the date: an item due today is not overdue until tomorrow), the
+	// oldest unpaid due date and passport facts.
 	RiskPartyStats(ctx context.Context, arg RiskPartyStatsParams) ([]RiskPartyStatsRow, error)
 	RuianDistrictHull(ctx context.Context) ([]RuianDistrictHullRow, error)
 	// Dev seed: approximate polygons from address points (500 m around their hull).
@@ -462,6 +515,8 @@ type Querier interface {
 	RulesForLease(ctx context.Context, arg RulesForLeaseParams) ([]RulesForLeaseRow, error)
 	SavedSearchesToNotify(ctx context.Context) ([]SavedSearchesToNotifyRow, error)
 	SearchRuian(ctx context.Context, arg SearchRuianParams) ([]SearchRuianRow, error)
+	// The search text is matched literally (LIKE wildcards and the escape
+	// character are escaped).
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error)
 	SeekerBlockedByOrg(ctx context.Context, arg SeekerBlockedByOrgParams) (bool, error)
 	SetAddressAdminPath(ctx context.Context, arg SetAddressAdminPathParams) error
@@ -479,6 +534,8 @@ type Querier interface {
 	SetListingEmbedding(ctx context.Context, arg SetListingEmbeddingParams) error
 	SetListingStatus(ctx context.Context, arg SetListingStatusParams) error
 	SetListingTexts(ctx context.Context, arg SetListingTextsParams) error
+	// Replaces the stored bytes' metadata after a redaction (worker).
+	SetMediaContent(ctx context.Context, arg SetMediaContentParams) error
 	SetMediaProcessed(ctx context.Context, arg SetMediaProcessedParams) error
 	SetMediaStatus(ctx context.Context, arg SetMediaStatusParams) error
 	SetMediaVision(ctx context.Context, arg SetMediaVisionParams) error
@@ -496,6 +553,7 @@ type Querier interface {
 	SetUserPhone(ctx context.Context, arg SetUserPhoneParams) error
 	// Fallback without embeddings: same kind, nearby, similar rent.
 	SimilarByAttributes(ctx context.Context, arg SimilarByAttributesParams) ([]uuid.UUID, error)
+	// The ORDER BY on a scalar subquery lets the HNSW index serve the scan.
 	SimilarByEmbedding(ctx context.Context, arg SimilarByEmbeddingParams) ([]uuid.UUID, error)
 	// Upcoming slots with the number of active bookings (system context: the
 	// count must include other applicants' bookings).
@@ -568,6 +626,13 @@ type Querier interface {
 	UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateProfileParams) (uuid.UUID, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 	UserMessagingSuspended(ctx context.Context, id uuid.UUID) (bool, error)
+	// The account with a verified e-mail address (lease parties link only to it).
+	VerifiedUserByEmail(ctx context.Context, email string) (User, error)
+	// Idempotency of reminder jobs: this reminder was already queued (audit
+	// marker written in the same transaction as the e-mails). The two
+	// reminders of a booking are 22 hours apart, so a 12 hour window tells a
+	// retry from the next reminder.
+	ViewingReminderSent(ctx context.Context, bookingID uuid.UUID) (bool, error)
 	WithdrawApplication(ctx context.Context, id uuid.UUID) (int64, error)
 	// Row-level security context: only versions of the caller's organizations.
 	WithdrawMyPendingVersions(ctx context.Context, pListing uuid.UUID) error

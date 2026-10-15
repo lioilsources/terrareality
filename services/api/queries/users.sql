@@ -47,8 +47,12 @@ UPDATE users SET totp_last_step = $2 WHERE id = $1 AND totp_last_step < $2;
 UPDATE users SET is_staff = $2 WHERE id = $1;
 
 -- name: SearchUsers :many
+-- The search text is matched literally (LIKE wildcards and the escape
+-- character are escaped).
 SELECT * FROM users
-WHERE (sqlc.narg(q)::text IS NULL OR email ILIKE '%' || sqlc.narg(q) || '%' OR display_name ILIKE '%' || sqlc.narg(q) || '%')
+WHERE (sqlc.narg(q)::text IS NULL
+    OR email ILIKE '%' || replace(replace(replace(sqlc.narg(q), '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    OR display_name ILIKE '%' || replace(replace(replace(sqlc.narg(q), '\', '\\'), '%', '\%'), '_', '\_') || '%')
   AND (sqlc.narg(before)::uuid IS NULL OR id < sqlc.narg(before))
 ORDER BY id DESC
 LIMIT sqlc.arg(lim);

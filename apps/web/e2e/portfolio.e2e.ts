@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, apiRegister, call, login } from './api';
+import { API, apiRegister, apiRegisterVerified, call, login } from './api';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
 
 type Share = { id: string; kind: string; due_on: string; amount: number; paid_amount: number };
@@ -84,7 +84,7 @@ test('portfolio across municipalities with lease risk', async ({ browser }) => {
 	const tenants: Record<string, { email: string; token: string }> = {};
 	for (const s of specs) {
 		const email = uniqueEmail(`najemce-${s.city.toLowerCase()}`);
-		const token = await apiRegister(email, `Nájemce ${s.city}`);
+		const token = await apiRegisterVerified(email, `Nájemce ${s.city}`);
 		tenants[s.city] = { email, token };
 		const d = await call<{ lease: { id: string } }>(ownerToken, 'POST', `${org}/leases`, {
 			template: s.tpl,

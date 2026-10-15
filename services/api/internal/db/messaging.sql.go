@@ -1151,6 +1151,25 @@ func (q *Queries) MarkRead(ctx context.Context, arg MarkReadParams) error {
 	return err
 }
 
+const messageNotified = `-- name: MessageNotified :one
+SELECT EXISTS (SELECT 1 FROM notifications
+  WHERE user_id = $1 AND kind = 'message' AND data->>'message_id' = $2::text)::boolean
+`
+
+type MessageNotifiedParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	MessageID string    `json:"message_id"`
+}
+
+// Whether a recipient's message notification already covers this message
+// (job retries after a partial failure must not count it twice).
+func (q *Queries) MessageNotified(ctx context.Context, arg MessageNotifiedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, messageNotified, arg.UserID, arg.MessageID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const messageRecipients = `-- name: MessageRecipients :many
 WITH c AS (SELECT id, org_id, listing_id, seeker_id, prescreen_answers, blocked_by, blocked_at, last_message_at, created_at FROM conversations WHERE conversations.id = $1::uuid),
 parties AS (

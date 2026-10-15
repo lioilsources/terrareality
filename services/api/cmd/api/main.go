@@ -51,6 +51,7 @@ func run() error {
 		return err
 	}
 	log := logx.New(cfg.LogLevel, cfg.LogFormat)
+	app.LogWarnings(cfg, log)
 	log.Info("starting api", "version", buildinfo.Version, "env", cfg.Env, "addr", cfg.HTTPAddr)
 
 	shutdownTracing, err := telemetry.Setup(ctx, "terra-api", cfg.OTLPEndpoint, cfg.Env)
@@ -59,30 +60,29 @@ func run() error {
 	}
 	defer shutdownTracing(context.Background())
 
+	if err := app.MigrateOnStart(ctx, cfg); err != nil {
+		return err
+	}
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
-	if config.MustBool("MIGRATE_ON_START", cfg.Env == "dev") {
-		if err := db.Migrate(ctx, pool); err != nil {
-			return err
-		}
-		if err := jobs.MigrateRiver(ctx, pool); err != nil {
-			return err
-		}
-	}
 	deps, err := app.Build(cfg, log)
-	fl := app.Flags(cfg, pool)
 	if err != nil {
 		return err
 	}
+	fl := app.Flags(cfg, pool)
 	rc, err := jobs.NewInsertOnlyClient(pool)
 	if err != nil {
 		return err
 	}
+	breached, err := app.Pwned(cfg, log)
+	if err != nil {
+		return err
+	}
 	accounts := &account.Service{Pool: pool, Box: deps.Box, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer,
-		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Cfg: app.AccountConfig(cfg)}
+		IDP: deps.IDP, Blob: deps.Blob, Scheduler: jobs.Scheduler{Client: rc}, Pwned: breached, Cfg: app.AccountConfig(cfg), Log: log}
 	orgs := &org.Service{Pool: pool, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL}
 	listings := &listing.Service{Pool: pool, Blob: deps.Blob, Img: deps.Img, Scanner: deps.Scanner, Vision: deps.Vision, AI: deps.AI,
 		Jobs: jobs.CatalogJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, Flags: app.ListingFlags(fl),
@@ -91,7 +91,7 @@ func run() error {
 		Jobs: jobs.MessagingJobs{Client: rc}, Blob: deps.Blob, Scanner: deps.Scanner, NotifyDelay: cfg.MessageNotifyDelay,
 		Outbox: jobs.Outbox{Client: rc}, Render: deps.Renderer, WebBaseURL: cfg.WebBaseURL, Log: log}
 	apps := &applications.Service{Pool: pool, RT: deps.RT, Jobs: jobs.ApplicationJobs{Client: rc}, Outbox: jobs.Outbox{Client: rc},
-		Render: deps.Renderer, Blob: deps.Blob, Scanner: deps.Scanner, ISIR: app.ISIR(cfg), WebBaseURL: cfg.WebBaseURL, Log: log}
+		Render: deps.Renderer, Pusher: deps.Pusher, Blob: deps.Blob, Scanner: deps.Scanner, ISIR: app.ISIR(cfg), WebBaseURL: cfg.WebBaseURL, Log: log}
 	leases, mockBank := app.Leasing(cfg, deps, pool, jobs.LeaseJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	bill := app.Billing(cfg, deps, pool, fl, jobs.BillingJobs{Client: rc}, jobs.Outbox{Client: rc}, log)
 	chat := &search.Chat{Pool: pool, Model: "rules"}
@@ -116,7 +116,7 @@ func run() error {
 	}
 
 	httpClient := &http.Client{Timeout: 3 * time.Second}
-	checker := health.New(3 * time.Second)
+	checker := health.New(3 * time.Second).CacheFor(5 * time.Second) // public endpoint, see GetHealth
 	checker.Add("database", func(ctx context.Context) error { return pool.Ping(ctx) })
 	checker.Add("worker", health.WorkerHeartbeat(dbq.New(pool), jobs.HeartbeatKey, 90*time.Second))
 	checker.Add("vision", health.HTTPCheck(httpClient, joinURL(cfg.VisionURL, "/healthz")))
@@ -143,7 +143,7 @@ func run() error {
 		Handler: httpx.Metrics(metrics)(api.NewRouter(
 			api.NewServer(pool, checker, api.Services{Account: accounts, Orgs: orgs, IDP: deps.IDP, Listings: listings, Engine: &search.Engine{Pool: pool}, Chat: chat, Messages: messages, Applications: apps, Leases: leases, Portfolio: app.Portfolio(deps, pool), Billing: bill.Service, VAPIDPublicKey: deps.WebPush.VAPIDPublic(), Flags: fl, StaffRequireMFA: cfg.StaffRequireMFA, RateBurst: cfg.RateBurst}),
 			api.RouterConfig{Log: log, CORSOrigins: cfg.CORSOrigins, TrustedProxies: trusted,
-				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank),
+				Sessions: dbq.New(pool), SessionTTL: accounts.TTL, SessionMaxAge: cfg.SessionMaxAge, HSTS: cfg.HSTS, MockIdP: deps.MockIdP, DevBank: devBank(cfg, leases, mockBank),
 				DevLeases: devLeases(cfg, leases), MockStripe: bill.MockStripe, MockRevolut: bill.MockRevolut,
 				RateLimits: api.RateLimits{Search: cfg.RateSearch, Chat: cfg.RateChat, Webhook: cfg.RateWebhook,
 					Apply: cfg.RateApply, Message: cfg.RateMessage, Report: cfg.RateReport}})),

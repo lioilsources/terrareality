@@ -364,7 +364,15 @@
 									<button name="accept" value="false" class="underline">{m.ai_reject()}</button>
 								</form>
 							{/if}
-							{#if privacy}
+							{#if privacy?.decided_at}
+								<!-- Accepted blur stays pending until the worker has applied it. -->
+								<p
+									class="rounded bg-amber-100 p-2 text-xs text-amber-950"
+									data-testid="privacy-applying"
+								>
+									{m.ai_blur_applying()}
+								</p>
+							{:else if privacy}
 								<form
 									method="POST"
 									action={act('decide')}
@@ -468,7 +476,7 @@
 				<h2 class="text-xl font-semibold">{t(l.title, locale)}</h2>
 				<p class="text-sm text-[var(--muted)]">{l.address.label}</p>
 				{#if l.rent_amount}<p class="mt-2 text-lg font-semibold">
-						{m.price_per_month({ amount: formatMoney(l.rent_amount, locale) })}
+						{m.price_per_month({ amount: formatMoney(l.rent_amount, l.currency, locale) })}
 					</p>{/if}
 				<p class="mt-4 text-sm whitespace-pre-line">{t(l.description, locale)}</p>
 				<ul class="mt-4 grid gap-1 text-sm sm:grid-cols-2">

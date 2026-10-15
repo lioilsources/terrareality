@@ -469,6 +469,7 @@ type Listing struct {
 	PublishedAt       *time.Time  `json:"published_at"`
 	DeletedAt         *time.Time  `json:"deleted_at"`
 	Prescreen         []byte      `json:"prescreen"`
+	FirstPublishedAt  *time.Time  `json:"first_published_at"`
 }
 
 type ListingAggregate struct {

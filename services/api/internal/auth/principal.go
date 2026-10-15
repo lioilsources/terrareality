@@ -13,6 +13,10 @@ type Principal struct {
 	Client         string
 	IsStaff        bool
 	ImpersonatorID *uuid.UUID
+	// MFA reports that the session was opened after the user enabled TOTP.
+	// Every login path then requires the second factor, so such a session
+	// passed it; one opened before (possibly stolen) did not.
+	MFA bool
 }
 
 // Impersonated reports whether a staff member acts as this user.

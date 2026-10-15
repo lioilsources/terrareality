@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const [apps, viewings, leases] = await Promise.all([
@@ -11,4 +11,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		viewings: viewings.data ?? [],
 		leases: leases.data ?? []
 	};
+};
+
+export const actions: Actions = {
+	resend: async ({ locals }) => {
+		await locals.api.POST('/v1/auth/email/resend');
+		return { resent: true };
+	}
 };

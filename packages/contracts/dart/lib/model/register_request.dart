@@ -25,6 +25,7 @@ class RegisterRequest {
 
   String email;
 
+  /// At least 12 characters; checked against breached-password lists (error code password_breached).
   String password;
 
   String displayName;

@@ -1,6 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Browser } from '@playwright/test';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
+import { parseFrontMatter } from '../src/lib/legal';
+
+/** Consent versions from the binding Czech front matter (same source as the register page). */
+function legalVersion(doc: 'terms' | 'privacy'): string {
+	const path = new URL(`../../../packages/attributes/legal/cs/${doc}.md`, import.meta.url);
+	return parseFrontMatter(readFileSync(path, 'utf8')).meta.version;
+}
+export const TERMS_VERSION = legalVersion('terms');
+export const PRIVACY_VERSION = legalVersion('privacy');
 
 export const API = process.env.API_URL ?? 'http://localhost:8080';
 export const STAFF = 'staff@terra.local';
@@ -41,11 +50,21 @@ export async function apiRegister(email: string, name: string): Promise<string> 
 			email,
 			password: PASSWORD,
 			display_name: name,
-			accept_terms_version: '2026-10',
-			accept_privacy_version: '2026-10'
+			accept_terms_version: TERMS_VERSION,
+			accept_privacy_version: PRIVACY_VERSION
 		})
 	});
 	return ((await res.json()) as { session: { token: string } }).session.token;
+}
+
+/** Registers and verifies the e-mail (lease parties link only to verified accounts). */
+export async function apiRegisterVerified(email: string, name: string): Promise<string> {
+	const token = await apiRegister(email, name);
+	const verify = await waitForMail(email, 'Potvrďte');
+	await call(token, 'POST', '/v1/auth/email/verify', {
+		token: new URL(verify.match(/https?:\/\/\S+/)![0]).searchParams.get('token')
+	});
+	return token;
 }
 
 /** Registers a verified landlord and publishes a flat with a pre-screening question. */
@@ -58,8 +77,8 @@ export async function publishedListing(title: string) {
 			email,
 			password: PASSWORD,
 			display_name: 'Lucie Pronajímatelka',
-			accept_terms_version: '2026-10',
-			accept_privacy_version: '2026-10'
+			accept_terms_version: TERMS_VERSION,
+			accept_privacy_version: PRIVACY_VERSION
 		})
 	});
 	const token = ((await reg.json()) as { session: { token: string } }).session.token;

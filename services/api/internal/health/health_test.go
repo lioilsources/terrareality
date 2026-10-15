@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -44,5 +46,34 @@ func TestHTTPCheck(t *testing.T) {
 	}
 	if err := HTTPCheck(srv.Client(), "")(ctx); err != ErrDisabled {
 		t.Fatalf("empty url: expected disabled, got %v", err)
+	}
+}
+
+func TestCheckerCache(t *testing.T) {
+	var calls atomic.Int32
+	c := New(time.Second).CacheFor(time.Hour)
+	c.Add("db", func(context.Context) error { calls.Add(1); return errors.New("dial tcp 10.0.0.7:5432") })
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res, healthy := c.Run(context.Background())
+			if healthy || res["db"].Status != Fail {
+				t.Errorf("cached result %+v", res)
+			}
+		}()
+	}
+	wg.Wait()
+	if n := calls.Load(); n != 1 {
+		t.Fatalf("checks ran %d times, want 1", n)
+	}
+	// A canceled caller does not poison the shared round.
+	c2 := New(time.Second).CacheFor(time.Hour)
+	c2.Add("ok", func(ctx context.Context) error { return ctx.Err() })
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, healthy := c2.Run(ctx); !healthy {
+		t.Fatal("canceled caller context leaked into the shared check")
 	}
 }

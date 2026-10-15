@@ -179,6 +179,16 @@ func Load(ctx context.Context, q db.Querier) (*Schema, error) {
 	return s, nil
 }
 
+// Schema returns the catalog as a schema without ingest options (tests and
+// tools that run without a database).
+func (c Catalog) Schema() *Schema {
+	s := &Schema{Groups: c.Groups, Attrs: append([]Attribute(nil), c.Attributes...), byKey: map[string]*Attribute{}}
+	for i := range s.Attrs {
+		s.byKey[s.Attrs[i].Key] = &s.Attrs[i]
+	}
+	return s
+}
+
 // Get returns an attribute by key.
 func (s *Schema) Get(key string) (*Attribute, bool) {
 	a, ok := s.byKey[key]

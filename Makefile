@@ -6,10 +6,10 @@ VISION := services/vision
 -include .env
 export
 
-.PHONY: help setup up down dev migrate seed gen gen-check test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db
+.PHONY: help setup up down dev migrate seed gen gen-go gen-clients gen-check gen-check-go test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db
 
 help: ## List targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Install all dependencies (npm, Go, Python venv, Flutter)
 	@[ -f .env ] || cp .env.example .env
@@ -35,17 +35,34 @@ migrate: ## Apply DB migrations (goose + River)
 seed: ## Create dev accounts staff@terra.local and owner@terra.local (password terra-dev-password)
 	cd $(API) && go run ./cmd/terractl seed-dev
 
-gen: ## Regenerate code from contracts (Go server, sqlc, TS + Dart clients, l10n, attribute catalog)
+# Generated files checked by gen-check (never edit them by hand, CLAUDE.md).
+GEN_GO_PATHS := $(API)/internal/api/gen $(API)/internal/db $(API)/internal/catalog/catalog.json $(API)/internal/leasing/templates
+GEN_CLIENT_PATHS := packages/contracts/ts packages/contracts/dart
+
+gen: gen-go gen-clients ## Regenerate code from contracts (Go server, sqlc, TS + Dart clients, l10n, attribute catalog)
+
+gen-go: ## Go side only: attribute catalog, lease templates, oapi-codegen server, sqlc
 	cp packages/attributes/catalog.json $(API)/internal/catalog/catalog.json
 	rm -rf $(API)/internal/leasing/templates && mkdir -p $(API)/internal/leasing/templates/cz
 	cp packages/attributes/templates/cz/*.typ $(API)/internal/leasing/templates/cz/
 	cd $(API) && go tool oapi-codegen -config oapi-codegen.yaml ../../packages/contracts/openapi.yaml
 	cd $(API) && sqlc generate
+
+gen-clients: ## TS + Dart clients and Flutter l10n
 	npm run gen
 	cd apps/mobile && flutter gen-l10n
 
+# Fails on modified *and* on new untracked generated files (git diff alone misses the latter).
+define check_clean
+	@git diff --exit-code -- $(1) && test -z "$$(git status --porcelain --untracked-files=all -- $(1))" \
+		|| { git status --short -- $(1); echo "generated code is out of date: run make gen and commit"; exit 1; }
+endef
+
 gen-check: gen ## Fail if generated code is out of date
-	git diff --exit-code -- $(API)/internal/api/gen $(API)/internal/db $(API)/internal/catalog/catalog.json $(API)/internal/leasing/templates packages/contracts/ts packages/contracts/dart
+	$(call check_clean,$(GEN_GO_PATHS) $(GEN_CLIENT_PATHS))
+
+gen-check-go: gen-go ## gen-check for the Go side only (CI go job, no Node/Flutter needed)
+	$(call check_clean,$(GEN_GO_PATHS))
 
 test: test-go test-web test-site test-mobile test-vision ## Run all unit/integration tests
 
@@ -82,7 +99,9 @@ build: ## Build Go binaries and web/site bundles
 	npm run build
 
 images: ## Build production container images
-	docker build -f $(API)/Dockerfile -t terra/api $(API)
+	docker build -f $(API)/Dockerfile -t terra/api \
+		--build-arg VERSION="$$(git describe --tags --always --dirty)" --build-arg COMMIT="$$(git rev-parse HEAD)" \
+		--build-arg BUILT_AT="$$(date -u +%Y-%m-%dT%H:%M:%SZ)" $(API)
 	docker build -f apps/web/Dockerfile -t terra/web .
 	docker build -t terra/vision $(VISION)
 

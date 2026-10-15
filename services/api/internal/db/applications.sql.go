@@ -176,12 +176,65 @@ func (q *Queries) ClearPassportIncome(ctx context.Context, userID uuid.UUID) err
 	return err
 }
 
+const countActiveSlotBookings = `-- name: CountActiveSlotBookings :one
+SELECT count(*)::int FROM viewing_bookings b JOIN viewing_slots s ON s.id = b.slot_id
+WHERE b.slot_id = $1 AND s.org_id = $2 AND b.cancelled_at IS NULL AND s.starts_at > now()
+`
+
+type CountActiveSlotBookingsParams struct {
+	SlotID uuid.UUID `json:"slot_id"`
+	OrgID  uuid.UUID `json:"org_id"`
+}
+
+// Active bookings of a slot that has not started yet (RLS: organization members).
+func (q *Queries) CountActiveSlotBookings(ctx context.Context, arg CountActiveSlotBookingsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countActiveSlotBookings, arg.SlotID, arg.OrgID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countMissingConsents = `-- name: CountMissingConsents :one
 SELECT count(*)::int FROM application_consents WHERE application_id = $1 AND consented_at IS NULL
 `
 
 func (q *Queries) CountMissingConsents(ctx context.Context, applicationID uuid.UUID) (int32, error) {
 	row := q.db.QueryRow(ctx, countMissingConsents, applicationID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countOtherAcceptedApplications = `-- name: CountOtherAcceptedApplications :one
+SELECT count(*)::int FROM applications WHERE listing_id = $1 AND id <> $2 AND status = 'accepted'
+`
+
+type CountOtherAcceptedApplicationsParams struct {
+	ListingID uuid.UUID `json:"listing_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CountOtherAcceptedApplications(ctx context.Context, arg CountOtherAcceptedApplicationsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countOtherAcceptedApplications, arg.ListingID, arg.ID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countRecentActorActions = `-- name: CountRecentActorActions :one
+SELECT count(*)::int FROM audit_events
+WHERE actor_id = $1 AND action = $2 AND occurred_at > $3::timestamptz
+`
+
+type CountRecentActorActionsParams struct {
+	ActorID *uuid.UUID `json:"actor_id"`
+	Action  string     `json:"action"`
+	Since   time.Time  `json:"since"`
+}
+
+// Rate limits backed by the audit log (system context).
+func (q *Queries) CountRecentActorActions(ctx context.Context, arg CountRecentActorActionsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countRecentActorActions, arg.ActorID, arg.Action, arg.Since)
 	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -1132,6 +1185,7 @@ JOIN viewing_slots s ON s.id = b.slot_id
 JOIN applications a ON a.id = b.application_id
 JOIN users u ON u.id = a.applicant_id
 WHERE s.listing_id = $1 AND b.cancelled_at IS NULL
+  AND EXISTS (SELECT 1 FROM listings l WHERE l.id = s.listing_id AND l.deleted_at IS NULL)
 ORDER BY s.starts_at
 `
 
@@ -1197,6 +1251,44 @@ func (q *Queries) ListingMatchFacts(ctx context.Context, listingID uuid.UUID) (L
 		&i.AdminPath,
 	)
 	return i, err
+}
+
+const lockApplication = `-- name: LockApplication :one
+
+SELECT id, status FROM applications WHERE id = $1 FOR UPDATE
+`
+
+type LockApplicationRow struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
+}
+
+// ---------------------------------------------------------------------------
+// Concurrency guards and limits (review V-7, S-D9, S-D4, S-D5).
+// Serializes consents of one group application (RLS: parties).
+func (q *Queries) LockApplication(ctx context.Context, id uuid.UUID) (LockApplicationRow, error) {
+	row := q.db.QueryRow(ctx, lockApplication, id)
+	var i LockApplicationRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
+
+const lockListingForDecision = `-- name: LockListingForDecision :one
+SELECT id FROM listings WHERE id = $1 AND org_id = $2 FOR NO KEY UPDATE
+`
+
+type LockListingForDecisionParams struct {
+	ID    uuid.UUID `json:"id"`
+	OrgID uuid.UUID `json:"org_id"`
+}
+
+// Serializes decisions on a listing's applications (RLS: organization
+// members). NO KEY UPDATE leaves new applications (FK checks) unblocked.
+func (q *Queries) LockListingForDecision(ctx context.Context, arg LockListingForDecisionParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockListingForDecision, arg.ID, arg.OrgID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const lockSlot = `-- name: LockSlot :one
@@ -1420,6 +1512,7 @@ const slotsWithAvailability = `-- name: SlotsWithAvailability :many
 SELECT s.id, s.org_id, s.listing_id, s.starts_at, s.duration_min, s.capacity, s.note, s.created_at, (SELECT count(*) FROM viewing_bookings b WHERE b.slot_id = s.id AND b.cancelled_at IS NULL)::int AS booked
 FROM viewing_slots s
 WHERE s.listing_id = $1 AND s.starts_at > now()
+  AND EXISTS (SELECT 1 FROM listings l WHERE l.id = s.listing_id AND l.deleted_at IS NULL)
 ORDER BY s.starts_at
 `
 
@@ -1577,6 +1670,23 @@ func (q *Queries) UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateP
 	var user_id uuid.UUID
 	err := row.Scan(&user_id)
 	return user_id, err
+}
+
+const viewingReminderSent = `-- name: ViewingReminderSent :one
+SELECT EXISTS (SELECT 1 FROM audit_events
+  WHERE entity = 'viewing_booking' AND entity_id = $1::uuid AND action = 'viewing.reminded'
+    AND occurred_at > now() - interval '12 hours')::boolean
+`
+
+// Idempotency of reminder jobs: this reminder was already queued (audit
+// marker written in the same transaction as the e-mails). The two
+// reminders of a booking are 22 hours apart, so a 12 hour window tells a
+// retry from the next reminder.
+func (q *Queries) ViewingReminderSent(ctx context.Context, bookingID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, viewingReminderSent, bookingID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const withdrawApplication = `-- name: WithdrawApplication :execrows

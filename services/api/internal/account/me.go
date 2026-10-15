@@ -86,6 +86,9 @@ func (s *Service) Sessions(ctx context.Context, p *auth.Principal) ([]db.Session
 
 // RevokeSession ends one of the user's sessions.
 func (s *Service) RevokeSession(ctx context.Context, p *auth.Principal, id uuid.UUID) error {
+	if p.Impersonated() {
+		return apperr.ErrImpersonation
+	}
 	n, err := db.New(s.Pool).RevokeSession(ctx, db.RevokeSessionParams{ID: id, UserID: p.UserID})
 	if err != nil {
 		return err

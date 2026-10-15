@@ -19,6 +19,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	"github.com/terrareality/terrareality/services/api/internal/storage"
 )
 
 // ---------------------------------------------------------------------------
@@ -83,20 +84,22 @@ func (s *Service) CompleteUpload(ctx context.Context, p *auth.Principal, id uuid
 		if err != nil {
 			return err
 		}
-		data, err := s.Blob.Get(ctx, a.ObjectKey)
-		if err != nil {
-			return apperr.Unprocessable("attachment_missing", "upload the file first")
-		}
 		reject := func(code, msg string) error {
 			_ = s.Blob.Delete(ctx, a.ObjectKey)
 			_ = q.SetAttachmentStatus(ctx, db.SetAttachmentStatusParams{ID: id, AvStatus: "infected"})
 			return apperr.Unprocessable(code, msg)
 		}
-		if len(data) > MaxAttachmentBytes {
+		// Bounded read: the presigned PUT does not limit the size.
+		data, err := s.Blob.GetLimited(ctx, a.ObjectKey, MaxAttachmentBytes)
+		switch {
+		case errors.Is(err, storage.ErrTooLarge):
 			return reject("attachment_size", "attachments are limited to 10 MB")
+		case errors.Is(err, storage.ErrNotFound):
+			return apperr.Unprocessable("attachment_missing", "upload the file first")
+		case err != nil:
+			return err
 		}
-		sniffed := http.DetectContentType(data)
-		if a.ContentType != "image/heic" && !strings.HasPrefix(sniffed, a.ContentType) {
+		if !contentMatches(a.ContentType, data) {
 			return reject("attachment_type", "the file content does not match its type")
 		}
 		status, _, err := s.Scanner.Scan(ctx, data)
@@ -113,6 +116,27 @@ func (s *Service) CompleteUpload(ctx context.Context, p *auth.Principal, id uuid
 		return nil
 	})
 	return out, err
+}
+
+// heicBrands are ISO BMFF major brands of HEIF/HEIC images.
+var heicBrands = []string{"heic", "heix", "hevc", "hevx", "heim", "heis", "hevm", "hevs", "mif1", "msf1"}
+
+// isHEIC checks the ISO BMFF "ftyp" box of a HEIF/HEIC image.
+func isHEIC(b []byte) bool {
+	if len(b) < 12 || string(b[4:8]) != "ftyp" {
+		return false
+	}
+	return slices.Contains(heicBrands, string(b[8:12]))
+}
+
+// contentMatches checks the bytes against the declared type. HEIC has no
+// net/http signature, so its ftyp box is checked instead of trusting the
+// declared type.
+func contentMatches(contentType string, data []byte) bool {
+	if contentType == "image/heic" {
+		return isHEIC(data)
+	}
+	return strings.HasPrefix(http.DetectContentType(data), contentType)
 }
 
 // ---------------------------------------------------------------------------

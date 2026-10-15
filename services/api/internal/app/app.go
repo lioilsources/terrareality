@@ -4,14 +4,15 @@ package app
 
 import (
 	"context"
-
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/smtp"
 	"os"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/ai"
@@ -19,11 +20,14 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/flags"
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
+	"github.com/terrareality/terrareality/services/api/internal/jobs"
 	"github.com/terrareality/terrareality/services/api/internal/leasing"
 	"github.com/terrareality/terrareality/services/api/internal/listing"
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/platform/config"
+	"github.com/terrareality/terrareality/services/api/internal/platform/db"
+	"github.com/terrareality/terrareality/services/api/internal/platform/pwned"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
 	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/realtime"
@@ -53,7 +57,7 @@ type Deps struct {
 func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	var d Deps
 	var err error
-	if d.Box, err = secretbox.New(cfg.SecretKey); err != nil {
+	if d.Box, err = secretbox.New(cfg.SecretKey, cfg.SecretKeyPrevious...); err != nil {
 		return d, err
 	}
 	if d.Renderer, err = notify.NewRenderer(); err != nil {
@@ -110,15 +114,12 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	var email notify.Sender = notify.Log{L: log}
 	if cfg.SMTPAddr != "" {
 		var a smtp.Auth
-		if u := os.Getenv("SMTP_USERNAME"); u != "" {
-			host := cfg.SMTPAddr
-			for i := len(host) - 1; i >= 0; i-- {
-				if host[i] == ':' {
-					host = host[:i]
-					break
-				}
+		if cfg.SMTPUsername != "" {
+			host, _, err := net.SplitHostPort(cfg.SMTPAddr)
+			if err != nil {
+				return d, fmt.Errorf("SMTP_ADDR: %w", err)
 			}
-			a = smtp.PlainAuth("", u, os.Getenv("SMTP_PASSWORD"), host)
+			a = smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, host)
 		}
 		email = &notify.SMTP{Addr: cfg.SMTPAddr, From: cfg.MailFrom, Auth: a}
 	}
@@ -225,7 +226,7 @@ func ISIR(cfg config.Config) isir.Checker {
 func Leasing(cfg config.Config, d Deps, pool *pgxpool.Pool, jobs leasing.Jobs, outbox notify.Outbox, log *slog.Logger) (*leasing.Service, *leasing.MockBank) {
 	svc := &leasing.Service{Pool: pool, Render: leasing.Typst{Bin: cfg.TypstBin},
 		Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}}, Blob: d.Blob, Jobs: jobs,
-		Outbox: outbox, Mail: d.Renderer, WebBaseURL: cfg.WebBaseURL, TemplatesReviewed: cfg.TemplatesReviewed, Log: log}
+		Outbox: outbox, Mail: d.Renderer, Pusher: d.Pusher, WebBaseURL: cfg.WebBaseURL, TemplatesReviewed: cfg.TemplatesReviewed, Log: log}
 	var mock *leasing.MockBank
 	switch cfg.BankProvider {
 	case "gocardless":
@@ -262,11 +263,44 @@ func ListingFlags(f *flags.Store) listing.Flags {
 	return listing.Flags{Source: f}
 }
 
+// Pwned returns the breached-password checker for PWNED_PASSWORDS
+// (validated by config.Load).
+func Pwned(cfg config.Config, log *slog.Logger) (pwned.Checker, error) {
+	return pwned.New(cfg.PwnedPasswords, log)
+}
+
 // AccountConfig maps process config onto the account service settings.
 func AccountConfig(cfg config.Config) account.Config {
 	return account.Config{WebBaseURL: cfg.WebBaseURL, SessionTTLWeb: cfg.SessionTTLWeb, SessionTTLMobile: cfg.SessionTTLMobile,
+		SessionMaxAge: cfg.SessionMaxAge,
 		RedirectAllow: cfg.RedirectAllow, TermsVersion: cfg.TermsVersion, PrivacyVersion: cfg.PrivacyVersion,
-		ErasureGrace: cfg.ErasureGrace, StaffRequireMFA: cfg.StaffRequireMFA}
+		ErasureGrace: cfg.ErasureGrace, StaffRequireMFA: cfg.StaffRequireMFA, DisablePhoneVerification: !cfg.PhoneVerification}
+}
+
+// LogWarnings reports the non-fatal configuration problems found by config.Load.
+func LogWarnings(cfg config.Config, log *slog.Logger) {
+	for _, w := range cfg.Warnings {
+		log.Warn("config: " + w)
+	}
+}
+
+// MigrateOnStart applies the goose and River migrations when MIGRATE_ON_START
+// is on (default: dev). It connects as the schema owner (MIGRATE_DATABASE_URL,
+// falling back to DATABASE_URL): the runtime login role may not run DDL or
+// write goose_db_version (ADR 0012 point 5).
+func MigrateOnStart(ctx context.Context, cfg config.Config) error {
+	if !config.MustBool("MIGRATE_ON_START", cfg.Env == "dev") {
+		return nil
+	}
+	pool, err := db.Open(ctx, cfg.MigrateDatabaseURL)
+	if err != nil {
+		return fmt.Errorf("MIGRATE_DATABASE_URL: %w", err)
+	}
+	defer pool.Close()
+	if err := db.Migrate(ctx, pool); err != nil {
+		return err
+	}
+	return jobs.MigrateRiver(ctx, pool)
 }
 
 // BillingDeps are the billing service and the dev mock pages (nil unless the

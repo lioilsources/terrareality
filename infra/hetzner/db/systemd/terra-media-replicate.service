@@ -1,0 +1,15 @@
+[Unit]
+Description=TerraReality: media bucket replication to the second location (rclone)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/terra
+ExecStart=/opt/terra/scripts/media-replicate.sh
+TimeoutStartSec=6h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

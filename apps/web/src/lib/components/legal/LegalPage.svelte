@@ -17,6 +17,10 @@
 <svelte:head>
 	<title>{page.title} | {m.app_name()}</title>
 	<meta name="description" content={page.title} />
+	{#if page.draft}
+		<!-- Unapproved drafts (legal sign-off pending) must not be indexed. -->
+		<meta name="robots" content="noindex" />
+	{/if}
 </svelte:head>
 
 <div class="grid gap-8 lg:grid-cols-[14rem_1fr]">

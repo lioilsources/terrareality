@@ -48,7 +48,9 @@ func (s *Server) GetJurisdiction(ctx context.Context, r gen.GetJurisdictionReque
 	return gen.GetJurisdiction200JSONResponse(jurisdictionDTO(j)), nil
 }
 
-// staff returns the principal when it is a staff member (with 2FA when required).
+// staff returns the principal when it is a staff member. With
+// StaffRequireMFA the session itself must have passed the second factor
+// (opened after TOTP was enabled), not merely belong to a user who has it.
 func (s *Server) staff(ctx context.Context) (*auth.Principal, error) {
 	p, err := principal(ctx)
 	if err != nil {
@@ -57,14 +59,9 @@ func (s *Server) staff(ctx context.Context) (*auth.Principal, error) {
 	if !p.IsStaff {
 		return nil, apperr.ErrForbidden
 	}
-	if s.StaffRequireMFA {
-		u, err := db.New(s.pool).GetUser(ctx, p.UserID)
-		if err != nil {
-			return nil, err
-		}
-		if u.TotpEnabledAt == nil {
-			return nil, apperr.Forbidden("staff_mfa_required", "staff accounts must enable two-factor authentication")
-		}
+	if s.StaffRequireMFA && !p.MFA {
+		return nil, apperr.Forbidden("staff_mfa_required",
+			"staff accounts must enable two-factor authentication and sign in again with the code")
 	}
 	return p, nil
 }

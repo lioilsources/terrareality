@@ -8,25 +8,57 @@
 	}
 }
 
+# Transport-level header baseline. `?` sets a header only when the upstream did not send it, so the
+# api (internal/platform/httpx/security.go: HSTS 2 years, Referrer-Policy no-referrer, stricter
+# Permissions-Policy) and the web (hooks.server.ts) keep their own values and no response carries
+# two different copies of the same header. `defer` applies the operations after the upstream
+# answered (required for `?` and for stripping upstream Server/X-Powered-By).
 (security_headers) {
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		X-Content-Type-Options "nosniff"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		X-Frame-Options "DENY"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
-		Cross-Origin-Opener-Policy "same-origin"
+		defer
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "DENY"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
+		?Cross-Origin-Opener-Policy "same-origin"
 		-Server
 		-X-Powered-By
+	}
+}
+
+# Access log without personal data beyond what operations need (ASVS 7.1, review S-A2):
+# - query strings are replaced by "?REDACTED" (magic-link, e-mail verification and password reset
+#   tokens travel in the query), invitation tokens in the path become /v1/invitations/REDACTED;
+# - client IPs are truncated to /24 (IPv4) and /48 (IPv6); User-Agent is not logged.
+# Cookie/Authorization are never logged by Caddy. Loki keeps Caddy logs 14 days (loki.yml).
+(access_log) {
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "(/v1/invitations/)[^/?]+|(\?).*" "${1}${2}REDACTED"
+				request>remote_ip ip_mask {
+					ipv4 24
+					ipv6 48
+				}
+				request>client_ip ip_mask {
+					ipv4 24
+					ipv6 48
+				}
+				request>headers>User-Agent delete
+				request>headers>Referer delete
+			}
+		}
 	}
 }
 
 (common) {
 	encode zstd gzip
 	import security_headers
-	log
-	# Internal endpoints never leave the VM.
-	@internal path /metrics /metrics/* /debug/*
+	import access_log
+	# Internal endpoints never leave the VM (/dev/* = mock providers, refused in prod anyway).
+	@internal path /metrics /metrics/* /debug/* /dev/*
 	respond @internal 404
 }
 
@@ -50,6 +82,10 @@ www.{$SITE_DOMAIN} {
 # Web app (SvelteKit) + Centrifugo websocket
 {$APP_DOMAIN} {
 	import common
+	# Uploads go through SvelteKit form actions; slightly above BODY_SIZE_LIMIT=60M (MiB) of the web.
+	request_body {
+		max_size 64MB
+	}
 	handle /connection/* {
 		reverse_proxy centrifugo:8000
 	}
@@ -67,12 +103,23 @@ www.{$SITE_DOMAIN} {
 	# Stripe webhooks: signed payload, must reach the api byte for byte (no
 	# compression or rewriting on the request side). Rate limited in the api.
 	handle /v1/webhooks/stripe {
-		reverse_proxy api:8080
+		reverse_proxy api:8080 {
+			lb_try_duration 10s
+			lb_try_interval 250ms
+		}
 	}
 	handle {
+		# Single upstream: no active health check on /healthz (it turns 503 when a dependency such as
+		# vision or the worker heartbeat is degraded, and Caddy would then drop *every* route). The
+		# liveness probe is /v1/version (answers whenever the process serves HTTP); lb_try_duration
+		# holds requests for a few seconds while the api restarts during a deploy instead of 502.
 		reverse_proxy api:8080 {
-			health_uri /healthz
+			health_uri /v1/version
 			health_interval 15s
+			health_timeout 3s
+			health_fails 3
+			lb_try_duration 10s
+			lb_try_interval 250ms
 		}
 	}
 }
@@ -80,6 +127,7 @@ www.{$SITE_DOMAIN} {
 # Signed image variants (imgproxy reads the private media bucket)
 {$IMG_DOMAIN} {
 	import security_headers
+	import access_log
 	header Cache-Control "public, max-age=31536000, immutable"
 	reverse_proxy imgproxy:8080
 }

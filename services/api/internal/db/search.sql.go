@@ -747,9 +747,11 @@ func (q *Queries) SimilarByAttributes(ctx context.Context, arg SimilarByAttribut
 }
 
 const similarByEmbedding = `-- name: SimilarByEmbedding :many
-SELECT s2.listing_id FROM listing_search s1 JOIN listing_search s2 ON s2.listing_id <> s1.listing_id
-WHERE s1.listing_id = $1 AND s1.embedding IS NOT NULL AND s2.embedding IS NOT NULL
-ORDER BY s2.embedding <=> s1.embedding LIMIT $2
+SELECT s.listing_id FROM listing_search s
+WHERE s.listing_id <> $1 AND s.embedding IS NOT NULL
+  AND EXISTS (SELECT 1 FROM listing_search x WHERE x.listing_id = $1 AND x.embedding IS NOT NULL)
+ORDER BY s.embedding <=> (SELECT x.embedding FROM listing_search x WHERE x.listing_id = $1)
+LIMIT $2
 `
 
 type SimilarByEmbeddingParams struct {
@@ -757,6 +759,7 @@ type SimilarByEmbeddingParams struct {
 	Limit     int32     `json:"limit"`
 }
 
+// The ORDER BY on a scalar subquery lets the HNSW index serve the scan.
 func (q *Queries) SimilarByEmbedding(ctx context.Context, arg SimilarByEmbeddingParams) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, similarByEmbedding, arg.ListingID, arg.Limit)
 	if err != nil {

@@ -49,11 +49,21 @@ func (s *Service) CreateSlot(ctx context.Context, p *auth.Principal, orgID, list
 	return out, err
 }
 
-// DeleteSlot removes a slot (bookings are cancelled with it).
+// DeleteSlot removes a slot. An upcoming slot with active bookings cannot be
+// deleted: the bookings would disappear with it (ON DELETE CASCADE) and the
+// applicants would come to a viewing that no longer exists. Past slots and
+// slots nobody booked can go.
 func (s *Service) DeleteSlot(ctx context.Context, p *auth.Principal, orgID, id uuid.UUID) error {
 	return s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermMessages); err != nil {
 			return err
+		}
+		booked, err := q.CountActiveSlotBookings(ctx, db.CountActiveSlotBookingsParams{SlotID: id, OrgID: orgID})
+		if err != nil {
+			return err
+		}
+		if booked > 0 {
+			return apperr.Conflict("slot_has_bookings", "applicants booked this viewing; it cannot be deleted")
 		}
 		n, err := q.DeleteViewingSlot(ctx, db.DeleteViewingSlotParams{ID: id, OrgID: orgID})
 		if err != nil {

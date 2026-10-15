@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
-import '../leases/leases_screen.dart' show money;
+import '../common/api_error.dart';
+import '../common/money.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
 import 'listing_map.dart';
 import 'search_repository.dart';
@@ -35,7 +36,9 @@ class ListingScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(t.listingTitle)),
       body: listing.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e is ApiException && e.code == 404 ? t.listingGone : t.statusUnreachable)),
+        error: (e, _) => errorKind(e) == ErrorKind.notFound
+            ? Center(child: Text(t.listingGone))
+            : ApiErrorView(error: e, onRetry: () => ref.invalidate(publicListingProvider(id))),
         data: (l) => _ListingBody(listing: l),
       ),
     );
@@ -50,14 +53,10 @@ class _ListingBody extends ConsumerWidget {
   Future<void> _guard(BuildContext context, AppLocalizations t, Future<void> Function() action) async {
     try {
       await action();
-    } on ApiException catch (e) {
+    } catch (e) {
       if (!context.mounted) return;
-      if (e.code == 401) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.loginRequired)));
-        context.push('/login');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.actionFailed)));
-      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
+      if (errorKind(e) == ErrorKind.signIn) openLogin(context);
     }
   }
 
@@ -84,8 +83,8 @@ class _ListingBody extends ConsumerWidget {
       if (u.floor != null) (t.attrFloor, '${u.floor}'),
       if (listing.availableFrom != null) (t.attrAvailable, date.format(listing.availableFrom!)),
       if (listing.minTermMonths != null) (t.attrMinTerm, t.months(listing.minTermMonths!)),
-      if (listing.depositAmount != null) (t.attrDeposit, money(listing.depositAmount!, locale.toString())),
-      if (listing.utilitiesAmount != null) (t.attrUtilities, money(listing.utilitiesAmount!, locale.toString())),
+      if (listing.depositAmount != null) (t.attrDeposit, money(listing.depositAmount!, locale.toString(), currency: listing.currency)),
+      if (listing.utilitiesAmount != null) (t.attrUtilities, money(listing.utilitiesAmount!, locale.toString(), currency: listing.currency)),
       for (final e in listing.attributes.entries)
         if (e.value is! bool || e.value == true) (e.key, e.value is bool ? '✓' : '${e.value}'),
     ];
@@ -116,7 +115,7 @@ class _ListingBody extends ConsumerWidget {
           if (loc.address != null || listing.areaNames.isNotEmpty)
             Text(loc.address ?? listing.areaNames.join(', '), style: text.bodyMedium),
           const SizedBox(height: 8),
-          Text(t.perMonth(money(listing.rentAmount, locale.toString())), key: const Key('rent'), style: text.headlineSmall),
+          Text(t.perMonth(money(listing.rentAmount, locale.toString(), currency: listing.currency)), key: const Key('rent'), style: text.headlineSmall),
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: [
             FilledButton.icon(

@@ -26,6 +26,9 @@ func (s *Service) GDPRRequests(ctx context.Context, p *auth.Principal) ([]db.Gdp
 
 // RequestExport queues a data export job.
 func (s *Service) RequestExport(ctx context.Context, p *auth.Principal) (db.GdprRequest, error) {
+	if p.Impersonated() {
+		return db.GdprRequest{}, apperr.ErrImpersonation
+	}
 	var r db.GdprRequest
 	err := s.tx(ctx, func(q *db.Queries, tx pgx.Tx) error {
 		var err error
@@ -43,6 +46,9 @@ func (s *Service) RequestExport(ctx context.Context, p *auth.Principal) (db.Gdpr
 
 // ExportLink returns a short-lived download URL of a finished export.
 func (s *Service) ExportLink(ctx context.Context, p *auth.Principal, id uuid.UUID) (string, time.Time, error) {
+	if p.Impersonated() {
+		return "", time.Time{}, apperr.ErrImpersonation // the export is the user's whole data set
+	}
 	r, err := db.New(s.Pool).GetGDPRRequest(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (r.UserID != p.UserID || r.Kind != "export")) {
 		return "", time.Time{}, apperr.NotFound("export_not_found", "export not found")

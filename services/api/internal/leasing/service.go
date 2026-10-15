@@ -53,6 +53,7 @@ type Service struct {
 	Jobs              Jobs
 	Outbox            notify.Outbox
 	Mail              *notify.Renderer
+	Pusher            notify.Pusher // nil: no push notifications
 	WebBaseURL        string
 	TemplatesReviewed bool // false: documents carry a DRAFT watermark (legal review pending)
 	Log               *slog.Logger
@@ -83,11 +84,18 @@ type Access struct {
 	Landlord bool           // organization member with the leases permission
 }
 
+// claim links parties invited by e-mail to the caller's account, only once
+// the caller verified that e-mail (an account registered with someone
+// else's address must not become a party of their lease).
+func (s *Service) claim(ctx context.Context, p *auth.Principal) {
+	if err := db.New(s.Pool).ClaimLeaseParties(ctx, p.UserID); err != nil {
+		s.warn("claim lease parties", err)
+	}
+}
+
 // access loads a lease visible to the caller (RLS) and their role in it.
 func (s *Service) access(ctx context.Context, p *auth.Principal, id uuid.UUID) (Access, error) {
-	if u, err := db.New(s.Pool).GetUser(ctx, p.UserID); err == nil {
-		_ = db.New(s.Pool).ClaimLeaseParties(ctx, db.ClaimLeasePartiesParams{UserID: &p.UserID, Column2: u.Email})
-	}
+	s.claim(ctx, p)
 	var a Access
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		l, err := q.GetLease(ctx, id)
@@ -277,6 +285,12 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 				return apperr.NotFound("application_not_found", "application not found")
 			}
 			in.ListingID = &a.ListingID
+		} else if in.ListingID != nil {
+			// Published listings of other organizations are readable; a lease
+			// may only refer to the organization's own listing.
+			if _, err := q.GetListing(ctx, db.GetListingParams{ID: *in.ListingID, OrgID: orgID}); err != nil {
+				return apperr.NotFound("listing_not_found", "listing not found")
+			}
 		}
 		if in.ListingID != nil {
 			lc, err := q.GetListingContext(ctx, *in.ListingID)
@@ -383,7 +397,7 @@ func (s *Service) writeParties(ctx context.Context, q *db.Queries, l db.Lease, l
 	sys := db.New(s.Pool)
 	for i, pp := range in.Parties {
 		var uid *uuid.UUID
-		if u, err := sys.GetUserByEmail(ctx, pp.Email); err == nil {
+		if u, err := sys.VerifiedUserByEmail(ctx, pp.Email); err == nil { // unverified: linked on first access after verification
 			uid = &u.ID
 		}
 		email := pp.Email
@@ -631,6 +645,22 @@ func (s *Service) Sign(ctx context.Context, p *auth.Principal, id uuid.UUID, pro
 	evidence, _ := json.Marshal(res.Evidence)
 	var complete bool
 	err = s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		// Re-check under the lease lock: a request for changes or a new
+		// proposal may have happened since access() read the lease.
+		l, err := q.GetLeaseForUpdate(ctx, id)
+		if err != nil {
+			return err
+		}
+		if l.State != "proposed" {
+			return apperr.Conflict("lease_not_proposed", "only a proposed lease can be signed")
+		}
+		cur, err := q.LatestLeaseDocument(ctx, db.LatestLeaseDocumentParams{LeaseID: id, Kind: "final"})
+		if err != nil {
+			return err
+		}
+		if cur.ID != doc.ID {
+			return apperr.Conflict("document_changed", "a new version of the lease was proposed meanwhile")
+		}
 		n, err := q.CompleteSignature(ctx, db.CompleteSignatureParams{DocumentID: doc.ID, PartyID: a.Party.ID,
 			ExternalID: &res.ExternalID, Evidence: evidence, Provider: provider})
 		if err != nil {
@@ -650,7 +680,7 @@ func (s *Service) Sign(ctx context.Context, p *auth.Principal, id uuid.UUID, pro
 			return err
 		}
 		complete = true
-		return s.finalize(ctx, q, tx, a.Lease)
+		return s.finalize(ctx, q, tx, l)
 	})
 	if err != nil {
 		return SignResult{}, err
@@ -664,8 +694,12 @@ func (s *Service) Sign(ctx context.Context, p *auth.Principal, id uuid.UUID, pro
 // finalize runs when the last party signed: the payment schedule and its
 // ledger postings are created and the lifecycle workflow is started.
 func (s *Service) finalize(ctx context.Context, q *db.Queries, tx pgx.Tx, l db.Lease) error {
-	if err := q.MarkLeaseSigned(ctx, db.MarkLeaseSignedParams{ID: l.ID, WorkflowID: ptrTo("lease-" + l.ID.String())}); err != nil {
+	n, err := q.MarkLeaseSigned(ctx, db.MarkLeaseSignedParams{ID: l.ID, WorkflowID: ptrTo("lease-" + l.ID.String())})
+	if err != nil {
 		return err
+	}
+	if n == 0 {
+		return apperr.Conflict("lease_not_proposed", "only a proposed lease can be signed")
 	}
 	if err := s.schedule(ctx, q, l, time.Time{}); err != nil {
 		return err
@@ -761,56 +795,66 @@ func post(ctx context.Context, q *db.Queries, l db.Lease, day time.Time, memo st
 // Notifications.
 
 // notifyParties e-mails the tenant side (and the landlord's members when
-// landlord is true) about a lease.
+// landlord is true) about a lease and queues the same event as a push, in
+// one system transaction.
 func (s *Service) notifyParties(ctx context.Context, id uuid.UUID, key string, landlord bool, data map[string]any) error {
-	if s.Outbox == nil {
-		return nil
-	}
 	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
 		l, err := q.GetLease(ctx, id)
 		if err != nil {
 			return err
 		}
-		parties, err := q.ListLeaseParties(ctx, id)
+		if err := s.mailParties(ctx, q, tx, l, key, landlord, data); err != nil {
+			return err
+		}
+		s.pushParties(ctx, q, tx, l, key, landlord)
+		return nil
+	})
+}
+
+func (s *Service) mailParties(ctx context.Context, q *db.Queries, tx pgx.Tx, l db.Lease, key string, landlord bool, data map[string]any) error {
+	if s.Outbox == nil {
+		return nil
+	}
+	id := l.ID
+	parties, err := q.ListLeaseParties(ctx, id)
+	if err != nil {
+		return err
+	}
+	type rcpt struct{ email, locale, link string }
+	var to []rcpt
+	for _, p := range parties {
+		if p.Role == "landlord" || p.Email == nil {
+			continue
+		}
+		locale := "cs"
+		if p.UserID != nil {
+			if u, err := q.GetUser(ctx, *p.UserID); err == nil {
+				locale = u.Locale
+			}
+		}
+		to = append(to, rcpt{*p.Email, locale, s.WebBaseURL + "/smlouvy/" + id.String()})
+	}
+	if landlord {
+		members, err := q.OrgMessagingMembers(ctx, l.OrgID)
 		if err != nil {
 			return err
 		}
-		type rcpt struct{ email, locale, link string }
-		var to []rcpt
-		for _, p := range parties {
-			if p.Role == "landlord" || p.Email == nil {
-				continue
-			}
-			locale := "cs"
-			if p.UserID != nil {
-				if u, err := q.GetUser(ctx, *p.UserID); err == nil {
-					locale = u.Locale
-				}
-			}
-			to = append(to, rcpt{*p.Email, locale, s.WebBaseURL + "/smlouvy/" + id.String()})
+		for _, m := range members {
+			to = append(to, rcpt{m.Email, m.Locale, s.WebBaseURL + "/admin/orgs/" + l.OrgID.String() + "/smlouvy/" + id.String()})
 		}
-		if landlord {
-			members, err := q.OrgMessagingMembers(ctx, l.OrgID)
-			if err != nil {
-				return err
-			}
-			for _, m := range members {
-				to = append(to, rcpt{m.Email, m.Locale, s.WebBaseURL + "/admin/orgs/" + l.OrgID.String() + "/smlouvy/" + id.String()})
-			}
+	}
+	for _, r := range to {
+		d := map[string]any{"Code": l.Code, "Address": l.PropertyAddress, "Link": r.link}
+		for k, v := range data {
+			d[k] = v
 		}
-		for _, r := range to {
-			d := map[string]any{"Code": l.Code, "Address": l.PropertyAddress, "Link": r.link}
-			for k, v := range data {
-				d[k] = v
-			}
-			m, err := s.Mail.Render(notify.Email, r.email, r.locale, key, d)
-			if err != nil {
-				return err
-			}
-			if err := s.Outbox.Enqueue(ctx, tx, m); err != nil {
-				return err
-			}
+		m, err := s.Mail.Render(notify.Email, r.email, r.locale, key, d)
+		if err != nil {
+			return err
 		}
-		return nil
-	})
+		if err := s.Outbox.Enqueue(ctx, tx, m); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -31,8 +31,8 @@
 					name="locale"
 					class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
 				>
-					<option value="cs" selected={me.locale === 'cs'}>Čeština</option>
-					<option value="en" selected={me.locale === 'en'}>English</option>
+					<option value="cs" selected={me.locale === 'cs'}>{m.lang_name_cs()}</option>
+					<option value="en" selected={me.locale === 'en'}>{m.lang_name_en()}</option>
 				</select>
 			</label>
 			<Button type="submit">{m.save()}</Button>

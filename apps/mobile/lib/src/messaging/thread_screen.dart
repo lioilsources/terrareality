@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../api/api_provider.dart';
+import '../common/api_error.dart';
 import 'messaging_repository.dart';
 
 const _contactFlags = [MessageFlag.contactPhone, MessageFlag.contactEmail, MessageFlag.contactBankAccount];
@@ -27,6 +29,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   DateTime? _peerReadAt;
   StreamSubscription<RealtimeEvent>? _events;
   bool _sending = false;
+  Object? _error;
 
   MessagingRepository get _repo => ref.read(messagingRepositoryProvider);
 
@@ -34,8 +37,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   void initState() {
     super.initState();
     _load();
+    _subscribe();
+  }
+
+  // Realtime is best effort: without it the thread still works on reload.
+  void _subscribe() {
+    _events?.cancel();
     _events = _repo.events(widget.id).listen(_onEvent, onError: (_) {});
   }
+
+  void _markRead() => _repo.markRead(widget.id).catchError((_) {});
 
   @override
   void dispose() {
@@ -46,16 +57,21 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   }
 
   Future<void> _load() async {
-    final detail = await _repo.detail(widget.id);
-    final messages = await _repo.messages(widget.id);
-    if (!mounted) return;
-    setState(() {
-      _detail = detail;
-      _messages = messages;
-      _peerReadAt = detail.peerReadAt;
-    });
-    unawaited(_repo.markRead(widget.id));
-    _scrollDown();
+    if (_error != null) setState(() => _error = null);
+    try {
+      final detail = await _repo.detail(widget.id);
+      final messages = await _repo.messages(widget.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = detail;
+        _messages = messages;
+        _peerReadAt = detail.peerReadAt;
+      });
+      _markRead();
+      _scrollDown();
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
   }
 
   bool _mine(Message m) {
@@ -68,7 +84,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (_messages.any((x) => x.id == m.id)) return;
     setState(() => _messages = [..._messages, m]);
     _scrollDown();
-    if (!_mine(m)) unawaited(_repo.markRead(widget.id));
+    if (!_mine(m)) _markRead();
   }
 
   void _onEvent(RealtimeEvent e) {
@@ -99,10 +115,14 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty) return;
+    final t = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
       _add(await _repo.send(widget.id, text));
       _input.clear();
+    } catch (e) {
+      // The text stays in the field so nothing is lost.
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -123,14 +143,35 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       ),
     );
     if (reason == null) return;
-    await _repo.report(widget.id, reason, '');
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.reportSent)));
+    try {
+      await _repo.report(widget.id, reason, '');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.reportSent)));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    // Signing in from the error view (e.g. a push opened after the session
+    // expired) reloads the thread and its realtime channel.
+    ref.listen<String?>(authSessionProvider, (prev, next) {
+      if (next != null && next != prev) {
+        _subscribe();
+        _load();
+      }
+    });
     final c = _detail?.conversation;
+    if (c == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: _error != null
+            ? ApiErrorView(error: _error!, onRetry: _load)
+            : const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final peer = c.role == ConversationRole.seeker ? c.orgName : c.seekerName;
     final ownIds = _messages.where(_mine).map((m) => m.id).toList();
     final lastRead =
         ownIds.isNotEmpty && _peerReadAt != null && !_messages.lastWhere(_mine).createdAt.isAfter(_peerReadAt!)
@@ -138,7 +179,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         : null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(c == null ? '' : (c.role == ConversationRole.seeker ? c.orgName : c.seekerName)),
+        title: Text(peer),
         actions: [IconButton(icon: const Icon(Icons.flag_outlined), tooltip: t.report, onPressed: _report)],
       ),
       body: Column(
@@ -150,10 +191,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
               padding: const EdgeInsets.all(12),
               itemCount: _messages.length,
               itemBuilder: (_, i) =>
-                  _Bubble(message: _messages[i], mine: _mine(_messages[i]), read: _messages[i].id == lastRead),
+                  _Bubble(
+                    message: _messages[i],
+                    mine: _mine(_messages[i]),
+                    read: _messages[i].id == lastRead,
+                    peer: peer,
+                  ),
             ),
           ),
-          if (c?.blocked ?? false)
+          if (c.blocked)
             Padding(padding: const EdgeInsets.all(16), child: Text(t.blocked))
           else
             SafeArea(
@@ -186,11 +232,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine, required this.read});
+  const _Bubble({required this.message, required this.mine, required this.read, required this.peer});
 
   final Message message;
   final bool mine;
   final bool read;
+  final String peer;
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +245,17 @@ class _Bubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final advance = !message.removed && message.flags.contains(MessageFlag.advancePayment);
     final contact = mine && message.flags.any(_contactFlags.contains);
+    // One semantics node per message: who sent it, the text, the warnings
+    // and the read receipt are announced together.
+    return MergeSemantics(
+      child: Semantics(
+        label: mine ? t.bubbleMine : t.bubblePeer(peer),
+        child: _bubble(context, t, scheme, advance, contact),
+      ),
+    );
+  }
+
+  Widget _bubble(BuildContext context, AppLocalizations t, ColorScheme scheme, bool advance, bool contact) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(

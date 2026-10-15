@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
 import 'applications_repository.dart';
 
@@ -41,7 +42,7 @@ class ApplicationsScreen extends ConsumerWidget {
       ]),
       body: list.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.statusUnreachable)),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(myApplicationsProvider)),
         data: (items) => items.isEmpty
             ? Center(child: Text(t.applicationsEmpty))
             : ListView(
@@ -85,8 +86,8 @@ class ApplicationScreen extends ConsumerWidget {
         await action();
         ref.invalidate(applicationDetailProvider(id));
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
-      } on ApiException catch (_) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.actionFailed)));
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
       }
     }
 
@@ -94,7 +95,7 @@ class ApplicationScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(t.applicationTitle)),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.statusUnreachable)),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(applicationDetailProvider(id))),
         data: (d) {
           final a = d.application;
           final waitingForMe = a.status == ApplicationStatus.pendingConsent && a.consentNeeded && a.myConsentAt == null;

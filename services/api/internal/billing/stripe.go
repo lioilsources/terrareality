@@ -51,8 +51,10 @@ type Event struct {
 
 // Event types handled by the platform.
 const (
-	EventCheckoutCompleted = "checkout.session.completed"
-	EventCheckoutExpired   = "checkout.session.expired"
+	EventCheckoutCompleted      = "checkout.session.completed"
+	EventCheckoutExpired        = "checkout.session.expired"
+	EventCheckoutAsyncSucceeded = "checkout.session.async_payment_succeeded"
+	EventCheckoutAsyncFailed    = "checkout.session.async_payment_failed"
 )
 
 // StripeClient creates Checkout sessions and verifies webhooks.
@@ -210,6 +212,10 @@ func (s *StripeHTTP) CreateCheckout(ctx context.Context, in CheckoutInput) (Chec
 func checkoutForm(in CheckoutInput) url.Values {
 	f := url.Values{}
 	f.Set("mode", "payment")
+	// Card only: the invoice says "paid by card" and the order is fulfilled
+	// on checkout.session.completed (async methods are handled, but must not
+	// appear by a dashboard switch).
+	f.Set("payment_method_types[0]", "card")
 	f.Set("success_url", in.SuccessURL)
 	f.Set("cancel_url", in.CancelURL)
 	f.Set("client_reference_id", in.OrderID)

@@ -17,7 +17,6 @@
 	const tiles = $derived.by((): Tile[] => {
 		const x = data.metrics;
 		if (!x) return [];
-		const cur = x.revenue_30d.currency === 'CZK' ? 'Kč' : x.revenue_30d.currency;
 		return [
 			{ id: 'users', label: m.bo_m_users(), value: num(x.users), href: '#bo-users-heading' },
 			{ id: 'orgs', label: m.bo_m_orgs(), value: num(x.orgs) },
@@ -53,7 +52,7 @@
 			{
 				id: 'revenue_30d',
 				label: m.bo_m_revenue_30d(),
-				value: `${formatMoney(x.revenue_30d.gross_amount, locale)} ${cur}`
+				value: formatMoney(x.revenue_30d.gross_amount, x.revenue_30d.currency, locale)
 			},
 			{ id: 'orders_paid_30d', label: m.bo_m_orders_paid_30d(), value: num(x.orders_paid_30d) }
 		];

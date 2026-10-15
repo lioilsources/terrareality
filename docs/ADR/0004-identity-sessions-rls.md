@@ -53,3 +53,14 @@ verification and strict separation of organizations' data.
 - The in-process rate limiter is per api instance. A shared limiter is needed with more instances.
 - Apple's client secret is a JWT that expires after six months; it is configured as an env value
   and must be rotated (runbook in M8).
+
+## Notes (later changes, 2026-10-16)
+
+- Point 1: the sliding lifetimes (web 30 days, mobile 90 days) are capped by the absolute
+  `SESSION_MAX_AGE` (ASVS V3.3.2). It defaults to the longer of the two TTLs; production sets
+  `2160h` (90 days), so the mobile lifetime is kept and no session lives longer than that
+  regardless of activity.
+- Point 7: "auth flows, jobs and backoffice run as the owner role" is superseded by ADR 0012
+  point 5: they run as the login role `terra_api` (member of `terra_service`, no superuser, no
+  BYPASSRLS) with an explicit `system_all` policy per RLS table; only migrations run as the owner.
+  Per-user RLS through `db.AsUser` is unchanged.

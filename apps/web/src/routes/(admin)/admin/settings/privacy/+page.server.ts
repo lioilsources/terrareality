@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
+import { legalVersion } from '#lib/server/legal.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -35,7 +36,7 @@ export const actions: Actions = {
 	marketing: async ({ request, locals }) => {
 		const granted = (await request.formData()).get('granted') === 'true';
 		const { error } = await locals.api.POST('/v1/me/consents', {
-			body: { kind: 'marketing', version: '2026-10', granted }
+			body: { kind: 'marketing', version: legalVersion('privacy'), granted }
 		});
 		if (error) return fail(400, { error: errorMessage(error) });
 	}

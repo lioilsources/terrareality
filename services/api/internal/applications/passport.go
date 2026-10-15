@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -17,6 +18,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/isir"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	"github.com/terrareality/terrareality/services/api/internal/storage"
 )
 
 // Passport is the caller's Tenant Passport v0.
@@ -53,6 +55,9 @@ func (s *Service) Passport(ctx context.Context, p *auth.Principal) (Passport, er
 	return out, err
 }
 
+// MaxIncomeBytes limits an income proof.
+const MaxIncomeBytes = 10 << 20
+
 // IncomeUpload is a presigned upload slot for an income proof.
 type IncomeUpload struct {
 	Key       string
@@ -64,7 +69,7 @@ func (s *Service) CreateIncomeUpload(ctx context.Context, p *auth.Principal, con
 	if contentType != "application/pdf" && contentType != "image/jpeg" && contentType != "image/png" {
 		return IncomeUpload{}, apperr.Unprocessable("attachment_type", "upload a PDF, JPEG or PNG")
 	}
-	if size <= 0 || size > 10<<20 {
+	if size <= 0 || size > MaxIncomeBytes {
 		return IncomeUpload{}, apperr.Unprocessable("attachment_size", "the file is limited to 10 MB")
 	}
 	key := fmt.Sprintf("passports/%s/income-%s", p.UserID, uuid.NewString())
@@ -78,9 +83,16 @@ func (s *Service) CompleteIncomeUpload(ctx context.Context, p *auth.Principal, k
 	if !strings.HasPrefix(key, "passports/"+p.UserID.String()+"/") {
 		return apperr.NotFound("upload_not_found", "upload not found")
 	}
-	data, err := s.Blob.Get(ctx, key)
-	if err != nil {
+	// Bounded read: the presigned PUT does not limit the size.
+	data, err := s.Blob.GetLimited(ctx, key, MaxIncomeBytes)
+	switch {
+	case errors.Is(err, storage.ErrTooLarge):
+		_ = s.Blob.Delete(ctx, key)
+		return apperr.Unprocessable("attachment_size", "the file is limited to 10 MB")
+	case errors.Is(err, storage.ErrNotFound):
 		return apperr.Unprocessable("attachment_missing", "upload the file first")
+	case err != nil:
+		return err
 	}
 	sniffed := http.DetectContentType(data)
 	if !strings.HasPrefix(sniffed, "application/pdf") && !strings.HasPrefix(sniffed, "image/") {
@@ -94,7 +106,7 @@ func (s *Service) CompleteIncomeUpload(ctx context.Context, p *auth.Principal, k
 		return apperr.Unprocessable("attachment_infected", "the file was rejected by the malware scanner")
 	}
 	filename = path.Base(strings.ReplaceAll(filename, "\\", "/"))
-	if filename == "" || filename == "." || len(filename) > 200 {
+	if filename == "" || filename == "." || len([]rune(filename)) > 200 || !utf8.ValidString(filename) {
 		filename = "potvrzeni-prijmu"
 	}
 	var old *string

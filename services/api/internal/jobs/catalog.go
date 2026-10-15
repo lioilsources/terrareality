@@ -29,10 +29,30 @@ func (SuggestionArgs) Kind() string { return "ai_suggestion" }
 // GPU in the morning), so retries with River's backoff span about 7 hours.
 func (SuggestionArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{MaxAttempts: 10} }
 
+// RedactMediaArgs applies an accepted privacy blur to a photo. It is
+// enqueued in the transaction that records the owner's decision.
+type RedactMediaArgs struct {
+	SuggestionID uuid.UUID `json:"suggestion_id"`
+}
+
+// Kind implements river.JobArgs.
+func (RedactMediaArgs) Kind() string { return "redact_media" }
+
+// InsertOpts: vision runs on the Spark; retries span its off hours.
+func (RedactMediaArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{MaxAttempts: 10} }
+
+// MediaCleanupArgs deletes photo objects no version references any more.
+type MediaCleanupArgs struct{}
+
+// Kind implements river.JobArgs.
+func (MediaCleanupArgs) Kind() string { return "media_cleanup" }
+
 // CatalogRunner is implemented by listing.Service.
 type CatalogRunner interface {
 	ProcessMedia(ctx context.Context, mediaID uuid.UUID) error
 	RunSuggestion(ctx context.Context, suggestionID uuid.UUID) error
+	RedactMedia(ctx context.Context, suggestionID uuid.UUID) error
+	CleanupMediaBlobs(ctx context.Context) (int, error)
 }
 
 // ProcessMediaWorker runs ProcessMediaArgs. Runner is set after the client exists.
@@ -65,6 +85,35 @@ func (w *SuggestionWorker) Work(ctx context.Context, j *river.Job[SuggestionArgs
 // Timeout leaves room for local LLM inference.
 func (w *SuggestionWorker) Timeout(*river.Job[SuggestionArgs]) time.Duration { return 5 * time.Minute }
 
+// RedactMediaWorker runs RedactMediaArgs. It shares the runner of the
+// photo worker, which is set after the River client exists.
+type RedactMediaWorker struct {
+	river.WorkerDefaults[RedactMediaArgs]
+	Media *ProcessMediaWorker
+}
+
+// Work implements river.Worker.
+func (w *RedactMediaWorker) Work(ctx context.Context, j *river.Job[RedactMediaArgs]) error {
+	return w.Media.Runner.RedactMedia(ctx, j.Args.SuggestionID)
+}
+
+// Timeout covers download, vision redaction and upload of one photo.
+func (w *RedactMediaWorker) Timeout(*river.Job[RedactMediaArgs]) time.Duration {
+	return 5 * time.Minute
+}
+
+// MediaCleanupWorker runs MediaCleanupArgs (periodic).
+type MediaCleanupWorker struct {
+	river.WorkerDefaults[MediaCleanupArgs]
+	Media *ProcessMediaWorker
+}
+
+// Work implements river.Worker.
+func (w *MediaCleanupWorker) Work(ctx context.Context, _ *river.Job[MediaCleanupArgs]) error {
+	_, err := w.Media.Runner.CleanupMediaBlobs(ctx)
+	return err
+}
+
 // CatalogJobs implements listing.Jobs with River.
 type CatalogJobs struct{ Client *river.Client[pgx.Tx] }
 
@@ -77,5 +126,11 @@ func (c CatalogJobs) ProcessMedia(ctx context.Context, tx pgx.Tx, id uuid.UUID) 
 // RunSuggestion implements listing.Jobs.
 func (c CatalogJobs) RunSuggestion(ctx context.Context, tx pgx.Tx, id uuid.UUID) error {
 	_, err := c.Client.InsertTx(ctx, tx, SuggestionArgs{SuggestionID: id}, nil)
+	return err
+}
+
+// RedactMedia implements listing.Jobs.
+func (c CatalogJobs) RedactMedia(ctx context.Context, tx pgx.Tx, id uuid.UUID) error {
+	_, err := c.Client.InsertTx(ctx, tx, RedactMediaArgs{SuggestionID: id}, nil)
 	return err
 }

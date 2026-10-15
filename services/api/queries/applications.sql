@@ -222,6 +222,7 @@ DELETE FROM viewing_slots WHERE id = $1 AND org_id = $2;
 SELECT s.*, (SELECT count(*) FROM viewing_bookings b WHERE b.slot_id = s.id AND b.cancelled_at IS NULL)::int AS booked
 FROM viewing_slots s
 WHERE s.listing_id = $1 AND s.starts_at > now()
+  AND EXISTS (SELECT 1 FROM listings l WHERE l.id = s.listing_id AND l.deleted_at IS NULL)
 ORDER BY s.starts_at;
 
 -- name: ListSlotBookings :many
@@ -232,6 +233,7 @@ JOIN viewing_slots s ON s.id = b.slot_id
 JOIN applications a ON a.id = b.application_id
 JOIN users u ON u.id = a.applicant_id
 WHERE s.listing_id = $1 AND b.cancelled_at IS NULL
+  AND EXISTS (SELECT 1 FROM listings l WHERE l.id = s.listing_id AND l.deleted_at IS NULL)
 ORDER BY s.starts_at;
 
 -- name: LockSlot :one
@@ -283,3 +285,37 @@ DELETE FROM push_devices WHERE user_id = $1;
 
 -- name: DeleteUserGroupMemberships :exec
 DELETE FROM group_members WHERE user_id = $1;
+
+-- ---------------------------------------------------------------------------
+-- Concurrency guards and limits (review V-7, S-D9, S-D4, S-D5).
+
+-- name: LockApplication :one
+-- Serializes consents of one group application (RLS: parties).
+SELECT id, status FROM applications WHERE id = $1 FOR UPDATE;
+
+-- name: LockListingForDecision :one
+-- Serializes decisions on a listing's applications (RLS: organization
+-- members). NO KEY UPDATE leaves new applications (FK checks) unblocked.
+SELECT id FROM listings WHERE id = $1 AND org_id = $2 FOR NO KEY UPDATE;
+
+-- name: CountOtherAcceptedApplications :one
+SELECT count(*)::int FROM applications WHERE listing_id = $1 AND id <> $2 AND status = 'accepted';
+
+-- name: CountActiveSlotBookings :one
+-- Active bookings of a slot that has not started yet (RLS: organization members).
+SELECT count(*)::int FROM viewing_bookings b JOIN viewing_slots s ON s.id = b.slot_id
+WHERE b.slot_id = $1 AND s.org_id = $2 AND b.cancelled_at IS NULL AND s.starts_at > now();
+
+-- name: CountRecentActorActions :one
+-- Rate limits backed by the audit log (system context).
+SELECT count(*)::int FROM audit_events
+WHERE actor_id = sqlc.arg(actor_id) AND action = sqlc.arg(action) AND occurred_at > sqlc.arg(since)::timestamptz;
+
+-- name: ViewingReminderSent :one
+-- Idempotency of reminder jobs: this reminder was already queued (audit
+-- marker written in the same transaction as the e-mails). The two
+-- reminders of a booking are 22 hours apart, so a 12 hour window tells a
+-- retry from the next reminder.
+SELECT EXISTS (SELECT 1 FROM audit_events
+  WHERE entity = 'viewing_booking' AND entity_id = sqlc.arg(booking_id)::uuid AND action = 'viewing.reminded'
+    AND occurred_at > now() - interval '12 hours')::boolean;

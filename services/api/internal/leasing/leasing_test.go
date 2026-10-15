@@ -73,3 +73,40 @@ func TestSchedule(t *testing.T) {
 		t.Fatalf("extension %+v", next[0])
 	}
 }
+
+// GoCardless transactions without any id get a stable content id; identical
+// ones in one response stay distinct.
+func TestGoCardlessFallbackID(t *testing.T) {
+	tx := func(id, amount string) gcTxn {
+		var g gcTxn
+		g.TransactionID, g.BookingDate, g.TransactionAmount.Amount, g.TransactionAmount.Currency = id, "2026-10-15", amount, "CZK"
+		g.DebtorName = "Anna"
+		return g
+	}
+	got := gcTransactions([]gcTxn{tx("t1", "100.00"), tx("", "200.00"), tx("", "200.00"), tx("", "300.00")})
+	if len(got) != 4 || got[0].ExternalID != "t1" {
+		t.Fatalf("%+v", got)
+	}
+	ids := map[string]bool{}
+	for _, g := range got {
+		if g.ExternalID == "" || ids[g.ExternalID] {
+			t.Fatalf("empty or duplicate id %q in %+v", g.ExternalID, got)
+		}
+		ids[g.ExternalID] = true
+	}
+	again := gcTransactions([]gcTxn{tx("", "200.00")})
+	if again[0].ExternalID != got[1].ExternalID || !strings.HasPrefix(again[0].ExternalID, "sha256:") {
+		t.Fatalf("fallback id not stable: %q vs %q", again[0].ExternalID, got[1].ExternalID)
+	}
+}
+
+func TestGoCardlessCurrencyNormalized(t *testing.T) {
+	var g gcTxn
+	g.TransactionID, g.BookingDate, g.TransactionAmount.Amount, g.TransactionAmount.Currency = "x", "2026-10-15", "1.00", " czk "
+	if got := gcTransactions([]gcTxn{g}); got[0].Currency != "CZK" || !validCurrency(got[0].Currency) {
+		t.Fatalf("%+v", got)
+	}
+	if validCurrency("") || validCurrency("Kč") || validCurrency("czk") {
+		t.Fatal("invalid currency accepted")
+	}
+}

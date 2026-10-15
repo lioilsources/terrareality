@@ -14,6 +14,7 @@ export function fieldMessages(
 	labelOf: (key: string) => string
 ): string[] {
 	return (errors ?? []).map((e) => {
+		if (e.reason === 'privacy_review_pending') return m.reason_privacy_review_pending();
 		if (e.reason.startsWith('deposit_over_limit:')) {
 			return m.err_deposit_over_limit({ months: e.reason.split(':')[1] });
 		}

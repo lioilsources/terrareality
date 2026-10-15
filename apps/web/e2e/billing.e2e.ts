@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { apiRegister, call, login, publishedListing } from './api';
+import { apiRegister, apiRegisterVerified, call, login, publishedListing } from './api';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
@@ -84,7 +84,7 @@ test('revolut: connect merchant account and pay a share', async ({ browser }) =>
 	test.setTimeout(180_000);
 	const owner = await verifiedOwner('Lucie Pronajímatelka');
 	const tenant = uniqueEmail('revolut-tenant');
-	const tenantToken = await apiRegister(tenant, 'Tomáš Nájemník');
+	const tenantToken = await apiRegisterVerified(tenant, 'Tomáš Nájemník');
 	const d = await call<{ lease: { id: string } }>(
 		owner.token,
 		'POST',

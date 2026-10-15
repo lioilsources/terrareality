@@ -2,7 +2,6 @@
 	import type { Area, AreaAggregate, SearchResult } from '@terra/contracts';
 	import { onMount } from 'svelte';
 	import { MAP_STYLE } from '$app/env/public';
-	import 'maplibre-gl/dist/maplibre-gl.css';
 
 	let {
 		result,
@@ -85,116 +84,120 @@
 
 	onMount(() => {
 		let disposed = false;
-		import('maplibre-gl').then(({ default: maplibregl }) => {
-			if (disposed) return;
-			map = new maplibregl.Map({
-				container: el,
-				style: MAP_STYLE,
-				center: [15.4, 49.8],
-				zoom: 6,
-				attributionControl: { compact: true }
-			});
-			map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-			map.on('load', () => {
-				if (!map) return;
-				map.addSource('areas', {
-					type: 'geojson',
-					data: areaFeatures(areas, result.areas) as never
+		// maplibre-gl (JS and CSS, ~1 MB) loads only in the browser, after hydration,
+		// so it stays out of the /hledat entry chunk and the SSR bundle.
+		Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]).then(
+			([{ default: maplibregl }]) => {
+				if (disposed) return;
+				map = new maplibregl.Map({
+					container: el,
+					style: MAP_STYLE,
+					center: [15.4, 49.8],
+					zoom: 6,
+					attributionControl: { compact: true }
 				});
-				map.addLayer({
-					id: 'areas-fill',
-					type: 'fill',
-					source: 'areas',
-					paint: {
-						'fill-color': '#0f766e',
-						'fill-opacity': ['interpolate', ['linear'], ['get', 'count'], 0, 0.04, 50, 0.25]
+				map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
+				map.on('load', () => {
+					if (!map) return;
+					map.addSource('areas', {
+						type: 'geojson',
+						data: areaFeatures(areas, result.areas) as never
+					});
+					map.addLayer({
+						id: 'areas-fill',
+						type: 'fill',
+						source: 'areas',
+						paint: {
+							'fill-color': '#0f766e',
+							'fill-opacity': ['interpolate', ['linear'], ['get', 'count'], 0, 0.04, 50, 0.25]
+						}
+					});
+					map.addLayer({
+						id: 'areas-line',
+						type: 'line',
+						source: 'areas',
+						paint: { 'line-color': '#0f766e', 'line-width': 1.5 }
+					});
+					map.addLayer({
+						id: 'areas-label',
+						type: 'symbol',
+						source: 'areas',
+						layout: {
+							'text-field': ['concat', ['get', 'name'], '\n', ['to-string', ['get', 'count']]],
+							'text-size': 12,
+							'text-font': FONT
+						},
+						paint: { 'text-color': '#134e4a', 'text-halo-color': '#fff', 'text-halo-width': 1.5 }
+					});
+					map.addSource('points', {
+						type: 'geojson',
+						data: pointFeatures(result),
+						cluster: true,
+						clusterRadius: 40
+					});
+					map.addLayer({
+						id: 'clusters',
+						type: 'circle',
+						source: 'points',
+						filter: ['has', 'point_count'],
+						paint: {
+							'circle-color': '#115e59',
+							'circle-radius': ['step', ['get', 'point_count'], 14, 20, 18, 100, 24],
+							'circle-opacity': 0.85
+						}
+					});
+					map.addLayer({
+						id: 'cluster-count',
+						type: 'symbol',
+						source: 'points',
+						filter: ['has', 'point_count'],
+						layout: {
+							'text-field': ['get', 'point_count_abbreviated'],
+							'text-size': 12,
+							'text-font': FONT
+						},
+						paint: { 'text-color': '#fff' }
+					});
+					map.addLayer({
+						id: 'price',
+						type: 'symbol',
+						source: 'points',
+						filter: ['!', ['has', 'point_count']],
+						layout: {
+							'text-field': ['get', 'price'],
+							'text-size': 11,
+							'text-allow-overlap': false,
+							'text-font': FONT
+						},
+						paint: { 'text-color': '#fff', 'text-halo-color': '#0f766e', 'text-halo-width': 6 }
+					});
+					map.on('click', 'areas-fill', (e) => {
+						const hit = map?.queryRenderedFeatures(e.point, { layers: ['clusters', 'price'] });
+						if (hit?.length) return;
+						const path = e.features?.[0]?.properties?.path;
+						if (path) onArea(String(path));
+					});
+					map.on('click', 'price', (e) => {
+						const id = e.features?.[0]?.properties?.id;
+						if (id) onListing(String(id));
+					});
+					map.on('click', 'clusters', (e) => {
+						const f = e.features?.[0];
+						if (f?.geometry.type === 'Point')
+							map?.easeTo({
+								center: f.geometry.coordinates as [number, number],
+								zoom: (map?.getZoom() ?? 10) + 2
+							});
+					});
+					for (const layer of ['areas-fill', 'price', 'clusters']) {
+						map.on('mouseenter', layer, () => map && (map.getCanvas().style.cursor = 'pointer'));
+						map.on('mouseleave', layer, () => map && (map.getCanvas().style.cursor = ''));
 					}
+					ready = true;
+					fit();
 				});
-				map.addLayer({
-					id: 'areas-line',
-					type: 'line',
-					source: 'areas',
-					paint: { 'line-color': '#0f766e', 'line-width': 1.5 }
-				});
-				map.addLayer({
-					id: 'areas-label',
-					type: 'symbol',
-					source: 'areas',
-					layout: {
-						'text-field': ['concat', ['get', 'name'], '\n', ['to-string', ['get', 'count']]],
-						'text-size': 12,
-						'text-font': FONT
-					},
-					paint: { 'text-color': '#134e4a', 'text-halo-color': '#fff', 'text-halo-width': 1.5 }
-				});
-				map.addSource('points', {
-					type: 'geojson',
-					data: pointFeatures(result),
-					cluster: true,
-					clusterRadius: 40
-				});
-				map.addLayer({
-					id: 'clusters',
-					type: 'circle',
-					source: 'points',
-					filter: ['has', 'point_count'],
-					paint: {
-						'circle-color': '#115e59',
-						'circle-radius': ['step', ['get', 'point_count'], 14, 20, 18, 100, 24],
-						'circle-opacity': 0.85
-					}
-				});
-				map.addLayer({
-					id: 'cluster-count',
-					type: 'symbol',
-					source: 'points',
-					filter: ['has', 'point_count'],
-					layout: {
-						'text-field': ['get', 'point_count_abbreviated'],
-						'text-size': 12,
-						'text-font': FONT
-					},
-					paint: { 'text-color': '#fff' }
-				});
-				map.addLayer({
-					id: 'price',
-					type: 'symbol',
-					source: 'points',
-					filter: ['!', ['has', 'point_count']],
-					layout: {
-						'text-field': ['get', 'price'],
-						'text-size': 11,
-						'text-allow-overlap': false,
-						'text-font': FONT
-					},
-					paint: { 'text-color': '#fff', 'text-halo-color': '#0f766e', 'text-halo-width': 6 }
-				});
-				map.on('click', 'areas-fill', (e) => {
-					const hit = map?.queryRenderedFeatures(e.point, { layers: ['clusters', 'price'] });
-					if (hit?.length) return;
-					const path = e.features?.[0]?.properties?.path;
-					if (path) onArea(String(path));
-				});
-				map.on('click', 'price', (e) => {
-					const id = e.features?.[0]?.properties?.id;
-					if (id) onListing(String(id));
-				});
-				map.on('click', 'clusters', (e) => {
-					const f = e.features?.[0];
-					if (f?.geometry.type === 'Point')
-						map?.easeTo({
-							center: f.geometry.coordinates as [number, number],
-							zoom: (map?.getZoom() ?? 10) + 2
-						});
-				});
-				for (const layer of ['areas-fill', 'price', 'clusters']) {
-					map.on('mouseenter', layer, () => map && (map.getCanvas().style.cursor = 'pointer'));
-					map.on('mouseleave', layer, () => map && (map.getCanvas().style.cursor = ''));
-				}
-				ready = true;
-				fit();
-			});
-		});
+			}
+		);
 		return () => {
 			disposed = true;
 			map?.remove();

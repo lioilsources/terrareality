@@ -89,3 +89,21 @@ func TestLeaseLifecycleStopsWhenPaid(t *testing.T) {
 		t.Fatalf("reminders %+v", got)
 	}
 }
+
+// A lease deleted (or ended) before the workflow ran: Info reports it and
+// the workflow ends without touching other activities.
+func TestLeaseLifecycleEndsForGoneLease(t *testing.T) {
+	for _, state := range []string{leasing.StateGone, "terminated", "cancelled"} {
+		var s testsuite.WorkflowTestSuite
+		env := s.NewTestWorkflowEnvironment()
+		a := &leasing.Activities{}
+		env.RegisterActivity(a)
+		id := uuid.New()
+		env.OnActivity(a.Info, mock.Anything, id).Return(leasing.Info{State: state}, nil)
+		env.ExecuteWorkflow(LeaseLifecycle, id, time.Time{})
+		if !env.IsWorkflowCompleted() || env.GetWorkflowError() != nil {
+			t.Fatalf("%s: completed=%v err=%v", state, env.IsWorkflowCompleted(), env.GetWorkflowError())
+		}
+		env.AssertNotCalled(t, "DueDates", mock.Anything, mock.Anything, mock.Anything)
+	}
+}

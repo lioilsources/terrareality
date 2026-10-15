@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/terrareality/terrareality/services/api/internal/audit"
@@ -142,7 +143,7 @@ func (s *Service) Apply(ctx context.Context, p *auth.Principal, in ApplyInput) (
 	if err != nil {
 		return uuid.Nil, err
 	}
-	return app.ID, s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+	err = s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
 		if app.Status == StatusSubmitted {
 			return s.onSubmitted(ctx, q, tx, app.ID)
 		}
@@ -157,6 +158,7 @@ func (s *Service) Apply(ctx context.Context, p *auth.Principal, in ApplyInput) (
 		return s.notifyAll(ctx, q, tx, to, "application_consent", s.WebBaseURL+"/zadosti/"+app.ID.String(),
 			map[string]any{"ListingTitle": i18n(l.Title), "Applicant": applicant.DisplayName})
 	})
+	return app.ID, err
 }
 
 // onSubmitted notifies the landlord and asks the AI for a summary.
@@ -178,6 +180,7 @@ func (s *Service) onSubmitted(ctx context.Context, q *db.Queries, tx pgx.Tx, id 
 		map[string]any{"ListingTitle": i18n(a.ListingTitle), "Household": a.HouseholdSize}); err != nil {
 		return err
 	}
+	s.pushOrgSubmitted(ctx, tx, a, members)
 	if s.Jobs != nil {
 		return s.Jobs.SummarizeApplication(ctx, tx, id)
 	}
@@ -189,6 +192,13 @@ func (s *Service) onSubmitted(ctx context.Context, q *db.Queries, tx pgx.Tx, id 
 func (s *Service) Consent(ctx context.Context, p *auth.Principal, id uuid.UUID) error {
 	var submitted bool
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+		// Concurrent consents serialize on the application row; otherwise
+		// each sees the other's consent as missing and nobody submits.
+		if _, err := q.LockApplication(ctx, id); errors.Is(err, pgx.ErrNoRows) {
+			return errAppNotFound
+		} else if err != nil {
+			return err
+		}
 		a, err := q.GetApplication(ctx, id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errAppNotFound
@@ -338,17 +348,65 @@ func (s *Service) Applicants(ctx context.Context, p *auth.Principal, orgID, list
 	}
 	out := make([]Applicant, 0, len(rows))
 	sys := db.New(s.Pool)
+	var viewed []uuid.UUID
 	for _, r := range rows {
-		people, err := s.people(ctx, sys, r.ID)
+		people, err := s.people(ctx, sys, r.ID, incomeVisible(r.Status, r.DecidedAt, time.Now()))
 		if err != nil {
 			return nil, err
 		}
+		for _, pp := range people {
+			if pp.IncomeProof != "" {
+				viewed = append(viewed, pp.ID)
+			}
+		}
 		out = append(out, Applicant{ListListingApplicationsRow: r, People: people})
+	}
+	// Every issued download link of an income proof is audited (ADR 0008).
+	if len(viewed) > 0 {
+		err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+			for _, uid := range viewed {
+				if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "tenant_passport", EntityID: &uid,
+					Action: "passport.income_viewed", Diff: map[string]any{"listing_id": listingID}}); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
 
-func (s *Service) people(ctx context.Context, q *db.Queries, appID uuid.UUID) ([]Person, error) {
+var errAlreadyAccepted = apperr.Conflict("listing_already_accepted", "another application for this listing was already accepted")
+
+// isAcceptedConflict recognizes the backstop unique index on accepted
+// applications (one per listing).
+func isAcceptedConflict(err error) bool {
+	var pe *pgconn.PgError
+	return errors.As(err, &pe) && pe.Code == "23505" && pe.ConstraintName == "applications_accepted_per_listing"
+}
+
+// IncomeProofDays is how long after accepting an applicant the landlord can
+// still download their income proof.
+const IncomeProofDays = 30
+
+// incomeVisible reports whether the landlord may download the applicants'
+// income proofs: only while the application is open (submitted, invited)
+// and for IncomeProofDays after acceptance; never once it was rejected or
+// withdrawn (ADR 0008: only landlords the applicant applies to).
+func incomeVisible(status string, decidedAt *time.Time, now time.Time) bool {
+	switch status {
+	case StatusSubmitted, StatusInvited:
+		return true
+	case StatusAccepted:
+		return decidedAt == nil || now.Before(decidedAt.Add(IncomeProofDays*24*time.Hour))
+	}
+	return false
+}
+
+func (s *Service) people(ctx context.Context, q *db.Queries, appID uuid.UUID, income bool) ([]Person, error) {
 	rows, err := q.ApplicationPeople(ctx, appID)
 	if err != nil {
 		return nil, err
@@ -356,11 +414,13 @@ func (s *Service) people(ctx context.Context, q *db.Queries, appID uuid.UUID) ([
 	out := make([]Person, 0, len(rows))
 	for _, r := range rows {
 		pp := Person{ID: r.ID, Name: r.DisplayName, Verification: r.VerificationLevel, Insolvency: r.IsirStatus}
-		if r.IncomeKey != nil {
-			pp.IncomeProof, _ = s.Blob.PresignGet(ctx, *r.IncomeKey, 15*time.Minute)
+		if r.IncomeKey != nil && income {
+			name := "potvrzeni-prijmu"
 			if r.IncomeFilename != nil {
-				pp.IncomeName = *r.IncomeFilename
+				name = *r.IncomeFilename
 			}
+			pp.IncomeProof, _ = s.Blob.PresignDownload(ctx, *r.IncomeKey, name, "", 15*time.Minute)
+			pp.IncomeName = name
 		}
 		out = append(out, pp)
 	}
@@ -397,6 +457,24 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, id uuid.
 		} else if err != nil {
 			return err
 		}
+		// Decisions on one listing serialize, so two concurrent accepts
+		// cannot both succeed (the partial unique index on accepted
+		// applications is the backstop).
+		if _, err := q.LockListingForDecision(ctx, db.LockListingForDecisionParams{ID: a.ListingID, OrgID: orgID}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errAppNotFound
+			}
+			return err
+		}
+		if to == StatusAccepted {
+			n, err := q.CountOtherAcceptedApplications(ctx, db.CountOtherAcceptedApplicationsParams{ListingID: a.ListingID, ID: id})
+			if err != nil {
+				return err
+			}
+			if n > 0 {
+				return errAlreadyAccepted
+			}
+		}
 		n, err := q.DecideApplication(ctx, db.DecideApplicationParams{Status: to, RejectReason: reasonPtr, ID: id,
 			OrgID: orgID, FromStatus: strings.Split(from, ",")})
 		if err != nil {
@@ -418,12 +496,15 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, id uuid.
 		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "application", EntityID: &id,
 			Action: "application." + action, Diff: map[string]any{"reason": reason, "auto_rejected": len(rejected)}})
 	})
+	if isAcceptedConflict(err) {
+		return errAlreadyAccepted
+	}
 	if err != nil {
 		return err
 	}
+	key := map[string]string{StatusInvited: "application_invited", StatusAccepted: "application_accepted",
+		StatusRejected: "application_rejected"}[to]
 	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
-		key := map[string]string{StatusInvited: "application_invited", StatusAccepted: "application_accepted",
-			StatusRejected: "application_rejected"}[to]
 		if err := s.notifyApplicants(ctx, q, tx, id, key, reason); err != nil {
 			return err
 		}
@@ -452,6 +533,10 @@ func (s *Service) notifyApplicants(ctx context.Context, q *db.Queries, tx pgx.Tx
 	for _, pp := range people {
 		to = append(to, recipient{ID: pp.ID, Email: pp.Email, Locale: pp.Locale})
 	}
-	return s.notifyAll(ctx, q, tx, to, key, s.WebBaseURL+"/zadosti/"+id.String(),
-		map[string]any{"ListingTitle": i18n(a.ListingTitle), "Reason": reason})
+	if err := s.notifyAll(ctx, q, tx, to, key, s.WebBaseURL+"/zadosti/"+id.String(),
+		map[string]any{"ListingTitle": i18n(a.ListingTitle), "Reason": reason}); err != nil {
+		return err
+	}
+	s.pushApplicants(ctx, tx, a, people, key, reason)
+	return nil
 }

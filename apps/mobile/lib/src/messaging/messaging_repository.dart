@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:terra_api/api.dart';
 
 import '../api/api_provider.dart';
-import '../push/push_registrar.dart';
 
 /// A realtime event from the conversation channel (see the web client).
 class RealtimeEvent {
@@ -73,28 +72,51 @@ class ApiMessagingRepository implements MessagingRepository {
 
   @override
   Stream<RealtimeEvent> events(String id) {
-    late cf.Client client;
+    cf.Client? client;
+    var cancelled = false;
     final out = StreamController<RealtimeEvent>();
     void handle(List<int> data) {
-      final e = RealtimeEvent.fromJson(jsonDecode(utf8.decode(data)) as Map<String, dynamic>);
-      if (e != null && e.conversationId == id) out.add(e);
+      try {
+        final e = RealtimeEvent.fromJson(jsonDecode(utf8.decode(data)) as Map<String, dynamic>);
+        if (e != null && e.conversationId == id && !out.isClosed) out.add(e);
+      } catch (err, st) {
+        if (!out.isClosed) out.addError(err, st);
+      }
     }
 
+    // Errors of the async setup (expired session, no network) go to the
+    // stream, not the zone; a cancel during setup disconnects once the
+    // client exists.
     out.onListen = () async {
-      final tok = (await api.realtimeToken())!;
-      client = cf.createClient(
-        tok.url,
-        cf.ClientConfig(token: tok.token, getToken: (_) async => (await api.realtimeToken())!.token),
-      );
-      final sub = client.newSubscription(
-        'conv:$id',
-        cf.SubscriptionConfig(getToken: (_) async => (await api.conversationRealtimeToken(id))!.token),
-      );
-      sub.publication.listen((e) => handle(e.data));
-      await sub.subscribe();
-      await client.connect();
+      try {
+        final tok = (await api.realtimeToken())!;
+        if (cancelled) return;
+        final c = cf.createClient(
+          tok.url,
+          cf.ClientConfig(token: tok.token, getToken: (_) async => (await api.realtimeToken())!.token),
+        );
+        client = c;
+        final sub = c.newSubscription(
+          'conv:$id',
+          cf.SubscriptionConfig(getToken: (_) async => (await api.conversationRealtimeToken(id))!.token),
+        );
+        sub.publication.listen((e) => handle(e.data));
+        await sub.subscribe();
+        await c.connect();
+        if (cancelled) await c.disconnect();
+      } catch (err, st) {
+        if (!cancelled && !out.isClosed) out.addError(err, st);
+      }
     };
-    out.onCancel = () => client.disconnect();
+    out.onCancel = () async {
+      cancelled = true;
+      final c = client;
+      client = null;
+      try {
+        await c?.disconnect();
+      } catch (_) {}
+      unawaited(out.close());
+    };
     return out.stream;
   }
 }
@@ -102,19 +124,3 @@ class ApiMessagingRepository implements MessagingRepository {
 final messagingRepositoryProvider = Provider<MessagingRepository>(
   (ref) => ApiMessagingRepository(MessagingApi(ref.watch(apiClientProvider))),
 );
-
-/// Signs in with e-mail and password and registers the device for push.
-Future<void> signIn(WidgetRef ref, String email, String password) async {
-  final res = await AuthApi(
-    ref.read(apiClientProvider),
-  ).login(LoginRequest(email: email, password: password, client: ClientKind.mobile));
-  final token = res?.session?.token;
-  if (token == null) throw StateError('second factor required');
-  ref.read(authSessionProvider.notifier).signIn(token);
-  final push = await ref.read(pushRegistrarProvider).token();
-  if (push != null) {
-    await MeApi(
-      ref.read(apiClientProvider),
-    ).registerPushDevice(PushDeviceInput(platform: PushDeviceInputPlatformEnum.fcm, token: push, label: 'app'));
-  }
-}

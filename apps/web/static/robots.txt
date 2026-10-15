@@ -1,3 +1,38 @@
-# allow crawling everything by default
+# Public pages (search, listings, legal) are crawlable; account, admin and
+# messaging areas are private (they redirect to /login anyway).
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /backoffice
+Disallow: /zpravy
+Disallow: /tenant
+Disallow: /pas
+Disallow: /skupiny
+Disallow: /smlouvy
+Disallow: /spolubydleni
+Disallow: /zadosti
+Disallow: /inzerat/*/zadost
+Disallow: /inzerat/*/nahlasit
+Disallow: /auth/
+Disallow: /impersonation/
+Disallow: /invite/
+Disallow: /login
+Disallow: /register
+Disallow: /logout
+Disallow: /en/admin
+Disallow: /en/backoffice
+Disallow: /en/zpravy
+Disallow: /en/tenant
+Disallow: /en/pas
+Disallow: /en/skupiny
+Disallow: /en/smlouvy
+Disallow: /en/spolubydleni
+Disallow: /en/zadosti
+Disallow: /en/inzerat/*/zadost
+Disallow: /en/inzerat/*/nahlasit
+Disallow: /en/auth/
+Disallow: /en/impersonation/
+Disallow: /en/invite/
+Disallow: /en/login
+Disallow: /en/register
+Disallow: /en/logout
+Allow: /

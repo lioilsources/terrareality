@@ -3,7 +3,10 @@
     <application
         android:label="TerraReality"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -25,6 +28,24 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- App Links: e-mail and push links to these web paths open the
+                 app (go_router matches the same paths). Verification needs
+                 /.well-known/assetlinks.json on both hosts with the release
+                 signing certificate (docs/runbooks/launch.md section 8). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:host="terrareality.cz"/>
+                <data android:host="app.terrareality.cz"/>
+                <data android:pathPrefix="/zpravy"/>
+                <data android:pathPrefix="/zadosti"/>
+                <data android:pathPrefix="/smlouvy"/>
+                <data android:pathPrefix="/inzerat"/>
+                <data android:pathPrefix="/prohlidky"/>
+            </intent-filter>
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="true"/>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -1,3 +1,4 @@
-# postgres_exporter on the DB VM (optional; enable in DB VM cloud-init).
+# postgres_exporter on the DB VM (service postgres-exporter in compose/docker-compose.db.yml,
+# bound to the private IP). Alerts: group terra-postgres in rules/platform.yml.
 - targets: ["10.10.1.20:9187"]
   labels: { vm: db }

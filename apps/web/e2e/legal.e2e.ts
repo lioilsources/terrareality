@@ -18,6 +18,8 @@ for (const p of pages) {
 		await expect(page.getByTestId(`legal-${p.doc}`)).toBeVisible();
 		await expect(page.getByRole('heading', { level: 1 })).toContainText(p.cs);
 		await expect(page.getByTestId('legal-draft')).toBeVisible();
+		// Drafts are not indexed until the legal sign-off.
+		await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 
 		await page.goto(`/en${p.path}`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText(p.en);

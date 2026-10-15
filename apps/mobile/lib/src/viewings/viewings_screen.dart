@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
 import 'viewings_repository.dart';
 
@@ -37,8 +38,8 @@ class ViewingsScreen extends ConsumerWidget {
         await ref.read(viewingsRepositoryProvider).cancel(v.id);
         ref.invalidate(myViewingsProvider);
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.bookingCancelled)));
-      } on ApiException catch (_) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.actionFailed)));
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
       }
     }
 
@@ -48,7 +49,7 @@ class ViewingsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(myViewingsProvider.future),
         child: list.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ListView(children: [ListTile(title: Text(t.statusUnreachable))]),
+          error: (e, _) => ApiErrorView(error: e, scrollable: true, onRetry: () => ref.invalidate(myViewingsProvider)),
           data: (items) => items.isEmpty
               ? ListView(children: [ListTile(title: Text(t.viewingsEmpty))])
               : ListView(children: [

@@ -56,7 +56,8 @@ type Services struct {
 	StaffRequireMFA bool
 	// RateBurst is how many credential attempts per client IP pass before
 	// throttling to one per 6 s (and three messages per address before one per
-	// minute). Zero means the production default of 10.
+	// minute, at most max(5, RateBurst/2) per address and day). Zero means the
+	// production default of 10.
 	RateBurst int
 }
 
@@ -67,6 +68,7 @@ type Server struct {
 	Services
 	loginLimit *ratelimit.Limiter // per client IP
 	emailLimit *ratelimit.Limiter // per target e-mail / phone
+	dailyLimit *ratelimit.Limiter // per target e-mail / phone and day
 	addrLimit  *ratelimit.Limiter
 }
 
@@ -78,23 +80,29 @@ func NewServer(pool *pgxpool.Pool, checker *health.Checker, svc Services) *Serve
 	if burst <= 0 {
 		burst = 10
 	}
+	daily := max(5, burst/2)
 	return &Server{pool: pool, checker: checker, Services: svc,
 		loginLimit: ratelimit.New(6*time.Second, burst),
 		emailLimit: ratelimit.New(time.Minute, max(3, burst/3)),
+		dailyLimit: ratelimit.New(24*time.Hour/time.Duration(daily), daily),
 		addrLimit:  ratelimit.New(100*time.Millisecond, 50)}
 }
 
-// GetHealth implements GET /healthz.
+// GetHealth implements GET /healthz. The endpoint is public: the checks run
+// at most once per cache period of the Checker however often it is called,
+// and only staff see latencies and error texts (which name internal hosts).
 func (s *Server) GetHealth(ctx context.Context, _ gen.GetHealthRequestObject) (gen.GetHealthResponseObject, error) {
 	results, healthy := s.checker.Run(ctx)
+	_, err := s.staff(ctx)
+	details := err == nil
 	body := gen.Health{Checks: make(map[string]gen.HealthCheck, len(results))}
 	for name, r := range results {
 		hc := gen.HealthCheck{Status: gen.HealthCheckStatus(r.Status)}
-		if r.Status == health.OK {
+		if details && r.Status == health.OK {
 			lat := r.LatencyMS
 			hc.LatencyMs = &lat
 		}
-		if r.Err != "" {
+		if details && r.Err != "" {
 			e := r.Err
 			hc.Error = &e
 		}
@@ -127,6 +135,7 @@ type RouterConfig struct {
 	TrustedProxies []netip.Prefix
 	Sessions       dbq.Querier     // nil disables authentication (unit tests)
 	SessionTTL     auth.SessionTTL // sliding session lifetime per client
+	SessionMaxAge  time.Duration   // absolute session lifetime; 0 = no cap
 	MockIdP        http.Handler    // dev/test mock identity provider pages
 	DevBank        http.Handler    // dev/test mock bank transaction injection
 	DevLeases      http.Handler    // dev/test lease lifecycle shortcuts (/dev/leases/{id}/escalate)
@@ -142,12 +151,13 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 	r.Use(middleware.RequestID, httpx.TrustedProxies(rc.TrustedProxies),
 		httpx.Recover(rc.Log), httpx.AccessLog(rc.Log),
 		httpx.Security(httpx.SecurityOptions{HSTS: rc.HSTS, DocumentPrefixes: httpx.DefaultDocumentPrefixes}),
+		httpx.NoStore,
 		httpx.CORS(rc.CORSOrigins),
 		middleware.Timeout(30*time.Second))
 	r.NotFound(httpx.NotFound)
 	r.MethodNotAllowed(httpx.MethodNotAllowed)
 	if rc.Sessions != nil {
-		r.Use(auth.Middleware(rc.Sessions, rc.SessionTTL, rc.Log))
+		r.Use(auth.Middleware(rc.Sessions, rc.SessionTTL, rc.SessionMaxAge, rc.Log))
 	}
 	r.Use(rateLimit(rc.RateLimits))
 	if rc.MockIdP != nil {
@@ -192,7 +202,7 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 				httpx.WriteProblem(w, httpx.Problem{Status: e.Status, Code: e.Code, Detail: e.Detail, Instance: r.URL.Path})
 				return
 			}
-			rc.Log.Error("handler error", "err", err, "path", r.URL.Path, "request_id", middleware.GetReqID(r.Context()))
+			rc.Log.Error("handler error", "err", err, "path", httpx.LogPath(r.URL.Path), "request_id", middleware.GetReqID(r.Context()))
 			httpx.WriteProblem(w, httpx.Problem{Status: http.StatusInternalServerError, Instance: r.URL.Path})
 		},
 	})
@@ -211,5 +221,8 @@ func NewRouter(s *Server, rc RouterConfig) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(spec)
 	})
-	return otelhttp.NewHandler(r, "api")
+	// Traces record url.path; requests with a secret in the path are not traced.
+	return otelhttp.NewHandler(r, "api", otelhttp.WithFilter(func(r *http.Request) bool {
+		return httpx.LogPath(r.URL.Path) == r.URL.Path
+	}))
 }

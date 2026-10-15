@@ -2,7 +2,7 @@ import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { leaseFromForm } from '#lib/leasing.js';
 import { payWithRevolut, revolutState } from '#lib/server/billing.js';
-import { loadLease } from '#lib/server/leases.js';
+import { loadLease, signLease } from '#lib/server/leases.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -28,13 +28,8 @@ export const actions: Actions = {
 		});
 		if (error) return fail(400, { error: errorMessage(error) });
 	},
-	sign: async ({ params, locals }) => {
-		const { error } = await locals.api.POST('/v1/leases/{leaseId}/sign', {
-			params: { path: { leaseId: params.leaseId } },
-			body: { provider: 'mock' }
-		});
-		if (error) return fail(400, { error: errorMessage(error) });
-	},
+	sign: async ({ request, params, locals }) =>
+		signLease(locals.api, params.leaseId, await request.formData()),
 	paid: async ({ request, params, locals }) => {
 		const f = await request.formData();
 		const { error } = await locals.api.POST('/v1/orgs/{orgId}/obligation-shares/{shareId}/paid', {

@@ -1,10 +1,17 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
+import { withLocalDefault } from './lib/env-defaults.js';
 
-/** Runtime environment of the web app (SvelteKit 3 env schema). */
+/**
+ * Runtime environment of the web app (SvelteKit 3 env schema). Service URLs and
+ * CSP origins fall back to localhost defaults; with
+ * NODE_ENV=production hooks.server.ts refuses to start and names the missing
+ * variables (lib/env-defaults.ts).
+ */
 export const variables = defineEnvVars({
 	API_URL: {
-		description: 'Base URL of the Go api, reachable from the SvelteKit server.',
-		schema: (v) => v || 'http://localhost:8080'
+		description:
+			'Base URL of the Go api, reachable from the SvelteKit server. Required in production.',
+		schema: (v) => withLocalDefault('API_URL', v)
 	},
 	MAP_STYLE: {
 		public: true,
@@ -31,17 +38,19 @@ export const variables = defineEnvVars({
 		schema: (v) => v ?? ''
 	},
 	API_PUBLIC_URL: {
-		description: 'Browser-facing URL of the api (mock checkout pages); allowed in CSP form-action.',
-		schema: (v) => v || 'http://localhost:8080'
+		description:
+			'Browser-facing URL of the api (mock checkout pages); allowed in CSP form-action. Required in production.',
+		schema: (v) => withLocalDefault('API_PUBLIC_URL', v)
 	},
 	CSP_MEDIA_ORIGINS: {
 		description:
-			'Space-separated browser origins of imgproxy and S3/MinIO (CSP img-src, form-action).',
-		schema: (v) => v || 'http://localhost:8081 http://localhost:8333'
+			'Space-separated browser origins of imgproxy and S3/MinIO (CSP img-src, form-action). Required in production.',
+		schema: (v) => withLocalDefault('CSP_MEDIA_ORIGINS', v)
 	},
 	CSP_REALTIME_ORIGIN: {
-		description: 'Centrifugo websocket origin (CSP connect-src), e.g. wss://rt.terrareality.cz.',
-		schema: (v) => v || 'ws://localhost:8000'
+		description:
+			'Centrifugo websocket origin (CSP connect-src), e.g. wss://app.terrareality.cz. Required in production.',
+		schema: (v) => withLocalDefault('CSP_REALTIME_ORIGIN', v)
 	},
 	CSP_MAP_ORIGINS: {
 		description:
@@ -50,7 +59,14 @@ export const variables = defineEnvVars({
 	},
 	CSP_FORM_ACTION_ORIGINS: {
 		description:
-			'Off-site redirect targets of plain form posts (Stripe Checkout, BankID) for CSP form-action.',
-		schema: (v) => v || 'https://checkout.stripe.com'
+			'Off-site redirect targets of plain form posts (Stripe Checkout, Revolut, GoCardless bank consent, BankID) for CSP form-action.',
+		schema: (v) =>
+			v ||
+			'https://checkout.stripe.com https://checkout.revolut.com https://ob.gocardless.com https://oidc.bankid.cz'
+	},
+	ALLOW_LOCALHOST_DEFAULTS: {
+		description:
+			'Set to 1 to allow the localhost defaults above in a NODE_ENV=production process (vite preview for e2e). Never in deployments.',
+		schema: (v) => v ?? ''
 	}
 });

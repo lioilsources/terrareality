@@ -6,7 +6,9 @@ name: terra-staging
 x-api-env: &api-env
   APP_ENV: staging
   LOG_FORMAT: json
-  DATABASE_URL: postgres://terra:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/terra?sslmode=disable
+  # Same least-privilege login role as production (ADR 0012 point 5): terra_api IN ROLE
+  # terra_service, created by the initdb hook below. Only `migrate` uses the owner.
+  DATABASE_URL: postgres://terra_api:${TERRA_API_DB_PASSWORD:?set TERRA_API_DB_PASSWORD}@db:5432/terra?sslmode=disable
   MIGRATE_ON_START: "false"
   TEMPORAL_ADDRESS: temporal:7233
   CENTRIFUGO_API_URL: http://centrifugo:8000/api
@@ -21,7 +23,7 @@ x-api-env: &api-env
 
 services:
   caddy:
-    image: caddy:2
+    image: caddy:2.10.2
     ports: ["80:80", "443:443"]
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
@@ -40,7 +42,11 @@ services:
       POSTGRES_USER: terra
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: terra
-    volumes: [pgdata:/var/lib/postgresql/data]
+      TERRA_API_DB_PASSWORD: ${TERRA_API_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates terra_service + terra_api on an empty data directory (README: existing volume).
+      - ../hetzner/db/initdb/13-api-role.sh:/docker-entrypoint-initdb.d/13-api-role.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U terra -d terra"]
       interval: 5s
@@ -50,7 +56,9 @@ services:
   migrate:
     build: ../../services/api
     command: ["/app/migrate", "up"]
-    environment: *api-env
+    environment:
+      <<: *api-env
+      MIGRATE_DATABASE_URL: postgres://terra:${POSTGRES_PASSWORD}@db:5432/terra?sslmode=disable
     depends_on:
       db: { condition: service_healthy }
     restart: "no"
@@ -78,6 +86,15 @@ services:
     environment:
       API_URL: http://api:8080
       ORIGIN: https://${APP_DOMAIN}
+      BODY_SIZE_LIMIT: 60M
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: "1"
+      # Runtime CSP origins (required in production mode, see infra/hetzner/compose).
+      API_PUBLIC_URL: https://${API_DOMAIN}
+      CSP_MEDIA_ORIGINS: ${CSP_MEDIA_ORIGINS:?set CSP_MEDIA_ORIGINS (imgproxy and S3 browser origins)}
+      CSP_REALTIME_ORIGIN: wss://${APP_DOMAIN}
+      CSP_MAP_ORIGINS: ${CSP_MAP_ORIGINS:-}
+      CSP_FORM_ACTION_ORIGINS: ${CSP_FORM_ACTION_ORIGINS:-https://checkout.stripe.com https://checkout.revolut.com https://ob.gocardless.com https://oidc.bankid.cz}
     restart: unless-stopped
 
   vision:
@@ -87,8 +104,8 @@ services:
     restart: unless-stopped
 
   temporal:
-    # Staging uses the dev server with SQLite; production gets a full Temporal
-    # cluster on PostgreSQL (M8).
+    # Staging uses the dev server with SQLite (accepted: throwaway workflow state, no
+    # durability promise); production runs Temporal on PostgreSQL (infra/hetzner).
     image: temporalio/temporal:1.4.1
     user: "0:0"
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
@@ -96,10 +113,10 @@ services:
     restart: unless-stopped
 
   centrifugo:
-    image: centrifugo/centrifugo:v6
-    # Same namespaces as dev; secrets and origins are overridden by env.
+    image: centrifugo/centrifugo:v6.9.7
+    # Production config (no admin UI, no dev secrets); secrets and origins come from env.
     command: ["centrifugo", "--config", "/centrifugo/config.json"]
-    volumes: [../dev/centrifugo/config.json:/centrifugo/config.json:ro]
+    volumes: [../hetzner/compose/centrifugo.json:/centrifugo/config.json:ro]
     environment:
       CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY}
       CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET}

@@ -5,10 +5,12 @@
 	import { fmtDateTime } from '#lib/labels.js';
 	import { statusLabel } from '#lib/applications.js';
 	import { stateLabel } from '#lib/leasing.js';
+	import { enhance } from '$app/forms';
+	import Alert from '#lib/components/Alert.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	const locale = getLocale();
 	const links = [
 		['/zadosti', m.nav_applications],
@@ -21,6 +23,23 @@
 
 <h1 class="text-2xl font-semibold">{m.nav_tenant()}</h1>
 <p class="mt-2 mb-6 text-[var(--muted)]">{m.tenant_hub_lead()}</p>
+{#if data.me && !data.me.email_verified}
+	<!-- Leases are linked to an account only after its e-mail is verified (B-1). -->
+	<div class="mb-6">
+		<Alert kind="info">
+			<div class="flex flex-wrap items-center justify-between gap-2" data-testid="verify-leases">
+				<span
+					>{form?.resent
+						? m.verify_resent()
+						: m.tenant_verify_for_leases({ email: data.me.email })}</span
+				>
+				<form method="POST" action="?/resend" use:enhance>
+					<button class="underline">{m.verify_resend()}</button>
+				</form>
+			</div>
+		</Alert>
+	</div>
+{/if}
 <nav class="mb-6 flex flex-wrap gap-3">
 	{#each links as [href, label] (href)}
 		<a

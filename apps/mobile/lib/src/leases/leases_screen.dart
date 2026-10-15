@@ -6,6 +6,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
+import '../common/money.dart';
 import '../platform/url_opener.dart';
 import 'leases_repository.dart';
 import 'payments_repository.dart';
@@ -17,8 +19,6 @@ final myLeasesProvider = FutureProvider.autoDispose<List<LeaseSummary>>(
 final leaseProvider = FutureProvider.autoDispose.family<LeaseView, String>(
   (ref, id) => ref.watch(leasesRepositoryProvider).lease(id),
 );
-
-String money(int minor, String locale) => '${NumberFormat.decimalPattern(locale).format(minor ~/ 100)} Kč';
 
 String stateText(AppLocalizations t, LeaseState s) => switch (s) {
       LeaseState.proposed => t.leaseProposed,
@@ -41,7 +41,7 @@ class LeasesScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(t.leasesTitle)),
       body: list.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.statusUnreachable)),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(myLeasesProvider)),
         data: (items) => items.isEmpty
             ? Center(child: Text(t.leasesEmpty))
             : ListView(children: [
@@ -74,9 +74,10 @@ class LeaseScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(t.leaseTitle)),
       body: view.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.statusUnreachable)),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(leaseProvider(id))),
         data: (v) {
           final l = v.detail.lease;
+          String m(int minor, String currency) => money(minor, locale, currency: currency);
           final me = v.detail.parties.where((p) => p.me).firstOrNull;
           final mine = v.shares.where((s) => s.mine).toList();
           final open = mine.where((s) => s.paidAmount < s.amount).toList();
@@ -85,19 +86,13 @@ class LeaseScreen extends ConsumerWidget {
             Text(l.propertyAddress, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
             Text('${t.leaseCode}: ${l.code} · ${stateText(t, l.state)}'),
-            Text(v.detail.totalDebt > 0 ? '${t.leaseDebt}: ${money(v.detail.totalDebt, locale)}' : t.leaseNoDebt,
+            Text(v.detail.totalDebt > 0 ? '${t.leaseDebt}: ${m(v.detail.totalDebt, l.currency)}' : t.leaseNoDebt,
                 key: const Key('debt')),
             Text(v.chainValid ? t.leaseChainOk : t.leaseChainBroken,
                 style: TextStyle(color: v.chainValid ? Colors.green.shade700 : Colors.red)),
             if (l.state == LeaseState.proposed && me != null && me.signedAt == null) ...[
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () async {
-                  await ref.read(leasesRepositoryProvider).sign(id);
-                  ref.invalidate(leaseProvider(id));
-                },
-                child: Text(t.leaseSign),
-              ),
+              SignLeaseButton(leaseId: id, address: l.propertyAddress),
             ],
             if (open.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -108,14 +103,14 @@ class LeaseScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(12),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${date.format(s.dueOn)} · ${s.period.isEmpty ? t.leaseDeposit : s.period}'),
-                      Text(money(s.amount - s.paidAmount, locale), style: Theme.of(context).textTheme.titleMedium),
+                      Text(m(s.amount - s.paidAmount, s.currency), style: Theme.of(context).textTheme.titleMedium),
                       if (s.spayd != null) ...[
                         const SizedBox(height: 8),
                         Text(t.payByQr, style: Theme.of(context).textTheme.labelLarge),
                         Center(
                           child: Semantics(
                             image: true,
-                            label: t.qrLabel(money(s.amount - s.paidAmount, locale)),
+                            label: t.qrLabel(m(s.amount - s.paidAmount, s.currency)),
                             child: QrImageView(key: Key('qr-${s.id}'), data: s.spayd!, size: 180),
                           ),
                         ),
@@ -132,7 +127,7 @@ class LeaseScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.check_circle_outline),
-                  title: Text('${s.period.isEmpty ? t.leaseDeposit : s.period} · ${money(s.amount, locale)}'),
+                  title: Text('${s.period.isEmpty ? t.leaseDeposit : s.period} · ${m(s.amount, s.currency)}'),
                   subtitle: Text(date.format(s.dueOn)),
                 ),
             ],
@@ -142,6 +137,72 @@ class LeaseScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+}
+
+/// The label of the signature method the app uses.
+String signMethodText(AppLocalizations t) => signProvider == 'bankid_sign' ? t.signMethodBankId : t.signMethodSimple;
+
+/// "Sign" with a confirmation naming the address and the signature method;
+/// a provider that needs its own page opens in the browser.
+class SignLeaseButton extends ConsumerStatefulWidget {
+  const SignLeaseButton({super.key, required this.leaseId, required this.address});
+
+  final String leaseId;
+  final String address;
+
+  @override
+  ConsumerState<SignLeaseButton> createState() => _SignLeaseButtonState();
+}
+
+class _SignLeaseButtonState extends ConsumerState<SignLeaseButton> {
+  bool _busy = false;
+
+  Future<void> _sign() async {
+    final t = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(t.signConfirmTitle),
+        content: Text(t.signConfirmBody(widget.address, signMethodText(t))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(t.cancel)),
+          FilledButton(key: const Key('confirm-sign'), onPressed: () => Navigator.pop(c, true), child: Text(t.leaseSign)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final res = await ref.read(leasesRepositoryProvider).sign(widget.leaseId);
+      if (res.redirect != null) {
+        final opened = await ref.read(urlOpenerProvider).open(res.redirect!);
+        messenger.showSnackBar(SnackBar(content: Text(opened ? t.signContinue : t.actionFailed)));
+      } else if (res.signed) {
+        messenger.showSnackBar(SnackBar(content: Text(t.signDone)));
+      }
+      ref.invalidate(leaseProvider(widget.leaseId));
+      ref.invalidate(myLeasesProvider);
+    } catch (e) {
+      final code = errorCode(e);
+      messenger.showSnackBar(SnackBar(
+        key: const Key('sign-error'),
+        content: Text(code == 'invalid_provider' ? t.signUnavailable : errorMessage(t, e)),
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      FilledButton(key: const Key('sign-lease'), onPressed: _busy ? null : _sign, child: Text(t.leaseSign)),
+      const SizedBox(height: 4),
+      Text(t.signMethodLabel(signMethodText(t)), style: Theme.of(context).textTheme.bodySmall),
+    ]);
   }
 }
 
@@ -172,7 +233,9 @@ class _RevolutButtonState extends ConsumerState<RevolutButton> {
       if (link == null || link.status != PaymentLinkStatusEnum.created) {
         link = await ref.read(paymentsRepositoryProvider).createLink(widget.shareId);
       }
-      final ok = await ref.read(urlOpenerProvider).open(Uri.parse(link.url));
+      // Only an https page of the provider leaves the app.
+      final url = safeExternalUrl(link.url);
+      final ok = url != null && await ref.read(urlOpenerProvider).open(url);
       if (!ok && mounted) setState(() => _message = t.actionFailed);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -182,9 +245,11 @@ class _RevolutButtonState extends ConsumerState<RevolutButton> {
         } else if (e.code == 401 || e.code == 403 || e.code == 404) {
           _hidden = true;
         } else {
-          _message = t.actionFailed;
+          _message = errorMessage(t, e);
         }
       });
+    } catch (e) {
+      if (mounted) setState(() => _message = errorMessage(t, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

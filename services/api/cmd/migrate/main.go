@@ -1,5 +1,5 @@
-// Command migrate runs goose commands against DATABASE_URL using the embedded
-// migrations. Usage: migrate [up|down|status|redo|reset|version]
+// Command migrate runs goose commands against MIGRATE_DATABASE_URL (the schema
+// owner; falls back to DATABASE_URL) using the embedded migrations. Usage: migrate [up|down|status|redo|reset|version]
 package main
 
 import (
@@ -25,7 +25,7 @@ func main() {
 	if len(os.Args) > 1 {
 		cmd, args = os.Args[1], os.Args[2:]
 	}
-	sqlDB, err := sql.Open("pgx", cfg.DatabaseURL)
+	sqlDB, err := sql.Open("pgx", cfg.MigrateDatabaseURL)
 	if err != nil {
 		fail(err)
 	}
@@ -35,7 +35,7 @@ func main() {
 		fail(err)
 	}
 	if cmd == "up" {
-		pool, err := db.Open(ctx, cfg.DatabaseURL)
+		pool, err := db.Open(ctx, cfg.MigrateDatabaseURL)
 		if err != nil {
 			fail(err)
 		}

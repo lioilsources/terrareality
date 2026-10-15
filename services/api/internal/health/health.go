@@ -3,6 +3,7 @@ package health
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"sync"
 	"time"
@@ -38,6 +39,13 @@ func (disabledErr) Error() string { return "disabled" }
 type Checker struct {
 	checks  map[string]CheckFunc
 	timeout time.Duration
+
+	// Cache (CacheFor): one probe round per period, however many callers.
+	ttl    time.Duration
+	mu     sync.Mutex
+	at     time.Time
+	last   map[string]Result
+	lastOK bool
 }
 
 // New creates a Checker.
@@ -48,8 +56,31 @@ func New(timeout time.Duration) *Checker {
 // Add registers a check.
 func (c *Checker) Add(name string, fn CheckFunc) { c.checks[name] = fn }
 
-// Run executes all checks; healthy is false if any check failed.
+// CacheFor makes Run reuse a result for ttl. Concurrent callers wait for the
+// round in flight instead of starting their own, so a public /healthz cannot
+// be used to multiply load on the dependencies.
+func (c *Checker) CacheFor(ttl time.Duration) *Checker {
+	c.ttl = ttl
+	return c
+}
+
+// Run executes all checks (or returns the cached round); healthy is false if
+// any check failed. The returned map is the caller's own.
 func (c *Checker) Run(ctx context.Context) (results map[string]Result, healthy bool) {
+	if c.ttl <= 0 {
+		return c.run(ctx)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.last == nil || time.Since(c.at) >= c.ttl {
+		// Shared result: a caller that hangs up must not cancel the probes.
+		c.last, c.lastOK = c.run(context.WithoutCancel(ctx))
+		c.at = time.Now()
+	}
+	return maps.Clone(c.last), c.lastOK
+}
+
+func (c *Checker) run(ctx context.Context) (results map[string]Result, healthy bool) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	results = make(map[string]Result, len(c.checks))

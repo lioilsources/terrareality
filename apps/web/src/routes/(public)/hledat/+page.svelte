@@ -57,7 +57,13 @@
 	};
 </script>
 
-<svelte:head><title>{m.search_title()} · {m.app_name()}</title></svelte:head>
+<svelte:head>
+	<title>{m.search_title()} · {m.app_name()}</title>
+	<!-- One indexable search page; filtered/paged variants point to it and stay out of the index
+	     (locality landing pages on the site are the SEO entry points for filters). -->
+	<link rel="canonical" href={new URL(localizeHref('/hledat'), page.url.origin).href} />
+	{#if page.url.search}<meta name="robots" content="noindex, follow" />{/if}
+</svelte:head>
 
 <div class="grid gap-4">
 	<form method="POST" action="?/chat" use:enhance class="flex gap-2" role="search">

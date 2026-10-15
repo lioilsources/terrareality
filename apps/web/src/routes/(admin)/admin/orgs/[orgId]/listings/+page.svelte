@@ -59,7 +59,9 @@
 										>{m.pending_review()}</span
 									>{/if}
 								{#if l.rent_amount}<span class="text-[var(--text)]"
-										>{m.price_per_month({ amount: formatMoney(l.rent_amount, getLocale()) })}</span
+										>{m.price_per_month({
+											amount: formatMoney(l.rent_amount, l.currency, getLocale())
+										})}</span
 									>{/if}
 							</span>
 						</div>

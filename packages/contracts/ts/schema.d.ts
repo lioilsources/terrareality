@@ -2971,6 +2971,7 @@ export interface components {
         UserLocale: "cs" | "en";
         /** Format: email */
         Email: string;
+        /** @description At least 12 characters; checked against breached-password lists (error code password_breached). */
         Password: string;
         /**
          * @default web

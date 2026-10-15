@@ -27,7 +27,7 @@
 					type="password"
 					autocomplete="new-password"
 					required
-					minlength={10}
+					minlength={12}
 					hint={m.password_hint()}
 				/>
 				<Button type="submit">{m.reset_submit()}</Button>

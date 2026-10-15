@@ -300,3 +300,9 @@ UPDATE messages SET removed_at = now() WHERE id = $1 AND removed_at IS NULL;
 
 -- name: SuspendMessaging :exec
 UPDATE users SET messaging_suspended_at = now() WHERE id = $1 AND messaging_suspended_at IS NULL;
+
+-- name: MessageNotified :one
+-- Whether a recipient's message notification already covers this message
+-- (job retries after a partial failure must not count it twice).
+SELECT EXISTS (SELECT 1 FROM notifications
+  WHERE user_id = sqlc.arg(user_id) AND kind = 'message' AND data->>'message_id' = sqlc.arg(message_id)::text)::boolean;

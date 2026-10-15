@@ -53,3 +53,32 @@ func TestSecurityHeadersWriteHeaderOnly(t *testing.T) {
 		t.Fatal("204 must carry the API CSP")
 	}
 }
+
+func TestNoStore(t *testing.T) {
+	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("{}")) })
+	cases := []struct {
+		name, method, path, auth string
+		want                     bool
+	}{
+		{"authenticated GET", http.MethodGet, "/v1/me", "Bearer tok", true},
+		{"authenticated search", http.MethodGet, "/v1/search", "Bearer tok", true},
+		{"login", http.MethodPost, "/v1/auth/login", "", true},
+		{"auth GET", http.MethodGet, "/v1/auth/oidc/google/start", "", true},
+		{"anonymous POST", http.MethodPost, "/v1/search/chat", "", true},
+		{"public search", http.MethodGet, "/v1/search", "", false},
+		{"public listing", http.MethodGet, "/v1/listings/019a0000-0000-7000-8000-000000000000", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			if tc.auth != "" {
+				req.Header.Set("Authorization", tc.auth)
+			}
+			rec := httptest.NewRecorder()
+			NoStore(ok).ServeHTTP(rec, req)
+			if got := rec.Header().Get("Cache-Control") == "no-store"; got != tc.want {
+				t.Fatalf("Cache-Control %q, want no-store=%v", rec.Header().Get("Cache-Control"), tc.want)
+			}
+		})
+	}
+}

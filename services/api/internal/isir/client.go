@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,9 +36,7 @@ type envelope struct {
 			String string `xml:"faultstring"`
 		} `xml:"Fault"`
 		Response struct {
-			Data []struct {
-				DruhStavKonkursu string `xml:"druhStavKonkursu"`
-			} `xml:"data"`
+			Data   []record `xml:"data"`
 			Status struct {
 				Count     int    `xml:"pocetVysledku"`
 				Relevance int    `xml:"relevanceVysledku"`
@@ -46,6 +45,41 @@ type envelope struct {
 			} `xml:"stav"`
 		} `xml:"getIsirWsCuzkDataResponse"`
 	} `xml:"Body"`
+}
+
+// record is one proceeding in the response with the debtor's identity.
+type record struct {
+	DruhStavKonkursu string `xml:"druhStavKonkursu"`
+	Surname          string `xml:"nazevOsoby"`
+	GivenName        string `xml:"jmeno"`
+	Birthdate        string `xml:"datumNarozeni"`
+}
+
+// ErrAmbiguous means the register returned proceedings of people whose
+// name or birth date differ from the applicant (a namesake, or a record
+// without the birth date). Such results are never shown as "record": the
+// check ends in "error" and a human looks at the register if needed.
+var ErrAmbiguous = errors.New("isir: results do not match the person exactly")
+
+func norm(s string) string { return strings.ToLower(strings.Join(strings.Fields(s), " ")) }
+
+// matches reports whether a returned proceeding belongs to exactly this
+// person: same surname, same birth date and the same given name (the first
+// given name is enough, BankID may carry middle names the court did not).
+func (r record) matches(p Person) bool {
+	if norm(r.Surname) == "" || norm(r.Surname) != norm(p.FamilyName) {
+		return false
+	}
+	bd := strings.TrimSpace(r.Birthdate)
+	if len(bd) < 10 || bd[:10] != p.Birthdate.Format("2006-01-02") {
+		return false
+	}
+	g, want := norm(r.GivenName), norm(p.GivenName)
+	if g == want {
+		return true
+	}
+	first := func(s string) string { f, _, _ := strings.Cut(s, " "); return f }
+	return g != "" && want != "" && first(g) == first(want)
 }
 
 func esc(s string) string {
@@ -83,12 +117,28 @@ func (c *Client) Check(ctx context.Context, p Person) (string, error) {
 	if env.Body.Fault != nil {
 		return "", fmt.Errorf("isir: %s", env.Body.Fault.String)
 	}
+	return classify(env, p)
+}
+
+// classify turns a parsed response into the result. The relevance the
+// service reports (relevanceVysledku) is not trusted on its own: its scale
+// is not part of the public contract we rely on (open question OQ-17), so
+// "record" requires a returned proceeding whose surname, given name and
+// birth date equal the verified identity. Anything else returned is
+// ambiguous and reported as an error, never as an insolvency.
+func classify(env envelope, p Person) (string, error) {
 	st := env.Body.Response.Status
+	data := env.Body.Response.Data
 	switch {
-	case st.Code == "WS2" || (st.Code == "" && len(env.Body.Response.Data) == 0):
+	case st.Code == "WS2" || (st.Code == "" && len(data) == 0):
 		return Clear, nil
 	case st.Code != "":
 		return "", fmt.Errorf("isir: %s %s", st.Code, st.Text)
 	}
-	return Record, nil
+	for _, r := range data {
+		if r.matches(p) {
+			return Record, nil
+		}
+	}
+	return "", fmt.Errorf("%w (%d results, relevance %d)", ErrAmbiguous, len(data), st.Relevance)
 }

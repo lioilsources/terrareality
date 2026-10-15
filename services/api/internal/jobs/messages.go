@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,6 +47,45 @@ type Outbox struct{ Client *river.Client[pgx.Tx] }
 func (o Outbox) Enqueue(ctx context.Context, tx pgx.Tx, m notify.Message) error {
 	_, err := o.Client.InsertTx(ctx, tx, SendMessageArgs{Message: m}, nil)
 	return err
+}
+
+// EnqueuePush implements notify.PushQueue: the push becomes a job in the
+// caller's transaction.
+func (o Outbox) EnqueuePush(ctx context.Context, tx pgx.Tx, userID uuid.UUID, p notify.Push) error {
+	_, err := o.Client.InsertTx(ctx, tx, SendPushArgs{UserID: userID, Push: p}, nil)
+	return err
+}
+
+// SendPushArgs delivers one push notification to every device of a user.
+type SendPushArgs struct {
+	UserID uuid.UUID   `json:"user_id"`
+	Push   notify.Push `json:"push"`
+}
+
+// Kind implements river.JobArgs.
+func (SendPushArgs) Kind() string { return "send_push" }
+
+// InsertOpts retries briefly: a late push is worth less than none.
+func (SendPushArgs) InsertOpts() river.InsertOpts { return river.InsertOpts{MaxAttempts: 5} }
+
+// SendPushWorker delivers queued pushes (leases, payments, applications).
+type SendPushWorker struct {
+	river.WorkerDefaults[SendPushArgs]
+	Q      notify.PushDevices
+	Pusher notify.Pusher // nil: pushes are dropped
+	Log    *slog.Logger
+}
+
+// Work implements river.Worker. Only the device lookup is retried; failures
+// per device are logged (a retry would repeat delivered pushes).
+func (w *SendPushWorker) Work(ctx context.Context, j *river.Job[SendPushArgs]) error {
+	_, err := notify.DeliverPush(ctx, w.Q, w.Pusher, w.Log, j.Args.UserID, j.Args.Push)
+	return err
+}
+
+// Timeout bounds the FCM / web push calls of one user.
+func (w *SendPushWorker) Timeout(*river.Job[SendPushArgs]) time.Duration {
+	return 30 * time.Second
 }
 
 // GDPRArgs runs a data export or an erasure.
@@ -99,7 +139,7 @@ type CleanupArgs struct{}
 // Kind implements river.JobArgs.
 func (CleanupArgs) Kind() string { return "cleanup_tokens" }
 
-// CleanupWorker deletes expired auth tokens.
+// CleanupWorker deletes expired auth tokens and long-dead sessions.
 type CleanupWorker struct {
 	river.WorkerDefaults[CleanupArgs]
 	Q db.Querier
@@ -107,6 +147,9 @@ type CleanupWorker struct {
 
 // Work implements river.Worker.
 func (w *CleanupWorker) Work(ctx context.Context, _ *river.Job[CleanupArgs]) error {
-	_, err := w.Q.DeleteExpiredAuthTokens(ctx)
+	if _, err := w.Q.DeleteExpiredAuthTokens(ctx); err != nil {
+		return err
+	}
+	_, err := w.Q.DeleteExpiredSessions(ctx)
 	return err
 }

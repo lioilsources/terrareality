@@ -1,4 +1,7 @@
-# Single-binary Loki with local filesystem storage, 30 days retention.
+# Single-binary Loki with local filesystem storage. Retention (decision, docs/security/asvs-l2.md
+# 7.1 and docs/runbooks/incident.md): application logs 30 days; Caddy access logs 14 days (they
+# carry truncated client IPs and paths; query strings and invitation tokens are redacted in the
+# Caddyfile). The compactor deletes expired chunks.
 auth_enabled: false
 server:
   http_listen_port: 3100
@@ -21,6 +24,10 @@ schema_config:
       index: { prefix: index_, period: 24h }
 limits_config:
   retention_period: 720h
+  retention_stream:
+    - selector: '{service="caddy"}'
+      priority: 1
+      period: 336h
   ingestion_rate_mb: 8
   ingestion_burst_size_mb: 16
 compactor:

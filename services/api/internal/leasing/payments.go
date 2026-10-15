@@ -18,6 +18,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 )
 
 // Detail is a lease with everything both sides see.
@@ -81,9 +82,7 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, orgID uuid.UUID) 
 
 // Mine returns the caller's leases as a tenant.
 func (s *Service) Mine(ctx context.Context, p *auth.Principal) ([]db.ListMyLeasesRow, error) {
-	if u, err := db.New(s.Pool).GetUser(ctx, p.UserID); err == nil {
-		_ = db.New(s.Pool).ClaimLeaseParties(ctx, db.ClaimLeasePartiesParams{UserID: &p.UserID, Column2: u.Email})
-	}
+	s.claim(ctx, p)
 	var out []db.ListMyLeasesRow
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		var err error
@@ -159,17 +158,38 @@ func (s *Service) SplitPayment(ctx context.Context, p *auth.Principal, splitID u
 	return s.spayd(a.Lease, sp.Kind, sp.Period, sp.Position, sp.Amount-sp.PaidAmount, sp.DueOn.Time), nil
 }
 
-// applyPayment books a payment of a split (system context, inside tx).
+// errOverpaid: the payment would exceed what is still due on the share.
+var errOverpaid = invalid("invalid_amount", "the amount exceeds what is due")
+
+// applyPayment books a payment of a split (system context, inside tx). The
+// lease and the split are locked (in this order, like appendEvent) and the
+// amount is checked against what is still open, so concurrent bookings
+// (bank match, confirmation, manual entry) never overpay a share. It returns
+// errOverpaid without failing the transaction.
 func (s *Service) applyPayment(ctx context.Context, q *db.Queries, splitID uuid.UUID, amount int64, day time.Time, source string, actor *uuid.UUID) error {
 	sp, err := q.GetSplit(ctx, splitID)
 	if err != nil {
 		return err
 	}
+	if _, err := q.LockLease(ctx, sp.LeaseID); err != nil {
+		return err
+	}
+	locked, err := q.LockSplit(ctx, splitID)
+	if err != nil {
+		return err
+	}
+	if amount <= 0 || locked.PaidAmount+amount > locked.Amount {
+		return errOverpaid
+	}
 	l, err := q.GetLease(ctx, sp.LeaseID)
 	if err != nil {
 		return err
 	}
-	if _, err := q.AddSplitPayment(ctx, db.AddSplitPaymentParams{ID: splitID, PaidAmount: amount}); err != nil {
+	_, err = q.AddSplitPayment(ctx, db.AddSplitPaymentParams{ID: splitID, PaidAmount: amount})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errOverpaid
+	}
+	if err != nil {
 		return err
 	}
 	if err := q.CloseObligationIfPaid(ctx, sp.ObligationID); err != nil {
@@ -194,7 +214,7 @@ func (s *Service) MarkPaid(ctx context.Context, p *auth.Principal, orgID, splitI
 		amount = sp.Amount - sp.PaidAmount
 	}
 	if amount <= 0 || sp.PaidAmount+amount > sp.Amount {
-		return invalid("invalid_amount", "the amount exceeds what is due")
+		return errOverpaid // checked again under the split lock in applyPayment
 	}
 	err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermLeases); err != nil {
@@ -206,8 +226,12 @@ func (s *Service) MarkPaid(ctx context.Context, p *auth.Principal, orgID, splitI
 	if err != nil {
 		return err
 	}
-	return s.system(ctx, func(q *db.Queries, _ pgx.Tx) error {
-		return s.applyPayment(ctx, q, splitID, amount, day, "manual", &p.UserID)
+	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		if err := s.applyPayment(ctx, q, splitID, amount, day, "manual", &p.UserID); err != nil {
+			return err
+		}
+		s.pushPayment(ctx, q, tx, splitID, amount)
+		return nil
 	})
 }
 
@@ -231,8 +255,12 @@ func LedgerCSV(rows []db.ListLedgerRow) []byte {
 	w := csv.NewWriter(&b)
 	_ = w.Write([]string{"booked_on", "posting_id", "account", "party", "amount", "memo"})
 	for _, r := range rows {
-		_ = w.Write([]string{r.BookedOn.Time.Format("2006-01-02"), r.PostingID.String(), r.Account, r.PartyName,
-			fmt.Sprintf("%d.%02d", r.Amount/100, abs(r.Amount%100)), r.Memo})
+		amount := fmt.Sprintf("%d.%02d", r.Amount/100, abs(r.Amount%100))
+		if r.Amount < 0 && r.Amount > -100 {
+			amount = "-" + amount
+		}
+		_ = w.Write([]string{r.BookedOn.Time.Format("2006-01-02"), r.PostingID.String(), r.Account, portfolio.CSVSafe(r.PartyName),
+			amount, portfolio.CSVSafe(r.Memo)})
 	}
 	w.Flush()
 	return b.Bytes()
@@ -275,15 +303,37 @@ func HeadHash(events []db.LeaseEvent) string {
 	return hex.EncodeToString(events[len(events)-1].Hash)
 }
 
-// GiveNotice records a notice by either side; the lease ends at the end of
-// the notice period, later obligations are cancelled.
+// Notice delivery window: the delivery date may lie at most NoticeBackDays
+// in the past (a notice delivered by post and recorded late) and at most
+// NoticeAheadDays in the future (handed over in the next days).
+const (
+	NoticeBackDays  = 30
+	NoticeAheadDays = 7
+)
+
+// GiveNotice records a tenant's notice; the lease ends at the end of the
+// notice period, later obligations are cancelled. Only a tenant or co-tenant
+// may give it (not a guarantor or subtenant). A landlord's notice needs a
+// statutory reason (§ 2288 OZ) the API cannot record yet, so it is refused.
 func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUID, deliveredOn time.Time) (time.Time, error) {
 	a, err := s.access(ctx, p, id)
 	if err != nil {
 		return time.Time{}, err
 	}
-	if a.Party == nil && !a.Landlord {
-		return time.Time{}, errNotFound
+	switch {
+	case a.Party != nil && (a.Party.Role == "tenant" || a.Party.Role == "co_tenant"):
+	case a.Landlord:
+		return time.Time{}, apperr.Unprocessable("landlord_notice_reason_required",
+			"a landlord's notice needs a statutory reason (§ 2288 of the Civil Code); it cannot be given here yet")
+	default:
+		return time.Time{}, apperr.Forbidden("notice_not_allowed", "only a tenant can give notice")
+	}
+	now := s.now().In(prague)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	deliveredOn = time.Date(deliveredOn.Year(), deliveredOn.Month(), deliveredOn.Day(), 0, 0, 0, 0, time.UTC)
+	if deliveredOn.Before(today.AddDate(0, 0, -NoticeBackDays)) || deliveredOn.After(today.AddDate(0, 0, NoticeAheadDays)) {
+		return time.Time{}, invalid("invalid_delivered_on",
+			fmt.Sprintf("the notice must be delivered between %d days ago and %d days from today", NoticeBackDays, NoticeAheadDays))
 	}
 	first := time.Date(deliveredOn.Year(), deliveredOn.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
 	end := first.AddDate(0, int(a.Lease.NoticeMonths), -1)
@@ -304,11 +354,8 @@ func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUI
 		if err := q.CancelObligationsAfter(ctx, db.CancelObligationsAfterParams{LeaseID: id, DueOn: date(&end)}); err != nil {
 			return err
 		}
-		by := "tenant"
-		if a.Landlord {
-			by = "landlord"
-		}
-		_, err = appendEvent(ctx, q, a.Lease, "notice_given", &p.UserID, map[string]any{"by": by,
+		_, err = appendEvent(ctx, q, a.Lease, "notice_given", &p.UserID, map[string]any{"by": "tenant",
+			"party_id": a.Party.ID, "role": a.Party.Role,
 			"delivered_on": deliveredOn.Format("2006-01-02"), "ends_on": end.Format("2006-01-02")})
 		return err
 	})
@@ -435,6 +482,8 @@ func (s *Service) FinishBank(ctx context.Context, p *auth.Principal, orgID, id u
 type SyncResult struct{ New, Matched, Suggested int }
 
 // Sync fetches new transactions of a linked connection and matches them.
+// Each transaction is stored and matched in one transaction, so a failed
+// match leaves no row behind that later syncs would skip as seen.
 func (s *Service) Sync(ctx context.Context, connID uuid.UUID) (SyncResult, error) {
 	var res SyncResult
 	q := db.New(s.Pool)
@@ -451,21 +500,29 @@ func (s *Service) Sync(ctx context.Context, connID uuid.UUID) (SyncResult, error
 		return res, err
 	}
 	for _, t := range txns {
-		row, err := q.InsertBankTransaction(ctx, db.InsertBankTransactionParams{OrgID: conn.OrgID, ConnectionID: conn.ID,
-			ExternalID: t.ExternalID, BookedOn: date(&t.BookedOn), Amount: t.Amount, Currency: t.Currency,
-			VariableSymbol: t.VariableSymbol, SpecificSymbol: t.SpecificSymbol, CounterpartyName: t.CounterpartyName,
-			CounterpartyAccount: t.CounterpartyAccount, Remittance: t.Remittance})
-		if errors.Is(err, pgx.ErrNoRows) {
-			continue // seen before
-		}
+		var status string
+		err := s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+			row, err := q.InsertBankTransaction(ctx, db.InsertBankTransactionParams{OrgID: conn.OrgID, ConnectionID: conn.ID,
+				ExternalID: t.ExternalID, BookedOn: date(&t.BookedOn), Amount: t.Amount, Currency: t.Currency,
+				VariableSymbol: t.VariableSymbol, SpecificSymbol: t.SpecificSymbol, CounterpartyName: t.CounterpartyName,
+				CounterpartyAccount: t.CounterpartyAccount, Remittance: t.Remittance})
+			if errors.Is(err, pgx.ErrNoRows) {
+				status = "seen"
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			status, err = s.match(ctx, q, tx, row)
+			return err
+		})
 		if err != nil {
 			return res, err
+		}
+		if status == "seen" {
+			continue
 		}
 		res.New++
-		status, err := s.match(ctx, row)
-		if err != nil {
-			return res, err
-		}
 		switch status {
 		case "matched":
 			res.Matched++
@@ -476,55 +533,75 @@ func (s *Service) Sync(ctx context.Context, connID uuid.UUID) (SyncResult, error
 	return res, q.TouchBankConnection(ctx, conn.ID)
 }
 
-// match pairs an incoming transaction with an open share: by variable symbol
-// (lease code) and specific symbol (party position) with the exact amount
-// automatically; by symbol with another amount, or by amount and date alone,
-// as a suggestion the landlord confirms.
-func (s *Service) match(ctx context.Context, t db.BankTransaction) (string, error) {
+// match pairs an incoming transaction with an open share of the same
+// currency: by variable symbol (lease code) and specific symbol (party
+// position) with the exact amount automatically; by symbol with another
+// amount, by symbol without a specific symbol when several tenants owe that
+// amount, or by amount and date alone, as a suggestion the landlord confirms.
+// It runs in the transaction that stored t.
+func (s *Service) match(ctx context.Context, q *db.Queries, tx pgx.Tx, t db.BankTransaction) (string, error) {
 	if t.Amount <= 0 {
-		return "ignored", db.New(s.Pool).SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID,
+		return "ignored", q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID,
 			MatchStatus: "ignored", MatchNote: "outgoing"})
 	}
-	q := db.New(s.Pool)
+	suggest := func(split uuid.UUID, note string) (string, error) {
+		return "suggested", q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID, MatchStatus: "suggested",
+			SplitID: &split, MatchNote: note})
+	}
 	type cand struct {
 		id       uuid.UUID
 		open     int64
 		position int32
 	}
-	var cands []cand
 	if code, err := strconv.ParseInt(t.VariableSymbol, 10, 64); err == nil {
-		rows, err := q.OpenSplitsForCode(ctx, db.OpenSplitsForCodeParams{OrgID: t.OrgID, Code: code})
+		rows, err := q.OpenSplitsForCode(ctx, db.OpenSplitsForCodeParams{OrgID: t.OrgID, Code: code, Currency: t.Currency})
 		if err != nil {
 			return "", err
 		}
+		var cands, exact []cand
+		payers := map[int32]bool{}
 		for _, r := range rows {
 			if t.SpecificSymbol == "" || t.SpecificSymbol == strconv.Itoa(int(r.Position)) {
-				cands = append(cands, cand{r.ID, r.Amount - r.PaidAmount, r.Position})
+				c := cand{r.ID, r.Amount - r.PaidAmount, r.Position}
+				cands = append(cands, c)
+				if c.open == t.Amount {
+					exact = append(exact, c)
+					payers[c.position] = true
+				}
 			}
 		}
-		for _, c := range cands {
-			if c.open == t.Amount {
-				return "matched", s.system(ctx, func(q *db.Queries, _ pgx.Tx) error {
-					if err := q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID, MatchStatus: "matched",
-						SplitID: &c.id, MatchNote: "variable symbol and amount"}); err != nil {
-						return err
-					}
-					return s.applyPayment(ctx, q, c.id, t.Amount, t.BookedOn.Time, "bank", nil)
-				})
+		if len(exact) > 0 && len(payers) > 1 {
+			// No specific symbol and several tenants owe this amount: whose
+			// payment it is would be a guess.
+			return suggest(exact[0].id, "variable symbol and amount match several tenants")
+		}
+		if len(exact) > 0 {
+			c := exact[0] // the oldest open share of that tenant
+			err := s.applyPayment(ctx, q, c.id, t.Amount, t.BookedOn.Time, "bank", nil)
+			if errors.Is(err, errOverpaid) { // paid meanwhile
+				return suggest(c.id, "variable symbol and amount match, the share was paid meanwhile")
 			}
+			if err != nil {
+				return "", err
+			}
+			if err := q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID, MatchStatus: "matched",
+				SplitID: &c.id, MatchNote: "variable symbol and amount"}); err != nil {
+				return "", err
+			}
+			s.pushPayment(ctx, q, tx, c.id, t.Amount)
+			return "matched", nil
 		}
 		if len(cands) > 0 {
-			return "suggested", q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID, MatchStatus: "suggested",
-				SplitID: &cands[0].id, MatchNote: "variable symbol matches, amount differs"})
+			return suggest(cands[0].id, "variable symbol matches, amount differs")
 		}
 	}
-	rows, err := q.OpenSplitsByAmount(ctx, db.OpenSplitsByAmountParams{OrgID: t.OrgID, Amount: t.Amount, Day: t.BookedOn})
+	rows, err := q.OpenSplitsByAmount(ctx, db.OpenSplitsByAmountParams{OrgID: t.OrgID, Amount: t.Amount, Currency: t.Currency,
+		Day: t.BookedOn})
 	if err != nil {
 		return "", err
 	}
 	if len(rows) == 1 {
-		return "suggested", q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: t.ID, MatchStatus: "suggested",
-			SplitID: &rows[0].ID, MatchNote: "amount and date match, no variable symbol"})
+		return suggest(rows[0].ID, "amount and date match, no variable symbol")
 	}
 	return "unmatched", nil
 }
@@ -543,8 +620,10 @@ func (s *Service) ConfirmMatch(ctx context.Context, p *auth.Principal, orgID, tx
 	if err != nil || sp.OrgID != orgID {
 		return apperr.NotFound("split_not_found", "payment not found")
 	}
-	amount := min(t.Amount, sp.Amount-sp.PaidAmount)
-	if amount <= 0 {
+	if sp.Currency != t.Currency {
+		return invalid("currency_mismatch", "the payment is in another currency than the share")
+	}
+	if t.Amount <= 0 || sp.PaidAmount >= sp.Amount {
 		return apperr.Conflict("already_paid", "this payment is settled")
 	}
 	if err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
@@ -556,12 +635,30 @@ func (s *Service) ConfirmMatch(ctx context.Context, p *auth.Principal, orgID, tx
 	}); err != nil {
 		return err
 	}
-	return s.system(ctx, func(q *db.Queries, _ pgx.Tx) error {
-		if err := q.SetTransactionMatch(ctx, db.SetTransactionMatchParams{ID: txID, MatchStatus: "matched", SplitID: &splitID,
-			MatchNote: "confirmed by the landlord"}); err != nil {
+	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		n, err := q.MatchTransaction(ctx, db.MatchTransactionParams{ID: txID, SplitID: &splitID, MatchNote: "confirmed by the landlord"})
+		if err != nil {
 			return err
 		}
-		return s.applyPayment(ctx, q, splitID, amount, t.BookedOn.Time, "bank_confirmed", &p.UserID)
+		if n == 0 {
+			return apperr.Conflict("already_matched", "this transaction is already matched")
+		}
+		if _, err := q.LockLease(ctx, sp.LeaseID); err != nil {
+			return err
+		}
+		locked, err := q.LockSplit(ctx, splitID)
+		if err != nil {
+			return err
+		}
+		amount := min(t.Amount, locked.Amount-locked.PaidAmount)
+		if amount <= 0 {
+			return apperr.Conflict("already_paid", "this payment is settled")
+		}
+		if err := s.applyPayment(ctx, q, splitID, amount, t.BookedOn.Time, "bank_confirmed", &p.UserID); err != nil {
+			return err
+		}
+		s.pushPayment(ctx, q, tx, splitID, amount)
+		return nil
 	})
 }
 

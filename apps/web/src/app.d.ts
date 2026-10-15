@@ -10,6 +10,8 @@ declare global {
 			token: string | null;
 			/** Api client bound to the user's session. */
 			api: ApiClient;
+			/** Set when an expired session cookie was cleared in this request. */
+			sessionCleared?: boolean;
 		}
 		// interface Error {}
 		// interface PageData {}

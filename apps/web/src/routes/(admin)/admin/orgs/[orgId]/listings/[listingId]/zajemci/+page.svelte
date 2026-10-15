@@ -206,7 +206,7 @@
 					{#each data.roommates as r (r.user_id)}
 						<li>
 							<strong>{r.display_name}</strong> · {m.rm_score({ score: String(r.score) })} · ≤
-							{formatMoney(r.profile.budget_max, locale)} Kč
+							{formatMoney(r.profile.budget_max, 'CZK', locale)}
 							<br /><span class="text-[var(--muted)]"
 								>{r.profile.lifestyle.map((x) => lifestyleLabel[x]?.() ?? x).join(' · ')}</span
 							>

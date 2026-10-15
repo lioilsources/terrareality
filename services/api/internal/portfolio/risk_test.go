@@ -171,3 +171,17 @@ func TestExportCSV(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Without an agreed deposit there is no missing cushion: only uncovered debt counts.
+func TestNoDepositAgreed(t *testing.T) {
+	today := d("2026-10-15")
+	in := Input{Today: today, State: "active", Monthly: 2_000_000, Rent: 2_000_000,
+		Parties: []Party{{HasAccount: true, Verification: "identity", IncomeProof: true}}}
+	if f := factor(Score(in, nil), "deposit_coverage"); f.Value != 0 {
+		t.Fatalf("no deposit agreed, no debt: %+v", f)
+	}
+	in.Deposit = 4_000_000
+	if f := factor(Score(in, nil), "deposit_coverage"); f.Value != 0.5 {
+		t.Fatalf("agreed deposit unpaid: %+v", f)
+	}
+}

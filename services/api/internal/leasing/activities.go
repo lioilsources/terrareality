@@ -46,9 +46,21 @@ func atPrague(d time.Time, hour int) time.Time {
 	return time.Date(d.Year(), d.Month(), d.Day(), hour, 0, 0, 0, prague)
 }
 
+// StateGone is the Info state of a lease that no longer exists (deleted
+// with its organization); the workflow ends.
+const StateGone = "gone"
+
+// Running reports whether the lifecycle of a lease in this state goes on.
+func Running(state string) bool {
+	return state == "signed" || state == "active" || state == "notice_given"
+}
+
 // Info implements an activity.
 func (a *Activities) Info(ctx context.Context, leaseID uuid.UUID) (Info, error) {
 	l, err := db.New(a.S.Pool).GetLease(ctx, leaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Info{State: StateGone}, nil
+	}
 	if err != nil {
 		return Info{}, err
 	}
@@ -93,6 +105,9 @@ func (a *Activities) DueDates(ctx context.Context, leaseID uuid.UUID, from time.
 // Remind implements an activity: it notifies about the unpaid shares due on
 // a day and returns how many are unpaid (0 ends the reminders for that day).
 // The escalation also tells the landlord and is recorded in the event log.
+// E-mails, pushes and the event are written in one transaction; an
+// escalation already recorded for the lease and due date is not repeated
+// (an activity retried after its transaction committed).
 func (a *Activities) Remind(ctx context.Context, leaseID uuid.UUID, due time.Time, stage string) (int, error) {
 	day := time.Date(due.Year(), due.Month(), due.Day(), 0, 0, 0, 0, time.UTC)
 	q := db.New(a.S.Pool)
@@ -101,14 +116,27 @@ func (a *Activities) Remind(ctx context.Context, leaseID uuid.UUID, due time.Tim
 		return 0, err
 	}
 	l, err := q.GetLease(ctx, leaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil
+	}
 	if err != nil {
 		return 0, err
 	}
-	if l.State != "signed" && l.State != "active" && l.State != "notice_given" {
+	if !Running(l.State) {
 		return 0, nil
 	}
 	key := map[string]string{"upcoming": "payment_upcoming", "overdue": "payment_overdue", "escalation": "payment_escalation"}[stage]
 	err = a.S.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		if stage == "escalation" {
+			if _, err := q.LockLease(ctx, leaseID); err != nil {
+				return err
+			}
+			done, err := q.LeaseEventExists(ctx, db.LeaseEventExistsParams{LeaseID: leaseID, Kind: "payment_escalated",
+				DueOn: day.Format("2006-01-02")})
+			if err != nil || done {
+				return err
+			}
+		}
 		var names []string
 		for _, r := range rows {
 			names = append(names, r.Name)
@@ -129,6 +157,7 @@ func (a *Activities) Remind(ctx context.Context, leaseID uuid.UUID, due time.Tim
 				return err
 			}
 		}
+		a.S.pushReminders(ctx, q, tx, l, rows, key, day)
 		if stage != "escalation" {
 			return nil
 		}

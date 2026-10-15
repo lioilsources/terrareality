@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { APP_URL, topListings } from '../lib/api';
-import { alternates, czk, kindsByLang, localityCopy, pagePath, type Lang, type LocalityPage } from '../lib/localities';
+import { alternates, czk, indexable, kindsByLang, localityCopy, pagePath, type Lang, type LocalityPage } from '../lib/localities';
 import { prahaDistricts, prahaSurroundings } from '../lib/praha';
 
 interface Props {
@@ -57,6 +57,7 @@ const listLd = ld({
   altHref={alt ? alt[lang === 'cs' ? 'en' : 'cs'] : lang === 'cs' ? '/en/' : '/'}
   altLabel={lang === 'cs' ? 'English' : 'Čeština'}
   alternates={alt}
+  noindex={!indexable(page)}
 >
   <script type="application/ld+json" set:html={breadcrumbLd} />
   {top.items.length > 0 && <script type="application/ld+json" set:html={listLd} />}

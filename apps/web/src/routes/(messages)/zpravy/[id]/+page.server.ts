@@ -1,5 +1,6 @@
 import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
+import { MESSAGE_PAGE } from '#lib/messaging.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -7,7 +8,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const [detail, messages] = await Promise.all([
 		locals.api.GET('/v1/conversations/{conversationId}', path),
 		locals.api.GET('/v1/conversations/{conversationId}/messages', {
-			params: { path: { conversationId: params.id }, query: { limit: 100 } }
+			params: { path: { conversationId: params.id }, query: { limit: MESSAGE_PAGE } }
 		})
 	]);
 	if (!detail.data) kitError(404);
@@ -24,6 +25,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		detail: detail.data,
 		messages: (messages.data ?? []).reverse(),
+		hasOlder: (messages.data?.length ?? 0) >= MESSAGE_PAGE,
 		templates,
 		meId: locals.me!.id
 	};

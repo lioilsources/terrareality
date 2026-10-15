@@ -168,10 +168,11 @@ func Score(in Input, weights map[string]int) Result {
 	set("overdue_days", float64(days)/60, true, map[string]any{"days": days})
 
 	// Deposit: the debt not covered by the paid deposit, in months; a lease
-	// without a paid deposit has no cushion at all.
+	// whose agreed deposit was not paid has no cushion at all. Without an
+	// agreed deposit only the uncovered debt counts.
 	uncovered := max(overdue-depositPaid, 0)
 	cov := float64(uncovered) / monthly
-	if depositPaid == 0 {
+	if depositPaid == 0 && in.Deposit > 0 {
 		cov = math.Max(cov, 0.5)
 	}
 	set("deposit_coverage", cov, true, map[string]any{"deposit": in.Deposit, "deposit_paid": depositPaid,

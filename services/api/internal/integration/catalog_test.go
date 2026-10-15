@@ -22,6 +22,9 @@ import (
 // visionPeople makes the fake vision report a visible person.
 var visionPeople atomic.Bool
 
+// visionDown makes the fake vision fail redactions.
+var visionDown atomic.Bool
+
 // fakeVision implements the services/vision contract: photos get a kitchen
 // caption and tags; with visionPeople set they also need a privacy review.
 func fakeVision(t *testing.T) *httptest.Server {
@@ -41,6 +44,10 @@ func fakeVision(t *testing.T) *httptest.Server {
 			}
 			_ = json.NewEncoder(w).Encode(a)
 		case "/v1/photos/redact":
+			if visionDown.Load() {
+				http.Error(w, "down", http.StatusServiceUnavailable)
+				return
+			}
 			w.Header().Set("Content-Type", "image/jpeg")
 			_, _ = w.Write(jpegBytes(t, 400, 300))
 		default:
@@ -393,12 +400,78 @@ func TestPrivacyBlurSuggestion(t *testing.T) {
 	key := "orgs/" + orgID.String() + "/media/" + id.String() + "/original"
 	before, _ := e.blob.Get(context.Background(), key)
 	sg := findSuggestion(l, "privacy_blur")
+	lpath := "/v1/orgs/" + orgID.String() + "/listings/" + l.ID.String()
+	e.must(200, "PUT", lpath, tok, map[string]any{"title": map[string]string{"cs": "Byt s lidmi na fotce"},
+		"description": map[string]string{"cs": strings.Repeat("Světlý byt s balkonem a výhledem do parku. ", 3)},
+		"rent_amount": 2000000, "attributes": l.Attributes}, nil)
+	// An undecided privacy flag blocks the submission (S-D1).
+	var p struct {
+		Code   string `json:"code"`
+		Errors []struct {
+			Key    string `json:"key"`
+			Reason string `json:"reason"`
+		} `json:"errors"`
+	}
+	if code := e.call("POST", lpath+"/submit", tok, nil, &p); code != 422 || len(p.Errors) != 1 ||
+		p.Errors[0].Reason != "privacy_review_pending" {
+		t.Fatalf("submitted with an undecided privacy flag: %d %+v", code, p)
+	}
 	e.must(200, "POST", "/v1/orgs/"+orgID.String()+"/suggestions/"+sg.ID.String()+"/decision", tok, map[string]any{"accept": true}, nil)
+	// Accepted but not applied yet: still pending, photo unchanged (V-6).
+	e.must(200, "GET", lpath, tok, nil, &l)
+	if !hasSuggestion(l, "privacy_blur", "pending") {
+		t.Fatalf("suggestion not pending before redaction: %+v", l.Suggestions)
+	}
+	if now, _ := e.blob.Get(context.Background(), key); !bytes.Equal(before, now) {
+		t.Fatal("photo changed before the job ran")
+	}
+	if code := e.call("POST", lpath+"/submit", tok, nil, nil); code != 422 {
+		t.Fatalf("submitted while the redaction is queued: %d", code)
+	}
+	e.jobs.mu.Lock()
+	queued := append([]uuid.UUID(nil), e.jobs.redactions...)
+	e.jobs.mu.Unlock()
+	if len(queued) != 1 || queued[0] != sg.ID {
+		t.Fatalf("redaction jobs %v", queued)
+	}
+	// A failing vision service leaves everything as it was; River retries.
+	visionDown.Store(true)
+	if err := e.listings.RedactMedia(context.Background(), sg.ID); err == nil {
+		t.Fatal("redaction failure swallowed")
+	}
+	visionDown.Store(false)
+	e.must(200, "GET", lpath, tok, nil, &l)
+	if !hasSuggestion(l, "privacy_blur", "pending") {
+		t.Fatalf("failed redaction marked the suggestion: %+v", l.Suggestions)
+	}
+	if err := e.listings.RedactMedia(context.Background(), sg.ID); err != nil {
+		t.Fatal(err)
+	}
+	// Idempotent: a duplicate job does nothing.
+	if err := e.listings.RedactMedia(context.Background(), sg.ID); err != nil {
+		t.Fatal(err)
+	}
 	after, _ := e.blob.Get(context.Background(), key)
 	cfg, err := jpeg.DecodeConfig(bytes.NewReader(after))
 	if err != nil || bytes.Equal(before, after) || cfg.Width != 400 {
 		t.Fatalf("photo not redacted: %v %dx%d", err, cfg.Width, cfg.Height)
 	}
+	e.must(200, "GET", lpath, tok, nil, &l)
+	if !hasSuggestion(l, "privacy_blur", "accepted") {
+		t.Fatalf("suggestion not accepted after redaction: %+v", l.Suggestions)
+	}
+	// The media row describes the stored (re-sanitized) bytes.
+	var size int64
+	var ct string
+	var sum []byte
+	if err := e.pool.QueryRow(context.Background(), "SELECT size_bytes, content_type, sha256 FROM media WHERE id = $1", id).
+		Scan(&size, &ct, &sum); err != nil {
+		t.Fatal(err)
+	}
+	if size != int64(len(after)) || ct != "image/jpeg" || len(sum) != 32 {
+		t.Fatalf("media metadata %d %s (stored %d)", size, ct, len(after))
+	}
+	e.must(200, "POST", lpath+"/submit", tok, nil, nil)
 }
 
 func hasSuggestion(l listingDTO, kind, status string) bool {

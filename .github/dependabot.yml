@@ -1,0 +1,47 @@
+# Automatic dependency PRs (review S-I9). Weekly, grouped per ecosystem so a week is one PR each;
+# security updates are opened immediately regardless of the schedule.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+
+  - package-ecosystem: gomod
+    directory: /services/api
+    schedule: { interval: weekly }
+    groups:
+      go: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /services/vision
+    schedule: { interval: weekly }
+    groups:
+      pip: { patterns: ["*"] }
+
+  - package-ecosystem: pub
+    directory: /apps/mobile
+    schedule: { interval: weekly }
+    groups:
+      pub-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories: [/services/api, /services/vision, /apps/web, /infra/hetzner/db, /infra/dev/postgres]
+    schedule: { interval: weekly }
+
+  - package-ecosystem: docker-compose
+    directories: [/infra/hetzner/compose, /infra/hetzner/observability]
+    schedule: { interval: monthly }
+
+  - package-ecosystem: terraform
+    directory: /infra/hetzner/terraform
+    schedule: { interval: monthly }

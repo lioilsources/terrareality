@@ -38,11 +38,10 @@ void main() {
     expect(find.text('Zkusit znovu'), findsOneWidget);
   });
 
-  testWidgets('navigates to login', (tester) async {
+  testWidgets('is the About page, without sign-in or internal actions in the app bar', (tester) async {
     await tester.pumpWidget(_app(PlatformStatus(health: _health(HealthStatusEnum.ok))));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.login));
-    await tester.pumpAndSettle();
-    expect(find.text('Přihlášení'), findsWidgets);
+    expect(find.text('O aplikaci'), findsOneWidget);
+    expect(find.byIcon(Icons.login), findsNothing);
   });
 }

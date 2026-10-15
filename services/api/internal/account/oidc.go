@@ -64,8 +64,11 @@ func (s *Service) startFlow(ctx context.Context, p identity.Provider, redirectUR
 // finishFlow consumes the state and exchanges the code.
 func (s *Service) finishFlow(ctx context.Context, q *db.Queries, p identity.Provider, code, state, redirectURI, purpose string) (identity.Claims, oidcState, error) {
 	t, err := consume(ctx, q, state, "oidc_state")
-	if err != nil {
+	if _, ok := apperr.As(err); ok {
 		return identity.Claims{}, oidcState{}, apperr.BadRequest("invalid_state", "the sign-in attempt expired, try again")
+	}
+	if err != nil {
+		return identity.Claims{}, oidcState{}, err // database failure: 500, not the user's fault
 	}
 	var st oidcState
 	if err := json.Unmarshal(t.Data, &st); err != nil {
@@ -79,7 +82,11 @@ func (s *Service) finishFlow(ctx context.Context, q *db.Queries, p identity.Prov
 		return c, st, apperr.BadRequest("invalid_code", "the provider rejected the sign-in")
 	}
 	if err != nil {
-		return c, st, apperr.Unavailable("provider_unavailable", err.Error())
+		// The provider's error text (URLs, internal hosts) goes to the log only.
+		if s.Log != nil {
+			s.Log.Warn("oidc exchange failed", "provider", p.ID(), "err", err)
+		}
+		return c, st, apperr.Unavailable("provider_unavailable", "the identity provider is not reachable, try again later")
 	}
 	if c.Subject == "" {
 		return c, st, apperr.BadRequest("invalid_code", "the provider returned no subject")

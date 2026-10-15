@@ -9,9 +9,19 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege for GITHUB_TOKEN; jobs that need more ask for it (images: packages: write).
+permissions:
+  contents: read
+
+env:
+  TYPST_VERSION: "0.15.1"
+  # sha256 of typst-x86_64-unknown-linux-musl.tar.xz from the GitHub release (same as services/api/Dockerfile).
+  TYPST_SHA256: a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c
+
 jobs:
   go:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       TEST_DATABASE_URL: postgres://terra:terra@localhost:5433/terra_test?sslmode=disable
     defaults:
@@ -29,13 +39,14 @@ jobs:
       - uses: sqlc-dev/setup-sqlc@v4
         with:
           sqlc-version: "1.31.1"
-      - name: Generated code is up to date
-        run: |
-          go tool oapi-codegen -config oapi-codegen.yaml ../../packages/contracts/openapi.yaml
-          sqlc generate
-          git diff --exit-code -- internal/api/gen internal/db
+      - name: Generated code is up to date (server, sqlc, attribute catalog, lease templates)
+        working-directory: .
+        run: make gen-check-go
       - name: Install typst (lease documents)
-        run: curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
+        run: |
+          curl -fsSL -o /tmp/typst.tar.xz "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+          echo "${TYPST_SHA256}  /tmp/typst.tar.xz" | sha256sum -c -
+          sudo tar -xJf /tmp/typst.tar.xz -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
       - run: go vet ./...
       - run: go tool staticcheck ./...
       - run: go test -race ./...
@@ -46,6 +57,7 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,6 +82,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [go, web]
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +97,10 @@ jobs:
       - name: Start dependencies
         run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db centrifugo mailpit s3 temporal
       - name: Install typst (lease documents)
-        run: curl -fsSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
+        run: |
+          curl -fsSL -o /tmp/typst.tar.xz "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+          echo "${TYPST_SHA256}  /tmp/typst.tar.xz" | sha256sum -c -
+          sudo tar -xJf /tmp/typst.tar.xz -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
       - name: Start api and worker
         run: |
           cd services/api
@@ -93,7 +109,7 @@ jobs:
           bin/terractl seed-dev
           bin/terractl seed-search 500
           (bin/worker &) ; (bin/api &)
-          for i in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 2; done
+          for _ in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 2; done
         env:
           DATABASE_URL: postgres://terra:terra@localhost:5433/terra?sslmode=disable
           CENTRIFUGO_API_URL: http://localhost:8000/api
@@ -121,6 +137,7 @@ jobs:
 
   mobile:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/mobile
@@ -137,6 +154,7 @@ jobs:
 
   vision:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/vision
@@ -151,6 +169,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -189,9 +208,15 @@ jobs:
       - name: terraform fmt
         if: hashFiles('infra/hetzner/terraform/**/*.tf') != ''
         run: terraform fmt -check -recursive infra/hetzner/terraform
+      - name: terraform validate (no backend, no credentials)
+        if: hashFiles('infra/hetzner/terraform/**/*.tf') != ''
+        run: |
+          terraform -chdir=infra/hetzner/terraform init -backend=false -input=false
+          terraform -chdir=infra/hetzner/terraform validate
 
   images:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [go, web, vision]
     permissions:
       contents: read
@@ -203,7 +228,11 @@ jobs:
       IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t terra/api services/api
+      - name: Build terra/api (version info for /v1/version, logs and Sentry)
+        run: |
+          docker build -t terra/api \
+            --build-arg VERSION="${GITHUB_SHA::12}" --build-arg COMMIT="$GITHUB_SHA" \
+            --build-arg BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" services/api
       - run: docker build -f apps/web/Dockerfile -t terra/web .
       - run: docker build -t terra/vision services/vision
       - name: Log in to the image registry

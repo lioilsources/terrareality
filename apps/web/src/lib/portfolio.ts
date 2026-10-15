@@ -46,9 +46,13 @@ export const factorLabel: Record<string, () => string> = {
 	market_supply: m.risk_factor_market_supply
 };
 
-/** Money in major units with the currency sign ("12 500 Kč"). */
-export function kc(minor: number | undefined, locale: string): string {
-	return `${formatMoney(minor ?? 0, locale)} Kč`;
+/** Money with the currency sign ("12 500 Kč"); the dashboard and rent roll carry `currency`. */
+export function money(
+	minor: number | undefined | null,
+	currency: string | undefined,
+	locale: string
+): string {
+	return formatMoney(minor ?? 0, currency, locale);
 }
 
 export function pct(share: number): string {
@@ -56,14 +60,14 @@ export function pct(share: number): string {
 }
 
 /** Human explanation of a factor's detail (the numbers behind the value). */
-export function factorDetail(f: RiskFactor, locale: string): string {
+export function factorDetail(f: RiskFactor, locale: string, currency = 'CZK'): string {
 	const d = (f.detail ?? {}) as Record<string, number | boolean>;
 	const n = (k: string) => Number(d[k] ?? 0);
 	switch (f.key) {
 		case 'debt':
 			return m.risk_detail_debt({
-				amount: kc(n('amount'), locale),
-				monthly: kc(n('monthly'), locale)
+				amount: money(n('amount'), currency, locale),
+				monthly: money(n('monthly'), currency, locale)
 			});
 		case 'escalations':
 			return m.risk_detail_escalations({ count: n('count') });
@@ -71,9 +75,9 @@ export function factorDetail(f: RiskFactor, locale: string): string {
 			return m.risk_detail_overdue_days({ days: n('days') });
 		case 'deposit_coverage':
 			return m.risk_detail_deposit_coverage({
-				paid: kc(n('deposit_paid'), locale),
-				deposit: kc(n('deposit'), locale),
-				uncovered: kc(n('uncovered'), locale)
+				paid: money(n('deposit_paid'), currency, locale),
+				deposit: money(n('deposit'), currency, locale),
+				uncovered: money(n('uncovered'), currency, locale)
 			});
 		case 'passport':
 			return f.known
@@ -94,7 +98,7 @@ export function factorDetail(f: RiskFactor, locale: string): string {
 			return f.known
 				? m.risk_detail_market_rent({
 						ratio: n('ratio').toLocaleString(locale === 'en' ? 'en-GB' : 'cs-CZ'),
-						median: kc(n('median'), locale),
+						median: money(n('median'), currency, locale),
 						listings: n('listings')
 					})
 				: m.risk_unknown();

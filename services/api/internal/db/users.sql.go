@@ -322,7 +322,9 @@ func (q *Queries) PseudonymizeUser(ctx context.Context, id uuid.UUID) error {
 
 const searchUsers = `-- name: SearchUsers :many
 SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users
-WHERE ($1::text IS NULL OR email ILIKE '%' || $1 || '%' OR display_name ILIKE '%' || $1 || '%')
+WHERE ($1::text IS NULL
+    OR email ILIKE '%' || replace(replace(replace($1, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    OR display_name ILIKE '%' || replace(replace(replace($1, '\', '\\'), '%', '\%'), '_', '\_') || '%')
   AND ($2::uuid IS NULL OR id < $2)
 ORDER BY id DESC
 LIMIT $3
@@ -334,6 +336,8 @@ type SearchUsersParams struct {
 	Lim    int32      `json:"lim"`
 }
 
+// The search text is matched literally (LIKE wildcards and the escape
+// character are escaped).
 func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error) {
 	rows, err := q.db.Query(ctx, searchUsers, arg.Q, arg.Before, arg.Lim)
 	if err != nil {

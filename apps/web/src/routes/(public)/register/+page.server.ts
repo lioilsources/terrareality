@@ -3,11 +3,12 @@ import { completeAuth } from '#lib/server/auth.js';
 import { safeNext } from '#lib/server/session.js';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
+import { legalVersion } from '#lib/server/legal.js';
 import type { Actions, PageServerLoad } from './$types';
 
-/** Current legal document versions; the api records them in the consent log. */
-const TERMS_VERSION = '2026-10';
-const PRIVACY_VERSION = '2026-10';
+/** Current legal document versions (front matter); the api records them in the consent log. */
+const TERMS_VERSION = legalVersion('terms');
+const PRIVACY_VERSION = legalVersion('privacy');
 
 export const load: PageServerLoad = ({ url }) => ({ next: safeNext(url.searchParams.get('next')) });
 

@@ -45,7 +45,7 @@
 				type="password"
 				autocomplete="new-password"
 				required
-				minlength={10}
+				minlength={12}
 				hint={m.password_hint()}
 			/>
 			<label class="flex items-start gap-2 text-sm"

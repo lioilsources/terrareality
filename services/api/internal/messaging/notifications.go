@@ -108,8 +108,8 @@ func (s *Service) RegisterDevice(ctx context.Context, p *auth.Principal, platfor
 	if token == "" || len(token) > 4096 {
 		return db.PushDevice{}, apperr.Unprocessable("invalid_token", "missing push token")
 	}
-	if len(label) > 120 {
-		label = label[:120]
+	if r := []rune(label); len(r) > 120 {
+		label = string(r[:120])
 	}
 	// A token moves with the device: when another account signs in on the
 	// same phone, the previous owner's registration is dropped (system

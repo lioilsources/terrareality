@@ -4,9 +4,12 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetActiveSession :one
-SELECT s.*, u.is_staff, u.pseudonymized_at
+-- created_after (now - SESSION_MAX_AGE) enforces the absolute lifetime on
+-- every lookup, also for sessions whose stored expiry predates the cap.
+SELECT s.*, u.is_staff, u.pseudonymized_at, u.totp_enabled_at
 FROM sessions s JOIN users u ON u.id = s.user_id
-WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now();
+WHERE s.token_hash = sqlc.arg(token_hash) AND s.revoked_at IS NULL AND s.expires_at > now()
+  AND s.created_at > sqlc.arg(created_after)::timestamptz;
 
 -- name: TouchSession :exec
 -- Sliding expiry, written at most once per minute per session.
@@ -58,3 +61,9 @@ DELETE FROM auth_tokens WHERE expires_at < now() - interval '1 day';
 -- name: GetOpenAuthToken :one
 SELECT * FROM auth_tokens
 WHERE token_hash = $1 AND purpose = $2 AND used_at IS NULL AND expires_at > now();
+
+-- name: DeleteExpiredSessions :execrows
+-- Housekeeping (cleanup job): sessions expired or revoked more than 30 days
+-- ago. The window keeps recent ones for "where was I signed in" questions.
+DELETE FROM sessions
+WHERE expires_at < now() - interval '30 days' OR revoked_at < now() - interval '30 days';

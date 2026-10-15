@@ -62,10 +62,32 @@ export function toMinor(value: FormDataEntryValue | null): number | undefined {
 	return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : undefined;
 }
 
-export function formatMoney(minor: number | undefined, locale: string): string {
-	if (minor === undefined) return '';
-	return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ').format(Math.round(minor / 100));
+/**
+ * Money from minor units with its currency sign via Intl ("12 500 Kč", "€1,250.50").
+ * Whole amounts drop the fraction; anything else keeps two decimals. The currency
+ * comes from the api (`currency` next to every amount); CZK only when the api has
+ * none (roommate budgets, risk details).
+ */
+export function formatMoney(
+	minor: number | undefined | null,
+	currency: string | undefined | null,
+	locale: string
+): string {
+	if (minor === undefined || minor === null) return '';
+	const whole = minor % 100 === 0;
+	return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ', {
+		style: 'currency',
+		currency: currency || 'CZK',
+		minimumFractionDigits: whole ? 0 : 2,
+		maximumFractionDigits: whole ? 0 : 2
+	}).format(minor / 100);
 }
+
+/**
+ * Stand-in when /v1/attributes is unavailable: public pages (search, listing
+ * detail) still render, just without attribute labels and facets.
+ */
+export const EMPTY_SCHEMA: AttributeSchema = { groups: [], attributes: [] };
 
 export function applicable(schema: AttributeSchema, kind: UnitKind): AttributeDef[] {
 	return schema.attributes.filter((a) => a.applies_to.length === 0 || a.applies_to.includes(kind));

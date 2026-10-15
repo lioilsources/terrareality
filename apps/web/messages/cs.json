@@ -40,7 +40,7 @@
 	"field_role": "Role",
 	"field_reason": "Důvod",
 	"field_search": "Hledat",
-	"password_hint": "Alespoň 10 znaků.",
+	"password_hint": "Alespoň 12 znaků. Hesla známá z úniků dat nepřijmeme.",
 	"login_title": "Přihlášení",
 	"login_submit": "Přihlásit se",
 	"login_forgot": "Zapomenuté heslo",
@@ -184,8 +184,9 @@
 	"err_invalid_token": "Odkaz je neplatný nebo vypršel.",
 	"err_email_taken": "Účet s tímto e-mailem už existuje.",
 	"err_email_not_verified": "Nejdřív ověřte svůj e-mail.",
-	"err_password_too_short": "Heslo musí mít alespoň 10 znaků.",
+	"err_password_too_short": "Heslo musí mít alespoň 12 znaků.",
 	"err_password_too_weak": "Zvolte méně předvídatelné heslo.",
+	"err_password_breached": "Toto heslo se objevilo v uniklých datech jiných služeb. Zvolte prosím jiné.",
 	"err_rate_limited": "Příliš mnoho pokusů. Zkuste to za chvíli.",
 	"err_validation_failed": "Zkontrolujte vyplněné údaje.",
 	"err_mfa_expired": "Přihlášení vypršelo, zadejte heslo znovu.",
@@ -197,7 +198,7 @@
 	"err_impersonation_forbidden": "V zástupu podpory to není povoleno.",
 	"err_provider_unavailable": "Poskytovatel přihlášení je nedostupný.",
 	"err_email_required": "Poskytovatel nesdílel ověřený e-mail.",
-	"err_staff_mfa_required": "Účty podpory musí mít zapnuté dvoufázové ověření.",
+	"err_staff_mfa_required": "Přístup podpory vyžaduje dvoufázové ověření. Zapněte ho (pokud ještě není) a přihlaste se znovu s kódem z aplikace.",
 	"listings_title": "Inzeráty",
 	"listings_new": "Nový inzerát",
 	"listings_empty": "Zatím tu nejsou žádné inzeráty.",
@@ -289,7 +290,7 @@
 	"version_approved": "schválena",
 	"version_rejected": "vrácena",
 	"version_withdrawn": "nahrazena",
-	"price_per_month": "{amount} Kč/měs.",
+	"price_per_month": "{amount}/měs.",
 	"saved": "Uloženo.",
 	"err_invalid_fields": "Některé údaje nejsou v pořádku.",
 	"err_deposit_over_limit": "Kauce může být nejvýše {months}× měsíční nájem.",
@@ -320,7 +321,18 @@
 	"search_title": "Pronájmy",
 	"search_chat_placeholder": "Popište, co hledáte – např. „2+kk do 18 000 v Praze 6 se psem“",
 	"search_chat_submit": "Hledat",
-	"search_results": "{count} nabídek",
+	"search_results": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} nabídka",
+				"countPlural=few": "{count} nabídky",
+				"countPlural=many": "{count} nabídek",
+				"countPlural=*": "{count} nabídek"
+			}
+		}
+	],
 	"search_no_results": "Nic jsme nenašli. Zkuste uvolnit filtry.",
 	"search_filters": "Filtry",
 	"search_apply": "Použít filtry",
@@ -344,13 +356,24 @@
 	"search_saved": "Hledání uloženo. Nové nabídky vám pošleme e-mailem.",
 	"search_save_name": "Název hledání",
 	"search_degraded": "AI je teď mimo provoz, použili jsme jednoduché rozpoznání.",
-	"search_median": "medián {amount} Kč",
+	"search_median": "medián {amount}",
 	"listing_similar": "Podobné nabídky",
 	"listing_location_approx": "Poloha je přibližná.",
 	"listing_available_from": "K dispozici od {date}",
-	"listing_deposit": "Kauce {amount} Kč",
-	"listing_utilities": "Zálohy {amount} Kč",
-	"listing_min_term": "Min. {months} měsíců",
+	"listing_deposit": "Kauce {amount}",
+	"listing_utilities": "Zálohy {amount}",
+	"listing_min_term": [
+		{
+			"declarations": ["input months", "local monthsPlural = months: plural"],
+			"selectors": ["monthsPlural"],
+			"match": {
+				"monthsPlural=one": "Min. {months} měsíc",
+				"monthsPlural=few": "Min. {months} měsíce",
+				"monthsPlural=many": "Min. {months} měsíců",
+				"monthsPlural=*": "Min. {months} měsíců"
+			}
+		}
+	],
 	"nav_saved_searches": "Uložená hledání",
 	"saved_empty": "Zatím nemáte uložená hledání.",
 	"saved_open": "Otevřít",
@@ -359,7 +382,18 @@
 	"msg_inbox_empty": "Zatím nemáte žádné konverzace. Napište pronajímateli přímo z inzerátu.",
 	"msg_role_seeker": "Hledám",
 	"msg_role_owner": "Pronajímám",
-	"msg_unread": "{count} nepřečtené",
+	"msg_unread": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} nepřečtená",
+				"countPlural=few": "{count} nepřečtené",
+				"countPlural=many": "{count} nepřečtených",
+				"countPlural=*": "{count} nepřečtených"
+			}
+		}
+	],
 	"msg_contact_title": "Napsat pronajímateli",
 	"msg_contact_login": "Pro napsání pronajímateli se přihlaste.",
 	"msg_contact_existing": "S pronajímatelem už si píšete.",
@@ -487,7 +521,18 @@
 	"app_slots_empty": "Pronajímatel zatím nevypsal žádné termíny.",
 	"app_slot_book": "Rezervovat",
 	"app_slot_full": "obsazeno",
-	"app_slot_free": "volno {count}",
+	"app_slot_free": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "volné {count} místo",
+				"countPlural=few": "volná {count} místa",
+				"countPlural=many": "volných {count} míst",
+				"countPlural=*": "volných {count} míst"
+			}
+		}
+	],
 	"app_booking": "Vaše prohlídka",
 	"app_booking_cancel": "Zrušit rezervaci",
 	"app_reason": "Důvod",
@@ -637,7 +682,7 @@
 	"lease_state_cancelled": "Zrušena",
 	"lease_code": "Kód smlouvy (VS)",
 	"lease_propose": "Odeslat k podpisu",
-	"lease_sign": "Podepsat (zkušební podpis)",
+	"lease_sign": "Podepsat smlouvu",
 	"lease_signed_badge": "podepsáno",
 	"lease_not_signed": "nepodepsáno",
 	"lease_documents": "Dokumenty",
@@ -661,7 +706,18 @@
 	"lease_pay_qr": "Zaplatit QR kódem",
 	"lease_ledger_csv": "Účetní deník (CSV)",
 	"lease_chain": "Auditní řetězec",
-	"lease_chain_ok": "Řetězec událostí je neporušený ({count} záznamů).",
+	"lease_chain_ok": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Řetězec událostí je neporušený ({count} záznam).",
+				"countPlural=few": "Řetězec událostí je neporušený ({count} záznamy).",
+				"countPlural=many": "Řetězec událostí je neporušený ({count} záznamů).",
+				"countPlural=*": "Řetězec událostí je neporušený ({count} záznamů)."
+			}
+		}
+	],
 	"lease_chain_broken": "Řetězec událostí je porušený!",
 	"lease_notice": "Dát výpověď",
 	"lease_notice_on": "Datum doručení výpovědi",
@@ -710,7 +766,18 @@
 	"pf_of_expected": "z očekávaných {amount}",
 	"pf_cities": "Obce",
 	"pf_city_share": "{share} % příjmu",
-	"pf_city_leases": "nájmy: {count}",
+	"pf_city_leases": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} nájem",
+				"countPlural=few": "{count} nájmy",
+				"countPlural=many": "{count} nájmů",
+				"countPlural=*": "{count} nájmů"
+			}
+		}
+	],
 	"pf_city_vacant": "volné: {count}",
 	"pf_unknown_city": "Neurčená obec",
 	"pf_concentration": "Koncentrace",
@@ -815,10 +882,32 @@
 	"risk_factor_market_supply": "Doba inzerce v obci",
 	"risk_detail_debt": "{amount} (měsíční předpis {monthly})",
 	"risk_detail_escalations": "{count}×",
-	"risk_detail_overdue_days": "{days} dní po splatnosti",
+	"risk_detail_overdue_days": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "{days} den po splatnosti",
+				"daysPlural=few": "{days} dny po splatnosti",
+				"daysPlural=many": "{days} dní po splatnosti",
+				"daysPlural=*": "{days} dní po splatnosti"
+			}
+		}
+	],
 	"risk_detail_deposit_coverage": "složeno {paid} z {deposit}, nekryto {uncovered}",
 	"risk_detail_passport": "ověřená identita {identity}/{tenants}, doložený příjem {income}/{tenants}, záznam v ISIR {records}",
-	"risk_detail_term_end": "zbývá {days} dní",
+	"risk_detail_term_end": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "zbývá {days} den",
+				"daysPlural=few": "zbývají {days} dny",
+				"daysPlural=many": "zbývá {days} dní",
+				"daysPlural=*": "zbývá {days} dní"
+			}
+		}
+	],
 	"risk_detail_term_indefinite": "doba neurčitá",
 	"risk_detail_joint": "platí {paying}, v prodlení {behind}",
 	"risk_detail_market_rent": "{ratio}× mediánu {median} ({listings} inzerátů)",
@@ -917,7 +1006,18 @@
 	"billing_col_start": "Začátek",
 	"billing_col_status": "Stav",
 	"billing_col_taxable": "DUZP",
-	"billing_days": "{days} dní",
+	"billing_days": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "{days} den",
+				"daysPlural=few": "{days} dny",
+				"daysPlural=many": "{days} dní",
+				"daysPlural=*": "{days} dní"
+			}
+		}
+	],
 	"billing_net": "Bez DPH",
 	"billing_vat": "DPH",
 	"billing_gross": "S DPH",
@@ -1031,5 +1131,81 @@
 	"bo_open_listing": "Otevřít inzerát",
 	"err_reporter_email_required": "Zadejte platný e-mail, abychom vám mohli poslat potvrzení.",
 	"err_invalid_explanation": "Vysvětlení musí mít 20 až 2000 znaků.",
-	"err_note_required": "Doplňte odůvodnění rozhodnutí."
+	"err_note_required": "Doplňte odůvodnění rozhodnutí.",
+	"search_default_name": "Hledání",
+	"lang_name_cs": "Čeština",
+	"lang_name_en": "English",
+	"login_mock_suffix": " (testovací)",
+	"err_unavailable": "Služba je teď nedostupná. Zkuste to prosím za chvíli.",
+	"err_unauthenticated": "Přihlášení vypršelo. Přihlaste se prosím znovu.",
+	"err_forbidden": "K této akci nemáte oprávnění.",
+	"err_not_found": "Požadovaná položka neexistuje nebo byla smazána.",
+	"err_conflict": "Stav se mezitím změnil. Obnovte stránku a zkuste to znovu.",
+	"err_renderer_unavailable": "Dokument teď nelze vygenerovat. Zkuste to později.",
+	"err_invalid_redirect": "Neplatná návratová adresa.",
+	"err_invalid_provider": "Tento způsob podpisu teď není k dispozici.",
+	"err_terms_outdated": "Podmínky se změnily. Obnovte stránku a potvrďte aktuální verzi.",
+	"err_not_a_party": "Nejste smluvní stranou této smlouvy.",
+	"err_lease_not_proposed": "Změny lze navrhovat jen u smlouvy čekající na podpis.",
+	"err_lease_not_active": "Smlouva není aktivní.",
+	"err_lease_not_terminated": "Kauci lze vypořádat až po skončení nájmu.",
+	"err_document_changed": "Mezitím byla navržena nová verze smlouvy. Obnovte stránku a zkontrolujte ji.",
+	"err_party_incomplete": "Každý nájemce potřebuje jméno a e-mail.",
+	"err_rent_required": "Vyplňte výši nájemného.",
+	"err_tenant_required": "Smlouva potřebuje alespoň jednoho nájemce.",
+	"err_payee_required": "Vyplňte účet a jméno příjemce plateb.",
+	"err_address_required": "Vyplňte adresu nemovitosti.",
+	"err_comment_required": "Doplňte komentář.",
+	"err_invalid_due_day": "Den splatnosti musí být 1 až 28.",
+	"err_invalid_term": "Konec nájmu musí být po jeho začátku.",
+	"err_invalid_clause": "Neznámé ujednání smlouvy.",
+	"err_currency_mismatch": "Platba je v jiné měně než předpis.",
+	"err_notice_not_allowed": "Výpověď může podat jen nájemce.",
+	"err_tenant_only": "Tuto akci může provést jen nájemce.",
+	"err_already_paid": "Tato platba už je uhrazena.",
+	"err_share_paid": "Tento podíl už je zaplacen.",
+	"err_revolut_not_connected": "Pronajímatel nemá připojený Revolut.",
+	"err_payment_provider_unavailable": "Platební brána je teď nedostupná. Zkuste to později.",
+	"err_bank_not_linked": "Nejdřív propojte bankovní účet.",
+	"err_bank_unavailable": "Banka je teď nedostupná. Zkuste to později.",
+	"err_billing_unavailable": "Fakturace je teď nedostupná. Zkuste to později.",
+	"err_invitation_expired": "Pozvánka vypršela. Požádejte o novou.",
+	"err_invalid_transition": "Tuto změnu stavu nelze provést.",
+	"err_application_closed": "Žádost už není otevřená.",
+	"err_slot_in_past": "Termín už proběhl.",
+	"err_message_too_long": "Zpráva je příliš dlouhá.",
+	"err_account_erased": "Tento účet byl smazán.",
+	"err_erasure_in_progress": "Probíhá smazání účtu.",
+	"err_export_not_ready": "Export ještě není připravený.",
+	"err_mfa_already_enabled": "Dvoufázové ověření už je zapnuté.",
+	"err_mfa_not_enabled": "Dvoufázové ověření není zapnuté.",
+	"err_mfa_not_pending": "Nastavení dvoufázového ověření vypršelo. Začněte znovu.",
+	"err_phone_verification_unavailable": "Ověření telefonu je teď nedostupné.",
+	"err_owner_required": "Tuto změnu může provést jen vlastník.",
+	"err_promo_code_taken": "Tento kód už existuje.",
+	"err_invalid_email": "Zadejte platný e-mail.",
+	"err_invalid_amount": "Neplatná částka.",
+	"err_group_exists": "Skupina s tímto názvem už existuje.",
+	"err_about_too_long": "Text o sobě je příliš dlouhý.",
+	"err_unknown_area": "Neznámá lokalita.",
+	"err_listing_not_published": "Inzerát není zveřejněný.",
+	"err_impersonation_not_allowed": "Tohoto uživatele nelze zastoupit.",
+	"lease_sign_method": "Způsob podpisu",
+	"lease_sign_method_simple": "prostý elektronický podpis",
+	"lease_sign_method_bankid": "podpis přes BankID",
+	"lease_sign_method_simple_hint": "Podpis potvrzením v přihlášeném účtu; zaznamenáme čas, IP adresu a otisk dokumentu. Nejde o uznávaný ani kvalifikovaný elektronický podpis.",
+	"lease_sign_confirm": "Přečetl(a) jsem si smlouvu a chci ji podepsat ({method}).",
+	"lease_sign_confirm_required": "Pro podpis potvrďte, že jste si smlouvu přečetli.",
+	"msg_load_older": "Načíst starší zprávy",
+	"err_impersonation_nested": "Nejdřív ukončete současné zastoupení uživatele.",
+	"lease_notice_landlord_unavailable": "Výpověď ze strany pronajímatele vyžaduje zákonný výpovědní důvod; v aplikaci zatím podat nejde. Pošlete ji nájemci písemně mimo platformu.",
+	"ai_blur_applying": "Rozmazání se právě provádí…",
+	"tenant_verify_for_leases": "Nájemní smlouvy se k účtu připojí až po ověření e-mailu {email}.",
+	"reason_privacy_review_pending": "Fotky: rozhodněte o rozmazání obličejů a SPZ",
+	"err_landlord_notice_reason_required": "Výpověď pronajímatele vyžaduje zákonný důvod; v aplikaci ji zatím podat nelze.",
+	"err_invalid_delivered_on": "Neplatné datum doručení výpovědi.",
+	"err_email_unverified": "Nejdřív ověřte svůj e-mail.",
+	"err_slot_has_bookings": "Termín už má rezervace, nelze ho smazat.",
+	"err_listing_already_accepted": "U tohoto inzerátu už byla přijata jiná žádost.",
+	"err_invalid_query": "Neplatné parametry hledání."
 }

@@ -42,6 +42,7 @@
 				<form method="POST" action="?/enable" use:enhance class="grid max-w-sm gap-3">
 					<code class="text-sm break-all" data-testid="totp-secret">{form.setup.secret}</code>
 					<input type="hidden" name="secret" value={form.setup.secret} />
+					<input type="hidden" name="otpauth_uri" value={form.setup.uri} />
 					<Field
 						label={m.field_code()}
 						name="code"
@@ -79,7 +80,7 @@
 				type="password"
 				autocomplete="new-password"
 				required
-				minlength={10}
+				minlength={12}
 				hint={m.password_hint()}
 			/>
 			<Button type="submit" variant="secondary">{m.save()}</Button>
@@ -87,6 +88,9 @@
 	</Card>
 
 	<Card title={m.security_sessions()}>
+		{#if form?.sessionsError}<div class="mb-3">
+				<Alert kind="error">{form.sessionsError}</Alert>
+			</div>{/if}
 		<ul class="grid gap-2">
 			{#each data.sessions as s (s.id)}
 				<li

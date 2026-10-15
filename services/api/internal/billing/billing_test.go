@@ -198,7 +198,8 @@ func TestStripeHTTPCreateCheckout(t *testing.T) {
 		_ = r.ParseForm()
 		if r.URL.Path != "/v1/checkout/sessions" || user != "sk_test" || r.Form.Get("mode") != "payment" ||
 			r.Form.Get("line_items[0][price_data][unit_amount]") != "24079" || r.Form.Get("line_items[0][price_data][currency]") != "czk" ||
-			r.Form.Get("metadata[order_id]") != "ord-1" || r.Form.Get("client_reference_id") != "ord-1" {
+			r.Form.Get("metadata[order_id]") != "ord-1" || r.Form.Get("client_reference_id") != "ord-1" ||
+			r.Form.Get("payment_method_types[0]") != "card" {
 			http.Error(w, "bad request: "+r.Form.Encode(), 400)
 			return
 		}
@@ -286,5 +287,37 @@ func TestInvoiceRender(t *testing.T) {
 	}
 	if p := os.Getenv("INVOICE_PDF_OUT"); p != "" {
 		_ = os.WriteFile(p, pdf, 0o600)
+	}
+}
+
+// Q-BILL-1/2 fallback: up to 10 000 Kč without the buyer's DIČ the document
+// is a simplified tax document (§ 30 ZDPH); a VAT payer or a larger amount
+// gets the full one.
+func TestSimplifiedTaxDocument(t *testing.T) {
+	cases := []struct {
+		currency string
+		gross    int64
+		dic      string
+		want     bool
+	}{
+		{"CZK", 24079, "", true},
+		{"CZK", SimplifiedLimit, "", true},
+		{"CZK", SimplifiedLimit + 1, "", false},
+		{"CZK", 24079, "CZ12345678", false},
+		{"EUR", 24079, "", false},
+	}
+	for _, c := range cases {
+		if got := Simplified(c.currency, c.gross, c.dic); got != c.want {
+			t.Fatalf("Simplified(%+v) = %v", c, got)
+		}
+	}
+	day := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
+	d := InvoiceData{Number: "2026-000001", IssuedOn: day, Currency: "CZK", Simplified: true}
+	if v := d.view(); v["title"] != "Zjednodušený daňový doklad" {
+		t.Fatalf("title %v", v["title"])
+	}
+	d.Simplified = false
+	if v := d.view(); v["title"] != "Faktura – daňový doklad" {
+		t.Fatalf("title %v", v["title"])
 	}
 }

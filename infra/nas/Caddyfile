@@ -1,17 +1,72 @@
-# Public entry point for staging. TLS via Let's Encrypt.
-{$APP_DOMAIN} {
+# Public entry point for staging. TLS via Let's Encrypt. Same header baseline and access-log
+# redaction as production (infra/hetzner/compose/Caddyfile); keep the snippets in sync.
+
+(security_headers) {
+	header {
+		defer
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "DENY"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
+		?Cross-Origin-Opener-Policy "same-origin"
+		# Staging must never be indexed.
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+		-X-Powered-By
+	}
+}
+
+(access_log) {
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "(/v1/invitations/)[^/?]+|(\?).*" "${1}${2}REDACTED"
+				request>remote_ip ip_mask {
+					ipv4 24
+					ipv6 48
+				}
+				request>client_ip ip_mask {
+					ipv4 24
+					ipv6 48
+				}
+				request>headers>User-Agent delete
+				request>headers>Referer delete
+			}
+		}
+	}
+}
+
+(common) {
 	encode zstd gzip
+	import security_headers
+	import access_log
+	@internal path /metrics /metrics/* /debug/* /dev/*
+	respond @internal 404
+}
+
+{$APP_DOMAIN} {
+	import common
+	request_body {
+		max_size 64MB
+	}
 	reverse_proxy /connection/* centrifugo:8000
 	reverse_proxy web:3000
 }
 
 {$API_DOMAIN} {
-	encode zstd gzip
-	reverse_proxy api:8080
+	import common
+	request_body {
+		max_size 50MB
+	}
+	reverse_proxy api:8080 {
+		lb_try_duration 10s
+	}
 }
 
 {$SITE_DOMAIN} {
-	encode zstd gzip
+	import common
 	root * /srv/site
 	file_server
 }

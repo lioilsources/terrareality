@@ -1,0 +1,7 @@
+# Copy to android/key.properties (git-ignored) for release builds.
+# The upload keystore stays outside git too (*.jks is ignored); storeFile is
+# relative to android/app/. Steps: docs/runbooks/launch.md, section 8.
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=../upload-keystore.jks

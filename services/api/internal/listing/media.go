@@ -18,6 +18,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	"github.com/terrareality/terrareality/services/api/internal/storage"
 )
 
 const uploadTTL = 15 * time.Minute
@@ -46,6 +47,10 @@ func (s *Service) CreateUpload(ctx context.Context, p *auth.Principal, orgID, li
 		}
 		if _, err := q.GetListing(ctx, db.GetListingParams{ID: listingID, OrgID: orgID}); err != nil {
 			return errListingNotFound
+		}
+		// Serializes concurrent uploads (CreateMedia computes the position).
+		if _, err := q.LockListing(ctx, listingID); err != nil {
+			return err
 		}
 		id := uuid.Must(uuid.NewV7())
 		key := fmt.Sprintf("orgs/%s/media/%s/original", orgID, id)
@@ -109,9 +114,14 @@ func (s *Service) ProcessMedia(ctx context.Context, mediaID uuid.UUID) error {
 		_ = s.Blob.Delete(ctx, m.ObjectKey)
 		return q.SetMediaStatus(ctx, db.SetMediaStatusParams{ID: m.ID, Status: "rejected", RejectionReason: &reason})
 	}
-	raw, err := s.Blob.Get(ctx, m.ObjectKey)
-	if err != nil {
+	raw, err := s.Blob.GetLimited(ctx, m.ObjectKey, media.MaxBytes)
+	switch {
+	case errors.Is(err, storage.ErrNotFound):
 		return reject("upload_missing")
+	case errors.Is(err, storage.ErrTooLarge):
+		return reject(media.ErrTooLarge.Error())
+	case err != nil:
+		return err // storage hiccup: retried by River, the upload stays
 	}
 	status, sig, err := s.Scanner.Scan(ctx, raw)
 	if err != nil {
@@ -127,16 +137,15 @@ func (s *Service) ProcessMedia(ctx context.Context, mediaID uuid.UUID) error {
 	if err := s.Blob.Put(ctx, m.ObjectKey, info.ContentType, clean); err != nil {
 		return err
 	}
-	w, h := int32(info.Width), int32(info.Height)
-	if err := q.SetMediaProcessed(ctx, db.SetMediaProcessedParams{ID: m.ID, SizeBytes: &info.Size, Sha256: info.SHA256,
-		Width: &w, Height: &h, Orientation: int32(info.Orientation), AvStatus: status, ContentType: info.ContentType}); err != nil {
-		return err
-	}
+	// Vision runs before the photo turns "ready", so a privacy flag exists
+	// before Submit can include the photo (Submit refuses undecided flags).
 	if s.Flags.vision(ctx) && s.Vision.Enabled() && m.ListingID != nil {
 		// Vision failures never block the photo; the owner can still use it.
 		_ = s.analyzePhoto(ctx, q, m)
 	}
-	return nil
+	w, h := int32(info.Width), int32(info.Height)
+	return q.SetMediaProcessed(ctx, db.SetMediaProcessedParams{ID: m.ID, SizeBytes: &info.Size, Sha256: info.SHA256,
+		Width: &w, Height: &h, Orientation: int32(info.Orientation), AvStatus: status, ContentType: info.ContentType})
 }
 
 // analyzePhoto stores tags and creates suggestions for caption and privacy blur.
@@ -194,7 +203,7 @@ func (s *Service) UpdateMedia(ctx context.Context, p *auth.Principal, orgID, med
 
 // DeleteMedia removes a photo from the listing. The stored object is deleted
 // right away unless the listing has a published version, which may still
-// show it until the next approved version (cleanup job, M3).
+// show it until the next approved version (CleanupMediaBlobs).
 func (s *Service) DeleteMedia(ctx context.Context, p *auth.Principal, orgID, mediaID uuid.UUID) error {
 	var key string
 	keep := false
@@ -221,12 +230,47 @@ func (s *Service) DeleteMedia(ctx context.Context, p *auth.Principal, orgID, med
 		if err != nil {
 			return err
 		}
-		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "media", EntityID: &mediaID, Action: "media.deleted"})
+		// The key lets CleanupMediaBlobs find objects kept for a published
+		// version once no version shows them any more.
+		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "media", EntityID: &mediaID, Action: "media.deleted",
+			Diff: map[string]any{"object_key": key, "kept": keep}})
 	})
 	if err == nil && !keep {
 		_ = s.Blob.Delete(ctx, key)
 	}
 	return err
+}
+
+// Orphan cleanup window: deletions older than the grace period and newer
+// than the window are checked on every run (S3 deletes are idempotent).
+const (
+	orphanGrace  = time.Hour
+	orphanWindow = 180 * 24 * time.Hour
+)
+
+// CleanupMediaBlobs deletes stored photos that were removed from a working
+// copy while a published version still showed them, once neither the
+// published nor a pending version references them (periodic worker job).
+// It returns how many objects were deleted.
+func (s *Service) CleanupMediaBlobs(ctx context.Context) (int, error) {
+	q := db.New(s.Pool)
+	now := time.Now()
+	keys, err := q.ListOrphanMediaKeys(ctx, db.ListOrphanMediaKeysParams{Since: now.Add(-orphanWindow),
+		Until: now.Add(-orphanGrace), MaxRows: 1000})
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, k := range keys {
+		if !strings.HasPrefix(k, "orgs/") {
+			continue
+		}
+		if err := s.Blob.Delete(ctx, k); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }
 
 // PhotoURLs returns signed imgproxy URLs of a photo (empty when not ready).

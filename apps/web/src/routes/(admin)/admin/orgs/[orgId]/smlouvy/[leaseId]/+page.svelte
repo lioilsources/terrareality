@@ -2,12 +2,12 @@
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
-	import { field } from '#lib/applications.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import LeaseForm from '#lib/components/LeaseForm.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
+	import LeaseSignForm from '#lib/components/LeaseSignForm.svelte';
 	import LeaseSummary from '#lib/components/LeaseSummary.svelte';
 	import LeaseRisk from '#lib/components/portfolio/LeaseRisk.svelte';
 	import type { PageProps } from './$types';
@@ -88,25 +88,16 @@
 			</form>
 		{/if}
 		{#if l.state === 'proposed' && me && !me.signed_at}
-			<form method="POST" action="?/sign" use:enhance>
-				<Button type="submit">{m.lease_sign()}</Button>
-			</form>
+			<LeaseSignForm />
 		{/if}
 		{#if l.state === 'active' || l.state === 'signed'}
 			<Card title={m.lease_notice()}>
-				{#if form?.endsOn}<Alert kind="success">{m.lease_notice_done({ date: form.endsOn })}</Alert
-					>{/if}
-				<form method="POST" action="?/notice" use:enhance class="grid gap-2">
-					<label class="grid gap-1 text-sm"
-						>{m.lease_notice_on()}<input
-							type="date"
-							name="delivered_on"
-							required
-							class={field}
-						/></label
-					>
-					<Button type="submit" variant="danger">{m.lease_notice()}</Button>
-				</form>
+				<!-- A landlord's notice needs a statutory reason (Civil Code §2288); the api
+				     refuses it (landlord_notice_reason_required) until the contract has a
+				     reason field, so the form is not offered. -->
+				<p class="text-sm text-[var(--muted)]" data-testid="landlord-notice-unavailable">
+					{m.lease_notice_landlord_unavailable()}
+				</p>
 			</Card>
 		{/if}
 		{#if l.state === 'terminated'}

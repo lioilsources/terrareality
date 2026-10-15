@@ -42,6 +42,6 @@
 		<span class="text-[var(--muted)]"
 			>{c.city_part ?? c.city}{c.floor_area ? ` · ${c.floor_area} m²` : ''}</span
 		>
-		<span class="font-semibold">{formatMoney(c.rent_amount, locale)} Kč</span>
+		<span class="font-semibold">{formatMoney(c.rent_amount, c.currency, locale)}</span>
 	</div>
 </a>

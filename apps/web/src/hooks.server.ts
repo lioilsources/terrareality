@@ -1,15 +1,16 @@
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
-import { version } from '$app/env';
+import { building, version } from '$app/env';
 import { SENTRY_DSN } from '$app/env/private';
 import { PUBLIC_SENTRY_ENVIRONMENT, PUBLIC_SENTRY_RELEASE } from '$app/env/public';
 import { sequence } from '@sveltejs/kit/hooks';
 import { getTextDirection, localizeHref } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 import { api } from '#lib/server/api.js';
-import { SESSION_COOKIE, clearSession } from '#lib/server/session.js';
+import { SESSION_COOKIE, clearSession, clearSessionHeaders } from '#lib/server/session.js';
 import { createReporter } from '#lib/sentry.js';
 import { cspExtras, extendCsp } from '#lib/server/csp.js';
+import { assertProductionEnv } from '#lib/env-defaults.js';
 import {
 	API_PUBLIC_URL,
 	CSP_FORM_ACTION_ORIGINS,
@@ -18,6 +19,9 @@ import {
 	CSP_REALTIME_ORIGIN
 } from '$app/env/private';
 import { MAP_STYLE, PUBLIC_SENTRY_DSN } from '$app/env/public';
+
+// Production must not run on localhost fallbacks (CSP would block photos, websocket, redirects).
+if (!building) assertProductionEnv();
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -51,6 +55,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 			if (data) event.locals.me = data;
 			else if (response.status === 401) {
 				clearSession(event.cookies);
+				event.locals.sessionCleared = true;
 				event.locals.token = null;
 				event.locals.api = api(event.fetch, opts);
 			}
@@ -85,17 +90,41 @@ const csp = cspExtras({
 	formActionOrigins: CSP_FORM_ACTION_ORIGINS
 });
 
-/** Adds runtime origins to SvelteKit's CSP (vite.config.ts) and other security headers. */
+function setSecurityHeaders(h: Headers) {
+	h.set('x-content-type-options', 'nosniff');
+	h.set('referrer-policy', 'strict-origin-when-cross-origin');
+	h.set('permissions-policy', 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()');
+	h.set('x-frame-options', 'DENY');
+}
+
+/**
+ * Adds runtime origins to SvelteKit's CSP (vite.config.ts) and other security headers.
+ * Redirects thrown by later hooks (handleAuth's login guard) bypass `resolve`, so plain
+ * page navigations (GET) get their redirect built here with the same headers. Data,
+ * form action and remote requests keep SvelteKit's own JSON redirect handling.
+ */
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
-	const response = await resolve(event);
+	let response: Response;
+	try {
+		response = await resolve(event);
+	} catch (e) {
+		const plainNavigation =
+			(event.request.method === 'GET' || event.request.method === 'HEAD') &&
+			!event.isDataRequest &&
+			!event.isRemoteRequest;
+		if (!isRedirect(e) || !plainNavigation) throw e;
+		const headers = new Headers({ location: e.location });
+		if (event.locals.sessionCleared) {
+			for (const c of clearSessionHeaders(event.cookies)) headers.append('set-cookie', c);
+		}
+		setSecurityHeaders(headers);
+		return new Response(null, { status: e.status, headers });
+	}
 	try {
 		const h = response.headers;
 		const policy = h.get('content-security-policy');
 		if (policy) h.set('content-security-policy', extendCsp(policy, csp));
-		h.set('x-content-type-options', 'nosniff');
-		h.set('referrer-policy', 'strict-origin-when-cross-origin');
-		h.set('permissions-policy', 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()');
-		h.set('x-frame-options', 'DENY');
+		setSecurityHeaders(h);
 	} catch {
 		// immutable headers (e.g. proxied fetch responses): leave them as they are
 	}

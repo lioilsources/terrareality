@@ -1,5 +1,6 @@
 import type { components } from '@terra/contracts';
 import { m } from '#lib/paraglide/messages.js';
+import { toMinor } from '#lib/catalog.js';
 
 type Label = () => string;
 export type LeaseInput = components['schemas']['LeaseInput'];
@@ -19,6 +20,23 @@ export const clauses = [
 	['sublet_forbidden', m.clause_sublet_forbidden],
 	['early_termination', m.clause_early_termination]
 ] as const;
+
+/** Signing methods the api accepts (POST /v1/leases/{id}/sign). */
+export type SignProvider = 'mock' | 'bankid_sign';
+
+/**
+ * The method offered to the user. The api has no endpoint listing the enabled
+ * signers yet (contract change requested), so the web offers the one every
+ * environment has: a simple electronic signature (click + audit trail), labelled
+ * as such. Switch to the api-provided list once it exists.
+ */
+export const SIGN_PROVIDER: SignProvider = 'mock';
+
+/** What the user is told they are signing with (never "mock"). */
+export const signMethodLabel: Record<SignProvider, Label> = {
+	mock: m.lease_sign_method_simple,
+	bankid_sign: m.lease_sign_method_bankid
+};
 
 export const stateLabel: Record<string, Label> = {
 	draft: m.lease_state_draft,
@@ -54,9 +72,6 @@ export const matchLabel: Record<string, Label> = {
 	ignored: m.match_ignored
 };
 
-/** Whole crowns from a form field to minor units. */
-export const toMinor = (v: FormDataEntryValue | null) => Math.round(Number(v ?? 0) * 100);
-
 /** Builds the API body from the lease form. */
 export function leaseFromForm(f: FormData): LeaseInput {
 	const parties = JSON.parse(String(f.get('parties') || '[]')) as {
@@ -70,7 +85,8 @@ export function leaseFromForm(f: FormData): LeaseInput {
 		template: String(f.get('template')) as LeaseInput['template'],
 		starts_on: String(f.get('starts_on')),
 		ends_on: String(f.get('ends_on') ?? '') || undefined,
-		rent_amount: toMinor(f.get('rent')),
+		// "12 500,50" and "12500.5" both parse; an empty or invalid rent is 0, which the api rejects.
+		rent_amount: toMinor(f.get('rent')) ?? 0,
 		services_amount: toMinor(f.get('services')),
 		deposit_amount: toMinor(f.get('deposit')),
 		due_day: Number(f.get('due_day') || 15),

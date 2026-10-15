@@ -18,6 +18,8 @@ users:
   - name: deploy
     groups: [docker, sudo]
     shell: /bin/bash
+    # Passwordless sudo + docker group: deploy is effectively root (accepted: key-only SSH from
+    # admin_cidrs, no password to phish; docs/security/asvs-l2.md). Root itself cannot log in.
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     lock_passwd: true
     ssh_authorized_keys:
@@ -30,8 +32,10 @@ write_files:
     content: |
       PasswordAuthentication no
       KbdInteractiveAuthentication no
-      PermitRootLogin prohibit-password
-      AllowUsers deploy root
+      PermitRootLogin no
+      AllowUsers deploy
+      X11Forwarding no
+      MaxAuthTries 3
   - path: /etc/docker/daemon.json
     content: |
       {

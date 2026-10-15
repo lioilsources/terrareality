@@ -57,7 +57,7 @@
 					class="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] px-3 py-2"
 				>
 					<span>{fmtDate(t.booked_on, locale)}</span>
-					<strong>{formatMoney(t.amount, locale)} Kč</strong>
+					<strong>{formatMoney(t.amount, t.currency, locale)}</strong>
 					<span class="text-[var(--muted)]"
 						>{t.counterparty_name}
 						{#if t.variable_symbol}· VS {t.variable_symbol}{/if}

@@ -117,5 +117,7 @@ U M8 prošly lokálně `make test`, `make lint`, `make e2e` (25/25) a `make rest
    - rotace klíčů;
    - druhá kopie médií.
 4. Push zatím posílají jen zprávy a připomínky prohlídek. Notifikace pro žádosti, smlouvy a platby mají jen konstanty `kind`, odesílatele zatím nemají. Reálné FCM čeká na OQ-14.
+5. Testování se živými lidmi: `docs/04-user-testing.md` (fáze T0–T4, brány, scénáře, metriky pilotu).
+6. Review implementace: `docs/05-review-implementation.md` (B 7, V 17, S 45, N 50; plán oprav M8b → M8c → M8d v sekci 10).
 
 Pasti prostředí (staré procesy na :8080, `source .env` u ručně spuštěného API, migrace i na `terra_test`) jsou v memory `terrareality-dev-env-quirks.md`.

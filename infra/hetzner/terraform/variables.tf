@@ -35,9 +35,13 @@ variable "admin_cidrs" {
 }
 
 variable "wireguard_peer_cidrs" {
-  description = "Source CIDRs allowed to reach WireGuard (51820/udp) on the app server. The Spark sits behind NAT, so this is usually its public egress IP."
+  description = "Source CIDRs allowed to reach WireGuard (51820/udp) on the app server. The Spark sits behind NAT, so this is its public egress IP (/32). No default: the port must never be open to the internet."
   type        = list(string)
-  default     = ["0.0.0.0/0", "::/0"]
+
+  validation {
+    condition     = length(var.wireguard_peer_cidrs) > 0 && !contains(var.wireguard_peer_cidrs, "0.0.0.0/0") && !contains(var.wireguard_peer_cidrs, "::/0")
+    error_message = "wireguard_peer_cidrs must list the Spark's egress address(es), not the whole internet."
+  }
 }
 
 variable "name_prefix" {
@@ -125,9 +129,48 @@ variable "media_bucket" {
 }
 
 variable "backup_bucket" {
-  description = "Object Storage bucket for the pgBackRest repository (private)."
+  description = "Object Storage bucket for the pgBackRest repository (private), created in the backup project."
   type        = string
   default     = "terrareality-pgbackrest"
+}
+
+# --- Backup project (review V-16) -------------------------------------------------------------
+# A separate Hetzner project with its own S3 keys holds the pgBackRest repository and the media
+# replica. Its keys live only on the DB VM (compose/db.env.example); the app VM, which faces the
+# internet, cannot read or delete any backup. Create the project and its S3 keys in the console.
+
+variable "backup_access_key" {
+  description = "S3 access key of the separate backup project (pgBackRest repository, media replica)."
+  type        = string
+  sensitive   = true
+}
+
+variable "backup_secret_key" {
+  description = "S3 secret key of the separate backup project."
+  type        = string
+  sensitive   = true
+}
+
+variable "backup_location" {
+  description = "Object Storage location of the pgBackRest bucket (backup project)."
+  type        = string
+  default     = "fsn1"
+
+  validation {
+    condition     = contains(["fsn1", "nbg1", "hel1"], var.backup_location)
+    error_message = "backup_location must be one of fsn1, nbg1, hel1."
+  }
+}
+
+variable "backup_noncurrent_days" {
+  description = "Days a deleted or overwritten object version stays in the versioned backup bucket. Must exceed the full-backup cycle (7 days) so a destroyed repository can be rolled back."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.backup_noncurrent_days >= 14
+    error_message = "backup_noncurrent_days must be at least 14 (two weekly full-backup cycles)."
+  }
 }
 
 variable "server_backups" {
@@ -146,4 +189,35 @@ variable "app_rdns" {
   description = "Reverse DNS name for the app server's IPv4 (mail reputation, TLS debugging)."
   type        = string
   default     = "app.terrareality.cz"
+}
+
+variable "media_replica_location" {
+  description = "Object Storage location of the media replica (scripts/media-replicate.sh). Must differ from object_storage_location."
+  type        = string
+  default     = "nbg1"
+
+  validation {
+    condition     = contains(["fsn1", "nbg1", "hel1"], var.media_replica_location)
+    error_message = "media_replica_location must be one of fsn1, nbg1, hel1."
+  }
+}
+
+variable "media_replica_bucket" {
+  description = "Bucket holding the second copy of media (mirror at the root, overwritten/deleted objects under _replica-archive/<UTC stamp>/)."
+  type        = string
+  default     = "terrareality-media-replica"
+}
+
+variable "media_replica_access_key" {
+  description = "S3 access key for the replica bucket. Empty = the backup project keys (backup_access_key); never the app project keys."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "media_replica_secret_key" {
+  description = "S3 secret key for the replica bucket (empty = backup_secret_key)."
+  type        = string
+  default     = ""
+  sensitive   = true
 }

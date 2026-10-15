@@ -3,14 +3,19 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 
@@ -101,6 +106,77 @@ type Result struct {
 // MaxPoints bounds markers returned for the map.
 const MaxPoints = 2000
 
+// InvalidQueryError is a search request the database cannot run (bad
+// filter values); handlers answer 400.
+type InvalidQueryError struct{ Reason string }
+
+func (e *InvalidQueryError) Error() string { return "invalid search: " + e.Reason }
+
+func invalid(format string, a ...any) error {
+	return &InvalidQueryError{Reason: fmt.Sprintf(format, a...)}
+}
+
+// adminPathRe matches an ltree path of administrative units ("cz.praha.praha_2").
+var adminPathRe = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}(\.[A-Za-z0-9_]{1,64}){0,15}$`)
+
+// Validate rejects values that would make the SQL fail (and the API answer
+// 500): malformed admin paths, out-of-range or inverted bounding boxes, NaN
+// bounds and numeric bounds on non-numeric attributes.
+func (q Query) Validate(schema *catalog.Schema) error {
+	if q.AdminPath != "" && !adminPathRe.MatchString(q.AdminPath) {
+		return invalid("admin_path %q is not a valid area path", q.AdminPath)
+	}
+	if len(q.BBox) != 0 {
+		if len(q.BBox) != 4 {
+			return invalid("bbox needs west, south, east, north")
+		}
+		for _, v := range q.BBox {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return invalid("bbox values must be finite")
+			}
+		}
+		w, so, e, n := q.BBox[0], q.BBox[1], q.BBox[2], q.BBox[3]
+		if w < -180 || e > 180 || so < -90 || n > 90 || w > e || so > n {
+			return invalid("bbox out of range")
+		}
+	}
+	for _, f := range []*float64{q.AreaMin, q.AreaMax} {
+		if f != nil && (math.IsNaN(*f) || math.IsInf(*f, 0)) {
+			return invalid("area bounds must be finite")
+		}
+	}
+	for k, f := range q.Attributes {
+		a, ok := schema.Get(k)
+		if !ok {
+			return fmt.Errorf("unknown attribute %q", k)
+		}
+		if f.Min != nil || f.Max != nil {
+			if a.Type != "int" && a.Type != "range" {
+				return invalid("attribute %q has no numeric range", k)
+			}
+			for _, v := range []*float64{f.Min, f.Max} {
+				if v != nil && (math.IsNaN(*v) || math.IsInf(*v, 0)) {
+					return invalid("attribute %q bounds must be finite", k)
+				}
+			}
+		}
+		if f.Bool != nil && a.Type != "bool" {
+			return invalid("attribute %q is not a yes/no attribute", k)
+		}
+	}
+	return nil
+}
+
+// asInvalid maps PostgreSQL errors caused by request values (syntax and
+// data exceptions, class 22 and 42601) to InvalidQueryError.
+func asInvalid(err error) error {
+	var pe *pgconn.PgError
+	if errors.As(err, &pe) && (strings.HasPrefix(pe.Code, "22") || pe.Code == "42601") {
+		return invalid("%s", pe.Message)
+	}
+	return err
+}
+
 type builder struct {
 	where []string
 	args  []any
@@ -128,7 +204,10 @@ func build(q Query, schema *catalog.Schema, skip string) (*builder, error) {
 		b.add("s.tsv @@ websearch_to_tsquery('simple', lower(unaccent(" + b.arg(t) + ")))")
 	}
 	if q.PublishedAfter != nil {
-		b.add("s.published_at > " + b.arg(*q.PublishedAfter))
+		// First publication, not the last approved version: approving an
+		// edit bumps listings.published_at, and digests must not resend
+		// listings the user already got as "new".
+		b.add("(SELECT l.first_published_at FROM listings l WHERE l.id = s.listing_id) > " + b.arg(*q.PublishedAfter))
 	}
 	if len(q.Kinds) > 0 {
 		b.add("s.unit_kind = ANY(" + b.arg(q.Kinds) + ")")
@@ -179,11 +258,17 @@ func build(q Query, schema *catalog.Schema, skip string) (*builder, error) {
 			}
 			b.add("s.facets && " + b.arg(toks))
 		}
+		if (f.Min != nil || f.Max != nil) && a.Type != "int" && a.Type != "range" {
+			return nil, invalid("attribute %q has no numeric range", k)
+		}
+		// jsonb_typeof guards the cast against values of another type.
 		if f.Min != nil {
-			b.add("(s.attributes ->> " + b.arg(k) + ")::numeric >= " + b.arg(*f.Min))
+			b.add("(CASE WHEN jsonb_typeof(s.attributes -> " + b.arg(k) + ") = 'number' THEN (s.attributes ->> " +
+				b.arg(k) + ")::numeric END) >= " + b.arg(*f.Min))
 		}
 		if f.Max != nil {
-			b.add("(s.attributes ->> " + b.arg(k) + ")::numeric <= " + b.arg(*f.Max))
+			b.add("(CASE WHEN jsonb_typeof(s.attributes -> " + b.arg(k) + ") = 'number' THEN (s.attributes ->> " +
+				b.arg(k) + ")::numeric END) <= " + b.arg(*f.Max))
 		}
 	}
 	return b, nil
@@ -237,6 +322,41 @@ func orderBy(q Query, b *builder) string {
 // Engine runs searches.
 type Engine struct {
 	Pool *pgxpool.Pool
+	// MaxParallel caps the read transactions all searches together hold at
+	// once (default: a quarter of the pool, at least 2). One search runs
+	// five parts; without the cap a burst of searches takes the whole pool
+	// and starves every other request.
+	MaxParallel int
+
+	semOnce sync.Once
+	sem     chan struct{}
+}
+
+func (e *Engine) slots() chan struct{} {
+	e.semOnce.Do(func() {
+		n := e.MaxParallel
+		if n <= 0 {
+			n = 2
+			if e.Pool != nil {
+				if m := int(e.Pool.Config().MaxConns) / 4; m > n {
+					n = m
+				}
+			}
+		}
+		e.sem = make(chan struct{}, n)
+	})
+	return e.sem
+}
+
+// acquire takes one database slot for a search part.
+func (e *Engine) acquire(ctx context.Context) (func(), error) {
+	sem := e.slots()
+	select {
+	case sem <- struct{}{}:
+		return func() { <-sem }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 // Search runs the query with facets, aggregates and map points.
@@ -246,6 +366,9 @@ func (e *Engine) Search(ctx context.Context, q Query, schema *catalog.Schema) (R
 	}
 	if q.Offset < 0 || q.Offset > 10_000 {
 		q.Offset = 0
+	}
+	if err := q.Validate(schema); err != nil {
+		return Result{}, err
 	}
 	b, err := build(q, schema, "")
 	if err != nil {
@@ -262,6 +385,11 @@ func (e *Engine) Search(ctx context.Context, q Query, schema *catalog.Schema) (R
 	g, gctx := errgroup.WithContext(ctx)
 	run := func(i int, fn func(ctx context.Context, tx pgx.Tx, r *Result) error) {
 		g.Go(func() error {
+			release, err := e.acquire(gctx)
+			if err != nil {
+				return err
+			}
+			defer release()
 			return pgx.BeginTxFunc(gctx, e.Pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
 				return fn(gctx, tx, &parts[i])
 			})
@@ -280,7 +408,7 @@ func (e *Engine) Search(ctx context.Context, q Query, schema *catalog.Schema) (R
 	run(3, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.areas(ctx, tx, q, b, r) })
 	run(4, func(ctx context.Context, tx pgx.Tx, r *Result) error { return e.points(ctx, tx, b, r) })
 	if err := g.Wait(); err != nil {
-		return Result{}, err
+		return Result{}, asInvalid(err)
 	}
 	res.Total, res.RentMin, res.RentMax = parts[0].Total, parts[0].RentMin, parts[0].RentMax
 	res.Items, res.Facets, res.Areas, res.Points = parts[1].Items, parts[2].Facets, parts[3].Areas, parts[4].Points

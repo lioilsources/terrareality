@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ var prague = func() *time.Location {
 // Scorer recomputes lease risk scores (system context: the worker).
 type Scorer struct {
 	Pool *pgxpool.Pool
+	Log  *slog.Logger     // nil: slog.Default
 	Now  func() time.Time // tests
 }
 
@@ -160,18 +162,39 @@ func (s *Scorer) Recompute(ctx context.Context, id uuid.UUID) (Result, error) {
 	return res, err
 }
 
-// RecomputeStale rescores leases with new events, stale or missing scores.
+// RecomputeStale rescores leases with new events, stale or missing scores
+// and returns how many were rescored. A lease that fails is logged and
+// skipped, so one broken lease does not stop the others (it stays stale and
+// is tried again next time); only when every lease failed is an error
+// returned.
 func (s *Scorer) RecomputeStale(ctx context.Context) (int, error) {
 	ids, err := db.New(s.Pool).StaleRiskLeaseIDs(ctx, ModelVersion)
 	if err != nil {
 		return 0, err
 	}
+	log := s.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	done := 0
+	var first error
 	for _, id := range ids {
 		if _, err := s.Recompute(ctx, id); err != nil {
-			return 0, fmt.Errorf("lease %s: %w", id, err)
+			if ctx.Err() != nil {
+				return done, ctx.Err()
+			}
+			log.Error("lease risk recompute failed", "lease_id", id, "err", err)
+			if first == nil {
+				first = fmt.Errorf("lease %s: %w", id, err)
+			}
+			continue
 		}
+		done++
 	}
-	return len(ids), nil
+	if done == 0 && first != nil {
+		return 0, fmt.Errorf("risk recompute: all %d leases failed, first %w", len(ids), first)
+	}
+	return done, nil
 }
 
 // RecomputeOrg rescores every running lease of an organization (after the

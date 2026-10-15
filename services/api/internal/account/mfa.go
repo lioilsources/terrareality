@@ -71,6 +71,11 @@ func (s *Service) EnableTOTP(ctx context.Context, p *auth.Principal, code string
 		if err != nil {
 			return err
 		}
+		// Sessions opened before the second factor existed (possibly stolen)
+		// end here; the current one stays but counts as pre-MFA (Server.staff).
+		if err := q.RevokeUserSessions(ctx, db.RevokeUserSessionsParams{UserID: u.ID, Keep: &p.SessionID}); err != nil {
+			return err
+		}
 		return audit.Record(ctx, q, audit.Event{Entity: "user", EntityID: &u.ID, Action: "user.mfa_enabled"})
 	})
 	return codes, err
@@ -120,7 +125,11 @@ func (s *Service) replaceRecoveryCodes(ctx context.Context, q *db.Queries, userI
 }
 
 func (s *Service) recoveryHash(userID uuid.UUID, code string) []byte {
-	return s.Box.Sign([]byte("recovery:" + userID.String() + ":" + auth.NormalizeRecoveryCode(code)))
+	return s.Box.Sign(recoveryPayload(userID, code))
+}
+
+func recoveryPayload(userID uuid.UUID, code string) []byte {
+	return []byte("recovery:" + userID.String() + ":" + auth.NormalizeRecoveryCode(code))
 }
 
 // checkSecondFactor accepts a TOTP code (once per step) or an unused recovery code.
@@ -140,6 +149,13 @@ func (s *Service) checkSecondFactor(ctx context.Context, q *db.Queries, u db.Use
 		n, err := q.AdvanceTOTPStep(ctx, db.AdvanceTOTPStepParams{ID: u.ID, TotpLastStep: step})
 		return n == 1, err
 	}
-	n, err := q.UseRecoveryCode(ctx, db.UseRecoveryCodeParams{UserID: u.ID, CodeHash: s.recoveryHash(u.ID, code)})
-	return n == 1, err
+	// Codes hashed under a previous APP_SECRET_KEY stay usable during a key
+	// rotation (docs/runbooks/key-rotation.md); the current key is tried first.
+	for _, h := range s.Box.Tags(recoveryPayload(u.ID, code)) {
+		n, err := q.UseRecoveryCode(ctx, db.UseRecoveryCodeParams{UserID: u.ID, CodeHash: h})
+		if err != nil || n == 1 {
+			return n == 1, err
+		}
+	}
+	return false, nil
 }

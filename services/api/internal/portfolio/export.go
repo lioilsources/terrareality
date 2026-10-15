@@ -23,6 +23,16 @@ func amount(minor int64) string {
 	return fmt.Sprintf("%s%d.%02d", sign, minor/100, minor%100)
 }
 
+// CSVSafe neutralizes a user-supplied CSV cell that a spreadsheet would read
+// as a formula (= + - @, tab, carriage return): it is prefixed with an
+// apostrophe. Amounts and dates written by the platform are not passed here.
+func CSVSafe(v string) string {
+	if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
+		return "'" + v
+	}
+	return v
+}
+
 func day(t *time.Time) string {
 	if t == nil {
 		return ""
@@ -63,6 +73,9 @@ func (r Row) record(groupNames map[string]string) []string {
 		strings.Join(groups, "|"), asking}
 }
 
+// csvTextColumns are the user-supplied text columns of the rent roll.
+var csvTextColumns = []int{1, 2, 3, 4, 7, 22}
+
 // RentRollCSV exports the rent roll. Amounts are decimal major units; billed,
 // paid and debt come from the leases' ledgers as of today.
 func RentRollCSV(rows []Row, groupNames map[string]string) []byte {
@@ -70,7 +83,11 @@ func RentRollCSV(rows []Row, groupNames map[string]string) []byte {
 	w := csv.NewWriter(&b)
 	_ = w.Write(exportColumns)
 	for _, r := range rows {
-		_ = w.Write(r.record(groupNames))
+		rec := r.record(groupNames)
+		for _, i := range csvTextColumns {
+			rec[i] = CSVSafe(rec[i])
+		}
+		_ = w.Write(rec)
 	}
 	w.Flush()
 	return b.Bytes()

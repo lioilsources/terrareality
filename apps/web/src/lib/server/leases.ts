@@ -1,5 +1,9 @@
 import QRCode from 'qrcode';
+import { fail, redirect } from '@sveltejs/kit';
 import type { ApiClient } from '@terra/contracts';
+import { errorMessage } from '#lib/errors.js';
+import { SIGN_PROVIDER } from '#lib/leasing.js';
+import { m } from '#lib/paraglide/messages.js';
 
 /** Loads a lease with its schedule, QR images of payable shares, the chain status and its risk. */
 export async function loadLease(api: ApiClient, leaseId: string) {
@@ -25,4 +29,20 @@ export async function loadLease(api: ApiClient, leaseId: string) {
 			? { valid: events.data.valid, count: events.data.events.length, head: events.data.head }
 			: null
 	};
+}
+
+/**
+ * The ?/sign action of the tenant and landlord lease pages: requires the explicit
+ * confirmation checkbox, signs with the offered method and follows the provider's
+ * redirect when the signature continues off-site (BankID).
+ */
+export async function signLease(api: ApiClient, leaseId: string, form: FormData) {
+	if (form.get('confirm') !== 'on') return fail(400, { error: m.lease_sign_confirm_required() });
+	const { data, error } = await api.POST('/v1/leases/{leaseId}/sign', {
+		params: { path: { leaseId } },
+		body: { provider: SIGN_PROVIDER }
+	});
+	if (error) return fail(400, { error: errorMessage(error) });
+	if (!data.signed && data.redirect_url) redirect(303, data.redirect_url, { external: true });
+	return { signed: data.signed };
 }

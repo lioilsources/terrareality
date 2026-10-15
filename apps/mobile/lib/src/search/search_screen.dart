@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
-import '../leases/leases_screen.dart' show money;
+import '../common/api_error.dart';
+import '../common/money.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
 import 'listing_map.dart';
 import 'search_repository.dart';
@@ -30,6 +32,19 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _showMap = false;
   bool _mapFailed = false;
+  SearchResult? _markersFor;
+  List<MapMarker> _markers = const [];
+
+  /// Markers change only with a new response, not on every rebuild.
+  List<MapMarker> _markersOf(SearchResult r) {
+    if (!identical(r, _markersFor)) {
+      _markersFor = r;
+      _markers = r.points.isNotEmpty
+          ? [for (final p in r.points) MapMarker(id: p.id, lat: p.lat, lng: p.lng)]
+          : [for (final a in r.areas) MapMarker(id: a.path, lat: a.lat, lng: a.lng, count: a.count, areaPath: a.path)];
+    }
+    return _markers;
+  }
 
   void _mapUnavailable() {
     if (!mounted || _mapFailed) return;
@@ -79,14 +94,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       body: result.when(
         skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(t.statusUnreachable),
-            const SizedBox(height: 8),
-            FilledButton(onPressed: () => ref.invalidate(searchResultProvider), child: Text(t.retry)),
-          ]),
-        ),
-        data: (r) => _showMap ? _map(t, r, filters) : _list(t, r, filters),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(searchResultProvider)),
+        data: (r) => _showMap ? _map(t, r.first, filters) : _list(t, r, filters),
       ),
     );
   }
@@ -109,7 +118,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ]);
   }
 
-  Widget _list(AppLocalizations t, SearchResult r, SearchFilters filters) {
+  Widget _list(AppLocalizations t, SearchPage r, SearchFilters filters) {
     return RefreshIndicator(
       onRefresh: () => ref.refresh(searchResultProvider.future),
       child: ListView(
@@ -126,12 +135,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           const SizedBox(height: 8),
           if (r.items.isEmpty) Padding(padding: const EdgeInsets.all(24), child: Text(t.searchEmpty)),
           for (final c in r.items) ListingCardTile(card: c),
-          if (r.items.length < r.total)
+          if (r.moreError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(errorMessage(t, r.moreError!), textAlign: TextAlign.center),
+            ),
+          if (r.hasMore)
             Center(
-              child: TextButton(
-                onPressed: () => ref.read(searchFiltersProvider.notifier).more(),
-                child: Text(t.loadMore),
-              ),
+              child: r.loadingMore
+                  ? const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator())
+                  : TextButton(
+                      key: const Key('load-more'),
+                      onPressed: () => ref.read(searchResultProvider.notifier).more(),
+                      child: Text(r.moreError != null ? t.retry : t.loadMore),
+                    ),
             ),
         ],
       ),
@@ -139,9 +156,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _map(AppLocalizations t, SearchResult r, SearchFilters filters) {
-    final markers = r.points.isNotEmpty
-        ? [for (final p in r.points) MapMarker(id: p.id, lat: p.lat, lng: p.lng)]
-        : [for (final a in r.areas) MapMarker(id: a.path, lat: a.lat, lng: a.lng, count: a.count, areaPath: a.path)];
+    final markers = _markersOf(r);
     return Column(children: [
       Expanded(
         child: Semantics(
@@ -183,7 +198,7 @@ class ListingCardTile extends StatelessWidget {
       if (card.floorArea != null) '${card.floorArea!.round()} m²',
       [card.city, if (card.cityPart != null) card.cityPart!].join(' – '),
     ].join(' · ');
-    final rent = t.perMonth(money(card.rentAmount, locale.toString()));
+    final rent = t.perMonth(money(card.rentAmount, locale.toString(), currency: card.currency));
     return Card(
       key: Key('card-${card.id}'),
       clipBehavior: Clip.antiAlias,
@@ -310,6 +325,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   key: const Key('rent-min'),
                   controller: _min,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(labelText: t.rentFrom, suffixText: 'Kč'),
                 ),
               ),
@@ -319,6 +335,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   key: const Key('rent-max'),
                   controller: _max,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(labelText: t.rentTo, suffixText: 'Kč'),
                 ),
               ),

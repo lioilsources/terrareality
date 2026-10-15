@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/terrareality/terrareality/services/api/internal/leasing"
+	"github.com/terrareality/terrareality/services/api/internal/notify"
 )
 
 type leaseDetail struct {
@@ -60,7 +61,12 @@ func TestLeaseAcceptance(t *testing.T) {
 	ownerTok, orgID := e.ownerOrg("lease-owner")
 	anna, ben := uniqueEmail("anna"), uniqueEmail("ben")
 	annaTok, benTok := e.register(anna), e.register(ben)
+	e.verifyEmail(anna) // parties link to verified accounts only
+	e.verifyEmail(ben)
 	stranger := e.register(uniqueEmail("stranger"))
+	e.pushDevice(annaTok)
+	e.pushDevice(ownerTok)
+	annaID, ownerID := e.userID(annaTok), e.userID(ownerTok)
 	today := time.Now().UTC()
 	start := today.Format("2006-01-02")
 	end := today.AddDate(1, 0, -1).Format("2006-01-02")
@@ -106,6 +112,15 @@ func TestLeaseAcceptance(t *testing.T) {
 	if _, ok := e.outbox.Last(anna, "lease_proposed"); !ok {
 		t.Fatal("no proposal e-mail")
 	}
+	// Anna has not opened the lease yet (party not linked): the push still
+	// finds her account by the party's e-mail.
+	if ps := e.pusher.of(annaID, notify.PushLease); len(ps) != 1 || ps[0].Data["id"] != id.String() ||
+		ps[0].Title != "Smlouva čeká na váš podpis" || ps[0].Link != "http://web.test/smlouvy/"+id.String() {
+		t.Fatalf("proposal push %+v", ps)
+	}
+	if ps := e.pusher.of(ownerID, notify.PushLease); len(ps) != 0 {
+		t.Fatalf("landlord pushed about own proposal %+v", ps)
+	}
 
 	// Negotiation: Anna asks for a change, the landlord edits and proposes again.
 	e.must(204, "POST", "/v1/leases/"+id.String()+"/request-changes", annaTok, map[string]string{"comment": "Prosíme povolit kočku."}, nil)
@@ -130,6 +145,25 @@ func TestLeaseAcceptance(t *testing.T) {
 	e.must(200, "GET", "/v1/leases/"+id.String(), annaTok, nil, &d)
 	if d.Lease.State != "signed" || len(e.leaseJob.started) != 1 {
 		t.Fatalf("after signatures: %s, workflows %d", d.Lease.State, len(e.leaseJob.started))
+	}
+	// Pushes: proposal twice + fully signed to Anna; changes requested + fully
+	// signed to the landlord (marked for the web admin).
+	if ps := e.pusher.of(annaID, notify.PushLease); len(ps) != 3 || ps[2].Data["state"] != "signed" || ps[2].Data["audience"] != "" {
+		t.Fatalf("tenant lease pushes %+v", ps)
+	}
+	if ps := e.pusher.of(ownerID, notify.PushLease); len(ps) != 2 || ps[1].Data["id"] != id.String() ||
+		ps[1].Data["audience"] != "landlord" || ps[1].Data["state"] != "signed" {
+		t.Fatalf("landlord lease pushes %+v", ps)
+	}
+
+	// The overdue reminder (lifecycle workflow) pushes each unpaid share of Anna.
+	if unpaid, err := (&leasing.Activities{S: e.leases}).Remind(context.Background(), id, today, "overdue"); err != nil || unpaid != 4 {
+		t.Fatalf("remind %d %v", unpaid, err)
+	}
+	reminders := e.pusher.of(annaID, notify.PushObligation)
+	if len(reminders) != 2 || reminders[0].Data["lease_id"] != id.String() || reminders[0].Data["stage"] != "payment_overdue" ||
+		reminders[0].Title != "Platba je po splatnosti" {
+		t.Fatalf("reminder pushes %+v", reminders)
 	}
 
 	// Schedule: the deposit and every month the lease touches (13 for a year
@@ -202,6 +236,21 @@ func TestLeaseAcceptance(t *testing.T) {
 	e.must(200, "POST", "/v1/orgs/"+orgID.String()+"/bank/sync", ownerTok, nil, &sync)
 	if sync.New != 5 || sync.Matched != 3 || sync.Suggested != 1 {
 		t.Fatalf("sync %+v", sync)
+	}
+	// Anna's two matched payments are pushed to her.
+	received := e.pusher.of(annaID, notify.PushObligation)[2:]
+	if len(received) != 2 || received[0].Title != "Platba byla připsána" || received[0].Data["lease_id"] != id.String() ||
+		received[0].Data["paid"] != "true" {
+		t.Fatalf("payment pushes %+v", received)
+	}
+	mineIDs := map[string]bool{}
+	for _, m := range mine {
+		mineIDs[m.ID.String()] = true
+	}
+	for _, r := range received {
+		if !mineIDs[r.Data["id"]] {
+			t.Fatalf("payment push for a share that is not Anna's: %+v", r)
+		}
 	}
 	e.must(200, "POST", "/v1/orgs/"+orgID.String()+"/bank/sync", ownerTok, nil, &sync)
 	if sync.New != 0 {

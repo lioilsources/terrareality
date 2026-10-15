@@ -2,6 +2,10 @@
 hcloud_token              = "<hetzner-cloud-api-token>"
 object_storage_access_key = "<object-storage-access-key>"
 object_storage_secret_key = "<object-storage-secret-key>"
+# Separate Hetzner project for backups (pgBackRest repository + media replica). Its keys go only
+# into the DB VM .env, never onto the app VM (docs/runbooks/backup.md, review V-16).
+backup_access_key = "<backup-project-access-key>"
+backup_secret_key = "<backup-project-secret-key>"
 
 admin_ssh_public_keys = [
   "ssh-ed25519 AAAA... admin@example",
@@ -10,7 +14,8 @@ admin_ssh_public_keys = [
 # Office / VPN egress addresses that may SSH into the servers.
 admin_cidrs = ["203.0.113.10/32"]
 
-# Public egress IP of the owner's network where the DGX Spark lives (WireGuard peer).
+# Public egress IP of the owner's network where the DGX Spark lives (WireGuard peer). Required,
+# never 0.0.0.0/0.
 wireguard_peer_cidrs = ["198.51.100.20/32"]
 
 # Optional overrides
@@ -20,3 +25,9 @@ wireguard_peer_cidrs = ["198.51.100.20/32"]
 # db_server_type          = "cx33"
 # media_bucket            = "terrareality-media"
 # backup_bucket           = "terrareality-pgbackrest"
+# media_replica_location   = "nbg1"   # second copy of media, must differ from object_storage_location
+# media_replica_bucket     = "terrareality-media-replica"
+# backup_location          = "fsn1"
+# backup_noncurrent_days   = 30       # days deleted/overwritten backup objects stay restorable
+# media_replica_access_key = "<only if the replica uses other keys than the backup project>"
+# media_replica_secret_key = "<...>"

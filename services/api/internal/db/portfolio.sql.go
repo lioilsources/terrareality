@@ -530,7 +530,9 @@ func (q *Queries) MarketStats(ctx context.Context, arg MarketStatsParams) (Marke
 const municipalityInText = `-- name: MunicipalityInText :one
 SELECT path::text AS admin_path, ST_Y(centroid)::float8 AS lat, ST_X(centroid)::float8 AS lng
 FROM admin_units
-WHERE level = 2 AND lower(unaccent($1::text)) ~ ('(^|[^a-z0-9])' || search || '($|[^a-z0-9])')
+WHERE level = 2 AND search ~ '[a-z0-9]'
+  AND (' ' || regexp_replace(lower(unaccent($1::text)), '[^a-z0-9]+', ' ', 'g') || ' ')
+      LIKE ('% ' || btrim(regexp_replace(search, '[^a-z0-9]+', ' ', 'g')) || ' %')
 ORDER BY length(search) DESC LIMIT 1
 `
 
@@ -541,7 +543,9 @@ type MunicipalityInTextRow struct {
 }
 
 // The municipality named in a free-text address ("Dejvická 12, Praha 6"):
-// the longest municipality name found as a whole word.
+// the longest municipality name found as a whole word. Both sides are
+// reduced to words separated by single spaces, so names from the data are
+// compared literally (no regular expression built from data).
 func (q *Queries) MunicipalityInText(ctx context.Context, address string) (MunicipalityInTextRow, error) {
 	row := q.db.QueryRow(ctx, municipalityInText, address)
 	var i MunicipalityInTextRow
@@ -863,10 +867,10 @@ func (q *Queries) RiskLeaseIDs(ctx context.Context) ([]uuid.UUID, error) {
 
 const riskPartyStats = `-- name: RiskPartyStats :many
 SELECT p.id AS party_id, p.role, p.user_id,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= $1::date AND o.status = 'open'), 0)::bigint AS overdue,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on <= $1::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < $1::date AND o.status = 'open'), 0)::bigint AS overdue,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on < $1::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
   coalesce(sum(s.paid_amount) FILTER (WHERE o.kind = 'deposit'), 0)::bigint AS deposit_paid,
-  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= $1::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
+  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < $1::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
   coalesce(u.verification_level, '')::text AS verification,
   (tp.income_uploaded_at IS NOT NULL)::boolean AS income_proof,
   coalesce(tp.isir_status, 'unchecked')::text AS isir_status
@@ -898,8 +902,9 @@ type RiskPartyStatsRow struct {
 	IsirStatus    string      `json:"isir_status"`
 }
 
-// Per tenant party: overdue amounts (rent, services, one-off items due by
-// the date), the oldest unpaid due date and passport facts.
+// Per tenant party: overdue amounts (rent, services, one-off items due
+// before the date: an item due today is not overdue until tomorrow), the
+// oldest unpaid due date and passport facts.
 func (q *Queries) RiskPartyStats(ctx context.Context, arg RiskPartyStatsParams) ([]RiskPartyStatsRow, error) {
 	rows, err := q.db.Query(ctx, riskPartyStats, arg.AsOf, arg.LeaseID)
 	if err != nil {

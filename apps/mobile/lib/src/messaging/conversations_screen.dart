@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
 import 'messaging_repository.dart';
 
 final conversationsProvider = FutureProvider.autoDispose<List<Conversation>>(
@@ -27,7 +28,7 @@ class ConversationsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(conversationsProvider.future),
         child: list.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ListView(children: [ListTile(title: Text(t.statusUnreachable))]),
+          error: (e, _) => ApiErrorView(error: e, scrollable: true, onRetry: () => ref.invalidate(conversationsProvider)),
           data: (items) => items.isEmpty
               ? ListView(children: [ListTile(title: Text(t.messagesEmpty))])
               : ListView.separated(
