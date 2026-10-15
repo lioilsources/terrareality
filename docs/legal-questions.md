@@ -73,3 +73,11 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
   data. It informs the landlord and never decides automatically. Is it profiling under GDPR art. 4(4)
   and 22, which information must tenants get (art. 13–15), and is a DPIA required?
 
+## Short-term stays (scope §5c.1)
+
+- **Q-STR-1 Short-term accommodation rules.** Which obligations apply if hosts use us for stays of a few
+  nights (guest registration, local accommodation fee, Prague rules for short-term rentals, consent of the
+  owners' association), and do they change our role if we only sell cleaning and handover tools?
+- **Q-STR-2 Non-discrimination in marketing.** We plan Arabic-language marketing through travel agencies
+  for visitors from the Gulf states. Confirm that language and channel targeting is fine, and that nothing
+  in the product may filter or rank guests by nationality or origin.

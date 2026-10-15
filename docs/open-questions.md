@@ -79,3 +79,9 @@ follows until decided otherwise.
   symbol. Some Czech banks do not pass the specific symbol through PSD2; such payments become
   suggestions.
 
+## Target segments
+
+- **OQ-23 Short-term stays with turnover cleaning (scope §5c.1).** Hosts in Prague serving weekend
+  groups need fast cleaning and damage evidence. Validate in phase 0 with 5 short-term property managers:
+  a cleaning and handover add-on for hosts, a separate short-term product, or out of scope? It must not
+  weaken the long-term core and its relationship with owners' associations.
