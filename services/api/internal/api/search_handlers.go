@@ -45,6 +45,10 @@ func (s *Server) runSearch(ctx context.Context, q search.Query) (gen.SearchResul
 		if strings.Contains(err.Error(), "unknown attribute") {
 			return gen.SearchResult{}, apperr.BadRequest("unknown_attribute", err.Error())
 		}
+		var inv *search.InvalidQueryError
+		if errors.As(err, &inv) {
+			return gen.SearchResult{}, apperr.BadRequest("invalid_query", inv.Reason)
+		}
 		return gen.SearchResult{}, err
 	}
 	out := gen.SearchResult{Total: res.Total, RentMin: res.RentMin, RentMax: res.RentMax,
@@ -286,7 +290,20 @@ func (s *Server) CreateSavedSearch(ctx context.Context, r gen.CreateSavedSearchR
 		return nil, err
 	}
 	notify := r.Body.Notify == nil || *r.Body.Notify
-	q, _ := json.Marshal(toQuery(&r.Body.Query))
+	sq := toQuery(&r.Body.Query)
+	schema, err := s.Listings.Schema(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// A query the digest could never run is refused up front.
+	if err := sq.Validate(schema); err != nil {
+		var inv *search.InvalidQueryError
+		if errors.As(err, &inv) {
+			return nil, apperr.BadRequest("invalid_query", inv.Reason)
+		}
+		return nil, apperr.BadRequest("unknown_attribute", err.Error())
+	}
+	q, _ := json.Marshal(sq)
 	var out db.SavedSearch
 	err = platformdb.AsUser(ctx, s.pool, p.UserID, func(tx pgx.Tx) error {
 		var err error

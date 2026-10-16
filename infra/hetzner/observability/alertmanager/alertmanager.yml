@@ -1,10 +1,17 @@
-# Alertmanager: e-mail only for now. Replace the placeholders before launch;
-# the SMTP password is read from a Docker secret (never commit it).
+# Alertmanager: e-mail for everything, plus a paging webhook for severity=page.
+# Secrets are files in the read-only directory /run/alertmanager-secrets (host:
+# ALERT_SECRETS_DIR, default /etc/terrareality/secrets/alertmanager; see README):
+#   smtp_password     SMTP password of the alert mailbox (one line, no newline)
+#   page_webhook_url  URL of the paging channel, e.g. an ntfy topic (https://ntfy.sh/<random topic>
+#                     or a self-hosted ntfy) or an SMS/phone gateway that accepts Alertmanager webhooks
+# A missing file does not stop the stack; the send fails, which AlertmanagerNotificationsFailing
+# (rules/platform.yml) reports on Grafana. Before go-live: real smarthost/addresses below and both
+# files present (docs/runbooks/launch.md).
 global:
-  smtp_smarthost: smtp.example.com:587
+  smtp_smarthost: smtp.example.com:587 # placeholder: the transactional mail relay (SMTP_ADDR)
   smtp_from: alerts@terrareality.cz
   smtp_auth_username: alerts@terrareality.cz
-  smtp_auth_password_file: /run/secrets/alert_smtp_password
+  smtp_auth_password_file: /run/alertmanager-secrets/smtp_password
   smtp_require_tls: true
   resolve_timeout: 5m
 
@@ -15,8 +22,13 @@ route:
   group_interval: 5m
   repeat_interval: 4h
   routes:
-    - matchers: [severity="page"]
+    # LLM-dependent jobs fail by design while the Spark serves ComfyUI (07:00-13:00 Prague);
+    # jobs retry afterwards. Outside the window they are a normal ticket.
+    - matchers: [component="llm"]
       receiver: ops-email
+      mute_time_intervals: [spark-comfyui-window]
+    - matchers: [severity="page"]
+      receiver: ops-page
       repeat_interval: 1h
 
 receivers:
@@ -24,6 +36,22 @@ receivers:
     email_configs:
       - to: ops@terrareality.cz # placeholder
         send_resolved: true
+  - name: ops-page
+    email_configs:
+      - to: ops@terrareality.cz # placeholder
+        send_resolved: true
+    webhook_configs:
+      - url_file: /run/alertmanager-secrets/page_webhook_url
+        send_resolved: true
+        max_alerts: 10
+
+time_intervals:
+  - name: spark-comfyui-window
+    time_intervals:
+      - times:
+          - start_time: "07:00"
+            end_time: "13:00"
+        location: Europe/Prague
 
 inhibit_rules:
   # A dead API makes every SLO alert fire; keep only the root cause.

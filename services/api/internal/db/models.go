@@ -415,13 +415,15 @@ type LeaseParty struct {
 }
 
 type LeaseRisk struct {
-	LeaseID      uuid.UUID `json:"lease_id"`
-	OrgID        uuid.UUID `json:"org_id"`
-	Score        int32     `json:"score"`
-	Band         string    `json:"band"`
-	Factors      []byte    `json:"factors"`
-	ModelVersion string    `json:"model_version"`
-	ComputedAt   time.Time `json:"computed_at"`
+	LeaseID      uuid.UUID  `json:"lease_id"`
+	OrgID        uuid.UUID  `json:"org_id"`
+	Score        int32      `json:"score"`
+	Band         string     `json:"band"`
+	Factors      []byte     `json:"factors"`
+	ModelVersion string     `json:"model_version"`
+	ComputedAt   time.Time  `json:"computed_at"`
+	LastError    *string    `json:"last_error"`
+	FailedAt     *time.Time `json:"failed_at"`
 }
 
 type LeaseRiskHistory struct {
@@ -469,6 +471,7 @@ type Listing struct {
 	PublishedAt       *time.Time  `json:"published_at"`
 	DeletedAt         *time.Time  `json:"deleted_at"`
 	Prescreen         []byte      `json:"prescreen"`
+	FirstPublishedAt  *time.Time  `json:"first_published_at"`
 }
 
 type ListingAggregate struct {
@@ -874,6 +877,7 @@ type Session struct {
 	LastSeenAt     time.Time   `json:"last_seen_at"`
 	ExpiresAt      time.Time   `json:"expires_at"`
 	RevokedAt      *time.Time  `json:"revoked_at"`
+	MfaAt          *time.Time  `json:"mfa_at"`
 }
 
 type Signature struct {
@@ -948,6 +952,8 @@ type User struct {
 	UpdatedAt            time.Time  `json:"updated_at"`
 	VerificationLevel    *string    `json:"verification_level"`
 	MessagingSuspendedAt *time.Time `json:"messaging_suspended_at"`
+	FailedLogins         int32      `json:"failed_logins"`
+	LockedUntil          *time.Time `json:"locked_until"`
 }
 
 type UserRecoveryCode struct {

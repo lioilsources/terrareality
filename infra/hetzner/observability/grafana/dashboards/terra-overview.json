@@ -796,6 +796,55 @@
         "overrides": []
       },
       "options": {}
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Media replica: objects in the mirror",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 65
+      },
+      "targets": [
+        {
+          "expr": "max by (bucket, replica) (media_replica_objects)",
+          "legendFormat": "{{bucket}} / {{replica}}",
+          "refId": "A"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Media replica / WAL archive failures",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 65
+      },
+      "targets": [
+        {
+          "expr": "time() - max(media_replica_last_success_timestamp_seconds)",
+          "legendFormat": "media replica age",
+          "refId": "A"
+        },
+        {
+          "expr": "max(pgbackrest_archive_failing)",
+          "legendFormat": "WAL archive failing (1 = yes)",
+          "refId": "B"
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      }
     }
   ],
   "templating": {

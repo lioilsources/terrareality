@@ -1,0 +1,22 @@
+# Build context of apps/web/Dockerfile (repository root). Keep secrets, local state and other
+# stacks out of the context; the image needs package*.json, .npmrc, packages/ and apps/{web,site}.
+.git
+.github
+**/.DS_Store
+**/.env
+**/.env.*
+**/node_modules
+**/.svelte-kit
+**/test-results
+**/playwright-report
+**/.turbo
+**/.vite
+apps/web/build
+apps/site/dist
+apps/site/.astro
+apps/mobile
+services
+infra
+docs
+scripts
+*.md

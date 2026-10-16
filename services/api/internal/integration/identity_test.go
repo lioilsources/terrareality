@@ -127,22 +127,26 @@ func TestRegistrationMFAOrgInvitation(t *testing.T) {
 		OrgName string `json:"org_name"`
 		Status  string `json:"status"`
 	}
-	e.must(200, "GET", "/v1/invitations/"+invTok, "", nil, &preview)
+	e.must(200, "POST", "/v1/invitations/lookup", "", map[string]string{"token": invTok}, &preview)
 	if preview.Status != "open" || preview.OrgName != "Alice Reality s.r.o." {
 		t.Fatalf("preview %+v", preview)
 	}
 	// Someone else cannot use Bob's invitation.
 	mallory := e.register(uniqueEmail("mallory"))
-	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", mallory, nil, &p); code != 403 || p.Code != "invitation_email_mismatch" {
+	if code := e.call("POST", "/v1/invitations/accept", mallory, map[string]string{"token": invTok}, &p); code != 403 || p.Code != "invitation_email_mismatch" {
 		t.Fatalf("foreign accept: %d %+v", code, p)
 	}
 	bobTok := e.register(bob)
 	var joined membership
-	e.must(200, "POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, &joined)
+	// S-A2: the token travels in the body; the old path routes are gone.
+	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, nil); code != 404 && code != 405 {
+		t.Fatalf("token in the path still accepted: %d", code)
+	}
+	e.must(200, "POST", "/v1/invitations/accept", bobTok, map[string]string{"token": invTok}, &joined)
 	if joined.Role != "agent" || joined.Organization.ID != org.Organization.ID {
 		t.Fatalf("joined %+v", joined)
 	}
-	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, &p); code != 409 {
+	if code := e.call("POST", "/v1/invitations/accept", bobTok, map[string]string{"token": invTok}, &p); code != 409 || p.Code != "invitation_accepted" {
 		t.Fatalf("second accept: %d", code)
 	}
 	var members []struct {
@@ -369,8 +373,23 @@ func TestValidationAndAuthErrors(t *testing.T) {
 	if c := e.call("GET", "/v1/me", "garbage-token", nil, &p); c != 401 {
 		t.Fatalf("bad token: %d", c)
 	}
+	// ASVS V2.1.1 / V2.1.7: 12-character minimum and breached-password check.
+	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": uniqueEmail("short"), "password": "Short-pw-11",
+		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 400 {
+		t.Fatalf("11-character password: %d %+v", c, p)
+	}
+	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": uniqueEmail("pwned"), "password": "Password1234",
+		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 422 || p.Code != "password_breached" {
+		t.Fatalf("breached password: %d %+v", c, p)
+	}
 	em := uniqueEmail("dup")
-	e.register(em)
+	tok := e.register(em)
+	if c := e.call("POST", "/v1/me/password", tok, map[string]any{"current_password": "Sup3r-secret-pw", "new_password": "qwerty123456"}, &p); c != 422 || p.Code != "password_breached" {
+		t.Fatalf("breached new password: %d %+v", c, p)
+	}
+	if c := e.call("POST", "/v1/me/password", tok, map[string]any{"new_password": "An0ther-long-secret"}, &p); c != 401 || p.Code != "invalid_credentials" {
+		t.Fatalf("password change without current password: %d %+v", c, p)
+	}
 	if c := e.call("POST", "/v1/auth/register", "", map[string]any{"email": strings.ToUpper(em), "password": "Sup3r-secret-pw",
 		"display_name": "x", "accept_terms_version": "t1", "accept_privacy_version": "p1"}, &p); c != 409 || p.Code != "email_taken" {
 		t.Fatalf("duplicate: %d %+v", c, p)

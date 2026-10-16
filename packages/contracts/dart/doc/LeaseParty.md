@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **id** | **String** |  | 
 **role** | **String** |  | 
 **name** | **String** |  | 
-**email** | **String** |  | [optional] 
+**email** | **String** | Shown to the landlord side for every party; a tenant-side caller sees only their own and the landlord's. | [optional] 
 **shareBps** | **int** |  | 
 **position** | **int** | Specific symbol of this party's payments. | 
 **me** | **bool** |  | 

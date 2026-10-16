@@ -44,7 +44,7 @@ class Problem {
   ///
   String? instance;
 
-  /// Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+  /// Stable machine-readable error code for client-side translation, e.g. invalid_credentials. Cross-cutting codes: 401 `unauthenticated` (an operation that needs a session got none or an expired one), 400 `validation_failed` (the request does not match this contract), 429 `rate_limited`, 403 `forbidden`, 404 `not_found`. Operation-specific codes are listed in each operation's description. 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated

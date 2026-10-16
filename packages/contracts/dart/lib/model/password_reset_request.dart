@@ -19,6 +19,7 @@ class PasswordResetRequest {
 
   String token;
 
+  /// At least 12 characters; checked against breached-password lists (error code password_breached).
   String password;
 
   @override

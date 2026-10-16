@@ -1,7 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
+import { m } from '#lib/paraglide/messages.js';
 import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 import { paramsFromQuery, queryFromParams } from '#lib/searchParams.js';
+import { EMPTY_SCHEMA } from '#lib/catalog.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -16,7 +18,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			error: errorMessage(result.error),
 			query,
 			result: null,
-			schema: schema.data!,
+			schema: schema.data ?? EMPTY_SCHEMA,
 			areas: [],
 			reply: null,
 			loggedIn: !!locals.me
@@ -24,7 +26,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	return {
 		query,
 		result: result.data,
-		schema: schema.data!,
+		schema: schema.data ?? EMPTY_SCHEMA,
 		areas: areas.data ?? [],
 		reply: url.searchParams.get('reply'),
 		degraded: url.searchParams.get('degraded') === '1',
@@ -50,7 +52,8 @@ export const actions: Actions = {
 	save: async ({ request, url, locals }) => {
 		if (!locals.me)
 			redirect(303, localizeHref(`/login?next=${encodeURIComponent(url.pathname + url.search)}`));
-		const name = String((await request.formData()).get('name') ?? '').trim() || 'Hledání';
+		const name =
+			String((await request.formData()).get('name') ?? '').trim() || m.search_default_name();
 		const query = queryFromParams(url.searchParams);
 		delete query.offset;
 		delete query.limit;

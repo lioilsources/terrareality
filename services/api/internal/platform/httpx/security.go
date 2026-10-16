@@ -91,3 +91,20 @@ func (c *cspWriter) Flush() {
 
 // Unwrap lets http.ResponseController reach the underlying writer.
 func (c *cspWriter) Unwrap() http.ResponseWriter { return c.ResponseWriter }
+
+// NoStore marks responses that may carry personal data or credentials as
+// `Cache-Control: no-store` (ASVS V8.1.1): every request with an
+// Authorization header, every credential endpoint under /v1/auth/ (they
+// return session tokens to anonymous callers) and every non-GET/HEAD
+// request. Anonymous GETs of public data (search, listing pages, catalog)
+// keep their default cacheability. A handler that sets its own
+// Cache-Control afterwards wins.
+func NoStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "" || strings.HasPrefix(r.URL.Path, "/v1/auth/") ||
+			(r.Method != http.MethodGet && r.Method != http.MethodHead) {
+			w.Header().Set("Cache-Control", "no-store")
+		}
+		next.ServeHTTP(w, r)
+	})
+}

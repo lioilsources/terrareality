@@ -233,10 +233,76 @@ resource "minio_s3_bucket" "media" {
   object_locking = false
 }
 
+# pgBackRest repository in the separate backup project (provider minio.backup, review V-16).
 resource "minio_s3_bucket" "backups" {
-  bucket = var.backup_bucket
-  acl    = "private"
-  # pgBackRest manages retention itself; versioning would only keep expired
-  # files around and break its expire logic accounting.
+  provider = minio.backup
+  bucket   = var.backup_bucket
+  acl      = "private"
+  # Object lock can only be chosen at bucket creation; versioning + noncurrent expiry below is the
+  # chosen protection (an offline copy is the follow-up, docs/runbooks/backup.md).
   object_locking = false
+
+  lifecycle {
+    precondition {
+      condition     = var.backup_access_key != var.object_storage_access_key
+      error_message = "backup_access_key must belong to the separate backup project, not the app project (object_storage_access_key)."
+    }
+  }
+}
+
+# Versioning: an object pgBackRest (or an attacker with only normal object access) deletes or
+# overwrites stays as a noncurrent version for backup_noncurrent_days. pgBackRest works on versioned
+# buckets; its own retention (4 full backups) still decides what is current. Storage cost grows by
+# roughly the data expired within that window.
+resource "minio_s3_bucket_versioning" "backups" {
+  provider = minio.backup
+  bucket   = minio_s3_bucket.backups.bucket
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "minio_ilm_policy" "backups" {
+  provider = minio.backup
+  bucket   = minio_s3_bucket.backups.bucket
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    noncurrent_expiration {
+      days = "${var.backup_noncurrent_days}d"
+    }
+  }
+
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = "2d"
+    }
+  }
+
+  depends_on = [minio_s3_bucket_versioning.backups]
+}
+
+# Second copy of media in another location (failure domain). Filled hourly by
+# scripts/media-replicate.sh (rclone sync with --backup-dir, DB VM timer terra-media-replicate);
+# restore with scripts/media-restore.sh (docs/runbooks/restore.md, scenario E).
+resource "minio_s3_bucket" "media_replica" {
+  provider = minio.replica
+  bucket   = var.media_replica_bucket
+  acl      = "private"
+  # Retention of overwritten/deleted objects is done by the script (dated archive prefixes),
+  # which works the same on any S3 target or a Storage Box.
+  object_locking = false
+
+  lifecycle {
+    precondition {
+      condition     = var.media_replica_location != var.object_storage_location
+      error_message = "The media replica must live in a different location than the primary bucket."
+    }
+  }
 }

@@ -1,0 +1,4 @@
+# Build context of infra/hetzner/db/Dockerfile: never send host-side files (systemd units, shim).
+systemd
+**/.env
+**/.env.*

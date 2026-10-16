@@ -89,7 +89,7 @@ INSERT INTO listings (org_id, unit_id, title, description, rent_amount, currency
 VALUES ($1, $2, $3, $4, $5,
   $6, $7, $8, $9,
   $10, $11, $12, $13)
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at
 `
 
 type CreateListingParams struct {
@@ -147,6 +147,7 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		&i.PublishedAt,
 		&i.DeletedAt,
 		&i.Prescreen,
+		&i.FirstPublishedAt,
 	)
 	return i, err
 }
@@ -454,8 +455,27 @@ func (q *Queries) FindPropertyByRuian(ctx context.Context, arg FindPropertyByRui
 	return i, err
 }
 
+const finishSuggestion = `-- name: FinishSuggestion :execrows
+UPDATE ai_suggestions SET status = $2, decision = $3, decided_at = now()
+WHERE id = $1 AND status = 'pending'
+`
+
+type FinishSuggestionParams struct {
+	ID       uuid.UUID `json:"id"`
+	Status   string    `json:"status"`
+	Decision []byte    `json:"decision"`
+}
+
+func (q *Queries) FinishSuggestion(ctx context.Context, arg FinishSuggestionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, finishSuggestion, arg.ID, arg.Status, arg.Decision)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getListing = `-- name: GetListing :one
-SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
+SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type GetListingParams struct {
@@ -488,6 +508,7 @@ func (q *Queries) GetListing(ctx context.Context, arg GetListingParams) (Listing
 		&i.PublishedAt,
 		&i.DeletedAt,
 		&i.Prescreen,
+		&i.FirstPublishedAt,
 	)
 	return i, err
 }
@@ -503,7 +524,7 @@ LEFT JOIN units pu ON pu.id = u.parent_id
 JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 JOIN organizations o ON o.id = l.org_id
-WHERE l.id = $1
+WHERE l.id = $1 AND l.deleted_at IS NULL
 `
 
 type GetListingContextRow struct {
@@ -840,7 +861,7 @@ func (q *Queries) ListListingVersions(ctx context.Context, listingID uuid.UUID) 
 }
 
 const listListings = `-- name: ListListings :many
-SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, l.prescreen, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
+SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, l.prescreen, l.first_published_at, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
   coalesce((SELECT m.object_key FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), '')::text AS cover_key,
   coalesce((SELECT m.orientation FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), 1)::int AS cover_orientation,
   EXISTS (SELECT 1 FROM listing_versions v WHERE v.listing_id = l.id AND v.status = 'pending') AS pending_review
@@ -850,13 +871,18 @@ JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 WHERE l.org_id = $1 AND l.deleted_at IS NULL
   AND ($2::text IS NULL OR l.status = $2)
-ORDER BY l.updated_at DESC
-LIMIT 200
+  -- Keyset page after the cursor listing (same order as below).
+  AND ($3::uuid IS NULL
+    OR (l.updated_at, l.id) < (SELECT c.updated_at, c.id FROM listings c WHERE c.id = $3::uuid))
+ORDER BY l.updated_at DESC, l.id DESC
+LIMIT $4
 `
 
 type ListListingsParams struct {
-	OrgID  uuid.UUID `json:"org_id"`
-	Status *string   `json:"status"`
+	OrgID  uuid.UUID  `json:"org_id"`
+	Status *string    `json:"status"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
 }
 
 type ListListingsRow struct {
@@ -881,6 +907,7 @@ type ListListingsRow struct {
 	PublishedAt       *time.Time  `json:"published_at"`
 	DeletedAt         *time.Time  `json:"deleted_at"`
 	Prescreen         []byte      `json:"prescreen"`
+	FirstPublishedAt  *time.Time  `json:"first_published_at"`
 	UnitKind          string      `json:"unit_kind"`
 	UnitLabel         string      `json:"unit_label"`
 	AddressLabel      string      `json:"address_label"`
@@ -890,7 +917,12 @@ type ListListingsRow struct {
 }
 
 func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]ListListingsRow, error) {
-	rows, err := q.db.Query(ctx, listListings, arg.OrgID, arg.Status)
+	rows, err := q.db.Query(ctx, listListings,
+		arg.OrgID,
+		arg.Status,
+		arg.Before,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -920,6 +952,7 @@ func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]L
 			&i.PublishedAt,
 			&i.DeletedAt,
 			&i.Prescreen,
+			&i.FirstPublishedAt,
 			&i.UnitKind,
 			&i.UnitLabel,
 			&i.AddressLabel,
@@ -930,6 +963,52 @@ func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]L
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrphanMediaKeys = `-- name: ListOrphanMediaKeys :many
+SELECT DISTINCT k.object_key::text AS object_key FROM (
+  SELECT coalesce(e.diff ->> 'object_key',
+    'orgs/' || e.org_id::text || '/media/' || e.entity_id::text || '/original') AS object_key
+  FROM audit_events e
+  WHERE e.action = 'media.deleted' AND e.entity = 'media' AND e.entity_id IS NOT NULL AND e.org_id IS NOT NULL
+    AND e.occurred_at >= $1::timestamptz AND e.occurred_at < $2::timestamptz
+) k
+WHERE NOT EXISTS (SELECT 1 FROM media m WHERE m.object_key = k.object_key)
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_versions v JOIN listings l ON l.id = v.listing_id
+    WHERE (v.status = 'pending' OR v.version = l.published_version)
+      AND v.snapshot -> 'photos' @> jsonb_build_array(jsonb_build_object('key', k.object_key)))
+LIMIT $3
+`
+
+type ListOrphanMediaKeysParams struct {
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"`
+	MaxRows int32     `json:"max_rows"`
+}
+
+// Photo objects deleted from a working copy while a published version still
+// showed them (DeleteMedia keeps those), which no current or pending
+// version references any more. Keys come from the media.deleted audit
+// events (diff.object_key, or the deterministic photo key). Worker.
+func (q *Queries) ListOrphanMediaKeys(ctx context.Context, arg ListOrphanMediaKeysParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, listOrphanMediaKeys, arg.Since, arg.Until, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var object_key string
+		if err := rows.Scan(&object_key); err != nil {
+			return nil, err
+		}
+		items = append(items, object_key)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -982,6 +1061,38 @@ func (q *Queries) ListPendingVersions(ctx context.Context) ([]ListPendingVersion
 			&i.SubmittedByEmail,
 			&i.PublishedVersion,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPrivacyFlags = `-- name: ListPrivacyFlags :many
+SELECT DISTINCT ON (media_id) media_id::uuid AS media_id, status FROM ai_suggestions
+WHERE listing_id = $1 AND kind = 'privacy_blur' AND media_id IS NOT NULL
+ORDER BY media_id, created_at DESC
+`
+
+type ListPrivacyFlagsRow struct {
+	MediaID uuid.UUID `json:"media_id"`
+	Status  string    `json:"status"`
+}
+
+// Privacy blur flags of a listing for the backoffice review (system context).
+func (q *Queries) ListPrivacyFlags(ctx context.Context, listingID uuid.UUID) ([]ListPrivacyFlagsRow, error) {
+	rows, err := q.db.Query(ctx, listPrivacyFlags, listingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPrivacyFlagsRow{}
+	for rows.Next() {
+		var i ListPrivacyFlagsRow
+		if err := rows.Scan(&i.MediaID, &i.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1078,6 +1189,33 @@ func (q *Queries) ListSuggestions(ctx context.Context, listingID uuid.UUID) ([]A
 	return items, nil
 }
 
+const listUndecidedPrivacyFlags = `-- name: ListUndecidedPrivacyFlags :many
+SELECT DISTINCT media_id::uuid FROM ai_suggestions
+WHERE listing_id = $1 AND kind = 'privacy_blur' AND status IN ('generating', 'pending') AND media_id IS NOT NULL
+`
+
+// Photos with a privacy blur suggestion nobody decided yet (or whose
+// accepted redaction is still being applied).
+func (q *Queries) ListUndecidedPrivacyFlags(ctx context.Context, listingID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listUndecidedPrivacyFlags, listingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var media_id uuid.UUID
+		if err := rows.Scan(&media_id); err != nil {
+			return nil, err
+		}
+		items = append(items, media_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnits = `-- name: ListUnits :many
 SELECT id, org_id, property_id, parent_id, kind, label, floor, floor_area, layout, created_at, updated_at, deleted_at FROM units WHERE property_id = $1 AND deleted_at IS NULL ORDER BY parent_id NULLS FIRST, created_at
 `
@@ -1115,6 +1253,46 @@ func (q *Queries) ListUnits(ctx context.Context, propertyID uuid.UUID) ([]Unit, 
 	return items, nil
 }
 
+const lockListing = `-- name: LockListing :one
+SELECT id FROM listings WHERE id = $1 FOR UPDATE
+`
+
+// Serializes per-listing counters: call first in the transaction that runs
+// NextListingVersion + CreateListingVersion, CreateMedia (position) or
+// PromotionEndOf + CreatePromotion.
+func (q *Queries) LockListing(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockListing, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
+const lockSuggestion = `-- name: LockSuggestion :one
+SELECT id, org_id, listing_id, media_id, kind, status, payload, decision, model, error, created_by, decided_by, created_at, decided_at FROM ai_suggestions WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockSuggestion(ctx context.Context, id uuid.UUID) (AiSuggestion, error) {
+	row := q.db.QueryRow(ctx, lockSuggestion, id)
+	var i AiSuggestion
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.ListingID,
+		&i.MediaID,
+		&i.Kind,
+		&i.Status,
+		&i.Payload,
+		&i.Decision,
+		&i.Model,
+		&i.Error,
+		&i.CreatedBy,
+		&i.DecidedBy,
+		&i.CreatedAt,
+		&i.DecidedAt,
+	)
+	return i, err
+}
+
 const nextListingVersion = `-- name: NextListingVersion :one
 SELECT coalesce(max(version), 0)::int + 1 AS next FROM listing_versions WHERE listing_id = $1
 `
@@ -1128,6 +1306,7 @@ func (q *Queries) NextListingVersion(ctx context.Context, listingID uuid.UUID) (
 
 const publishListingVersion = `-- name: PublishListingVersion :exec
 UPDATE listings SET published_version = $2, published_at = now(),
+  first_published_at = coalesce(first_published_at, now()),
   status = CASE WHEN status IN ('draft', 'review') THEN 'published' ELSE status END
 WHERE id = $1
 `
@@ -1137,10 +1316,37 @@ type PublishListingVersionParams struct {
 	PublishedVersion *int32    `json:"published_version"`
 }
 
-// System context (backoffice review).
+// System context (backoffice review). first_published_at is set once.
 func (q *Queries) PublishListingVersion(ctx context.Context, arg PublishListingVersionParams) error {
 	_, err := q.db.Exec(ctx, publishListingVersion, arg.ID, arg.PublishedVersion)
 	return err
+}
+
+const queueSuggestionDecision = `-- name: QueueSuggestionDecision :execrows
+UPDATE ai_suggestions SET decision = $3, decided_by = $4
+WHERE id = $1 AND org_id = $2 AND status = 'pending'
+`
+
+type QueueSuggestionDecisionParams struct {
+	ID        uuid.UUID  `json:"id"`
+	OrgID     uuid.UUID  `json:"org_id"`
+	Decision  []byte     `json:"decision"`
+	DecidedBy *uuid.UUID `json:"decided_by"`
+}
+
+// An accepted privacy blur is recorded but stays pending until the
+// redacted photo is stored (RedactMedia job).
+func (q *Queries) QueueSuggestionDecision(ctx context.Context, arg QueueSuggestionDecisionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, queueSuggestionDecision,
+		arg.ID,
+		arg.OrgID,
+		arg.Decision,
+		arg.DecidedBy,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const reviewListingVersion = `-- name: ReviewListingVersion :execrows
@@ -1169,7 +1375,7 @@ func (q *Queries) ReviewListingVersion(ctx context.Context, arg ReviewListingVer
 }
 
 const setListingAttributes = `-- name: SetListingAttributes :exec
-UPDATE listings SET attributes = $3 WHERE id = $1 AND org_id = $2
+UPDATE listings SET attributes = $3 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type SetListingAttributesParams struct {
@@ -1184,7 +1390,7 @@ func (q *Queries) SetListingAttributes(ctx context.Context, arg SetListingAttrib
 }
 
 const setListingStatus = `-- name: SetListingStatus :exec
-UPDATE listings SET status = $3 WHERE id = $1 AND org_id = $2
+UPDATE listings SET status = $3 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type SetListingStatusParams struct {
@@ -1199,7 +1405,7 @@ func (q *Queries) SetListingStatus(ctx context.Context, arg SetListingStatusPara
 }
 
 const setListingTexts = `-- name: SetListingTexts :exec
-UPDATE listings SET title = $3, description = $4 WHERE id = $1 AND org_id = $2
+UPDATE listings SET title = $3, description = $4 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type SetListingTextsParams struct {
@@ -1215,6 +1421,32 @@ func (q *Queries) SetListingTexts(ctx context.Context, arg SetListingTextsParams
 		arg.OrgID,
 		arg.Title,
 		arg.Description,
+	)
+	return err
+}
+
+const setMediaContent = `-- name: SetMediaContent :exec
+UPDATE media SET size_bytes = $2, sha256 = $3, width = $4, height = $5, content_type = $6 WHERE id = $1
+`
+
+type SetMediaContentParams struct {
+	ID          uuid.UUID `json:"id"`
+	SizeBytes   *int64    `json:"size_bytes"`
+	Sha256      []byte    `json:"sha256"`
+	Width       *int32    `json:"width"`
+	Height      *int32    `json:"height"`
+	ContentType string    `json:"content_type"`
+}
+
+// Replaces the stored bytes' metadata after a redaction (worker).
+func (q *Queries) SetMediaContent(ctx context.Context, arg SetMediaContentParams) error {
+	_, err := q.db.Exec(ctx, setMediaContent,
+		arg.ID,
+		arg.SizeBytes,
+		arg.Sha256,
+		arg.Width,
+		arg.Height,
+		arg.ContentType,
 	)
 	return err
 }
@@ -1372,7 +1604,7 @@ UPDATE listings SET title = $1, description = $2, rent_amount = $3,
   available_from = $6, min_term_months = $7,
   attributes = $8, location_precision = $9
 WHERE id = $10 AND org_id = $11 AND deleted_at IS NULL
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at
 `
 
 type UpdateListingParams struct {
@@ -1426,12 +1658,16 @@ func (q *Queries) UpdateListing(ctx context.Context, arg UpdateListingParams) (L
 		&i.PublishedAt,
 		&i.DeletedAt,
 		&i.Prescreen,
+		&i.FirstPublishedAt,
 	)
 	return i, err
 }
 
 const updateMediaMeta = `-- name: UpdateMediaMeta :one
-UPDATE media SET position = $3, caption = $4 WHERE id = $1 AND org_id = $2 RETURNING id, org_id, listing_id, kind, object_key, filename, content_type, size_bytes, sha256, width, height, orientation, status, rejection_reason, av_status, vision, position, caption, created_by, created_at, updated_at
+UPDATE media SET position = $3, caption = $4 WHERE media.id = $1 AND media.org_id = $2
+  AND (media.listing_id IS NULL
+    OR EXISTS (SELECT 1 FROM listings l WHERE l.id = media.listing_id AND l.deleted_at IS NULL))
+RETURNING id, org_id, listing_id, kind, object_key, filename, content_type, size_bytes, sha256, width, height, orientation, status, rejection_reason, av_status, vision, position, caption, created_by, created_at, updated_at
 `
 
 type UpdateMediaMetaParams struct {

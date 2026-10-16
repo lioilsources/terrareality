@@ -7,11 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/terrareality/terrareality/services/api/internal/auth"
@@ -19,6 +21,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/identity"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	"github.com/terrareality/terrareality/services/api/internal/platform/pwned"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
 	"github.com/terrareality/terrareality/services/api/internal/platform/tokens"
 	"github.com/terrareality/terrareality/services/api/internal/storage"
@@ -41,11 +44,15 @@ type Config struct {
 	WebBaseURL       string
 	SessionTTLWeb    time.Duration
 	SessionTTLMobile time.Duration
+	SessionMaxAge    time.Duration // absolute lifetime regardless of activity; 0 = none
 	RedirectAllow    []string
 	TermsVersion     string
 	PrivacyVersion   string
 	ErasureGrace     time.Duration
 	StaffRequireMFA  bool
+	// DisablePhoneVerification turns SMS phone verification off (no real
+	// SMS provider outside dev/test, config PHONE_VERIFICATION).
+	DisablePhoneVerification bool
 }
 
 // Scheduler enqueues GDPR jobs inside a transaction (implemented by jobs).
@@ -63,7 +70,11 @@ type Service struct {
 	IDP       *identity.Registry
 	Blob      storage.Blob
 	Scheduler Scheduler
+	Pwned     pwned.Checker // breached-password check; nil = skipped
 	Cfg       Config
+	Log       *slog.Logger // optional
+
+	guard lockout // failed logins per account (lockout.go)
 }
 
 // Result is the outcome of an authentication step.
@@ -76,12 +87,17 @@ type Result struct {
 // Authenticated reports whether a session was created.
 func (r Result) Authenticated() bool { return r.Token != "" }
 
-// TTL returns the sliding session lifetime for a client.
+// TTL returns the sliding session lifetime for a client, capped at the
+// absolute session lifetime.
 func (s *Service) TTL(client string) time.Duration {
+	ttl := s.Cfg.SessionTTLWeb
 	if client == "mobile" {
-		return s.Cfg.SessionTTLMobile
+		ttl = s.Cfg.SessionTTLMobile
 	}
-	return s.Cfg.SessionTTLWeb
+	if s.Cfg.SessionMaxAge > 0 && ttl > s.Cfg.SessionMaxAge {
+		ttl = s.Cfg.SessionMaxAge
+	}
+	return ttl
 }
 
 func normEmail(e string) string { return strings.ToLower(strings.TrimSpace(e)) }
@@ -97,9 +113,10 @@ func (s *Service) tx(ctx context.Context, fn func(q *db.Queries, tx pgx.Tx) erro
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error { return fn(db.New(tx), tx) })
 }
 
-// newSession stores a session and returns the raw token.
+// newSession stores a session and returns the raw token. mfa marks a session
+// that passed the second factor (sessions.mfa_at, Server.staff).
 func (s *Service) newSession(ctx context.Context, q *db.Queries, userID uuid.UUID, client string,
-	impersonator *uuid.UUID, ttl time.Duration) (Result, error) {
+	impersonator *uuid.UUID, ttl time.Duration, mfa bool) (Result, error) {
 	tok := tokens.New()
 	meta := auth.Meta(ctx)
 	exp := time.Now().Add(ttl)
@@ -107,9 +124,14 @@ func (s *Service) newSession(ctx context.Context, q *db.Queries, userID uuid.UUI
 	if meta.UserAgent != "" {
 		ua = &meta.UserAgent
 	}
+	var mfaAt *time.Time
+	if mfa {
+		now := time.Now()
+		mfaAt = &now
+	}
 	_, err := q.CreateSession(ctx, db.CreateSessionParams{
 		UserID: userID, TokenHash: tokens.Hash(tok), Client: client, ImpersonatorID: impersonator,
-		Ip: parseIP(meta.IP), UserAgent: ua, ExpiresAt: exp,
+		Ip: parseIP(meta.IP), UserAgent: ua, ExpiresAt: exp, MfaAt: mfaAt,
 	})
 	if err != nil {
 		return Result{}, err
@@ -130,7 +152,7 @@ func (s *Service) finishLogin(ctx context.Context, q *db.Queries, u db.User, cli
 		}
 		return Result{MFAToken: tok}, nil
 	}
-	return s.newSession(ctx, q, u.ID, client, nil, s.TTL(client))
+	return s.newSession(ctx, q, u.ID, client, nil, s.TTL(client), false)
 }
 
 // createToken stores a one-time token and returns the raw value.
@@ -197,5 +219,6 @@ func (s *Service) recordConsent(ctx context.Context, q *db.Queries, userID uuid.
 }
 
 func isUniqueViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "SQLSTATE 23505")
+	var pe *pgconn.PgError
+	return errors.As(err, &pe) && pe.Code == "23505"
 }

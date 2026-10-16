@@ -218,6 +218,8 @@ class AuthApi {
 
   /// Log in with e-mail and password
   ///
+  /// Errors: 401 `invalid_credentials`; 429 `rate_limited` while the account is locked after repeated failures (the lock grows exponentially up to an hour; the owner is e-mailed after the fifth failure). 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -249,6 +251,8 @@ class AuthApi {
   }
 
   /// Log in with e-mail and password
+  ///
+  /// Errors: 401 `invalid_credentials`; 429 `rate_limited` while the account is locked after repeated failures (the lock grows exponentially up to an hour; the owner is e-mailed after the fifth failure). 
   ///
   /// Parameters:
   ///
@@ -306,7 +310,7 @@ class AuthApi {
 
   /// Create an account with e-mail and password
   ///
-  /// Creates the user and their personal organization, records consents and sends a verification e-mail.
+  /// Creates the user and their personal organization, records consents and sends a verification e-mail. Errors: 422 `terms_outdated` (terms_version/privacy_version are not the documents in force: reload), 409 `email_taken`, 422 `password_too_short` / `password_too_weak` / `password_breached`. 
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -340,7 +344,7 @@ class AuthApi {
 
   /// Create an account with e-mail and password
   ///
-  /// Creates the user and their personal organization, records consents and sends a verification e-mail.
+  /// Creates the user and their personal organization, records consents and sends a verification e-mail. Errors: 422 `terms_outdated` (terms_version/privacy_version are not the documents in force: reload), 409 `email_taken`, 422 `password_too_short` / `password_too_weak` / `password_breached`. 
   ///
   /// Parameters:
   ///

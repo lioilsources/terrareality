@@ -323,14 +323,16 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, sig string)
 			return nil // already processed
 		}
 		switch ev.Type {
-		case EventCheckoutCompleted:
+		case EventCheckoutCompleted, EventCheckoutAsyncSucceeded:
+			// A delayed payment method completes the session unpaid and
+			// reports the money later (async_payment_succeeded).
 			if ev.PaymentStatus != "paid" {
 				return nil
 			}
 			id, err := s.orderPaid(ctx, q, tx, ev)
 			invoiceID = id
 			return err
-		case EventCheckoutExpired:
+		case EventCheckoutExpired, EventCheckoutAsyncFailed:
 			sid := ev.SessionID
 			o, err := q.SystemGetOrderBySession(ctx, &sid)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -369,18 +371,31 @@ func promotionKinds(kind string) []string {
 	return nil
 }
 
-// orderPaid runs inside the webhook transaction.
+// orderPaid runs inside the webhook transaction. An event whose order does
+// not match the session's order is checked before anything is written: it
+// is logged and audited and acknowledged (2xx), because Stripe's retries
+// would only repeat the mismatch for three days.
 func (s *Service) orderPaid(ctx context.Context, q *db.Queries, tx pgx.Tx, ev Event) (*uuid.UUID, error) {
 	sid := ev.SessionID
-	o, err := q.MarkOrderPaidBySession(ctx, &sid)
+	cur, err := q.SystemGetOrderBySession(ctx, &sid)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil // unknown session or already paid
+		return nil, nil // unknown session
 	}
 	if err != nil {
 		return nil, err
 	}
-	if ev.OrderID != "" && ev.OrderID != o.ID.String() {
-		return nil, fmt.Errorf("stripe event %s: order %s does not match session order %s", ev.ID, ev.OrderID, o.ID)
+	if ev.OrderID != "" && ev.OrderID != cur.ID.String() {
+		s.log().Error("stripe event order does not match the session's order", "event_id", ev.ID,
+			"event_order", ev.OrderID, "session_order", cur.ID)
+		return nil, audit.Record(ctx, q, audit.Event{OrgID: &cur.OrgID, Entity: "order", EntityID: &cur.ID,
+			Action: "billing.webhook_mismatch", Diff: map[string]any{"stripe_event": ev.ID, "event_order": ev.OrderID}})
+	}
+	o, err := q.MarkOrderPaidBySession(ctx, &sid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // already paid (or canceled)
+	}
+	if err != nil {
+		return nil, err
 	}
 	now := s.now()
 	paidAt := now
@@ -390,6 +405,10 @@ func (s *Service) orderPaid(ctx context.Context, q *db.Queries, tx pgx.Tx, ev Ev
 	start := o.StartsAt
 	if start.Before(now) {
 		start = now
+	}
+	// Serializes promotion windows of the listing (PromotionEndOf + CreatePromotion).
+	if _, err := q.LockListing(ctx, o.ListingID); err != nil {
+		return nil, err
 	}
 	var windows []map[string]any
 	for _, kind := range promotionKinds(o.Kind) {
@@ -487,7 +506,8 @@ func (s *Service) invoiceData(ctx context.Context, q *db.Queries, inv db.Invoice
 	d := InvoiceData{Number: inv.Number, IssuedOn: inv.IssuedOn.Time, TaxableSupplyOn: inv.TaxableSupplyOn.Time,
 		DueOn: inv.IssuedOn.Time, Supplier: supplier, Buyer: buyer.Party, Currency: inv.Currency,
 		Lines:    []InvoiceLine{NewInvoiceLine(desc, 1, inv.NetAmount, int(inv.VatRateBp))},
-		OrderRef: o.ID.String(), PaymentMethod: PaymentMethodCardPaid}
+		OrderRef: o.ID.String(), PaymentMethod: PaymentMethodCardPaid,
+		Simplified: Simplified(inv.Currency, inv.GrossAmount, buyer.DIC)}
 	return d, buyer, o, nil
 }
 
@@ -585,14 +605,15 @@ func orderOf(o db.Order, code string, title []byte, inv *uuid.UUID) Order {
 	return Order{Order: o, ProductCode: code, ListingTitle: i18n(title), InvoiceID: inv}
 }
 
-// Orders lists the organization's orders.
-func (s *Service) Orders(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]Order, error) {
+// Orders lists a page of the organization's orders, newest first, older
+// than the order before.
+func (s *Service) Orders(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]Order, error) {
 	var out []Order
 	err := s.asUser(ctx, p, func(q *db.Queries) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermFinanceRead); err != nil {
 			return err
 		}
-		rows, err := q.ListOrders(ctx, orgID)
+		rows, err := q.ListOrders(ctx, db.ListOrdersParams{OrgID: orgID, Before: before, Lim: limit})
 		for _, r := range rows {
 			out = append(out, orderOf(db.Order{ID: r.ID, OrgID: r.OrgID, ListingID: r.ListingID, ProductID: r.ProductID, Kind: r.Kind,
 				DurationDays: r.DurationDays, CreatedBy: r.CreatedBy, Status: r.Status, NetAmount: r.NetAmount, VatAmount: r.VatAmount,
@@ -646,15 +667,16 @@ func (s *Service) Promotions(ctx context.Context, p *auth.Principal, orgID, list
 	return out, err
 }
 
-// InvoiceList lists the organization's invoices.
-func (s *Service) InvoiceList(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]db.Invoice, error) {
+// InvoiceList lists a page of the organization's invoices, newest first,
+// older than the invoice before.
+func (s *Service) InvoiceList(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]db.Invoice, error) {
 	var out []db.Invoice
 	err := s.asUser(ctx, p, func(q *db.Queries) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermFinanceRead); err != nil {
 			return err
 		}
 		var err error
-		out, err = q.ListInvoices(ctx, orgID)
+		out, err = q.ListInvoices(ctx, db.ListInvoicesParams{OrgID: orgID, Before: before, Lim: limit})
 		return err
 	})
 	return out, err

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
 import 'status_repository.dart';
 
+/// "About": the app name and the platform status (reached from Profile).
 class StatusScreen extends ConsumerWidget {
   const StatusScreen({super.key});
 
@@ -14,26 +14,14 @@ class StatusScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final status = ref.watch(platformStatusProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.appName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.pie_chart_outline),
-            tooltip: t.portfolioTitle,
-            onPressed: () => context.push('/portfolio'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.login),
-            tooltip: t.loginTitle,
-            onPressed: () => context.push('/login'),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(t.about)),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(platformStatusProvider.future),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Text(t.appName, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 16),
             Text(t.statusTitle, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             status.when(

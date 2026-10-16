@@ -41,8 +41,10 @@ LEFT JOIN LATERAL (
 WHERE (sqlc.narg(org_id)::uuid IS NULL OR c.org_id = sqlc.narg(org_id)::uuid)
   AND (sqlc.narg(conversation_id)::uuid IS NULL OR c.id = sqlc.narg(conversation_id)::uuid)
   AND (NOT sqlc.arg(as_seeker)::boolean OR c.seeker_id = sqlc.arg(user_id)::uuid)
-ORDER BY c.last_message_at DESC
-LIMIT 200;
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (c.last_message_at, c.id) < (SELECT x.last_message_at, x.id FROM conversations x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY c.last_message_at DESC, c.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: ListMessages :many
 SELECT m.id, m.conversation_id, m.sender_id, m.kind, m.flags, m.removed_at, m.created_at,
@@ -251,7 +253,10 @@ LEFT JOIN messages msg ON msg.id = mc.message_id
 LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
 LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.status = 'open'
-ORDER BY mc.created_at;
+  AND (sqlc.narg(after)::uuid IS NULL
+    OR (mc.created_at, mc.id) > (SELECT x.created_at, x.id FROM moderation_cases x WHERE x.id = sqlc.narg(after)::uuid))
+ORDER BY mc.created_at, mc.id
+LIMIT sqlc.arg(lim);
 
 -- name: GetModerationCase :one
 SELECT mc.*,
@@ -300,3 +305,9 @@ UPDATE messages SET removed_at = now() WHERE id = $1 AND removed_at IS NULL;
 
 -- name: SuspendMessaging :exec
 UPDATE users SET messaging_suspended_at = now() WHERE id = $1 AND messaging_suspended_at IS NULL;
+
+-- name: MessageNotified :one
+-- Whether a recipient's message notification already covers this message
+-- (job retries after a partial failure must not count it twice).
+SELECT EXISTS (SELECT 1 FROM notifications
+  WHERE user_id = sqlc.arg(user_id) AND kind = 'message' AND data->>'message_id' = sqlc.arg(message_id)::text)::boolean;

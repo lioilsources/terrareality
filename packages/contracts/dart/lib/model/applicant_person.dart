@@ -16,7 +16,7 @@ class ApplicantPerson {
     required this.userId,
     required this.displayName,
     required this.verificationLevel,
-    this.incomeProofUrl,
+    required this.hasIncomeProof,
     this.incomeProofName,
     required this.insolvency,
   });
@@ -27,14 +27,8 @@ class ApplicantPerson {
 
   VerificationLevel verificationLevel;
 
-  /// Short-lived download URL.
-  ///
-  /// Please note: This property should have been non-nullable! Since the specification file
-  /// does not include a default value (using the "default:" property), however, the generated
-  /// source code must fall back to having a nullable type.
-  /// Consider adding a "default:" property in the specification file to hide this note.
-  ///
-  String? incomeProofUrl;
+  /// An income proof can be downloaded now (getApplicantIncomeProof); false once the application is closed.
+  bool hasIncomeProof;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -51,7 +45,7 @@ class ApplicantPerson {
     other.userId == userId &&
     other.displayName == displayName &&
     other.verificationLevel == verificationLevel &&
-    other.incomeProofUrl == incomeProofUrl &&
+    other.hasIncomeProof == hasIncomeProof &&
     other.incomeProofName == incomeProofName &&
     other.insolvency == insolvency;
 
@@ -61,23 +55,19 @@ class ApplicantPerson {
     (userId.hashCode) +
     (displayName.hashCode) +
     (verificationLevel.hashCode) +
-    (incomeProofUrl == null ? 0 : incomeProofUrl!.hashCode) +
+    (hasIncomeProof.hashCode) +
     (incomeProofName == null ? 0 : incomeProofName!.hashCode) +
     (insolvency.hashCode);
 
   @override
-  String toString() => 'ApplicantPerson[userId=$userId, displayName=$displayName, verificationLevel=$verificationLevel, incomeProofUrl=$incomeProofUrl, incomeProofName=$incomeProofName, insolvency=$insolvency]';
+  String toString() => 'ApplicantPerson[userId=$userId, displayName=$displayName, verificationLevel=$verificationLevel, hasIncomeProof=$hasIncomeProof, incomeProofName=$incomeProofName, insolvency=$insolvency]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'user_id'] = this.userId;
       json[r'display_name'] = this.displayName;
       json[r'verification_level'] = this.verificationLevel;
-    if (this.incomeProofUrl != null) {
-      json[r'income_proof_url'] = this.incomeProofUrl;
-    } else {
-      json[r'income_proof_url'] = null;
-    }
+      json[r'has_income_proof'] = this.hasIncomeProof;
     if (this.incomeProofName != null) {
       json[r'income_proof_name'] = this.incomeProofName;
     } else {
@@ -109,7 +99,7 @@ class ApplicantPerson {
         userId: mapValueOfType<String>(json, r'user_id')!,
         displayName: mapValueOfType<String>(json, r'display_name')!,
         verificationLevel: VerificationLevel.fromJson(json[r'verification_level'])!,
-        incomeProofUrl: mapValueOfType<String>(json, r'income_proof_url'),
+        hasIncomeProof: mapValueOfType<bool>(json, r'has_income_proof')!,
         incomeProofName: mapValueOfType<String>(json, r'income_proof_name'),
         insolvency: ApplicantPersonInsolvencyEnum.fromJson(json[r'insolvency'])!,
       );
@@ -162,6 +152,7 @@ class ApplicantPerson {
     'user_id',
     'display_name',
     'verification_level',
+    'has_income_proof',
     'insolvency',
   };
 }

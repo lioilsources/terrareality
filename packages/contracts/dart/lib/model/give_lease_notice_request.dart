@@ -14,25 +14,58 @@ class GiveLeaseNoticeRequest {
   /// Returns a new [GiveLeaseNoticeRequest] instance.
   GiveLeaseNoticeRequest({
     required this.deliveredOn,
+    this.reason,
+    this.explanation,
   });
 
   DateTime deliveredOn;
 
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  LandlordNoticeReason? reason;
+
+  /// Facts behind the reason; required for other_serious_reason.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? explanation;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is GiveLeaseNoticeRequest &&
-    other.deliveredOn == deliveredOn;
+    other.deliveredOn == deliveredOn &&
+    other.reason == reason &&
+    other.explanation == explanation;
 
   @override
   int get hashCode =>
     // ignore: unnecessary_parenthesis
-    (deliveredOn.hashCode);
+    (deliveredOn.hashCode) +
+    (reason == null ? 0 : reason!.hashCode) +
+    (explanation == null ? 0 : explanation!.hashCode);
 
   @override
-  String toString() => 'GiveLeaseNoticeRequest[deliveredOn=$deliveredOn]';
+  String toString() => 'GiveLeaseNoticeRequest[deliveredOn=$deliveredOn, reason=$reason, explanation=$explanation]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'delivered_on'] = _dateFormatter.format(this.deliveredOn.toUtc());
+    if (this.reason != null) {
+      json[r'reason'] = this.reason;
+    } else {
+      json[r'reason'] = null;
+    }
+    if (this.explanation != null) {
+      json[r'explanation'] = this.explanation;
+    } else {
+      json[r'explanation'] = null;
+    }
     return json;
   }
 
@@ -56,6 +89,8 @@ class GiveLeaseNoticeRequest {
 
       return GiveLeaseNoticeRequest(
         deliveredOn: mapDateTime(json, r'delivered_on', r'')!,
+        reason: LandlordNoticeReason.fromJson(json[r'reason']),
+        explanation: mapValueOfType<String>(json, r'explanation'),
       );
     }
     return null;

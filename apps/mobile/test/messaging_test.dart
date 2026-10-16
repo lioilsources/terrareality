@@ -47,7 +47,8 @@ class FakeRepo implements MessagingRepository {
   DateTime? peerReadAt;
 
   @override
-  Future<List<Conversation>> conversations() async => [_conv()];
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize}) async =>
+      before == null ? [_conv()] : [];
 
   @override
   Future<ConversationDetail> detail(String id) async =>
@@ -122,6 +123,14 @@ void main() {
     repo.events$.add(RealtimeEvent('read', 'c1', userId: owner, at: DateTime(2026, 10, 14, 13)));
     await tester.pumpAndSettle();
     expect(find.text('Přečteno'), findsOneWidget);
+  });
+
+  testWidgets('each bubble is one semantics node that says who wrote it', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pump(tester, '/zpravy/c1');
+    expect(find.bySemanticsLabel(RegExp(r'^Vaše zpráva\s+Dobrý den, volejte')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Zpráva od Lucie Pronajímatelka\s+Pošlete zálohu předem')), findsOneWidget);
+    handle.dispose();
   });
 
   testWidgets('router knows the messaging routes', (tester) async {

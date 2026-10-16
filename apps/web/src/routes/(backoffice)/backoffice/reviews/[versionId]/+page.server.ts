@@ -1,5 +1,5 @@
 import { error as kitError, fail, redirect } from '@sveltejs/kit';
-import { errorMessage } from '#lib/errors.js';
+import { errorMessage, serviceUnavailable } from '#lib/errors.js';
 import { localizeHref } from '#lib/paraglide/runtime.js';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -11,7 +11,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		locals.api.GET('/v1/attributes')
 	]);
 	if (!detail.data) kitError(404);
-	return { detail: detail.data, schema: schema.data! };
+	if (!schema.data) serviceUnavailable();
+	return { detail: detail.data, schema: schema.data };
 };
 
 export const actions: Actions = {

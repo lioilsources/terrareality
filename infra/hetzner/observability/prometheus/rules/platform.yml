@@ -9,7 +9,7 @@ groups:
           summary: api /healthz is failing
           description: /healthz is not 200 or does not report the worker as ok. Check `curl -s https://api.terrareality.cz/healthz | jq`.
       - alert: ScrapeTargetDown
-        expr: up{job=~"terra-api|terra-worker|node|blackbox-exporter"} == 0
+        expr: up{job=~"terra-api|terra-worker|node|postgres|blackbox-exporter|alertmanager"} == 0
         for: 5m
         labels: { severity: page }
         annotations:
@@ -29,10 +29,25 @@ groups:
         annotations:
           summary: River queue {{ $labels.queue }} has jobs waiting for over 10 minutes
       - alert: JobFailuresHigh
-        expr: sum by (kind) (increase(terra_river_job_runs_total{outcome="job_failed"}[1h])) > 10
+        expr: sum by (kind) (increase(terra_river_job_runs_total{outcome="job_failed",kind!~"ai_suggestion|application_summary|moderation_verdict|process_media"}[1h])) > 10
         labels: { severity: ticket }
         annotations:
           summary: River job {{ $labels.kind }} failed {{ $value }} times in the last hour
+      - alert: LlmJobFailuresHigh
+        # Jobs that call the Spark LLM/vision gateway. Alertmanager mutes component="llm"
+        # 07:00-13:00 Europe/Prague (ComfyUI window, the gateway is down by design; jobs retry).
+        expr: sum by (kind) (increase(terra_river_job_runs_total{outcome="job_failed",kind=~"ai_suggestion|application_summary|moderation_verdict|process_media"}[1h])) > 10
+        for: 15m
+        labels: { severity: ticket, component: llm }
+        annotations:
+          summary: LLM-backed job {{ $labels.kind }} failed {{ $value }} times in the last hour (Spark gateway or WireGuard tunnel)
+      - alert: AlertmanagerNotificationsFailing
+        # Missing secrets file (smtp_password, page_webhook_url), relay down or a wrong URL.
+        expr: sum by (integration) (increase(alertmanager_notifications_failed_total[30m])) > 0
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: Alertmanager cannot deliver {{ $labels.integration }} notifications; check ALERT_SECRETS_DIR and the receiver config (visible in Grafana only)
       - alert: DbPoolSaturated
         expr: max by (job) (terra_db_pool_acquired_conns / terra_db_pool_max_conns) > 0.9
         for: 10m
@@ -55,6 +70,34 @@ groups:
         labels: { severity: page }
         annotations:
           summary: Disk {{ $labels.mountpoint }} on {{ $labels.vm }} fills up within 24 h
+
+  # postgres_exporter on the DB VM (docker-compose.db.yml, job "postgres").
+  - name: terra-postgres
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: postgres_exporter cannot reach PostgreSQL on {{ $labels.instance }}
+      - alert: PostgresConnectionsHigh
+        expr: sum by (instance) (pg_stat_activity_count) / on (instance) max by (instance) (pg_settings_max_connections) > 0.8
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: PostgreSQL uses {{ $value | humanizePercentage }} of max_connections
+      - alert: PostgresLongTransaction
+        # Blocks vacuum and holds locks; usually a stuck job or a forgotten psql session.
+        expr: max by (instance, datname) (pg_stat_activity_max_tx_duration{state!="idle"}) > 3600
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: A transaction in {{ $labels.datname }} has been open for {{ $value | humanizeDuration }}
+      - alert: PostgresDeadlocks
+        expr: sum by (instance, datname) (increase(pg_stat_database_deadlocks{datname="terra"}[15m])) > 5
+        labels: { severity: ticket }
+        annotations:
+          summary: "{{ $value }} deadlocks in {{ $labels.datname }} within 15 min"
 
   # pgBackRest metrics come from /var/lib/node_exporter/textfile/pgbackrest.prom on the
   # DB VM, written by scripts/backup-metrics.sh (repo root; stanza `terra`, systemd timer
@@ -81,6 +124,15 @@ groups:
         labels: { severity: page }
         annotations:
           summary: WAL archive is {{ $value | humanizeDuration }} behind (RPO 1 h at risk)
+      - alert: WalArchiveFailing
+        # archive_command (pgBackRest archive-push) is failing right now (pg_stat_archiver). With
+        # archive-async the spool absorbs up to archive-push-queue-max; beyond it WAL is dropped and
+        # PITR has a gap until the next full backup: fix, then `backup-run.sh full` (backup.md).
+        expr: max(pgbackrest_archive_failing) == 1
+        for: 15m
+        labels: { severity: page }
+        annotations:
+          summary: WAL archiving to Object Storage is failing ({{ $labels.stanza }}); PITR gap risk
       - alert: BackupFailed
         expr: min(pgbackrest_backup_ok) == 0
         for: 5m
@@ -93,3 +145,35 @@ groups:
         labels: { severity: ticket }
         annotations:
           summary: pgbackrest.prom was not refreshed for over 2 h (cron or script broken)
+
+  # Media replica metrics come from /var/lib/node_exporter/textfile/media_replica.prom on the
+  # DB VM, written by scripts/media-replicate.sh (systemd timer terra-media-replicate, hourly).
+  - name: terra-media-replica
+    rules:
+      - alert: MediaReplicaMissing
+        expr: absent(media_replica_last_success_timestamp_seconds)
+        for: 3h
+        labels: { severity: ticket }
+        annotations:
+          summary: No successful media replication recorded (media_replica.prom missing or never succeeded on the DB VM)
+      - alert: MediaReplicaTooOld
+        # Hourly sync: media RPO target 1 h, page after a day without a good run.
+        expr: time() - max(media_replica_last_success_timestamp_seconds) > 26 * 3600
+        for: 15m
+        labels: { severity: page }
+        annotations:
+          summary: Last successful media replication is {{ $value | humanizeDuration }} old (second copy of photos/documents stale)
+      - alert: MediaReplicaFailing
+        # A single failed run is retried next hour; several in a row need a look
+        # (mass-delete guard, credentials, Object Storage outage).
+        expr: min(media_replica_last_run_ok) == 0 and time() - max(media_replica_last_success_timestamp_seconds) > 3 * 3600
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: Media replication failing for over 3 h; check `journalctl -u terra-media-replicate` on the DB VM
+      - alert: MediaReplicaStale
+        expr: time() - max(media_replica_last_run_timestamp_seconds) > 3 * 3600
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: media_replica.prom was not refreshed for over 3 h (timer or script broken)

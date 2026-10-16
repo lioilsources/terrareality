@@ -75,14 +75,14 @@
 	<div class="grid content-start gap-4">
 		<Card>
 			<p class="text-2xl font-semibold" data-testid="public-price">
-				{m.price_per_month({ amount: formatMoney(l.rent_amount, locale) })}
+				{m.price_per_month({ amount: formatMoney(l.rent_amount, l.currency, locale) })}
 			</p>
 			<ul class="mt-2 grid gap-1 text-sm">
 				{#if l.deposit_amount}<li>
-						{m.listing_deposit({ amount: formatMoney(l.deposit_amount, locale) })}
+						{m.listing_deposit({ amount: formatMoney(l.deposit_amount, l.currency, locale) })}
 					</li>{/if}
 				{#if l.utilities_amount}<li>
-						{m.listing_utilities({ amount: formatMoney(l.utilities_amount, locale) })}
+						{m.listing_utilities({ amount: formatMoney(l.utilities_amount, l.currency, locale) })}
 					</li>{/if}
 				{#if l.available_from}<li>
 						{m.listing_available_from({ date: fmtDate(l.available_from, locale) })}
@@ -178,7 +178,7 @@
 							<a href={localizeHref(`/inzerat/${s.id}`)}
 								>{t(s.title, locale) || kindLabel[s.unit_kind]()}</a
 							>
-							· {formatMoney(s.rent_amount, locale)} Kč
+							· {formatMoney(s.rent_amount, s.currency, locale)}
 						</li>
 					{/each}
 				</ul>

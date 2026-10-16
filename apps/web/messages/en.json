@@ -40,7 +40,7 @@
 	"field_role": "Role",
 	"field_reason": "Reason",
 	"field_search": "Search",
-	"password_hint": "At least 10 characters.",
+	"password_hint": "At least 12 characters. Passwords known from data breaches are not accepted.",
 	"login_title": "Sign in",
 	"login_submit": "Sign in",
 	"login_forgot": "Forgot password",
@@ -184,8 +184,9 @@
 	"err_invalid_token": "The link is invalid or has expired.",
 	"err_email_taken": "An account with this e-mail already exists.",
 	"err_email_not_verified": "Please verify your e-mail first.",
-	"err_password_too_short": "The password must have at least 10 characters.",
+	"err_password_too_short": "The password must have at least 12 characters.",
 	"err_password_too_weak": "Choose a less predictable password.",
+	"err_password_breached": "This password has appeared in a data breach elsewhere. Please choose a different one.",
 	"err_rate_limited": "Too many attempts. Try again in a moment.",
 	"err_validation_failed": "Please check the form.",
 	"err_mfa_expired": "The sign-in expired, enter your password again.",
@@ -197,7 +198,7 @@
 	"err_impersonation_forbidden": "Not allowed in a support session.",
 	"err_provider_unavailable": "The sign-in provider is unavailable.",
 	"err_email_required": "The provider did not share a verified e-mail.",
-	"err_staff_mfa_required": "Staff accounts must have two-factor authentication on.",
+	"err_staff_mfa_required": "Staff access requires two-factor authentication. Turn it on if needed and sign in again with your authenticator code.",
 	"listings_title": "Listings",
 	"listings_new": "New listing",
 	"listings_empty": "No listings yet.",
@@ -289,7 +290,7 @@
 	"version_approved": "approved",
 	"version_rejected": "returned",
 	"version_withdrawn": "superseded",
-	"price_per_month": "CZK {amount}/month",
+	"price_per_month": "{amount}/month",
 	"saved": "Saved.",
 	"err_invalid_fields": "Some fields are not valid.",
 	"err_deposit_over_limit": "The deposit may be at most {months}× the monthly rent.",
@@ -320,7 +321,16 @@
 	"search_title": "Rentals",
 	"search_chat_placeholder": "Describe what you are looking for – e.g. “2+kk up to 18 000 in Praha 6 with a dog”",
 	"search_chat_submit": "Search",
-	"search_results": "{count} listings",
+	"search_results": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} listing",
+				"countPlural=*": "{count} listings"
+			}
+		}
+	],
 	"search_no_results": "Nothing found. Try relaxing the filters.",
 	"search_filters": "Filters",
 	"search_apply": "Apply filters",
@@ -344,13 +354,22 @@
 	"search_saved": "Search saved. We will e-mail you new listings.",
 	"search_save_name": "Search name",
 	"search_degraded": "AI is offline right now, simple rules were used.",
-	"search_median": "median CZK {amount}",
+	"search_median": "median {amount}",
 	"listing_similar": "Similar listings",
 	"listing_location_approx": "The location is approximate.",
 	"listing_available_from": "Available from {date}",
-	"listing_deposit": "Deposit CZK {amount}",
-	"listing_utilities": "Utilities CZK {amount}",
-	"listing_min_term": "Min. {months} months",
+	"listing_deposit": "Deposit {amount}",
+	"listing_utilities": "Utilities {amount}",
+	"listing_min_term": [
+		{
+			"declarations": ["input months", "local monthsPlural = months: plural"],
+			"selectors": ["monthsPlural"],
+			"match": {
+				"monthsPlural=one": "Min. {months} month",
+				"monthsPlural=*": "Min. {months} months"
+			}
+		}
+	],
 	"nav_saved_searches": "Saved searches",
 	"saved_empty": "No saved searches yet.",
 	"saved_open": "Open",
@@ -359,7 +378,16 @@
 	"msg_inbox_empty": "No conversations yet. Contact a landlord from a listing.",
 	"msg_role_seeker": "Searching",
 	"msg_role_owner": "Letting",
-	"msg_unread": "{count} unread",
+	"msg_unread": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} unread",
+				"countPlural=*": "{count} unread"
+			}
+		}
+	],
 	"msg_contact_title": "Contact the landlord",
 	"msg_contact_login": "Log in to contact the landlord.",
 	"msg_contact_existing": "You are already talking to this landlord.",
@@ -487,7 +515,16 @@
 	"app_slots_empty": "The landlord has not offered any viewing times yet.",
 	"app_slot_book": "Book",
 	"app_slot_full": "full",
-	"app_slot_free": "{count} free",
+	"app_slot_free": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} place free",
+				"countPlural=*": "{count} places free"
+			}
+		}
+	],
 	"app_booking": "Your viewing",
 	"app_booking_cancel": "Cancel booking",
 	"app_reason": "Reason",
@@ -637,7 +674,7 @@
 	"lease_state_cancelled": "Cancelled",
 	"lease_code": "Lease code (VS)",
 	"lease_propose": "Send for signature",
-	"lease_sign": "Sign (test signature)",
+	"lease_sign": "Sign the lease",
 	"lease_signed_badge": "signed",
 	"lease_not_signed": "not signed",
 	"lease_documents": "Documents",
@@ -661,7 +698,16 @@
 	"lease_pay_qr": "Pay with the QR code",
 	"lease_ledger_csv": "Ledger (CSV)",
 	"lease_chain": "Audit chain",
-	"lease_chain_ok": "The event chain is intact ({count} entries).",
+	"lease_chain_ok": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "The event chain is intact ({count} entry).",
+				"countPlural=*": "The event chain is intact ({count} entries)."
+			}
+		}
+	],
 	"lease_chain_broken": "The event chain is broken!",
 	"lease_notice": "Give notice",
 	"lease_notice_on": "Notice delivered on",
@@ -710,7 +756,16 @@
 	"pf_of_expected": "of {amount} expected",
 	"pf_cities": "Municipalities",
 	"pf_city_share": "{share} % of income",
-	"pf_city_leases": "leases: {count}",
+	"pf_city_leases": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} lease",
+				"countPlural=*": "{count} leases"
+			}
+		}
+	],
 	"pf_city_vacant": "vacant: {count}",
 	"pf_unknown_city": "Unknown municipality",
 	"pf_concentration": "Concentration",
@@ -815,10 +870,28 @@
 	"risk_factor_market_supply": "Time on market locally",
 	"risk_detail_debt": "{amount} (monthly {monthly})",
 	"risk_detail_escalations": "{count}×",
-	"risk_detail_overdue_days": "{days} days overdue",
+	"risk_detail_overdue_days": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "{days} day overdue",
+				"daysPlural=*": "{days} days overdue"
+			}
+		}
+	],
 	"risk_detail_deposit_coverage": "paid {paid} of {deposit}, uncovered {uncovered}",
 	"risk_detail_passport": "verified identity {identity}/{tenants}, income proof {income}/{tenants}, insolvency records {records}",
-	"risk_detail_term_end": "{days} days left",
+	"risk_detail_term_end": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "{days} day left",
+				"daysPlural=*": "{days} days left"
+			}
+		}
+	],
 	"risk_detail_term_indefinite": "indefinite",
 	"risk_detail_joint": "paying {paying}, behind {behind}",
 	"risk_detail_market_rent": "{ratio}× the median {median} ({listings} listings)",
@@ -917,7 +990,16 @@
 	"billing_col_start": "Start",
 	"billing_col_status": "Status",
 	"billing_col_taxable": "Taxable supply",
-	"billing_days": "{days} days",
+	"billing_days": [
+		{
+			"declarations": ["input days", "local daysPlural = days: plural"],
+			"selectors": ["daysPlural"],
+			"match": {
+				"daysPlural=one": "{days} day",
+				"daysPlural=*": "{days} days"
+			}
+		}
+	],
 	"billing_net": "Net",
 	"billing_vat": "VAT",
 	"billing_gross": "Gross",
@@ -1031,5 +1113,121 @@
 	"bo_open_listing": "Open listing",
 	"err_reporter_email_required": "Enter a valid e-mail so we can send you an acknowledgement.",
 	"err_invalid_explanation": "The explanation must be 20 to 2000 characters long.",
-	"err_note_required": "Add the reasons for the decision."
+	"err_note_required": "Add the reasons for the decision.",
+	"search_default_name": "Search",
+	"lang_name_cs": "Čeština",
+	"lang_name_en": "English",
+	"login_mock_suffix": " (mock)",
+	"err_unavailable": "The service is unavailable right now. Please try again shortly.",
+	"err_unauthenticated": "Your session has expired. Please sign in again.",
+	"err_forbidden": "You are not allowed to do this.",
+	"err_not_found": "The item does not exist or was deleted.",
+	"err_conflict": "The state changed meanwhile. Reload the page and try again.",
+	"err_renderer_unavailable": "The document cannot be generated right now. Please try later.",
+	"err_invalid_redirect": "Invalid return address.",
+	"err_invalid_provider": "This signing method is not available right now.",
+	"err_terms_outdated": "The terms have changed. Reload the page and accept the current version.",
+	"err_not_a_party": "You are not a party to this lease.",
+	"err_lease_not_proposed": "Changes can only be requested while the lease awaits signatures.",
+	"err_lease_not_active": "The lease is not active.",
+	"err_lease_not_terminated": "The deposit is settled after the lease ends.",
+	"err_document_changed": "A new version of the lease was proposed meanwhile. Reload the page and review it.",
+	"err_party_incomplete": "Every tenant needs a name and an e-mail.",
+	"err_rent_required": "Enter the rent.",
+	"err_tenant_required": "The lease needs at least one tenant.",
+	"err_payee_required": "Enter the payee account and name.",
+	"err_address_required": "Enter the property address.",
+	"err_comment_required": "Add a comment.",
+	"err_invalid_due_day": "The due day must be 1 to 28.",
+	"err_invalid_term": "The lease must end after it starts.",
+	"err_invalid_clause": "Unknown lease clause.",
+	"err_currency_mismatch": "The payment is in a different currency than the charge.",
+	"err_notice_not_allowed": "Only a tenant, co-tenant or the landlord can give notice (not a guarantor or subtenant).",
+	"err_tenant_only": "Only a tenant can do this.",
+	"err_already_paid": "This payment is already settled.",
+	"err_share_paid": "This share is already paid.",
+	"err_revolut_not_connected": "The landlord has not connected Revolut.",
+	"err_payment_provider_unavailable": "The payment provider is unavailable right now. Please try later.",
+	"err_bank_not_linked": "Link a bank account first.",
+	"err_bank_unavailable": "The bank is unavailable right now. Please try later.",
+	"err_billing_unavailable": "Billing is unavailable right now. Please try later.",
+	"err_invitation_expired": "The invitation has expired. Ask for a new one.",
+	"err_invalid_transition": "This status change is not possible.",
+	"err_application_closed": "The application is no longer open.",
+	"err_slot_in_past": "This time slot is in the past.",
+	"err_message_too_long": "The message is too long.",
+	"err_account_erased": "This account was erased.",
+	"err_erasure_in_progress": "The account erasure is in progress.",
+	"err_export_not_ready": "The export is not ready yet.",
+	"err_mfa_already_enabled": "Two-factor authentication is already enabled.",
+	"err_mfa_not_enabled": "Two-factor authentication is not enabled.",
+	"err_mfa_not_pending": "The two-factor setup expired. Start again.",
+	"err_phone_verification_unavailable": "Phone verification is unavailable right now.",
+	"err_owner_required": "Only an owner can make this change.",
+	"err_promo_code_taken": "This code already exists.",
+	"err_invalid_email": "Enter a valid e-mail.",
+	"err_invalid_amount": "Invalid amount.",
+	"err_group_exists": "A group with this name already exists.",
+	"err_about_too_long": "The about text is too long.",
+	"err_unknown_area": "Unknown area.",
+	"err_listing_not_published": "The listing is not published.",
+	"err_impersonation_not_allowed": "This user cannot be impersonated.",
+	"lease_sign_method": "Signing method",
+	"lease_sign_method_simple": "simple electronic signature",
+	"lease_sign_method_simple_hint": "You sign by confirming in your signed-in account; we record the time, IP address and the document fingerprint. This is not an advanced or qualified electronic signature.",
+	"lease_sign_confirm": "I have read the lease and want to sign it ({method}).",
+	"lease_sign_confirm_required": "To sign, confirm that you have read the lease.",
+	"msg_load_older": "Load older messages",
+	"err_impersonation_nested": "End the current impersonation first.",
+	"ai_blur_applying": "The blur is being applied…",
+	"tenant_verify_for_leases": "Your leases appear here once the e-mail {email} is verified.",
+	"reason_privacy_review_pending": "Photos: decide on blurring faces and number plates",
+	"err_landlord_notice_reason_required": "State a statutory reason; for another similarly serious reason also describe the facts.",
+	"err_invalid_delivered_on": "The delivery date must be at most 30 days ago and at most 7 days ahead.",
+	"err_email_unverified": "Please verify your e-mail first.",
+	"err_listing_already_accepted": "Another application was already accepted for this listing.",
+	"err_invalid_query": "Invalid search parameters.",
+	"paging_label": "Pagination",
+	"paging_more": "Load more",
+	"paging_first": "Back to newest",
+	"lease_sign_method_qualified": "qualified signature (Bank iD)",
+	"lease_sign_method_qualified_hint": "You will be redirected to your bank (Bank iD) and sign the lease with a qualified electronic signature.",
+	"lease_sign_choose": "Choose how to sign",
+	"lease_sign_confirm_chosen": "I have read the lease and want to sign it with the chosen method.",
+	"lease_sign_unavailable": "Signing is not available right now. Please try again later.",
+	"lease_sign_provider_required": "Choose a signing method.",
+	"lease_notice_landlord": "Landlord's notice",
+	"lease_notice_landlord_intro": "A landlord may end the lease only for a statutory reason (§ 2288 of the Civil Code). The notice period is at least 3 months.",
+	"lease_notice_landlord_written": "The notice must be in writing, delivered to the tenant and must inform them of the right to object and to ask a court to review whether the notice is justified (§ 2286 and § 2290 of the Civil Code). The platform only records the notice and its delivery date; deliver the written notice to the tenant yourself.",
+	"lease_notice_reason": "Reason for notice",
+	"lease_notice_reason_choose": "Choose a reason…",
+	"lease_notice_reason_gross_breach_tenant": "The tenant grossly breaches their duties (§ 2288(1)(a))",
+	"lease_notice_reason_conviction": "The tenant was convicted of an intentional crime against the landlord, a household member, a resident of the house or property in the house (§ 2288(1)(b))",
+	"lease_notice_reason_public_interest_vacate": "The flat must be vacated because the flat or house is to be dealt with in the public interest so that it cannot be used (§ 2288(1)(c))",
+	"lease_notice_reason_other_serious_reason": "Another similarly serious reason – describe it below (§ 2288(1)(d))",
+	"lease_notice_reason_flat_needed_for_landlord_or_relative": "The flat is to be used by the landlord, their spouse or a close relative – indefinite-term leases only (§ 2288(2))",
+	"lease_notice_explanation": "Facts behind the reason",
+	"lease_notice_explanation_hint": "Required for \"another similarly serious reason\"; recommended otherwise.",
+	"lease_notice_delivered_hint": "The day the tenant received the written notice (at most 30 days ago, at most 7 days ahead).",
+	"lease_notice_landlord_confirm": "I confirm the notice was (or will be) delivered to the tenant in writing and informs them of the right to object and ask a court to review it.",
+	"lease_notice_landlord_confirm_required": "Confirm that the notice is in writing and informs the tenant of the right to a court review.",
+	"lease_notice_landlord_submit": "Record the notice",
+	"lease_notice_explanation_required": "For another similarly serious reason, describe the facts behind the notice.",
+	"lease_notice_delivered_required": "Fill in the date the notice was delivered.",
+	"security_session_expires": "valid until {date}",
+	"own_slot_delete_confirm": "Delete this slot?",
+	"own_slot_delete_confirm_booked": "Delete this slot? Its bookings are cancelled and every booked applicant gets an e-mail and a notification (bookings: {count}).",
+	"own_slot_delete_hint": "Deleting cancels the bookings and notifies the applicants.",
+	"bo_privacy_flags_title": "Photos awaiting a privacy check",
+	"bo_privacy_flags_intro": "The suggested blur (faces, licence plates, personal data) was not applied to these photos. Check them before approving.",
+	"bo_privacy_flags_none": "No open privacy flags.",
+	"bo_privacy_flag_photo": "Photo {id}",
+	"bo_privacy_status_generating": "blur suggestion in progress",
+	"bo_privacy_status_pending": "the owner has not decided yet",
+	"bo_privacy_status_rejected": "the owner kept the photo unblurred",
+	"bo_privacy_status_failed": "blur suggestion failed",
+	"err_notice_reason_not_applicable": "This reason applies only to leases for an indefinite term.",
+	"err_invalid_role": "Invalid role.",
+	"err_income_proof_not_found": "The income proof is no longer available (the application is closed or the file was deleted).",
+	"err_application_not_found": "The application does not exist or you have no access to it."
 }

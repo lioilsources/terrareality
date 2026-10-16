@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push (APNs through FCM). Xcode switches this to "production" when the
+	     build is exported with a distribution profile. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Universal Links: needs /.well-known/apple-app-site-association on
+	     both hosts (served by the web, see docs/runbooks/launch.md section 8).
+	     The entitlement only names the hosts; the paths the app claims
+	     (/zpravy/*, /zadosti/*, /smlouvy/*, /inzerat/*, /prohlidky*,
+	     /auth/magic, /auth/reset) are listed in that AASA file. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:terrareality.cz</string>
+		<string>applinks:app.terrareality.cz</string>
+	</array>
+</dict>
+</plist>

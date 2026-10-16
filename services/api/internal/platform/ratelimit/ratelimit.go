@@ -46,8 +46,11 @@ func (l *Limiter) Take(key string) (bool, time.Duration) {
 	defer l.mu.Unlock()
 	now := time.Now()
 	if now.Sub(l.lastGC) > 10*time.Minute {
+		// A bucket is forgotten only once it would be full again; a slow
+		// rule (a daily cap) must not reset after an idle hour.
+		idle := max(time.Hour, l.every*time.Duration(l.burst))
 		for k, e := range l.buckets {
-			if now.Sub(e.seen) > time.Hour {
+			if now.Sub(e.seen) > idle {
 				delete(l.buckets, k)
 			}
 		}

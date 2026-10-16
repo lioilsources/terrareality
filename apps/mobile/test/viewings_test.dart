@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:terra_api/api.dart';
 import 'package:terrareality/src/app.dart';
 import 'package:terrareality/src/applications/applications_repository.dart';
+import 'package:terrareality/src/push/push_registrar.dart';
 import 'package:terrareality/src/viewings/viewings_repository.dart';
 
 Viewing _viewing(String id, String slot) => Viewing(
@@ -77,14 +80,31 @@ class FakeViewings implements ViewingsRepository {
   Future<void> cancel(String bookingId) => bookings.cancel(bookingId);
 }
 
-Future<FakeBookings> _pump(WidgetTester tester) async {
+class _Push implements PushRegistrar {
+  final taps = StreamController<Map<String, String>>.broadcast();
+
+  @override
+  Future<String?> token() async => null;
+
+  @override
+  Future<Map<String, String>?> initialMessage() async => null;
+
+  @override
+  Stream<Map<String, String>> get opened => taps.stream;
+
+  @override
+  Stream<String> get tokenRefresh => const Stream.empty();
+}
+
+Future<FakeBookings> _pump(WidgetTester tester, {PushRegistrar? push, String location = '/prohlidky'}) async {
   final repo = FakeBookings();
   await tester.pumpWidget(ProviderScope(
     overrides: [
       viewingsRepositoryProvider.overrideWithValue(FakeViewings(repo)),
       applicationsRepositoryProvider.overrideWithValue(repo),
+      if (push != null) pushRegistrarProvider.overrideWithValue(push),
     ],
-    child: TerraApp(locale: const Locale('cs'), router: createRouter(initialLocation: '/prohlidky')),
+    child: TerraApp(locale: const Locale('cs'), router: createRouter(initialLocation: location)),
   ));
   await tester.pumpAndSettle();
   return repo;
@@ -119,5 +139,40 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('viewing-b2')), findsOneWidget);
+  });
+
+  testWidgets('a viewing the landlord cancelled: the push opens viewings with a notice, the booking is gone',
+      (tester) async {
+    final push = _Push();
+    final repo = await _pump(tester, push: push);
+    expect(find.byKey(const Key('viewing-b1')), findsOneWidget);
+
+    // The landlord deletes the slot: the API cancels the booking and pushes
+    // (internal/applications/push.go: kind application + event).
+    repo.booking = null;
+    push.taps.add({
+      'kind': 'application',
+      'id': 'a1',
+      'event': 'viewing_cancelled',
+      'status': 'invited',
+      'link': 'https://terrareality.cz/zadosti/a1',
+    });
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('viewing-cancelled')), findsOneWidget);
+    expect(find.textContaining('Pronajímatel prohlídku zrušil'), findsOneWidget);
+    // Fresh data: the stale booking is not listed (also on the screen below).
+    expect(find.byKey(const Key('viewing-b1')), findsNothing);
+    expect(find.text('Nemáte domluvenou žádnou prohlídku.'), findsOneWidget);
+
+    // From the notice to the application, where another slot can be booked.
+    await tester.tap(find.byKey(const Key('open-cancelled-application')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rezervovat'), findsOneWidget);
+    expect(find.byKey(const Key('booking')), findsNothing);
+  });
+
+  testWidgets('the viewings screen without a cancellation shows no notice', (tester) async {
+    await _pump(tester);
+    expect(find.byKey(const Key('viewing-cancelled')), findsNothing);
   });
 }

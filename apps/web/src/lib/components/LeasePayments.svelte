@@ -14,6 +14,7 @@
 		due_on: string;
 		amount: number;
 		paid_amount: number;
+		currency: string;
 		party_name: string;
 		mine: boolean;
 		status: string;
@@ -89,9 +90,9 @@
 						{s.period}</td
 					>
 					<td class="py-1.5 pr-3">{s.party_name}</td>
-					<td class="py-1.5 pr-3 text-right">{formatMoney(s.amount, locale)} Kč</td>
+					<td class="py-1.5 pr-3 text-right">{formatMoney(s.amount, s.currency, locale)}</td>
 					<td class="py-1.5 pr-3 text-right" data-testid="share-paid"
-						>{formatMoney(s.paid_amount, locale)} Kč</td
+						>{formatMoney(s.paid_amount, s.currency, locale)}</td
 					>
 					<td class="py-1.5">
 						{#if open && landlord}

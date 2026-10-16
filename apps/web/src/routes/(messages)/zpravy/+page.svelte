@@ -7,6 +7,7 @@
 	import { fmtDate } from '#lib/labels.js';
 	import { connect } from '#lib/realtime.js';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -58,3 +59,4 @@
 		{/each}
 	</ul>
 {/if}
+<LoadMore next={data.paging.next} first={data.paging.first} testid="inbox-more" />

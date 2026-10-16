@@ -85,6 +85,7 @@ func TestPortfolioAcceptance(t *testing.T) {
 	for _, sp := range specs {
 		email := uniqueEmail("t-" + strings.ToLower(sp.city))
 		tenants[sp.city] = e.register(email)
+		e.verifyEmail(email) // parties link to verified accounts only
 		body := map[string]any{"template": sp.template, "starts_on": start.Format("2006-01-02"), "rent_amount": sp.rent,
 			"services_amount": sp.services, "deposit_amount": 2 * sp.rent, "due_day": 15, "payee_iban": "CZ65 0800 0000 1920 0014 5399",
 			"payee_name": "Rodinné investice s.r.o.", "property_address": sp.address, "unit_label": "2+kk",
@@ -361,7 +362,7 @@ func TestPortfolioAcceptance(t *testing.T) {
 	if !ok {
 		t.Fatal("no invitation")
 	}
-	e.must(200, "POST", "/v1/invitations/"+notify.LinkToken(inv.Text)+"/accept", invTok, nil, nil)
+	e.must(200, "POST", "/v1/invitations/accept", invTok, map[string]string{"token": notify.LinkToken(inv.Text)}, nil)
 	e.must(200, "GET", orgPath+"/portfolio", invTok, nil, nil)
 	e.must(200, "GET", orgPath+"/portfolio/rent-roll", invTok, nil, &rr)
 	if rr.Role != "investor" || rr.Totals.Leases != 3 {

@@ -17,6 +17,11 @@ func LeaseWorkflowID(id uuid.UUID) string { return "lease-" + id.String() }
 // continues as new.
 const lifecycleBatch = 24
 
+// activityAttempts bounds the retries of an activity (about eight hours at
+// the ten-minute maximum interval): a permanent failure fails the workflow
+// visibly instead of retrying forever.
+const activityAttempts = 50
+
 // LeaseLifecycle drives a signed lease: it activates the lease on the start
 // date, sends reminders before and after every due date (D-3, D+1) and
 // escalates at D+7 while a share is unpaid, extends the schedule of
@@ -26,7 +31,7 @@ func LeaseLifecycle(ctx workflow.Context, leaseID uuid.UUID, after time.Time) er
 	var a *leasing.Activities
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute,
-		RetryPolicy:         &temporal.RetryPolicy{MaximumInterval: 10 * time.Minute},
+		RetryPolicy:         &temporal.RetryPolicy{MaximumInterval: 10 * time.Minute, MaximumAttempts: activityAttempts},
 	})
 	sleepUntil := func(t time.Time) error {
 		if d := t.Sub(workflow.Now(ctx)); d > 0 {
@@ -37,6 +42,9 @@ func LeaseLifecycle(ctx workflow.Context, leaseID uuid.UUID, after time.Time) er
 	var info leasing.Info
 	if err := workflow.ExecuteActivity(ctx, a.Info, leaseID).Get(ctx, &info); err != nil {
 		return err
+	}
+	if !leasing.Running(info.State) {
+		return nil // deleted, cancelled or already ended: nothing to drive
 	}
 	if info.State == "signed" {
 		if err := sleepUntil(info.StartsOn); err != nil {

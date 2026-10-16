@@ -22,6 +22,9 @@ Status: accepted (M4, 2026-10-14)
    with a server-side subscription to their user channel) and a subscription token for a
    conversation channel from the api; the web app proxies both through its server because the
    session cookie is HttpOnly. A failed publish is logged; clients reload the thread on reconnect.
+   Centrifugo history exists only for reconnect recovery, not as a message store: `conv` keeps the
+   last 100 publications for 168 h, `user` 50 for 168 h (shortened from 720 h in M8b, review; the
+   database is the record and is subject to erasure, Centrifugo memory is not).
 5. **Notifications by a delayed job.** Each message schedules `message_notify`
    (`MESSAGE_NOTIFY_DELAY`, 20 s by default). If the recipient has read the conversation by then
    nothing happens. Otherwise an in-app notification is created or bumped (one unread notification

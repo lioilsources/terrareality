@@ -11,8 +11,10 @@ interface Props {
   altLabel: string;
   /** cs/en URLs of this page; emits hreflang alternates (x-default = cs). */
   alternates?: { cs: string; en: string } | null;
+  /** Keep the page out of search results (e.g. a locality without listings). */
+  noindex?: boolean;
 }
-const { title, description, lang, altHref, altLabel, alternates } = Astro.props;
+const { title, description, lang, altHref, altLabel, alternates, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const prefix = lang === 'en' ? '/en' : '';
 const legal = [
@@ -31,6 +33,7 @@ const legal = [
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
     {
       alternates ? (
         <>

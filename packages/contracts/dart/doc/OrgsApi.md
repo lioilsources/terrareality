@@ -9,15 +9,15 @@ All URIs are relative to *http://localhost:8080*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**acceptInvitation**](OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/{token}/accept | Accept an invitation; the invitee e-mail must match my account
+[**acceptInvitation**](OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/accept | Accept an invitation; the invitee e-mail must match my account
 [**createOrg**](OrgsApi.md#createorg) | **POST** /v1/orgs | Create a company organization; the caller becomes its owner
 [**createOrgInvitation**](OrgsApi.md#createorginvitation) | **POST** /v1/orgs/{orgId}/invitations | Invite someone by e-mail (owner, admin)
-[**getInvitation**](OrgsApi.md#getinvitation) | **GET** /v1/invitations/{token} | Preview an invitation before accepting it
 [**getOrg**](OrgsApi.md#getorg) | **GET** /v1/orgs/{orgId} | One organization and my role in it
 [**listMyOrgs**](OrgsApi.md#listmyorgs) | **GET** /v1/orgs | Organizations I belong to, personal first
 [**listOrgAudit**](OrgsApi.md#listorgaudit) | **GET** /v1/orgs/{orgId}/audit | Audit log of an organization (owner, admin)
 [**listOrgInvitations**](OrgsApi.md#listorginvitations) | **GET** /v1/orgs/{orgId}/invitations | Open invitations
 [**listOrgMembers**](OrgsApi.md#listorgmembers) | **GET** /v1/orgs/{orgId}/members | Members of an organization
+[**lookupInvitation**](OrgsApi.md#lookupinvitation) | **POST** /v1/invitations/lookup | Preview an invitation before accepting it
 [**removeOrgMember**](OrgsApi.md#removeorgmember) | **DELETE** /v1/orgs/{orgId}/members/{userId} | Remove a member, or leave the organization when userId is me
 [**revokeOrgInvitation**](OrgsApi.md#revokeorginvitation) | **DELETE** /v1/orgs/{orgId}/invitations/{invitationId} | Revoke an open invitation
 [**updateOrg**](OrgsApi.md#updateorg) | **PATCH** /v1/orgs/{orgId} | Update organization details (owner, admin)
@@ -25,9 +25,11 @@ Method | HTTP request | Description
 
 
 # **acceptInvitation**
-> OrgMembership acceptInvitation(token)
+> OrgMembership acceptInvitation(invitationTokenInput)
 
 Accept an invitation; the invitee e-mail must match my account
+
+Errors: 404 `invitation_not_found`, 403 `invitation_email_mismatch`, 409 `invitation_accepted` / `invitation_revoked` / `invitation_expired`. 
 
 ### Example
 ```dart
@@ -40,10 +42,10 @@ import 'package:terra_api/api.dart';
 //defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
 
 final api_instance = OrgsApi();
-final token = token_example; // String | 
+final invitationTokenInput = InvitationTokenInput(); // InvitationTokenInput | 
 
 try {
-    final result = api_instance.acceptInvitation(token);
+    final result = api_instance.acceptInvitation(invitationTokenInput);
     print(result);
 } catch (e) {
     print('Exception when calling OrgsApi->acceptInvitation: $e\n');
@@ -54,7 +56,7 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **token** | **String**|  | 
+ **invitationTokenInput** | [**InvitationTokenInput**](InvitationTokenInput.md)|  | 
 
 ### Return type
 
@@ -66,7 +68,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -163,47 +165,6 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/json, application/problem+json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **getInvitation**
-> InvitationPreview getInvitation(token)
-
-Preview an invitation before accepting it
-
-### Example
-```dart
-import 'package:terra_api/api.dart';
-
-final api_instance = OrgsApi();
-final token = token_example; // String | 
-
-try {
-    final result = api_instance.getInvitation(token);
-    print(result);
-} catch (e) {
-    print('Exception when calling OrgsApi->getInvitation: $e\n');
-}
-```
-
-### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **token** | **String**|  | 
-
-### Return type
-
-[**InvitationPreview**](InvitationPreview.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -439,6 +400,49 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **lookupInvitation**
+> InvitationPreview lookupInvitation(invitationTokenInput)
+
+Preview an invitation before accepting it
+
+The token travels in the body so it never lands in access logs (review S-A2).
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+
+final api_instance = OrgsApi();
+final invitationTokenInput = InvitationTokenInput(); // InvitationTokenInput | 
+
+try {
+    final result = api_instance.lookupInvitation(invitationTokenInput);
+    print(result);
+} catch (e) {
+    print('Exception when calling OrgsApi->lookupInvitation: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **invitationTokenInput** | [**InvitationTokenInput**](InvitationTokenInput.md)|  | 
+
+### Return type
+
+[**InvitationPreview**](InvitationPreview.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

@@ -1,10 +1,25 @@
-import { SITE_URL, expect, open, test } from './env';
+import { BASE_URL, SITE_URL, expect, open, test } from './env';
 
 test('site landing renders', async ({ page, consoleErrors }) => {
 	await open(page, `${SITE_URL}/`);
 	await expect(page.locator('h1').first()).toBeVisible();
 	await expect(page).toHaveTitle(/.+/);
 	expect(consoleErrors).toEqual([]);
+});
+
+test('site links into the production web app (PUBLIC_APP_URL)', async ({ page }) => {
+	await open(page, `${SITE_URL}/`);
+	const app = new URL(BASE_URL).host;
+	const ctas = page.locator('main a[href^="http"]');
+	expect(await ctas.count()).toBeGreaterThan(0);
+	for (const href of await ctas.evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href))) {
+		expect(new URL(href).host, href).toBe(app);
+	}
+	for (const href of await page
+		.locator('footer a[href^="http"]')
+		.evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href))) {
+		expect(new URL(href).host, href).toBe(app);
+	}
 });
 
 test('site Praha page lists offers', async ({ page, consoleErrors }) => {

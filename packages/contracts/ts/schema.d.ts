@@ -50,6 +50,8 @@ export interface paths {
         /**
          * Create an account with e-mail and password
          * @description Creates the user and their personal organization, records consents and sends a verification e-mail.
+         *     Errors: 422 `terms_outdated` (terms_version/privacy_version are not the documents in force: reload),
+         *     409 `email_taken`, 422 `password_too_short` / `password_too_weak` / `password_breached`.
          */
         post: operations["register"];
         delete?: never;
@@ -67,7 +69,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Log in with e-mail and password */
+        /**
+         * Log in with e-mail and password
+         * @description Errors: 401 `invalid_credentials`; 429 `rate_limited` while the account is locked after repeated
+         *     failures (the lock grows exponentially up to an hour; the owner is e-mailed after the fifth failure).
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -391,7 +397,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send a verification code by SMS */
+        /**
+         * Send a verification code by SMS
+         * @description Errors: 503 `phone_verification_unavailable` while SMS verification is switched off.
+         */
         post: operations["startPhoneVerification"];
         delete?: never;
         options?: never;
@@ -669,24 +678,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/invitations/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Preview an invitation before accepting it */
-        get: operations["getInvitation"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/invitations/{token}/accept": {
+    "/v1/invitations/lookup": {
         parameters: {
             query?: never;
             header?: never;
@@ -695,7 +687,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accept an invitation; the invitee e-mail must match my account */
+        /**
+         * Preview an invitation before accepting it
+         * @description The token travels in the body so it never lands in access logs (review S-A2).
+         */
+        post: operations["lookupInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation; the invitee e-mail must match my account
+         * @description Errors: 404 `invitation_not_found`, 403 `invitation_email_mismatch`,
+         *     409 `invitation_accepted` / `invitation_revoked` / `invitation_expired`.
+         */
         post: operations["acceptInvitation"];
         delete?: never;
         options?: never;
@@ -851,7 +867,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Listings of an organization */
+        /**
+         * Listings of an organization
+         * @description Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+         */
         get: operations["listListings"];
         put?: never;
         /** Wizard step 1 – address and unit; creates a draft listing */
@@ -892,7 +911,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send the working copy to moderation as a new version */
+        /**
+         * Send the working copy to moderation as a new version
+         * @description Errors: 422 `invalid_fields`; a photo with an undecided privacy flag is reported as field `photos` with reason `privacy_review_pending`.
+         */
         post: operations["submitListing"];
         delete?: never;
         options?: never;
@@ -1015,7 +1037,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accept (all or selected attributes) or reject an AI suggestion */
+        /**
+         * Accept (all or selected attributes) or reject an AI suggestion
+         * @description An accepted `privacy_blur` suggestion answers with status `pending`: the decision is recorded and the
+         *     blurred photo replaces the original in the background, after which the status becomes `accepted`.
+         */
         post: operations["decideSuggestion"];
         delete?: never;
         options?: never;
@@ -1117,7 +1143,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Faceted search over published listings with map aggregates */
+        /**
+         * Faceted search over published listings with map aggregates
+         * @description Errors: 400 `invalid_query` (detail names the problem), 400 `unknown_attribute`.
+         */
         post: operations["search"];
         delete?: never;
         options?: never;
@@ -1134,7 +1163,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Natural-language search – turns a message into filters and a map area, then searches */
+        /**
+         * Natural-language search – turns a message into filters and a map area, then searches
+         * @description Errors: 400 `invalid_query`.
+         */
         post: operations["chatSearch"];
         delete?: never;
         options?: never;
@@ -1240,7 +1272,10 @@ export interface paths {
         /** My saved searches */
         get: operations["listSavedSearches"];
         put?: never;
-        /** Save a search; new matching listings are e-mailed daily when notify is on */
+        /**
+         * Save a search; new matching listings are e-mailed daily when notify is on
+         * @description Errors: 400 `invalid_query`, 400 `unknown_attribute`.
+         */
         post: operations["createSavedSearch"];
         delete?: never;
         options?: never;
@@ -1272,7 +1307,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** My conversations (as a seeker and for my organizations), newest first */
+        /**
+         * My conversations (as a seeker and for my organizations), newest first
+         * @description Ordered by the last message. Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+         */
         get: operations["listConversations"];
         put?: never;
         /** Contact the landlord of a published listing (reuses an existing conversation) */
@@ -1606,7 +1644,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Open reports and automatic flags, oldest first */
+        /**
+         * Open reports and automatic flags, oldest first
+         * @description Paged oldest first: a full page may have more; pass the last item's id as `after`.
+         */
         get: operations["backofficeListModeration"];
         put?: never;
         post?: never;
@@ -1660,7 +1701,10 @@ export interface paths {
         /** Groups I belong to or am invited to */
         get: operations["listMyGroups"];
         put?: never;
-        /** Create a tenant group and invite flatmates by e-mail */
+        /**
+         * Create a tenant group and invite flatmates by e-mail
+         * @description Errors: 403 `email_unverified` (confirm the e-mail first), 429 `rate_limited` (more than 30 invitations a day).
+         */
         post: operations["createGroup"];
         delete?: never;
         options?: never;
@@ -1694,7 +1738,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Invite a flatmate by e-mail */
+        /**
+         * Invite a flatmate by e-mail
+         * @description Errors: 403 `email_unverified`, 429 `rate_limited` (more than 30 invitations a day), 422 `group_full`.
+         */
         post: operations["inviteToGroup"];
         delete?: never;
         options?: never;
@@ -1994,6 +2041,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Short-lived download link of an applicant's income proof (every call is audited)
+         * @description Only while the application is open (submitted, invited) and for 30 days after it was accepted.
+         *     Errors: 404 `income_proof_not_found`, 404 `application_not_found`.
+         */
+        get: operations["getApplicantIncomeProof"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs/{orgId}/applications/{applicationId}/decision": {
         parameters: {
             query?: never;
@@ -2003,7 +2071,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code */
+        /**
+         * Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
+         * @description The applicants' e-mails and pushes are queued in the same transaction as the decision.
+         *     Errors: 409 `listing_already_accepted` (another application of the listing was accepted),
+         *     409 `application_closed`, 422 `invalid_reason`.
+         */
         post: operations["decideApplication"];
         delete?: never;
         options?: never;
@@ -2039,7 +2112,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a slot (its bookings are cancelled) */
+        /** Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push) */
         delete: operations["deleteViewingSlot"];
         options?: never;
         head?: never;
@@ -2072,7 +2145,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Leases of the organization */
+        /**
+         * Leases of the organization
+         * @description Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+         */
         get: operations["listOrgLeases"];
         put?: never;
         /** Draft a lease (from an accepted application, or with explicit parties) */
@@ -2180,7 +2256,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign the proposed document as my party (mock now; Bank iD SIGN when contracted) */
+        /**
+         * Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+         * @description `provider` must be one of the lease detail's `sign_providers`. Errors: 422 `invalid_provider` (not
+         *     enabled on this server), 409 `document_changed` (a new version was proposed meanwhile: reload and sign
+         *     the new document), 409 `lease_not_proposed`, 409 `already_signed`, 403 `not_a_party`.
+         */
         post: operations["signLease"];
         delete?: never;
         options?: never;
@@ -2282,7 +2363,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Give notice; the lease ends after the notice period */
+        /**
+         * Give notice; the lease ends after the notice period
+         * @description A tenant or co-tenant gives notice without a reason. The landlord (organization member with the leases
+         *     permission) must state a statutory `reason`; the notice period is then at least three months.
+         *     `delivered_on` lies between 30 days ago and 7 days from today.
+         *     Errors: 403 `notice_not_allowed` (guarantor, subtenant), 422 `invalid_delivered_on`,
+         *     422 `landlord_notice_reason_required` (landlord without a reason, or other_serious_reason without an
+         *     explanation), 422 `notice_reason_not_applicable` (flat_needed_for_landlord_or_relative on a fixed-term
+         *     lease), 409 `lease_not_active`.
+         */
         post: operations["giveLeaseNotice"];
         delete?: never;
         options?: never;
@@ -2316,7 +2406,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Linked accounts and recent incoming transactions with their match status */
+        /**
+         * Linked accounts and recent incoming transactions with their match status
+         * @description Transactions are paged newest first; `transactions_next_before` is the cursor of the next page.
+         */
         get: operations["getBankOverview"];
         put?: never;
         post?: never;
@@ -2386,7 +2479,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm a suggested match or match manually; or ignore the transaction */
+        /**
+         * Confirm a suggested match or match manually; or ignore the transaction
+         * @description Errors: 422 `currency_mismatch` (the transaction and the share have different currencies), 409 `already_matched`.
+         */
         post: operations["matchBankTransaction"];
         delete?: never;
         options?: never;
@@ -2641,7 +2737,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Promotion orders of the organization */
+        /**
+         * Promotion orders of the organization
+         * @description Paged newest first; `next_before` is the cursor of the next page.
+         */
         get: operations["listOrders"];
         put?: never;
         post?: never;
@@ -2675,7 +2774,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Invoices (daňové doklady) issued to the organization */
+        /**
+         * Invoices (daňové doklady) issued to the organization
+         * @description Paged newest first; `next_before` is the cursor of the next page.
+         */
         get: operations["listInvoices"];
         put?: never;
         post?: never;
@@ -2957,6 +3059,9 @@ export interface components {
             instance?: string;
             /**
              * @description Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+             *     Cross-cutting codes: 401 `unauthenticated` (an operation that needs a session got none or an
+             *     expired one), 400 `validation_failed` (the request does not match this contract), 429 `rate_limited`,
+             *     403 `forbidden`, 404 `not_found`. Operation-specific codes are listed in each operation's description.
              * @example invalid_credentials
              */
             code?: string;
@@ -2971,6 +3076,7 @@ export interface components {
         UserLocale: "cs" | "en";
         /** Format: email */
         Email: string;
+        /** @description At least 12 characters; checked against breached-password lists (error code password_breached). */
         Password: string;
         /**
          * @default web
@@ -3104,6 +3210,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             client: string;
+            /**
+             * Format: date-time
+             * @description When the session ends unless it is used again (impersonation sessions do not slide).
+             */
+            expires_at: string;
             user_agent?: string;
             ip?: string;
             /** Format: date-time */
@@ -3165,6 +3276,8 @@ export interface components {
             url: string;
             /** Format: date-time */
             expires_at: string;
+            /** @description Suggested file name (income proofs). */
+            filename?: string;
         };
         Organization: {
             /** Format: uuid */
@@ -3191,7 +3304,8 @@ export interface components {
         Member: {
             /** Format: uuid */
             user_id: string;
-            email: string;
+            /** @description Omitted for callers with the viewer or investor role (except their own row). */
+            email?: string;
             display_name: string;
             role: components["schemas"]["Role"];
             verification_level: components["schemas"]["VerificationLevel"];
@@ -3200,6 +3314,9 @@ export interface components {
         };
         RoleInput: {
             role: components["schemas"]["Role"];
+        };
+        InvitationTokenInput: {
+            token: string;
         };
         InvitationInput: {
             email: components["schemas"]["Email"];
@@ -3243,6 +3360,7 @@ export interface components {
             /** Format: uuid */
             entity_id?: string;
             action: string;
+            /** @description Changed values; only owners, admins and staff get them (empty otherwise). */
             diff: {
                 [key: string]: unknown;
             };
@@ -3583,6 +3701,17 @@ export interface components {
                 [key: string]: unknown;
             };
             photos: components["schemas"]["PhotoVariants"][];
+            /** @description Submitted photos whose privacy blur suggestion was not applied (the owner kept the photo or has not decided); staff must look at them. */
+            privacy_flags: components["schemas"]["PrivacyFlag"][];
+        };
+        PrivacyFlag: {
+            /** Format: uuid */
+            media_id: string;
+            /**
+             * @description Status of the privacy_blur suggestion.
+             * @enum {string}
+             */
+            status: "generating" | "pending" | "rejected" | "failed";
         };
         PhotoVariants: {
             thumb: string;
@@ -4252,8 +4381,8 @@ export interface components {
             user_id: string;
             display_name: string;
             verification_level: components["schemas"]["VerificationLevel"];
-            /** @description Short-lived download URL. */
-            income_proof_url?: string;
+            /** @description An income proof can be downloaded now (getApplicantIncomeProof); false once the application is closed. */
+            has_income_proof: boolean;
             income_proof_name?: string;
             /** @enum {string} */
             insolvency: "unchecked" | "clear" | "record" | "error";
@@ -4386,6 +4515,7 @@ export interface components {
             /** @enum {string} */
             role: "landlord" | "tenant" | "co_tenant" | "subtenant" | "guarantor";
             name: string;
+            /** @description Shown to the landlord side for every party; a tenant-side caller sees only their own and the landlord's. */
             email?: string;
             share_bps: number;
             /** @description Specific symbol of this party's payments. */
@@ -4411,6 +4541,29 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        SignProvider: {
+            /** @enum {string} */
+            id: "mock" | "bankid_sign";
+            /**
+             * @description simple: prostý elektronický podpis (simple electronic signature); qualified: kvalifikovaný podpis (Bank iD SIGN).
+             * @enum {string}
+             */
+            level: "simple" | "qualified";
+        };
+        /**
+         * @description Statutory reasons of a landlord's notice (§ 2288 of the Czech Civil Code):
+         *     odst. 1 a) gross_breach_tenant – the tenant grossly breaches their duties;
+         *     b) conviction – the tenant was convicted of an intentional crime against the landlord, a member of their
+         *     household, a person living in the house or property in the house;
+         *     c) public_interest_vacate – the flat must be vacated because the flat or house is to be dealt with in the
+         *     public interest so that it cannot be used at all;
+         *     d) other_serious_reason – another similarly serious reason (explanation required);
+         *     odst. 2 flat_needed_for_landlord_or_relative – leases for an indefinite term only: the flat is to be used
+         *     by the landlord, their spouse (in the situations the law names) or a relative in the direct line or a
+         *     sibling of the landlord or the spouse.
+         * @enum {string}
+         */
+        LandlordNoticeReason: "gross_breach_tenant" | "conviction" | "public_interest_vacate" | "other_serious_reason" | "flat_needed_for_landlord_or_relative";
         LeaseDetail: {
             lease: components["schemas"]["LeaseSummary"];
             landlord_view: boolean;
@@ -4428,6 +4581,8 @@ export interface components {
             documents: components["schemas"]["LeaseDocument"][];
             /** Format: int64 */
             total_debt: number;
+            /** @description Signature methods enabled on this server, in order of preference. */
+            sign_providers: components["schemas"]["SignProvider"][];
         };
         ObligationShare: {
             /**
@@ -4530,6 +4685,11 @@ export interface components {
         BankOverview: {
             connections: components["schemas"]["BankConnection"][];
             transactions: components["schemas"]["BankTransaction"][];
+            /**
+             * Format: uuid
+             * @description Cursor of the next page of transactions (absent on the last page).
+             */
+            transactions_next_before?: string;
         };
         /** @enum {string} */
         RiskBand: "low" | "medium" | "high";
@@ -4916,6 +5076,11 @@ export interface components {
         };
         OrderList: {
             items: components["schemas"]["Order"][];
+            /**
+             * Format: uuid
+             * @description Cursor of the next page (absent on the last page).
+             */
+            next_before?: string;
         };
         Invoice: {
             /** Format: uuid */
@@ -4944,6 +5109,11 @@ export interface components {
         };
         InvoiceList: {
             items: components["schemas"]["Invoice"][];
+            /**
+             * Format: uuid
+             * @description Cursor of the next page (absent on the last page).
+             */
+            next_before?: string;
         };
         /** @enum {string} */
         RevolutMode: "sandbox" | "live";
@@ -5117,7 +5287,6 @@ export interface components {
     parameters: {
         OrgId: string;
         Provider: "google" | "apple";
-        InvitationToken: string;
         /** @description Cursor; return items with an id lower than this one. */
         Before: string;
         ListingId: string;
@@ -5135,6 +5304,8 @@ export interface components {
         ApplicationId: string;
         ConversationId: string;
         Limit: number;
+        /** @description Cursor of oldest-first lists; return items with an id greater than this one. */
+        After: string;
     };
     requestBodies: never;
     headers: never;
@@ -6103,16 +6274,18 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    getInvitation: {
+    lookupInvitation: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                token: components["parameters"]["InvitationToken"];
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenInput"];
+            };
+        };
         responses: {
             /** @description Invitation */
             200: {
@@ -6130,12 +6303,14 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                token: components["parameters"]["InvitationToken"];
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenInput"];
+            };
+        };
         responses: {
             /** @description Joined */
             200: {
@@ -6336,6 +6511,9 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["ListingStatus"];
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
             };
             header?: never;
             path: {
@@ -6983,6 +7161,9 @@ export interface operations {
     listConversations: {
         parameters: {
             query?: {
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
                 /** @description Only this organization's inbox. */
                 org_id?: string;
                 /** @description seeker = only conversations I started. */
@@ -7600,7 +7781,11 @@ export interface operations {
     };
     backofficeListModeration: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Cursor of oldest-first lists; return items with an id greater than this one. */
+                after?: components["parameters"]["After"];
+                limit?: components["parameters"]["Limit"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8243,6 +8428,31 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    getApplicantIncomeProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                applicationId: components["parameters"]["ApplicationId"];
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadLink"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     decideApplication: {
         parameters: {
             query?: never;
@@ -8381,7 +8591,11 @@ export interface operations {
     };
     listOrgLeases: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
+            };
             header?: never;
             path: {
                 orgId: components["parameters"]["OrgId"];
@@ -8728,6 +8942,9 @@ export interface operations {
                 "application/json": {
                     /** Format: date */
                     delivered_on: string;
+                    reason?: components["schemas"]["LandlordNoticeReason"];
+                    /** @description Facts behind the reason; required for other_serious_reason. */
+                    explanation?: string;
                 };
             };
         };
@@ -8776,6 +8993,9 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "unmatched" | "matched" | "suggested" | "ignored";
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
             };
             header?: never;
             path: {
@@ -9371,7 +9591,11 @@ export interface operations {
     };
     listOrders: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
+            };
             header?: never;
             path: {
                 orgId: components["parameters"]["OrgId"];
@@ -9418,7 +9642,11 @@ export interface operations {
     };
     listInvoices: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Cursor; return items with an id lower than this one. */
+                before?: components["parameters"]["Before"];
+                limit?: components["parameters"]["Limit"];
+            };
             header?: never;
             path: {
                 orgId: components["parameters"]["OrgId"];

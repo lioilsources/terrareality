@@ -233,6 +233,8 @@
   "back": "Zpět",
   "cancelViewingConfirm": "Zrušit prohlídku?",
   "viewingsTitle": "Moje prohlídky",
+  "viewingCancelledByLandlord": "Pronajímatel prohlídku zrušil. Termín už neplatí, v žádosti si můžete vybrat jiný.",
+  "openApplication": "Otevřít žádost",
   "viewingsEmpty": "Nemáte domluvenou žádnou prohlídku.",
   "payByQr": "QR Platba z bankovní aplikace",
   "qrLabel": "QR kód pro platbu {amount}",
@@ -244,5 +246,97 @@
     }
   },
   "payByCard": "Zaplatit kartou (Revolut)",
-  "cardPaymentUnavailable": "Platbu kartou teď nelze vytvořit: pronajímatel nemá napojený Revolut, nebo je už zaplaceno."
+  "cardPaymentUnavailable": "Platbu kartou teď nelze vytvořit: pronajímatel nemá napojený Revolut, nebo je už zaplaceno.",
+  "errorOffline": "Nejste připojeni k internetu. Zkontrolujte připojení a zkuste to znovu.",
+  "errorForbidden": "K tomuto nemáte přístup.",
+  "errorNotFound": "Tohle už neexistuje.",
+  "errorRateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+  "errorServer": "Něco se pokazilo. Zkuste to prosím znovu.",
+  "signInAction": "Přihlásit se",
+  "mfaTitle": "Ověřovací kód",
+  "mfaHint": "Zadejte 6místný kód z ověřovací aplikace, nebo jeden ze záložních kódů.",
+  "mfaCode": "Kód",
+  "mfaFailed": "Kód nesouhlasí nebo vypršel. Zkuste to znovu.",
+  "mfaRestart": "Začít znovu",
+  "profileTitle": "Profil",
+  "signedInAs": "Přihlášen(a) jako {email}",
+  "@signedInAs": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "signedOutNote": "Nejste přihlášeni.",
+  "signOut": "Odhlásit se",
+  "signOutConfirm": "Odhlásit se na tomto telefonu? Přestanou chodit i notifikace.",
+  "signedOut": "Byli jste odhlášeni.",
+  "about": "O aplikaci",
+  "signConfirmTitle": "Podepsat smlouvu?",
+  "signConfirmBody": "{address}\n\nZpůsob podpisu: {method}. Podpis je právně závazný.",
+  "@signConfirmBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "signMethodSimple": "prostý elektronický podpis",
+  "signMethodQualified": "kvalifikovaný elektronický podpis (Bank iD)",
+  "signMethodChoose": "Vyberte způsob podpisu",
+  "signDocumentChanged": "Smlouva se mezitím změnila. Zkontrolujte novou verzi a podepište ji znovu.",
+  "signMethodLabel": "Způsob podpisu: {method}",
+  "@signMethodLabel": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "signDone": "Smlouva je podepsaná.",
+  "signContinue": "Podpis dokončete u poskytovatele, který se otevřel v prohlížeči.",
+  "signUnavailable": "Podepisování teď není dostupné. Zkuste to později nebo na webu.",
+  "bubbleMine": "Vaše zpráva",
+  "bubblePeer": "Zpráva od {name}",
+  "@bubblePeer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "loginMagicLink": "Poslat přihlašovací odkaz",
+  "loginForgotPassword": "Zapomenuté heslo",
+  "loginEmailNeeded": "Nejdřív vyplňte e-mail.",
+  "magicLinkSent": "Pokud k e-mailu {email} existuje účet, poslali jsme na něj přihlašovací odkaz. Otevřete ho v tomto telefonu.",
+  "@magicLinkSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resetLinkSent": "Pokud k e-mailu {email} existuje účet, poslali jsme na něj odkaz pro nastavení nového hesla.",
+  "@resetLinkSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "magicLinkTitle": "Přihlášení odkazem",
+  "magicLinkSigningIn": "Přihlašujeme vás…",
+  "linkInvalid": "Odkaz je neplatný nebo už vypršel. Požádejte o nový.",
+  "linkBackToLogin": "Zpět na přihlášení",
+  "resetTitle": "Nové heslo",
+  "resetHint": "Zvolte nové heslo s alespoň 12 znaky. Po změně budete odhlášeni na všech zařízeních.",
+  "resetPassword": "Nové heslo",
+  "resetSubmit": "Nastavit heslo",
+  "resetDone": "Heslo je změněné. Přihlaste se novým heslem.",
+  "passwordTooShort": "Heslo musí mít alespoň 12 znaků.",
+  "passwordTooWeak": "Heslo je příliš snadno uhodnutelné. Zvolte jiné.",
+  "passwordBreached": "Toto heslo se objevilo v úniku dat. Zvolte jiné."
 }

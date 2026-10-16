@@ -146,5 +146,13 @@
     "subject": "Please update the listing \"{{.Title}}\"",
     "text": "Hello,\n\nfollowing a notice (reason: {{.Reason}}) we ask you to update the listing \"{{.Title}}\" (case number {{.CaseID}}). The listing stays published.\n\nWhat to change: {{.Note}}\n\nEdit the listing here:\n{{.Link}}\n\nThe decision was taken by a person on our moderation team. If you disagree, reply to this e-mail.",
     "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "viewing_cancelled": {
+    "subject": "Viewing cancelled: {{.Listing}}, {{.When}}",
+    "text": "Hello,\n\nthe landlord cancelled the viewing of “{{.Listing}}” on {{.When}}, so your booking no longer applies.\n\nIf the landlord offers other times, pick a new one with your application:\n{{.Link}}"
+  },
+  "login_failures": {
+    "subject": "Failed sign-in attempts on TerraReality",
+    "text": "Hello,\n\nthere were {{.Failures}} failed attempts to sign in to your account (the last on {{.When}}). Further attempts lock the account for a while.\n\nIf this was not you, change your password and turn on two-factor authentication:\n{{.Link}}"
   }
 }

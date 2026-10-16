@@ -1,0 +1,49 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "{{env `APPLE_TEAM_ID`}}.cz.terrareality.terrareality"
+        ],
+        "components": [
+          {
+            "/": "/zpravy"
+          },
+          {
+            "/": "/zpravy/*"
+          },
+          {
+            "/": "/zadosti"
+          },
+          {
+            "/": "/zadosti/*"
+          },
+          {
+            "/": "/smlouvy"
+          },
+          {
+            "/": "/smlouvy/*"
+          },
+          {
+            "/": "/inzerat"
+          },
+          {
+            "/": "/inzerat/*"
+          },
+          {
+            "/": "/prohlidky"
+          },
+          {
+            "/": "/prohlidky/*"
+          },
+          {
+            "/": "/auth/magic"
+          },
+          {
+            "/": "/auth/reset"
+          }
+        ]
+      }
+    ]
+  }
+}

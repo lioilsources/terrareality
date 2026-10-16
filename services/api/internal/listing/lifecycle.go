@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,6 +90,12 @@ func (s *Service) Submit(ctx context.Context, p *auth.Principal, orgID, id uuid.
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermCatalogWrite); err != nil {
 			return err
 		}
+		// Serializes concurrent submits (version numbers).
+		if _, err := q.LockListing(ctx, id); errors.Is(err, pgx.ErrNoRows) {
+			return errListingNotFound
+		} else if err != nil {
+			return err
+		}
 		var v View
 		if err := loadView(ctx, q, orgID, id, &v); err != nil {
 			return err
@@ -116,6 +123,18 @@ func (s *Service) Submit(ctx context.Context, p *auth.Principal, orgID, id uuid.
 		}
 		if ready == 0 {
 			missing = append(missing, catalog.FieldError{Key: "photos", Reason: "at least one photo"})
+		}
+		// Photos flagged for faces or licence plates need the owner's
+		// decision (blur or keep) before anyone else sees them (ADR 0003).
+		flagged, err := q.ListUndecidedPrivacyFlags(ctx, id)
+		if err != nil {
+			return err
+		}
+		for _, m := range v.Media {
+			if m.Status == "ready" && slices.Contains(flagged, m.ID) {
+				missing = append(missing, catalog.FieldError{Key: "photos", Reason: "privacy_review_pending"})
+				break
+			}
 		}
 		if len(missing) > 0 {
 			return &FieldErrors{Errors: missing}
@@ -239,6 +258,16 @@ func truncate(s string, n int) string {
 
 // ReviewItem is one entry of the moderation queue.
 type ReviewItem = db.ListPendingVersionsRow
+
+// PrivacyFlag is the latest privacy blur suggestion of one photo.
+type PrivacyFlag = db.ListPrivacyFlagsRow
+
+// PrivacyFlags lists the privacy blur flags of a listing's photos for the
+// backoffice review: anything but "accepted" means a face or licence plate
+// may be visible (staff, system context).
+func (s *Service) PrivacyFlags(ctx context.Context, listingID uuid.UUID) ([]PrivacyFlag, error) {
+	return db.New(s.Pool).ListPrivacyFlags(ctx, listingID)
+}
 
 // ReviewQueue lists pending versions (staff).
 func (s *Service) ReviewQueue(ctx context.Context) ([]ReviewItem, error) {

@@ -62,3 +62,20 @@ func TestRecoveryCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestSlidingExpiryAbsoluteCap(t *testing.T) {
+	created := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	day := 24 * time.Hour
+	// Early in the session the sliding TTL applies.
+	if got := SlidingExpiry(created.Add(day), created, 7*day, 30*day); !got.Equal(created.Add(8 * day)) {
+		t.Fatalf("early: %v", got)
+	}
+	// Near the end the absolute lifetime wins, however active the user is.
+	if got := SlidingExpiry(created.Add(29*day), created, 7*day, 30*day); !got.Equal(created.Add(30 * day)) {
+		t.Fatalf("capped: %v", got)
+	}
+	// maxAge 0 disables the cap.
+	if got := SlidingExpiry(created.Add(29*day), created, 7*day, 0); !got.Equal(created.Add(36 * day)) {
+		t.Fatalf("uncapped: %v", got)
+	}
+}

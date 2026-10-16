@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/terrareality/terrareality/services/api/internal/account"
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
@@ -10,15 +11,32 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 )
 
-// limit applies the per-IP limiter and, when key is set, the per-target one.
+// limit applies the per-IP limiter and, when key is set, the per-target ones
+// (a short burst, then a daily cap: nobody can mail-bomb an address through
+// magic links, resets or SMS codes).
 func (s *Server) limit(ctx context.Context, key string) error {
 	if !s.loginLimit.Allow(auth.Meta(ctx).IP) {
 		return apperr.TooMany("too many attempts, try again later")
 	}
-	if key != "" && !s.emailLimit.Allow(strings.ToLower(key)) {
+	if key == "" {
+		return nil
+	}
+	key = strings.ToLower(strings.TrimSpace(key))
+	if !s.emailLimit.Allow(key) || !s.dailyLimit.Allow(key) {
 		return apperr.TooMany("too many messages to this address, try again later")
 	}
 	return nil
+}
+
+// minAddressResponse is the least time the address-taking endpoints (magic
+// link, forgotten password) take, so existing accounts (token + outbox write)
+// and unknown ones (nothing) cannot be told apart by timing.
+const minAddressResponse = 250 * time.Millisecond
+
+func padResponse(start time.Time) {
+	if d := minAddressResponse - time.Since(start); d > 0 {
+		time.Sleep(d)
+	}
 }
 
 // searchLimit throttles public autocomplete per client IP.
@@ -82,6 +100,7 @@ func (s *Server) RequestMagicLink(ctx context.Context, r gen.RequestMagicLinkReq
 	if err := s.limit(ctx, string(r.Body.Email)); err != nil {
 		return nil, err
 	}
+	defer padResponse(time.Now())
 	if err := s.Account.RequestMagicLink(ctx, string(r.Body.Email), localeOf(r.Body.Locale)); err != nil {
 		return nil, err
 	}
@@ -128,6 +147,7 @@ func (s *Server) ForgotPassword(ctx context.Context, r gen.ForgotPasswordRequest
 	if err := s.limit(ctx, string(r.Body.Email)); err != nil {
 		return nil, err
 	}
+	defer padResponse(time.Now())
 	if err := s.Account.ForgotPassword(ctx, string(r.Body.Email), localeOf(r.Body.Locale)); err != nil {
 		return nil, err
 	}

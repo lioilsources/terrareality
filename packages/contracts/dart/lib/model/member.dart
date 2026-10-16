@@ -14,7 +14,7 @@ class Member {
   /// Returns a new [Member] instance.
   Member({
     required this.userId,
-    required this.email,
+    this.email,
     required this.displayName,
     required this.role,
     required this.verificationLevel,
@@ -23,7 +23,14 @@ class Member {
 
   String userId;
 
-  String email;
+  /// Omitted for callers with the viewer or investor role (except their own row).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? email;
 
   String displayName;
 
@@ -46,7 +53,7 @@ class Member {
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (userId.hashCode) +
-    (email.hashCode) +
+    (email == null ? 0 : email!.hashCode) +
     (displayName.hashCode) +
     (role.hashCode) +
     (verificationLevel.hashCode) +
@@ -58,7 +65,11 @@ class Member {
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'user_id'] = this.userId;
+    if (this.email != null) {
       json[r'email'] = this.email;
+    } else {
+      json[r'email'] = null;
+    }
       json[r'display_name'] = this.displayName;
       json[r'role'] = this.role;
       json[r'verification_level'] = this.verificationLevel;
@@ -86,7 +97,7 @@ class Member {
 
       return Member(
         userId: mapValueOfType<String>(json, r'user_id')!,
-        email: mapValueOfType<String>(json, r'email')!,
+        email: mapValueOfType<String>(json, r'email'),
         displayName: mapValueOfType<String>(json, r'display_name')!,
         role: Role.fromJson(json[r'role'])!,
         verificationLevel: VerificationLevel.fromJson(json[r'verification_level'])!,
@@ -139,7 +150,6 @@ class Member {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'user_id',
-    'email',
     'display_name',
     'role',
     'verification_level',

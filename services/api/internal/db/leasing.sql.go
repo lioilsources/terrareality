@@ -58,7 +58,9 @@ func (q *Queries) AddLeaseParty(ctx context.Context, arg AddLeasePartyParams) (L
 }
 
 const addSplitPayment = `-- name: AddSplitPayment :one
-UPDATE obligation_splits SET paid_amount = paid_amount + $2 WHERE id = $1 RETURNING id, obligation_id, lease_id, org_id, party_id, amount, paid_amount
+UPDATE obligation_splits SET paid_amount = paid_amount + $2
+WHERE id = $1 AND paid_amount + $2 <= amount
+RETURNING id, obligation_id, lease_id, org_id, party_id, amount, paid_amount
 `
 
 type AddSplitPaymentParams struct {
@@ -66,6 +68,8 @@ type AddSplitPaymentParams struct {
 	PaidAmount int64     `json:"paid_amount"`
 }
 
+// Never more than what is due: no row (pgx.ErrNoRows) when the payment
+// would exceed the share.
 func (q *Queries) AddSplitPayment(ctx context.Context, arg AddSplitPaymentParams) (ObligationSplit, error) {
 	row := q.db.QueryRow(ctx, addSplitPayment, arg.ID, arg.PaidAmount)
 	var i ObligationSplit
@@ -96,17 +100,16 @@ func (q *Queries) CancelObligationsAfter(ctx context.Context, arg CancelObligati
 }
 
 const claimLeaseParties = `-- name: ClaimLeaseParties :exec
-UPDATE lease_parties SET user_id = $1 WHERE user_id IS NULL AND email = $2::citext
+UPDATE lease_parties p SET user_id = u.id
+FROM users u
+WHERE u.id = $1 AND u.email_verified_at IS NOT NULL AND u.pseudonymized_at IS NULL
+  AND p.user_id IS NULL AND p.email = u.email::citext
 `
 
-type ClaimLeasePartiesParams struct {
-	UserID  *uuid.UUID `json:"user_id"`
-	Column2 string     `json:"column_2"`
-}
-
-// Links parties invited by e-mail to the account with that address.
-func (q *Queries) ClaimLeaseParties(ctx context.Context, arg ClaimLeasePartiesParams) error {
-	_, err := q.db.Exec(ctx, claimLeaseParties, arg.UserID, arg.Column2)
+// Links parties invited by e-mail to the account with that address, only
+// once the account proved it owns the address (verified e-mail).
+func (q *Queries) ClaimLeaseParties(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, claimLeaseParties, id)
 	return err
 }
 
@@ -433,6 +436,52 @@ SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency
 
 func (q *Queries) GetLease(ctx context.Context, id uuid.UUID) (Lease, error) {
 	row := q.db.QueryRow(ctx, getLease, id)
+	var i Lease
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.ListingID,
+		&i.ApplicationID,
+		&i.Code,
+		&i.JurisdictionCode,
+		&i.Currency,
+		&i.State,
+		&i.Template,
+		&i.TemplateVersion,
+		&i.PropertyAddress,
+		&i.UnitLabel,
+		&i.StartsOn,
+		&i.EndsOn,
+		&i.RentAmount,
+		&i.ServicesAmount,
+		&i.DepositAmount,
+		&i.DueDay,
+		&i.NoticeMonths,
+		&i.PayeeIban,
+		&i.PayeeName,
+		&i.Clauses,
+		&i.Terms,
+		&i.ChangeRequest,
+		&i.NoticeOn,
+		&i.WorkflowID,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.SignedAt,
+		&i.UnitID,
+		&i.AdminPath,
+		&i.Lat,
+		&i.Lng,
+	)
+	return i, err
+}
+
+const getLeaseForUpdate = `-- name: GetLeaseForUpdate :one
+SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng FROM leases WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetLeaseForUpdate(ctx context.Context, id uuid.UUID) (Lease, error) {
+	row := q.db.QueryRow(ctx, getLeaseForUpdate, id)
 	var i Lease
 	err := row.Scan(
 		&i.ID,
@@ -900,6 +949,37 @@ func (q *Queries) LeaseDueDates(ctx context.Context, arg LeaseDueDatesParams) ([
 	return items, nil
 }
 
+const leaseEventExists = `-- name: LeaseEventExists :one
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = $2
+  AND payload->'data'->>'due_on' = $3::text)::boolean
+`
+
+type LeaseEventExistsParams struct {
+	LeaseID uuid.UUID `json:"lease_id"`
+	Kind    string    `json:"kind"`
+	DueOn   string    `json:"due_on"`
+}
+
+// Whether an event of a kind with data.due_on already exists (idempotent reminders).
+func (q *Queries) LeaseEventExists(ctx context.Context, arg LeaseEventExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, leaseEventExists, arg.LeaseID, arg.Kind, arg.DueOn)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const leaseNoticeGiven = `-- name: LeaseNoticeGiven :one
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = 'notice_given')::boolean
+`
+
+// Whether a notice event exists (lease_events_lease_kind index).
+func (q *Queries) LeaseNoticeGiven(ctx context.Context, leaseID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, leaseNoticeGiven, leaseID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const linkedBankConnections = `-- name: LinkedBankConnections :many
 SELECT id, org_id, provider, institution_id, requisition_id, account_id, iban, status, last_synced_at, created_by, created_at FROM bank_connections WHERE status = 'linked' ORDER BY last_synced_at NULLS FIRST LIMIT 200
 `
@@ -973,18 +1053,28 @@ func (q *Queries) ListBankConnections(ctx context.Context, orgID uuid.UUID) ([]B
 }
 
 const listBankTransactions = `-- name: ListBankTransactions :many
-SELECT id, org_id, connection_id, external_id, booked_on, amount, currency, variable_symbol, specific_symbol, counterparty_name, counterparty_account, remittance, match_status, split_id, match_note, created_at FROM bank_transactions WHERE org_id = $1
-  AND ($2::text IS NULL OR match_status = $2::text)
-ORDER BY booked_on DESC, created_at DESC LIMIT 200
+SELECT t.id, t.org_id, t.connection_id, t.external_id, t.booked_on, t.amount, t.currency, t.variable_symbol, t.specific_symbol, t.counterparty_name, t.counterparty_account, t.remittance, t.match_status, t.split_id, t.match_note, t.created_at FROM bank_transactions t WHERE t.org_id = $1
+  AND ($2::text IS NULL OR t.match_status = $2::text)
+  AND ($3::uuid IS NULL
+    OR (t.booked_on, t.created_at, t.id) < (SELECT x.booked_on, x.created_at, x.id FROM bank_transactions x WHERE x.id = $3::uuid))
+ORDER BY t.booked_on DESC, t.created_at DESC, t.id DESC
+LIMIT $4
 `
 
 type ListBankTransactionsParams struct {
-	OrgID  uuid.UUID `json:"org_id"`
-	Status *string   `json:"status"`
+	OrgID  uuid.UUID  `json:"org_id"`
+	Status *string    `json:"status"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
 }
 
 func (q *Queries) ListBankTransactions(ctx context.Context, arg ListBankTransactionsParams) ([]BankTransaction, error) {
-	rows, err := q.db.Query(ctx, listBankTransactions, arg.OrgID, arg.Status)
+	rows, err := q.db.Query(ctx, listBankTransactions,
+		arg.OrgID,
+		arg.Status,
+		arg.Before,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1342,8 +1432,18 @@ func (q *Queries) ListObligations(ctx context.Context, leaseID uuid.UUID) ([]Lis
 const listOrgLeases = `-- name: ListOrgLeases :many
 SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
-FROM leases l WHERE l.org_id = $1 ORDER BY l.created_at DESC
+FROM leases l WHERE l.org_id = $1
+  AND ($2::uuid IS NULL
+    OR (l.created_at, l.id) < (SELECT x.created_at, x.id FROM leases x WHERE x.id = $2::uuid))
+ORDER BY l.created_at DESC, l.id DESC
+LIMIT $3
 `
+
+type ListOrgLeasesParams struct {
+	OrgID  uuid.UUID  `json:"org_id"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
+}
 
 type ListOrgLeasesRow struct {
 	ID               uuid.UUID   `json:"id"`
@@ -1383,8 +1483,8 @@ type ListOrgLeasesRow struct {
 	TenantNames      string      `json:"tenant_names"`
 }
 
-func (q *Queries) ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error) {
-	rows, err := q.db.Query(ctx, listOrgLeases, orgID)
+func (q *Queries) ListOrgLeases(ctx context.Context, arg ListOrgLeasesParams) ([]ListOrgLeasesRow, error) {
+	rows, err := q.db.Query(ctx, listOrgLeases, arg.OrgID, arg.Before, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -1505,8 +1605,27 @@ func (q *Queries) LockLease(ctx context.Context, id uuid.UUID) (uuid.UUID, error
 	return id_2, err
 }
 
-const markLeaseSigned = `-- name: MarkLeaseSigned :exec
-UPDATE leases SET state = 'signed', signed_at = now(), workflow_id = $2 WHERE id = $1
+const lockSplit = `-- name: LockSplit :one
+SELECT id, obligation_id, lease_id, org_id, party_id, amount, paid_amount FROM obligation_splits WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockSplit(ctx context.Context, id uuid.UUID) (ObligationSplit, error) {
+	row := q.db.QueryRow(ctx, lockSplit, id)
+	var i ObligationSplit
+	err := row.Scan(
+		&i.ID,
+		&i.ObligationID,
+		&i.LeaseID,
+		&i.OrgID,
+		&i.PartyID,
+		&i.Amount,
+		&i.PaidAmount,
+	)
+	return i, err
+}
+
+const markLeaseSigned = `-- name: MarkLeaseSigned :execrows
+UPDATE leases SET state = 'signed', signed_at = now(), workflow_id = $2 WHERE id = $1 AND state = 'proposed'
 `
 
 type MarkLeaseSignedParams struct {
@@ -1514,9 +1633,34 @@ type MarkLeaseSignedParams struct {
 	WorkflowID *string   `json:"workflow_id"`
 }
 
-func (q *Queries) MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) error {
-	_, err := q.db.Exec(ctx, markLeaseSigned, arg.ID, arg.WorkflowID)
-	return err
+// Only a proposed lease becomes signed (a concurrent request for changes or
+// a new proposal wins; the caller answers 409 on 0 rows).
+func (q *Queries) MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markLeaseSigned, arg.ID, arg.WorkflowID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const matchTransaction = `-- name: MatchTransaction :execrows
+UPDATE bank_transactions SET match_status = 'matched', split_id = $2, match_note = $3
+WHERE id = $1 AND match_status <> 'matched'
+`
+
+type MatchTransactionParams struct {
+	ID        uuid.UUID  `json:"id"`
+	SplitID   *uuid.UUID `json:"split_id"`
+	MatchNote string     `json:"match_note"`
+}
+
+// Marks a transaction matched unless it already is (concurrent confirmations).
+func (q *Queries) MatchTransaction(ctx context.Context, arg MatchTransactionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, matchTransaction, arg.ID, arg.SplitID, arg.MatchNote)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const oldestOverdueDue = `-- name: OldestOverdueDue :one
@@ -1544,14 +1688,16 @@ JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
 WHERE l.org_id = $1 AND s.amount - s.paid_amount = $2 AND o.status = 'open'
-  AND o.due_on BETWEEN $3::date - 10 AND $3::date + 10
+  AND o.currency = $3::text
+  AND o.due_on BETWEEN $4::date - 10 AND $4::date + 10
 ORDER BY o.due_on
 `
 
 type OpenSplitsByAmountParams struct {
-	OrgID  uuid.UUID   `json:"org_id"`
-	Amount int64       `json:"amount"`
-	Day    pgtype.Date `json:"day"`
+	OrgID    uuid.UUID   `json:"org_id"`
+	Amount   int64       `json:"amount"`
+	Currency string      `json:"currency"`
+	Day      pgtype.Date `json:"day"`
 }
 
 type OpenSplitsByAmountRow struct {
@@ -1566,7 +1712,12 @@ type OpenSplitsByAmountRow struct {
 
 // Unpaid splits of the organization with this exact outstanding amount, due around a date.
 func (q *Queries) OpenSplitsByAmount(ctx context.Context, arg OpenSplitsByAmountParams) ([]OpenSplitsByAmountRow, error) {
-	rows, err := q.db.Query(ctx, openSplitsByAmount, arg.OrgID, arg.Amount, arg.Day)
+	rows, err := q.db.Query(ctx, openSplitsByAmount,
+		arg.OrgID,
+		arg.Amount,
+		arg.Currency,
+		arg.Day,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1600,12 +1751,14 @@ JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
 WHERE l.org_id = $1 AND l.code = $2 AND s.paid_amount < s.amount AND o.status = 'open'
+  AND o.currency = $3::text
 ORDER BY o.due_on, p.position
 `
 
 type OpenSplitsForCodeParams struct {
-	OrgID uuid.UUID `json:"org_id"`
-	Code  int64     `json:"code"`
+	OrgID    uuid.UUID `json:"org_id"`
+	Code     int64     `json:"code"`
+	Currency string    `json:"currency"`
 }
 
 type OpenSplitsForCodeRow struct {
@@ -1620,7 +1773,7 @@ type OpenSplitsForCodeRow struct {
 
 // Unpaid splits of the organization's lease with this variable symbol, oldest first.
 func (q *Queries) OpenSplitsForCode(ctx context.Context, arg OpenSplitsForCodeParams) ([]OpenSplitsForCodeRow, error) {
-	rows, err := q.db.Query(ctx, openSplitsForCode, arg.OrgID, arg.Code)
+	rows, err := q.db.Query(ctx, openSplitsForCode, arg.OrgID, arg.Code, arg.Currency)
 	if err != nil {
 		return nil, err
 	}
@@ -1874,4 +2027,38 @@ func (q *Queries) UpdateLeaseDraft(ctx context.Context, arg UpdateLeaseDraftPara
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const verifiedUserByEmail = `-- name: VerifiedUserByEmail :one
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until FROM users WHERE email = $1 AND email_verified_at IS NOT NULL AND pseudonymized_at IS NULL
+`
+
+// The account with a verified e-mail address (lease parties link only to it).
+func (q *Queries) VerifiedUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, verifiedUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.EmailVerifiedAt,
+		&i.PasswordHash,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Phone,
+		&i.PhoneVerifiedAt,
+		&i.IdentityVerifiedAt,
+		&i.TotpSecret,
+		&i.TotpPendingSecret,
+		&i.TotpEnabledAt,
+		&i.TotpLastStep,
+		&i.IsStaff,
+		&i.PseudonymizedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VerificationLevel,
+		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
+	)
+	return i, err
 }

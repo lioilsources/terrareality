@@ -313,6 +313,8 @@ class ApplicationsApi {
 
   /// Create a tenant group and invite flatmates by e-mail
   ///
+  /// Errors: 403 `email_unverified` (confirm the e-mail first), 429 `rate_limited` (more than 30 invitations a day).
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -344,6 +346,8 @@ class ApplicationsApi {
   }
 
   /// Create a tenant group and invite flatmates by e-mail
+  ///
+  /// Errors: 403 `email_unverified` (confirm the e-mail first), 429 `rate_limited` (more than 30 invitations a day).
   ///
   /// Parameters:
   ///
@@ -479,6 +483,8 @@ class ApplicationsApi {
 
   /// Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
   ///
+  /// The applicants' e-mails and pushes are queued in the same transaction as the decision. Errors: 409 `listing_already_accepted` (another application of the listing was accepted), 409 `application_closed`, 422 `invalid_reason`. 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -516,6 +522,8 @@ class ApplicationsApi {
   }
 
   /// Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
+  ///
+  /// The applicants' e-mails and pushes are queued in the same transaction as the decision. Errors: 409 `listing_already_accepted` (another application of the listing was accepted), 409 `application_closed`, 422 `invalid_reason`. 
   ///
   /// Parameters:
   ///
@@ -567,7 +575,7 @@ class ApplicationsApi {
     }
   }
 
-  /// Remove a slot (its bookings are cancelled)
+  /// Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -603,7 +611,7 @@ class ApplicationsApi {
     );
   }
 
-  /// Remove a slot (its bookings are cancelled)
+  /// Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
   ///
   /// Parameters:
   ///
@@ -615,6 +623,73 @@ class ApplicationsApi {
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
+  }
+
+  /// Short-lived download link of an applicant's income proof (every call is audited)
+  ///
+  /// Only while the application is open (submitted, invited) and for 30 days after it was accepted. Errors: 404 `income_proof_not_found`, 404 `application_not_found`. 
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] applicationId (required):
+  ///
+  /// * [String] userId (required):
+  Future<Response> getApplicantIncomeProofWithHttpInfo(String orgId, String applicationId, String userId,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof'
+      .replaceAll('{orgId}', orgId)
+      .replaceAll('{applicationId}', applicationId)
+      .replaceAll('{userId}', userId);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Short-lived download link of an applicant's income proof (every call is audited)
+  ///
+  /// Only while the application is open (submitted, invited) and for 30 days after it was accepted. Errors: 404 `income_proof_not_found`, 404 `application_not_found`. 
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] applicationId (required):
+  ///
+  /// * [String] userId (required):
+  Future<DownloadLink?> getApplicantIncomeProof(String orgId, String applicationId, String userId,) async {
+    final response = await getApplicantIncomeProofWithHttpInfo(orgId, applicationId, userId,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'DownloadLink',) as DownloadLink;
+    
+    }
+    return null;
   }
 
   /// Application with consents, bookable viewing slots and my booking
@@ -813,6 +888,8 @@ class ApplicationsApi {
 
   /// Invite a flatmate by e-mail
   ///
+  /// Errors: 403 `email_unverified`, 429 `rate_limited` (more than 30 invitations a day), 422 `group_full`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -847,6 +924,8 @@ class ApplicationsApi {
   }
 
   /// Invite a flatmate by e-mail
+  ///
+  /// Errors: 403 `email_unverified`, 429 `rate_limited` (more than 30 invitations a day), 422 `group_full`.
   ///
   /// Parameters:
   ///

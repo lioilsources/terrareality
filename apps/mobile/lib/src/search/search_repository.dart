@@ -19,9 +19,9 @@ class SearchFilters {
     this.rentMax,
     this.bbox,
     this.adminPath,
-    this.limit = pageSize,
   });
 
+  /// Results per request; the API caps `limit` at 100, paging uses `offset`.
   static const pageSize = 30;
 
   final Set<UnitKind> kinds;
@@ -32,7 +32,6 @@ class SearchFilters {
   /// west, south, east, north of the visible map area (null = anywhere).
   final List<double>? bbox;
   final String? adminPath;
-  final int limit;
 
   bool get isEmpty => kinds.isEmpty && layouts.isEmpty && rentMin == null && rentMax == null;
 
@@ -43,7 +42,6 @@ class SearchFilters {
     int? Function()? rentMax,
     List<double>? Function()? bbox,
     String? Function()? adminPath,
-    int? limit,
   }) =>
       SearchFilters(
         kinds: kinds ?? this.kinds,
@@ -52,17 +50,17 @@ class SearchFilters {
         rentMax: rentMax != null ? rentMax() : this.rentMax,
         bbox: bbox != null ? bbox() : this.bbox,
         adminPath: adminPath != null ? adminPath() : this.adminPath,
-        limit: limit ?? pageSize,
       );
 
-  SearchQuery toQuery() => SearchQuery(
+  SearchQuery toQuery({int offset = 0}) => SearchQuery(
         kinds: kinds.toList(),
         layouts: layouts.toList(),
         rentMin: rentMin == null ? null : rentMin! * 100,
         rentMax: rentMax == null ? null : rentMax! * 100,
         bbox: bbox ?? const [],
         adminPath: adminPath,
-        limit: limit,
+        limit: pageSize,
+        offset: offset,
       );
 }
 
@@ -71,8 +69,7 @@ class SearchFiltersNotifier extends Notifier<SearchFilters> {
   SearchFilters build() => const SearchFilters();
 
   void set(SearchFilters f) => state = f;
-  void more() => state = state.copyWith(limit: state.limit + SearchFilters.pageSize);
-  void area(List<double>? bbox) => state = state.copyWith(bbox: () => bbox, limit: state.limit);
+  void area(List<double>? bbox) => state = state.copyWith(bbox: () => bbox);
 }
 
 final searchFiltersProvider = NotifierProvider<SearchFiltersNotifier, SearchFilters>(SearchFiltersNotifier.new);
@@ -136,9 +133,87 @@ final searchRepositoryProvider = Provider<SearchRepository>(
   (ref) => ApiSearchRepository(ref.watch(apiClientProvider)),
 );
 
-final searchResultProvider = FutureProvider.autoDispose<SearchResult>(
-  (ref) => ref.watch(searchRepositoryProvider).search(ref.watch(searchFiltersProvider).toQuery()),
-);
+/// Search results accumulated page by page. [first] is the first response
+/// (map points, areas, facets); [items] grows with [SearchResults.more].
+class SearchPage {
+  const SearchPage({
+    required this.first,
+    required this.items,
+    required this.total,
+    this.loadingMore = false,
+    this.moreError,
+    this.exhausted = false,
+  });
+
+  final SearchResult first;
+  final List<ListingCard> items;
+  final int total;
+  final bool loadingMore;
+  final Object? moreError;
+
+  /// The server returned a short page: nothing more to ask for even if
+  /// [total] says otherwise (listings unpublished meanwhile).
+  final bool exhausted;
+
+  bool get hasMore => !exhausted && items.length < total;
+
+  SearchPage copyWith({
+    List<ListingCard>? items,
+    int? total,
+    bool? loadingMore,
+    Object? Function()? moreError,
+    bool? exhausted,
+  }) =>
+      SearchPage(
+        first: first,
+        items: items ?? this.items,
+        total: total ?? this.total,
+        loadingMore: loadingMore ?? this.loadingMore,
+        moreError: moreError != null ? moreError() : this.moreError,
+        exhausted: exhausted ?? this.exhausted,
+      );
+}
+
+class SearchResults extends AsyncNotifier<SearchPage> {
+  @override
+  Future<SearchPage> build() async {
+    final filters = ref.watch(searchFiltersProvider);
+    final r = await ref.watch(searchRepositoryProvider).search(filters.toQuery());
+    return SearchPage(
+      first: r,
+      items: r.items,
+      total: r.total,
+      exhausted: r.items.length < SearchFilters.pageSize,
+    );
+  }
+
+  /// Fetches the next page by `offset` and appends it.
+  Future<void> more() async {
+    final cur = state.value;
+    if (cur == null || cur.loadingMore || !cur.hasMore) return;
+    final filters = ref.read(searchFiltersProvider);
+    state = AsyncData(cur.copyWith(loadingMore: true, moreError: () => null));
+    try {
+      final r = await ref.read(searchRepositoryProvider).search(filters.toQuery(offset: cur.items.length));
+      // Filters changed meanwhile: build() already started over.
+      if (!ref.mounted || !identical(filters, ref.read(searchFiltersProvider))) return;
+      final seen = {for (final c in cur.items) c.id};
+      final fresh = [for (final c in r.items) if (seen.add(c.id)) c];
+      state = AsyncData(cur.copyWith(
+        items: [...cur.items, ...fresh],
+        total: r.total,
+        loadingMore: false,
+        moreError: () => null,
+        exhausted: r.items.length < SearchFilters.pageSize || fresh.isEmpty,
+      ));
+    } catch (e) {
+      if (!ref.mounted) return;
+      state = AsyncData(cur.copyWith(loadingMore: false, moreError: () => e));
+    }
+  }
+}
+
+final searchResultProvider = AsyncNotifierProvider.autoDispose<SearchResults, SearchPage>(SearchResults.new);
 
 final publicListingProvider = FutureProvider.autoDispose.family<PublicListing, String>(
   (ref, id) => ref.watch(searchRepositoryProvider).listing(id),

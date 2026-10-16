@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"time"
@@ -19,6 +18,12 @@ import (
 
 // StartPhoneVerification texts a 6-digit code to phone (E.164).
 func (s *Service) StartPhoneVerification(ctx context.Context, p *auth.Principal, phone string) error {
+	if p.Impersonated() {
+		return apperr.ErrImpersonation
+	}
+	if s.Cfg.DisablePhoneVerification {
+		return errPhoneUnavailable
+	}
 	return s.tx(ctx, func(q *db.Queries, tx pgx.Tx) error {
 		u, err := q.GetUser(ctx, p.UserID)
 		if err != nil {
@@ -42,13 +47,24 @@ func (s *Service) StartPhoneVerification(ctx context.Context, p *auth.Principal,
 	})
 }
 
+var errPhoneUnavailable = apperr.Unavailable("phone_verification_unavailable", "phone verification is not available yet")
+
 // phoneHash binds the short code to the user so hashes are unique per user.
+// Verification accepts hashes made under a previous key (Box.Verify).
 func (s *Service) phoneHash(userID, code string) []byte {
-	return s.Box.Sign([]byte("phone:" + userID + ":" + code))
+	return s.Box.Sign(phonePayload(userID, code))
 }
+
+func phonePayload(userID, code string) []byte { return []byte("phone:" + userID + ":" + code) }
 
 // VerifyPhone checks the SMS code.
 func (s *Service) VerifyPhone(ctx context.Context, p *auth.Principal, code string) error {
+	if p.Impersonated() {
+		return apperr.ErrImpersonation
+	}
+	if s.Cfg.DisablePhoneVerification {
+		return errPhoneUnavailable
+	}
 	var failed error
 	err := s.tx(ctx, func(q *db.Queries, _ pgx.Tx) error {
 		t, err := q.GetAuthTokenForUser(ctx, db.GetAuthTokenForUserParams{UserID: &p.UserID, Purpose: "phone_verify"})
@@ -58,7 +74,7 @@ func (s *Service) VerifyPhone(ctx context.Context, p *auth.Principal, code strin
 		if err != nil {
 			return err
 		}
-		if subtle.ConstantTimeCompare(t.TokenHash, s.phoneHash(p.UserID.String(), code)) != 1 {
+		if !s.Box.Verify(phonePayload(p.UserID.String(), code), t.TokenHash) {
 			n, err := q.IncrementAuthTokenAttempts(ctx, t.ID)
 			if err != nil {
 				return err

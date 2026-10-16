@@ -346,6 +346,8 @@ class ApiClient {
           return InvitationInput.fromJson(value);
         case 'InvitationPreview':
           return InvitationPreview.fromJson(value);
+        case 'InvitationTokenInput':
+          return InvitationTokenInput.fromJson(value);
         case 'InviteToGroupRequest':
           return InviteToGroupRequest.fromJson(value);
         case 'Invoice':
@@ -354,6 +356,8 @@ class ApiClient {
           return InvoiceList.fromJson(value);
         case 'Jurisdiction':
           return Jurisdiction.fromJson(value);
+        case 'LandlordNoticeReason':
+          return LandlordNoticeReasonTypeTransformer().decode(value);
         case 'LeaseDetail':
           return LeaseDetail.fromJson(value);
         case 'LeaseDocument':
@@ -524,6 +528,8 @@ class ApiClient {
           return PrescreenQuestion.fromJson(value);
         case 'PrescreenQuestionText':
           return PrescreenQuestionText.fromJson(value);
+        case 'PrivacyFlag':
+          return PrivacyFlag.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
         case 'PromoCheckout':
@@ -636,6 +642,8 @@ class ApiClient {
           return SignLease200Response.fromJson(value);
         case 'SignLeaseRequest':
           return SignLeaseRequest.fromJson(value);
+        case 'SignProvider':
+          return SignProvider.fromJson(value);
         case 'StartConversation':
           return StartConversation.fromJson(value);
         case 'SubscriptionToken':

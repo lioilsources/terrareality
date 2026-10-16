@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Starts the whole local stack: docker deps, Go api + worker, Python vision,
 # SvelteKit web and Astro site. Ctrl+C stops everything.
+# Offline: works without network once `make setup` ran and the Docker images (infra/dev) were
+# pulled/built at least once; external services are mocks. Only the search map needs the network
+# (MAP_STYLE defaults to OpenFreeMap tiles); offline the map stays empty, search still works.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

@@ -8,12 +8,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return { sessions: data ?? [] };
 };
 
+/** QR of the otpauth URI; only otpauth://totp URIs are rendered (the value round-trips the form). */
+async function totpQr(uri: string): Promise<string> {
+	if (!uri.startsWith('otpauth://totp/')) return '';
+	return QRCode.toString(uri, { type: 'svg', margin: 1, width: 192 });
+}
+
 export const actions: Actions = {
 	setup: async ({ locals }) => {
 		const { data, error } = await locals.api.POST('/v1/me/mfa/totp/setup');
 		if (!data) return fail(400, { mfaError: errorMessage(error) });
-		const qr = await QRCode.toString(data.otpauth_uri, { type: 'svg', margin: 1, width: 192 });
-		return { setup: { secret: data.secret, qr } };
+		const qr = await totpQr(data.otpauth_uri);
+		return { setup: { secret: data.secret, uri: data.otpauth_uri, qr } };
 	},
 	enable: async ({ request, locals }) => {
 		const f = await request.formData();
@@ -21,10 +27,12 @@ export const actions: Actions = {
 			body: { code: String(f.get('code') ?? '') }
 		});
 		if (!data) {
+			// A wrong code keeps the pending setup on screen, QR included.
 			const secret = String(f.get('secret') ?? '');
+			const uri = String(f.get('otpauth_uri') ?? '');
 			return fail(400, {
 				mfaError: errorMessage(error),
-				setup: secret ? { secret, qr: '' } : undefined
+				setup: secret ? { secret, uri, qr: await totpQr(uri) } : undefined
 			});
 		}
 		return { recoveryCodes: data.recovery_codes };
@@ -49,6 +57,10 @@ export const actions: Actions = {
 	},
 	revoke: async ({ request, locals }) => {
 		const id = String((await request.formData()).get('id') ?? '');
-		await locals.api.DELETE('/v1/me/sessions/{sessionId}', { params: { path: { sessionId: id } } });
+		const { error } = await locals.api.DELETE('/v1/me/sessions/{sessionId}', {
+			params: { path: { sessionId: id } }
+		});
+		if (error) return fail(400, { sessionsError: errorMessage(error) });
+		return { revoked: true };
 	}
 };

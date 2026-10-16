@@ -50,7 +50,11 @@ The DGX Spark gives the GPU to ComfyUI 07:00–13:00 (Europe/Prague) every day; 
 (`infra/spark/README.md`). AI suggestions (attribute extraction, listing texts, vision tagging) are
 River jobs with retries spanning ~7 h, so they complete after 13:00; the UI shows "generating".
 **Do not page anyone** for LLM errors in this
-window; alerts on LLM errors must be silenced 07:00–13:00 (Alertmanager time interval).
+window. The only LLM alert, `LlmJobFailuresHigh` (failed `ai_suggestion`, `application_summary`,
+`moderation_verdict`, `process_media` jobs, label `component="llm"`, severity ticket), is muted
+07:00–13:00 Europe/Prague by the Alertmanager time interval `spark-comfyui-window`
+(`infra/hetzner/observability/alertmanager/alertmanager.yml`); those job kinds are excluded from
+`JobFailuresHigh`.
 
 Outside the window:
 - `curl http://10.66.0.2:8080/v1/models` from the app VM. Fails → `wg show` (handshake older than
@@ -105,5 +109,5 @@ DNS still points to the app VM? port 80 open? Rate limits: wait or switch issuer
 
 Rotate immediately (SEV1): the leaked secret first, then anything sharing the same storage.
 `APP_SECRET_KEY` rotation invalidates sealed TOTP secrets: coordinate with the owner. Stripe/Revolut
-keys rotate in their dashboards; Object Storage keys in the Hetzner console (then update `.env` on
-both VMs and restart). Revoke the WireGuard peer by removing it from `wg0.conf` (`wg syncconf`).
+keys rotate in their dashboards; Object Storage keys in the Hetzner console of the project they
+belong to (media keys: `.env` on both VMs; backup project keys: DB VM `.env` only; then restart). Revoke the WireGuard peer by removing it from `wg0.conf` (`wg syncconf`).

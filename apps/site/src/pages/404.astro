@@ -1,0 +1,27 @@
+---
+// Static 404 page: Astro emits it as dist/404.html, which the production
+// Caddyfile serves for every error (handle_errors → rewrite /404.html).
+import Layout from '../layouts/Layout.astro';
+import { APP_URL } from '../lib/api';
+---
+
+<Layout
+  title="Stránka nenalezena · TerraReality"
+  description="Hledaná stránka neexistuje nebo byla přesunuta."
+  lang="cs"
+  altHref="/en/"
+  altLabel="English"
+  noindex
+>
+  <section class="mx-auto grid max-w-xl gap-4 py-12 text-center">
+    <p class="text-sm font-semibold text-[var(--muted)]">404</p>
+    <h1 class="text-3xl font-semibold">Stránka nenalezena</h1>
+    <p class="text-[var(--muted)]">
+      Hledaná stránka neexistuje nebo byla přesunuta. Zkuste začít znovu na úvodní stránce nebo rovnou hledat bydlení.
+    </p>
+    <div class="flex flex-wrap justify-center gap-3">
+      <a href="/" class="rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-white no-underline">Na úvodní stránku</a>
+      <a href={`${APP_URL}/hledat`} class="rounded-lg border border-[var(--border)] px-4 py-2 font-medium no-underline">Hledat bydlení</a>
+    </div>
+  </section>
+</Layout>

@@ -45,6 +45,7 @@ func run() error {
 		return err
 	}
 	log := logx.New(cfg.LogLevel, cfg.LogFormat)
+	app.LogWarnings(cfg, log)
 	log.Info("starting worker", "version", buildinfo.Version, "env", cfg.Env)
 
 	shutdownTracing, err := telemetry.Setup(ctx, "terra-worker", cfg.OTLPEndpoint, cfg.Env)
@@ -53,25 +54,19 @@ func run() error {
 	}
 	defer shutdownTracing(context.Background())
 
+	if err := app.MigrateOnStart(ctx, cfg); err != nil {
+		return err
+	}
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
-	if config.MustBool("MIGRATE_ON_START", cfg.Env == "dev") {
-		if err := db.Migrate(ctx, pool); err != nil {
-			return err
-		}
-		if err := jobs.MigrateRiver(ctx, pool); err != nil {
-			return err
-		}
-	}
-
 	deps, err := app.Build(cfg, log)
-	fl := app.Flags(cfg, pool)
 	if err != nil {
 		return err
 	}
+	fl := app.Flags(cfg, pool)
 	app.GateCloudFallback(fl, deps.AI)
 	gdpr := &jobs.GDPRWorker{}
 	mediaW, suggestW, digestW := &jobs.ProcessMediaWorker{}, &jobs.SuggestionWorker{}, &jobs.DigestWorker{}
@@ -80,7 +75,7 @@ func run() error {
 	startLeaseW, bankSyncW := &jobs.StartLeaseWorker{Log: log, Enabled: cfg.TemporalAddress != ""}, &jobs.BankSyncWorker{}
 	riskW := &jobs.LeaseRiskWorker{Scorer: &portfolio.Scorer{Pool: pool}}
 	promoW, invoiceW := &jobs.PromoRecomputeWorker{}, &jobs.InvoiceDeliveryWorker{}
-	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, GDPR: gdpr, Media: mediaW,
+	rc, err := jobs.NewWorkerClient(pool, log, jobs.WorkerDeps{Sender: deps.Sender, Pusher: deps.Pusher, GDPR: gdpr, Media: mediaW,
 		Suggestions: suggestW, Digest: digestW, Messages: notifyW, MsgDigest: msgDigestW, Verdicts: verdictW,
 		Summaries: summaryW, Reminders: reminderW, StartLease: startLeaseW, BankSync: bankSyncW, LeaseRisk: riskW,
 		Promos: promoW, Invoices: invoiceW})

@@ -20,10 +20,14 @@ FROM ruian_places r WHERE r.id = $1;
 
 -- name: MunicipalityInText :one
 -- The municipality named in a free-text address ("Dejvická 12, Praha 6"):
--- the longest municipality name found as a whole word.
+-- the longest municipality name found as a whole word. Both sides are
+-- reduced to words separated by single spaces, so names from the data are
+-- compared literally (no regular expression built from data).
 SELECT path::text AS admin_path, ST_Y(centroid)::float8 AS lat, ST_X(centroid)::float8 AS lng
 FROM admin_units
-WHERE level = 2 AND lower(unaccent(sqlc.arg(address)::text)) ~ ('(^|[^a-z0-9])' || search || '($|[^a-z0-9])')
+WHERE level = 2 AND search ~ '[a-z0-9]'
+  AND (' ' || regexp_replace(lower(unaccent(sqlc.arg(address)::text)), '[^a-z0-9]+', ' ', 'g') || ' ')
+      LIKE ('% ' || btrim(regexp_replace(search, '[^a-z0-9]+', ' ', 'g')) || ' %')
 ORDER BY length(search) DESC LIMIT 1;
 
 -- name: SetLeaseLocation :exec
@@ -130,13 +134,14 @@ INSERT INTO risk_settings (org_id, weights) VALUES ($1, $2)
 ON CONFLICT (org_id) DO UPDATE SET weights = EXCLUDED.weights;
 
 -- name: RiskPartyStats :many
--- Per tenant party: overdue amounts (rent, services, one-off items due by
--- the date), the oldest unpaid due date and passport facts.
+-- Per tenant party: overdue amounts (rent, services, one-off items due
+-- before the date: an item due today is not overdue until tomorrow), the
+-- oldest unpaid due date and passport facts.
 SELECT p.id AS party_id, p.role, p.user_id,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= sqlc.arg(as_of)::date AND o.status = 'open'), 0)::bigint AS overdue,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on <= sqlc.arg(as_of)::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < sqlc.arg(as_of)::date AND o.status = 'open'), 0)::bigint AS overdue,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on < sqlc.arg(as_of)::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
   coalesce(sum(s.paid_amount) FILTER (WHERE o.kind = 'deposit'), 0)::bigint AS deposit_paid,
-  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= sqlc.arg(as_of)::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
+  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < sqlc.arg(as_of)::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
   coalesce(u.verification_level, '')::text AS verification,
   (tp.income_uploaded_at IS NOT NULL)::boolean AS income_proof,
   coalesce(tp.isir_status, 'unchecked')::text AS isir_status
@@ -164,7 +169,13 @@ FROM listing_search s WHERE s.admin_path <@ sqlc.arg(path)::text::ltree AND s.cu
 INSERT INTO lease_risk (lease_id, org_id, score, band, factors, model_version, computed_at)
 VALUES ($1, $2, $3, $4, $5, $6, now())
 ON CONFLICT (lease_id) DO UPDATE SET score = EXCLUDED.score, band = EXCLUDED.band, factors = EXCLUDED.factors,
-  model_version = EXCLUDED.model_version, computed_at = now();
+  model_version = EXCLUDED.model_version, computed_at = now(), last_error = NULL, failed_at = NULL;
+
+-- name: MarkLeaseRiskFailed :execrows
+-- S-P1: remembers a failed recompute on the existing score (a lease without
+-- a score has no row; it is only logged).
+UPDATE lease_risk SET last_error = left(sqlc.arg(last_error)::text, 2000), failed_at = now()
+WHERE lease_id = sqlc.arg(lease_id);
 
 -- name: UpsertLeaseRiskHistory :exec
 INSERT INTO lease_risk_history (lease_id, org_id, period, score, band, monthly)
@@ -261,4 +272,6 @@ SELECT l.id FROM leases l LEFT JOIN lease_risk r ON r.lease_id = l.id
 WHERE l.state IN ('signed', 'active', 'notice_given') AND (r.lease_id IS NULL OR r.model_version <> sqlc.arg(model_version)
   OR r.computed_at < now() - interval '1 day'
   OR EXISTS (SELECT 1 FROM lease_events e WHERE e.lease_id = l.id AND e.created_at > r.computed_at))
-ORDER BY l.id LIMIT 500;
+  -- A lease that failed recently waits an hour before the next attempt.
+  AND (r.failed_at IS NULL OR r.failed_at < now() - interval '1 hour')
+ORDER BY (r.failed_at IS NOT NULL), l.id LIMIT 500;

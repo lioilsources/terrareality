@@ -71,6 +71,8 @@ func rateLimitRoutes(rl RateLimits) []limitedRoute {
 		"POST /v1/conversations",
 		"POST /v1/conversations/*/messages",
 		"POST /v1/conversations/*/attachments",
+		"POST /v1/groups",
+		"POST /v1/groups/*/invitations",
 		"POST /v1/groups/*/messages")
 	add(rl.Report, "report",
 		"POST /v1/listings/*/reports",

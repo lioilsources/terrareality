@@ -257,6 +257,8 @@ class CatalogApi {
 
   /// Accept (all or selected attributes) or reject an AI suggestion
   ///
+  /// An accepted `privacy_blur` suggestion answers with status `pending`: the decision is recorded and the blurred photo replaces the original in the background, after which the status becomes `accepted`. 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -294,6 +296,8 @@ class CatalogApi {
   }
 
   /// Accept (all or selected attributes) or reject an AI suggestion
+  ///
+  /// An accepted `privacy_blur` suggestion answers with status `pending`: the decision is recorded and the blurred photo replaces the original in the background, after which the status becomes `accepted`. 
   ///
   /// Parameters:
   ///
@@ -529,6 +533,8 @@ class CatalogApi {
 
   /// Listings of an organization
   ///
+  /// Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -536,7 +542,12 @@ class CatalogApi {
   /// * [String] orgId (required):
   ///
   /// * [ListingStatus] status:
-  Future<Response> listListingsWithHttpInfo(String orgId, { ListingStatus? status, }) async {
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> listListingsWithHttpInfo(String orgId, { ListingStatus? status, String? before, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/orgs/{orgId}/listings'
       .replaceAll('{orgId}', orgId);
@@ -550,6 +561,12 @@ class CatalogApi {
 
     if (status != null) {
       queryParams.addAll(_queryParams('', 'status', status));
+    }
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
     }
 
     const contentTypes = <String>[];
@@ -568,13 +585,20 @@ class CatalogApi {
 
   /// Listings of an organization
   ///
+  /// Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
   ///
   /// * [ListingStatus] status:
-  Future<List<ListingSummary>?> listListings(String orgId, { ListingStatus? status, }) async {
-    final response = await listListingsWithHttpInfo(orgId,  status: status, );
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<List<ListingSummary>?> listListings(String orgId, { ListingStatus? status, String? before, int? limit, }) async {
+    final response = await listListingsWithHttpInfo(orgId,  status: status, before: before, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
@@ -719,6 +743,8 @@ class CatalogApi {
 
   /// Send the working copy to moderation as a new version
   ///
+  /// Errors: 422 `invalid_fields`; a photo with an undecided privacy flag is reported as field `photos` with reason `privacy_review_pending`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -754,6 +780,8 @@ class CatalogApi {
   }
 
   /// Send the working copy to moderation as a new version
+  ///
+  /// Errors: 422 `invalid_fields`; a photo with an undecided privacy flag is reported as field `photos` with reason `privacy_review_pending`.
   ///
   /// Parameters:
   ///

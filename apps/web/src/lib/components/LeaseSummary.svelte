@@ -31,7 +31,11 @@
 			locale
 		)}
 		{#if l.ends_on}– {fmtDate(l.ends_on, locale)}{/if}
-		· {formatMoney(l.rent_amount, locale)} Kč + {formatMoney(detail.services_amount, locale)} Kč
+		· {formatMoney(l.rent_amount, l.currency, locale)} + {formatMoney(
+			detail.services_amount,
+			l.currency,
+			locale
+		)}
 	</p>
 	<ul class="mt-3 grid gap-1 text-sm" data-testid="lease-parties">
 		{#each detail.parties as p (p.id)}
@@ -42,15 +46,16 @@
 				<span data-testid="signature"
 					>{p.signed_at ? `✓ ${m.lease_signed_badge()}` : m.lease_not_signed()}</span
 				>
-				{#if p.debt}<span class="text-red-700">· {formatMoney(p.debt, locale)} Kč</span>{/if}
+				{#if p.debt}<span class="text-red-700">· {formatMoney(p.debt, l.currency, locale)}</span
+					>{/if}
 			</li>
 		{/each}
 	</ul>
 	<p class="mt-3 text-sm" data-testid="lease-debt">
 		{m.lease_debt()}:
 		{#if detail.total_debt > 0}<strong class="text-red-700"
-				>{formatMoney(detail.total_debt, locale)} Kč</strong
-			>{:else}<strong>0 Kč</strong> · {m.lease_debt_none()}{/if}
+				>{formatMoney(detail.total_debt, l.currency, locale)}</strong
+			>{:else}<strong>{formatMoney(0, l.currency, locale)}</strong> · {m.lease_debt_none()}{/if}
 	</p>
 	{#if detail.documents.length}
 		<p class="mt-3 text-sm">

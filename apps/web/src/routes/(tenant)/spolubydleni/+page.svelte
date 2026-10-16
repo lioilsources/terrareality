@@ -106,8 +106,9 @@
 					<p class="text-[var(--muted)]">
 						{r.profile.area_label || m.rm_area_any()} · ≤ {formatMoney(
 							r.profile.budget_max,
+							'CZK',
 							locale
-						)} Kč
+						)}
 						{#if r.profile.move_in}· {fmtDate(r.profile.move_in, locale)}{/if}
 						{#if r.profile.has_room}· {m.rm_offers_room()}{/if}
 					</p>

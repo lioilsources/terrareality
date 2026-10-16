@@ -53,9 +53,11 @@ FROM orders o
 JOIN promo_products p ON p.id = o.product_id
 JOIN listings l ON l.id = o.listing_id
 LEFT JOIN invoices i ON i.order_id = o.id
-WHERE o.org_id = $1
-ORDER BY o.created_at DESC
-LIMIT 500;
+WHERE o.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (o.created_at, o.id) < (SELECT x.created_at, x.id FROM orders x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY o.created_at DESC, o.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: SystemGetOrderBySession :one
 SELECT * FROM orders WHERE stripe_session_id = $1;
@@ -146,7 +148,11 @@ SELECT * FROM invoices WHERE id = $1;
 SELECT * FROM invoices WHERE order_id = $1;
 
 -- name: ListInvoices :many
-SELECT * FROM invoices WHERE org_id = $1 ORDER BY issued_on DESC, number DESC LIMIT 500;
+SELECT i.* FROM invoices i WHERE i.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (i.issued_on, i.number) < (SELECT x.issued_on, x.number FROM invoices x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY i.issued_on DESC, i.number DESC
+LIMIT sqlc.arg(lim);
 
 -- name: SetInvoicePdfKey :exec
 UPDATE invoices SET pdf_key = $2 WHERE id = $1;

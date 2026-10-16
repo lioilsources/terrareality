@@ -71,7 +71,8 @@ func Sanitize(data []byte) ([]byte, Info, error) {
 	if err != nil {
 		return nil, Info{}, ErrCorrupt
 	}
-	if cfg.Width*cfg.Height > MaxPixels {
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > MaxPixels || cfg.Height > MaxPixels ||
+		cfg.Width*cfg.Height > MaxPixels {
 		return nil, Info{}, ErrTooLarge
 	}
 	if cfg.Width < MinSide || cfg.Height < MinSide {
@@ -139,7 +140,7 @@ func exifOrientation(p []byte) int {
 		return 0
 	}
 	off := int(bo.Uint32(t[4:8]))
-	if off+2 > len(t) {
+	if off < 0 || off > len(t) || off+2 > len(t) {
 		return 0
 	}
 	n := int(bo.Uint16(t[off : off+2]))
@@ -166,7 +167,7 @@ func stripPNG(data []byte) ([]byte, error) {
 	i := 8
 	for i+12 <= len(data) {
 		n := int(binary.BigEndian.Uint32(data[i : i+4]))
-		if n < 0 || i+12+n > len(data) {
+		if n < 0 || n > len(data) || i+12+n > len(data) {
 			return nil, ErrCorrupt
 		}
 		typ := string(data[i+4 : i+8])
@@ -190,12 +191,17 @@ func stripWebP(data []byte) ([]byte, error) {
 		typ := string(data[i : i+4])
 		n := int(binary.LittleEndian.Uint32(data[i+4 : i+8]))
 		end := i + 8 + n + n%2
-		if end > len(data) {
+		if n < 0 || end < i || end > len(data) {
 			return nil, ErrCorrupt
 		}
 		switch typ {
 		case "EXIF", "XMP ":
 		case "VP8X":
+			// VP8X has a fixed 10 byte payload; anything shorter is
+			// malformed (and would index past the chunk below).
+			if n < 10 {
+				return nil, ErrCorrupt
+			}
 			chunk := append([]byte(nil), data[i:end]...)
 			chunk[8] &^= 0x08 | 0x04 // EXIF and XMP flags
 			out.Write(chunk)

@@ -15,11 +15,6 @@ networks:
   observability:
     name: terra-observability
 
-secrets:
-  alert_smtp_password:
-    # One line, no newline; created by the operator (see README). Not in git.
-    file: ${ALERT_SMTP_PASSWORD_FILE:-/etc/terrareality/secrets/alert_smtp_password}
-
 volumes:
   prometheus-data:
   alertmanager-data:
@@ -49,9 +44,12 @@ services:
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
-    secrets: [alert_smtp_password]
     volumes:
       - ./alertmanager:/etc/alertmanager:ro
+      # Directory with smtp_password and page_webhook_url (see alertmanager.yml). A directory
+      # rather than Docker secrets: a missing file must not stop the whole app stack, which
+      # includes this file (review S-I13); failed sends alert via AlertmanagerNotificationsFailing.
+      - ${ALERT_SECRETS_DIR:-/etc/terrareality/secrets/alertmanager}:/run/alertmanager-secrets:ro
       - alertmanager-data:/alertmanager
     ports: ["127.0.0.1:9093:9093"]
     networks: [observability]

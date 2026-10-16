@@ -43,7 +43,7 @@ func (s *Server) ListConversations(ctx context.Context, r gen.ListConversationsR
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.Messages.List(ctx, p, r.Params.OrgId, r.Params.As != nil)
+	rows, err := s.Messages.List(ctx, p, r.Params.OrgId, r.Params.As != nil, r.Params.Before, limitOf(r.Params.Limit))
 	if err != nil {
 		return nil, err
 	}
@@ -451,11 +451,11 @@ func moderationDTO(c db.GetModerationCaseRow) gen.ModerationCase {
 }
 
 // BackofficeListModeration implements GET /v1/backoffice/moderation.
-func (s *Server) BackofficeListModeration(ctx context.Context, _ gen.BackofficeListModerationRequestObject) (gen.BackofficeListModerationResponseObject, error) {
+func (s *Server) BackofficeListModeration(ctx context.Context, r gen.BackofficeListModerationRequestObject) (gen.BackofficeListModerationResponseObject, error) {
 	if _, err := s.staff(ctx); err != nil {
 		return nil, err
 	}
-	rows, err := s.Messages.Queue(ctx)
+	rows, err := s.Messages.Queue(ctx, r.Params.After, limitOf(r.Params.Limit))
 	if err != nil {
 		return nil, err
 	}

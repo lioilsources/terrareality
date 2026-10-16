@@ -49,3 +49,33 @@ func TestParseRule(t *testing.T) {
 		t.Error("zero rule must be off")
 	}
 }
+
+func TestSlowRuleSurvivesIdleGC(t *testing.T) {
+	// 5 per day: an exhausted bucket must not be forgotten after an idle hour.
+	l := New(24*time.Hour/5, 5)
+	for range 5 {
+		l.Take("victim@example.com")
+	}
+	l.mu.Lock()
+	l.buckets["victim@example.com"].seen = time.Now().Add(-2 * time.Hour)
+	l.lastGC = time.Now().Add(-time.Hour)
+	l.mu.Unlock()
+	if ok, _ := l.Take("victim@example.com"); ok {
+		t.Fatal("daily cap reset by idle-key GC")
+	}
+
+	// Fast rules still forget idle keys after an hour.
+	f := New(time.Second, 1)
+	f.Take("a")
+	f.mu.Lock()
+	f.buckets["a"].seen = time.Now().Add(-2 * time.Hour)
+	f.lastGC = time.Now().Add(-time.Hour)
+	f.mu.Unlock()
+	f.Take("b") // triggers GC
+	f.mu.Lock()
+	_, kept := f.buckets["a"]
+	f.mu.Unlock()
+	if kept {
+		t.Fatal("idle key of a fast rule not collected")
+	}
+}

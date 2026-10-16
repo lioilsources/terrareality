@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { apiRegister, call, login, publishedListing } from './api';
+import { apiRegister, apiRegisterVerified, call, login, publishedListing } from './api';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
 
 // Acceptance M5: a group of three files one application with everyone's
@@ -15,9 +15,9 @@ test('group of three applies, landlord chooses, others are answered', async ({ b
 	const anna = uniqueEmail('anna');
 	const ben = uniqueEmail('ben');
 	const cyril = uniqueEmail('cyril');
-	await apiRegister(anna, 'Anna Nováková');
-	await apiRegister(ben, 'Ben Dvořák');
-	await apiRegister(cyril, 'Cyril Malý');
+	await apiRegisterVerified(anna, 'Anna Nováková');
+	await apiRegisterVerified(ben, 'Ben Dvořák');
+	await apiRegisterVerified(cyril, 'Cyril Malý');
 
 	// Anna creates the group and invites Ben and Cyril.
 	const a = await login(browser, anna, PASSWORD, '/skupiny');

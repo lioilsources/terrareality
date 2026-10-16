@@ -1,10 +1,11 @@
 import { fail } from '@sveltejs/kit';
-import { errorMessage } from '#lib/errors.js';
+import { errorMessage, serviceUnavailable } from '#lib/errors.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { data } = await locals.api.GET('/v1/me/passport');
-	return { passport: data! };
+	if (!data) serviceUnavailable();
+	return { passport: data };
 };
 
 const types = ['application/pdf', 'image/jpeg', 'image/png'] as const;

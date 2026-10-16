@@ -8,8 +8,10 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testImage() image.Image {
@@ -110,5 +112,33 @@ func TestImgproxySignature(t *testing.T) {
 	}
 	if p.URL("k", 400, 1) == p.URL("k", 1024, 1) {
 		t.Fatal("variants share a signature")
+	}
+}
+
+func TestImgproxyExpiry(t *testing.T) {
+	p, err := NewImgproxy("http://img.test", "terra", "736563726574", "68656C6C6F")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(p.URL("k", 400, 1), "/exp:") {
+		t.Fatal("no TTL must mean no expiry")
+	}
+	now := time.Unix(1_000_000, 0)
+	p.TTL = time.Hour
+	p.Now = func() time.Time { return now }
+	u := p.URL("k", 400, 1)
+	var exp int64
+	for _, part := range strings.Split(u, "/") {
+		if strings.HasPrefix(part, "exp:") {
+			exp, _ = strconv.ParseInt(strings.TrimPrefix(part, "exp:"), 10, 64)
+		}
+	}
+	if d := exp - now.Unix(); d <= 3600 || d > 7200 {
+		t.Fatalf("expiry %d s from now (%s)", d, u)
+	}
+	// Stable within one window, so CDN/browser caches keep working.
+	now = now.Add(time.Minute)
+	if p.URL("k", 400, 1) != u && (now.Unix()/3600) == (now.Add(-time.Minute).Unix()/3600) {
+		t.Fatal("URL changed within one TTL window")
 	}
 }

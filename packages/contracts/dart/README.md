@@ -80,7 +80,8 @@ Class | Method | HTTP request | Description
 *ApplicationsApi* | [**createViewingSlot**](doc//ApplicationsApi.md#createviewingslot) | **POST** /v1/orgs/{orgId}/listings/{listingId}/viewing-slots | Offer a viewing slot
 *ApplicationsApi* | [**decideApplication**](doc//ApplicationsApi.md#decideapplication) | **POST** /v1/orgs/{orgId}/applications/{applicationId}/decision | Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
 *ApplicationsApi* | [**deleteIncomeProof**](doc//ApplicationsApi.md#deleteincomeproof) | **DELETE** /v1/me/passport/income | Remove my income proof
-*ApplicationsApi* | [**deleteViewingSlot**](doc//ApplicationsApi.md#deleteviewingslot) | **DELETE** /v1/orgs/{orgId}/viewing-slots/{slotId} | Remove a slot (its bookings are cancelled)
+*ApplicationsApi* | [**deleteViewingSlot**](doc//ApplicationsApi.md#deleteviewingslot) | **DELETE** /v1/orgs/{orgId}/viewing-slots/{slotId} | Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
+*ApplicationsApi* | [**getApplicantIncomeProof**](doc//ApplicationsApi.md#getapplicantincomeproof) | **GET** /v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof | Short-lived download link of an applicant's income proof (every call is audited)
 *ApplicationsApi* | [**getApplication**](doc//ApplicationsApi.md#getapplication) | **GET** /v1/applications/{applicationId} | Application with consents, bookable viewing slots and my booking
 *ApplicationsApi* | [**getGroup**](doc//ApplicationsApi.md#getgroup) | **GET** /v1/groups/{groupId} | Group with members and chat (chat only for joined members)
 *ApplicationsApi* | [**getPassport**](doc//ApplicationsApi.md#getpassport) | **GET** /v1/me/passport | My Tenant Passport
@@ -227,15 +228,15 @@ Class | Method | HTTP request | Description
 *MessagingApi* | [**setListingPrescreen**](doc//MessagingApi.md#setlistingprescreen) | **PUT** /v1/orgs/{orgId}/listings/{listingId}/prescreen | Replace the questions a seeker answers before the first message
 *MessagingApi* | [**startConversation**](doc//MessagingApi.md#startconversation) | **POST** /v1/conversations | Contact the landlord of a published listing (reuses an existing conversation)
 *MessagingApi* | [**updateReplyTemplate**](doc//MessagingApi.md#updatereplytemplate) | **PUT** /v1/orgs/{orgId}/reply-templates/{templateId} | Update a reply template
-*OrgsApi* | [**acceptInvitation**](doc//OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/{token}/accept | Accept an invitation; the invitee e-mail must match my account
+*OrgsApi* | [**acceptInvitation**](doc//OrgsApi.md#acceptinvitation) | **POST** /v1/invitations/accept | Accept an invitation; the invitee e-mail must match my account
 *OrgsApi* | [**createOrg**](doc//OrgsApi.md#createorg) | **POST** /v1/orgs | Create a company organization; the caller becomes its owner
 *OrgsApi* | [**createOrgInvitation**](doc//OrgsApi.md#createorginvitation) | **POST** /v1/orgs/{orgId}/invitations | Invite someone by e-mail (owner, admin)
-*OrgsApi* | [**getInvitation**](doc//OrgsApi.md#getinvitation) | **GET** /v1/invitations/{token} | Preview an invitation before accepting it
 *OrgsApi* | [**getOrg**](doc//OrgsApi.md#getorg) | **GET** /v1/orgs/{orgId} | One organization and my role in it
 *OrgsApi* | [**listMyOrgs**](doc//OrgsApi.md#listmyorgs) | **GET** /v1/orgs | Organizations I belong to, personal first
 *OrgsApi* | [**listOrgAudit**](doc//OrgsApi.md#listorgaudit) | **GET** /v1/orgs/{orgId}/audit | Audit log of an organization (owner, admin)
 *OrgsApi* | [**listOrgInvitations**](doc//OrgsApi.md#listorginvitations) | **GET** /v1/orgs/{orgId}/invitations | Open invitations
 *OrgsApi* | [**listOrgMembers**](doc//OrgsApi.md#listorgmembers) | **GET** /v1/orgs/{orgId}/members | Members of an organization
+*OrgsApi* | [**lookupInvitation**](doc//OrgsApi.md#lookupinvitation) | **POST** /v1/invitations/lookup | Preview an invitation before accepting it
 *OrgsApi* | [**removeOrgMember**](doc//OrgsApi.md#removeorgmember) | **DELETE** /v1/orgs/{orgId}/members/{userId} | Remove a member, or leave the organization when userId is me
 *OrgsApi* | [**revokeOrgInvitation**](doc//OrgsApi.md#revokeorginvitation) | **DELETE** /v1/orgs/{orgId}/invitations/{invitationId} | Revoke an open invitation
 *OrgsApi* | [**updateOrg**](doc//OrgsApi.md#updateorg) | **PATCH** /v1/orgs/{orgId} | Update organization details (owner, admin)
@@ -353,10 +354,12 @@ Class | Method | HTTP request | Description
  - [Invitation](doc//Invitation.md)
  - [InvitationInput](doc//InvitationInput.md)
  - [InvitationPreview](doc//InvitationPreview.md)
+ - [InvitationTokenInput](doc//InvitationTokenInput.md)
  - [InviteToGroupRequest](doc//InviteToGroupRequest.md)
  - [Invoice](doc//Invoice.md)
  - [InvoiceList](doc//InvoiceList.md)
  - [Jurisdiction](doc//Jurisdiction.md)
+ - [LandlordNoticeReason](doc//LandlordNoticeReason.md)
  - [LeaseDetail](doc//LeaseDetail.md)
  - [LeaseDocument](doc//LeaseDocument.md)
  - [LeaseEvent](doc//LeaseEvent.md)
@@ -442,6 +445,7 @@ Class | Method | HTTP request | Description
  - [PrescreenAnswerQuestion](doc//PrescreenAnswerQuestion.md)
  - [PrescreenQuestion](doc//PrescreenQuestion.md)
  - [PrescreenQuestionText](doc//PrescreenQuestionText.md)
+ - [PrivacyFlag](doc//PrivacyFlag.md)
  - [Problem](doc//Problem.md)
  - [PromoCheckout](doc//PromoCheckout.md)
  - [PromoCheckoutInput](doc//PromoCheckoutInput.md)
@@ -498,6 +502,7 @@ Class | Method | HTTP request | Description
  - [SetRiskWeightsRequest](doc//SetRiskWeightsRequest.md)
  - [SignLease200Response](doc//SignLease200Response.md)
  - [SignLeaseRequest](doc//SignLeaseRequest.md)
+ - [SignProvider](doc//SignProvider.md)
  - [StartConversation](doc//StartConversation.md)
  - [SubscriptionToken](doc//SubscriptionToken.md)
  - [Suggestion](doc//Suggestion.md)

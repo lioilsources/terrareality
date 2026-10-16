@@ -350,7 +350,10 @@ func messageDTO(m db.Message) Message {
 func (s *Service) attachmentDTOs(ctx context.Context, rows []db.MessageAttachment) []Attachment {
 	out := make([]Attachment, 0, len(rows))
 	for _, a := range rows {
-		u, err := s.Blob.PresignGet(ctx, a.ObjectKey, time.Hour)
+		// Download disposition and the validated type: the uploader chose
+		// the Content-Type of the presigned PUT, so a plain GET could
+		// serve an HTML page from the storage origin.
+		u, err := s.Blob.PresignDownload(ctx, a.ObjectKey, a.Filename, a.ContentType, time.Hour)
 		if err != nil {
 			s.Log.Warn("presign attachment", "err", err)
 		}
@@ -399,9 +402,10 @@ func (s *Service) publish(ctx context.Context, convID uuid.UUID, e Event, toUser
 	}
 }
 
-// List returns the caller's conversations. With orgID only that
-// organization's inbox; with asSeeker only conversations the caller started.
-func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID, asSeeker bool) ([]Conversation, error) {
+// List returns a page of the caller's conversations, latest message first,
+// after the conversation before. With orgID only that organization's inbox;
+// with asSeeker only conversations the caller started.
+func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID, asSeeker bool, before *uuid.UUID, limit int32) ([]Conversation, error) {
 	var out []Conversation
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if orgID != nil {
@@ -409,7 +413,8 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID,
 				return err
 			}
 		}
-		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, OrgID: orgID, AsSeeker: asSeeker})
+		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, OrgID: orgID, AsSeeker: asSeeker,
+			Before: before, Lim: limit})
 		if err != nil {
 			return err
 		}
@@ -437,7 +442,7 @@ func (s *Service) Get(ctx context.Context, p *auth.Principal, id uuid.UUID) (Vie
 		if err != nil {
 			return err
 		}
-		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, ConversationID: &id})
+		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, ConversationID: &id, Lim: 1})
 		if err != nil {
 			return err
 		}
@@ -541,7 +546,7 @@ func (s *Service) MarkRead(ctx context.Context, p *auth.Principal, id uuid.UUID)
 // cannot start new conversations with it.
 func (s *Service) SetBlocked(ctx context.Context, p *auth.Principal, id uuid.UUID, blocked bool) error {
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
-		c, _, err := access(ctx, q, p.UserID, id)
+		c, role, err := access(ctx, q, p.UserID, id)
 		if err != nil {
 			return err
 		}
@@ -549,7 +554,7 @@ func (s *Service) SetBlocked(ctx context.Context, p *auth.Principal, id uuid.UUI
 			if c.BlockedBy == nil {
 				return nil
 			}
-			if *c.BlockedBy != p.UserID {
+			if !canUnblock(c, role, p.UserID) {
 				return apperr.Forbidden("not_blocker", "only the side that blocked can unblock")
 			}
 		} else if c.BlockedAt != nil {
@@ -575,6 +580,33 @@ func (s *Service) SetBlocked(ctx context.Context, p *auth.Principal, id uuid.UUI
 	return nil
 }
 
+// canUnblock: a block belongs to the side that set it. The seeker lifts
+// their own block; an organization's block can be lifted by any member who
+// handles messages (access already checked the permission), not only the
+// person who set it, so a block survives staff changes.
+func canUnblock(c db.Conversation, role string, userID uuid.UUID) bool {
+	if c.BlockedBy == nil {
+		return true
+	}
+	byOwnerSide := *c.BlockedBy != c.SeekerID
+	if role == RoleSeeker {
+		return !byOwnerSide && *c.BlockedBy == userID
+	}
+	return byOwnerSide
+}
+
+// lastOtherSender returns the newest sender who is not the seeker (rows
+// are newest first), or nil when the organization side never wrote.
+func lastOtherSender(rows []db.ListMessagesRow, seekerID uuid.UUID) *uuid.UUID {
+	for _, m := range rows {
+		if m.SenderID != nil && *m.SenderID != seekerID {
+			id := *m.SenderID
+			return &id
+		}
+	}
+	return nil
+}
+
 // Report reasons users can pick.
 var reportReasons = []string{"scam", "advance_payment", "harassment", "discrimination", "spam", "other"}
 
@@ -592,6 +624,15 @@ func (s *Service) Report(ctx context.Context, p *auth.Principal, id uuid.UUID, m
 		var reported *uuid.UUID
 		if role == RoleOwner {
 			reported = &c.SeekerID
+		}
+		if messageID == nil && role == RoleSeeker {
+			// The other side is an organization: report the member who
+			// wrote last, so moderation has a person to act on.
+			rows, err := q.ListMessages(ctx, db.ListMessagesParams{ConversationID: id, Limit: 1000})
+			if err != nil {
+				return err
+			}
+			reported = lastOtherSender(rows, c.SeekerID)
 		}
 		if messageID != nil {
 			rows, err := q.ListMessages(ctx, db.ListMessagesParams{ConversationID: id, Limit: 1000})

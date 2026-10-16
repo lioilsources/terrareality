@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/routers/legacy"
 
 	"github.com/terrareality/terrareality/services/api/internal/api/gen"
+	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/platform/httpx"
 )
 
@@ -17,8 +19,11 @@ func init() {
 	openapi3.DefineStringFormatValidator("email", openapi3.NewRegexpFormatValidator(`^[^@\s]+@[^@\s]+\.[^@\s]+$`))
 }
 
-// requestValidator checks requests against the OpenAPI document (types,
-// lengths, patterns, enums, formats) before handlers run.
+// requestValidator checks requests against the OpenAPI document (security,
+// types, lengths, patterns, enums, formats) before handlers run. Security is
+// enforced centrally: an operation that declares bearerAuth (the document's
+// default) answers 401 without a valid session even if its handler forgot to
+// check; `security: []` operations stay public. It runs after auth.Middleware.
 func requestValidator() (func(http.Handler) http.Handler, error) {
 	spec, err := gen.GetSpec()
 	if err != nil {
@@ -29,7 +34,7 @@ func requestValidator() (func(http.Handler) http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	opts := &openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc}
+	opts := &openapi3filter.Options{AuthenticationFunc: authenticate}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Stripe posts application/json while the contract takes the raw
@@ -45,6 +50,12 @@ func requestValidator() (func(http.Handler) http.Handler, error) {
 			}
 			in := &openapi3filter.RequestValidationInput{Request: r, PathParams: params, Route: route, Options: opts}
 			if err := openapi3filter.ValidateRequest(r.Context(), in); err != nil {
+				var se *openapi3filter.SecurityRequirementsError
+				if errors.As(err, &se) {
+					httpx.WriteProblem(w, httpx.Problem{Status: http.StatusUnauthorized, Code: "unauthenticated",
+						Detail: "authentication required", Instance: r.URL.Path})
+					return
+				}
 				httpx.WriteProblem(w, httpx.Problem{Status: http.StatusBadRequest, Code: "validation_failed",
 					Detail: validationDetail(err), Instance: r.URL.Path})
 				return
@@ -52,6 +63,21 @@ func requestValidator() (func(http.Handler) http.Handler, error) {
 			next.ServeHTTP(w, r)
 		})
 	}, nil
+}
+
+// errNoSession fails a bearerAuth requirement.
+var errNoSession = errors.New("no valid session")
+
+// authenticate satisfies the bearerAuth scheme when auth.Middleware resolved
+// the request's token into a principal.
+func authenticate(_ context.Context, in *openapi3filter.AuthenticationInput) error {
+	if in.SecuritySchemeName != "bearerAuth" {
+		return errors.New("unsupported security scheme " + in.SecuritySchemeName)
+	}
+	if auth.FromContext(in.RequestValidationInput.Request.Context()) == nil {
+		return errNoSession
+	}
+	return nil
 }
 
 // validationDetail keeps the useful first line (field and reason).

@@ -101,7 +101,7 @@ func TestPromoCheckoutAndInvoice(t *testing.T) {
 	var products struct {
 		Items []promoProductDTO `json:"items"`
 	}
-	e.must(200, "GET", "/v1/promo-products", "", nil, &products)
+	e.must(200, "GET", "/v1/promo-products", tok, nil, &products)
 	var top promoProductDTO
 	for _, p := range products.Items {
 		if p.Code == "top_7d" {
@@ -299,6 +299,7 @@ func TestRevolutPaymentLink(t *testing.T) {
 	ownerTok, orgID := e.ownerOrg("revolut-owner")
 	tenant := uniqueEmail("revolut-tenant")
 	tenantTok := e.register(tenant)
+	e.verifyEmail(tenant) // parties link to verified accounts only
 	stranger := e.register(uniqueEmail("revolut-stranger"))
 	today := time.Now().UTC()
 	lpath := "/v1/orgs/" + orgID.String() + "/leases"
@@ -384,5 +385,69 @@ func TestRevolutPaymentLink(t *testing.T) {
 	e.must(204, "DELETE", "/v1/orgs/"+orgID.String()+"/revolut", ownerTok, nil, nil)
 	if code := e.call("POST", link, ownerTok, nil, &p); code != 409 {
 		t.Fatalf("after disconnect: %d", code)
+	}
+}
+
+func stripeEvent(t *testing.T, kind, sessionID, orderID, paymentStatus string) []byte {
+	t.Helper()
+	b, err := json.Marshal(map[string]any{"id": "evt_test_" + uuid.NewString(), "object": "event", "type": kind,
+		"data": map[string]any{"object": map[string]any{"id": sessionID, "object": "checkout.session",
+			"client_reference_id": orderID, "payment_status": paymentStatus, "status": "complete",
+			"metadata": map[string]string{"order_id": orderID}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+// S-B1, S-B2: an event whose order does not match the session is
+// acknowledged (no Stripe retries) without paying anything; a delayed payment
+// method completes the session unpaid and pays with async_payment_succeeded;
+// async_payment_failed cancels a pending order.
+func TestStripeWebhookMismatchAndAsyncPayment(t *testing.T) {
+	e := newEnv(t)
+	tok, orgID := e.ownerOrg("promo-async")
+	staff := e.staffToken()
+	orgPath := "/v1/orgs/" + orgID.String()
+	listing := e.publishFlat(tok, orgID, staff, "Byt async "+uuid.NewString()[:8], "approximate")
+	checkout := func() (uuid.UUID, string) {
+		var co struct {
+			OrderID     uuid.UUID `json:"order_id"`
+			CheckoutURL string    `json:"checkout_url"`
+		}
+		e.must(201, "POST", orgPath+"/listings/"+listing.String()+"/promotions/checkout", tok, map[string]any{"product_code": "top_7d",
+			"success_url": "http://web.test/admin/orgs/" + orgID.String() + "/fakturace", "cancel_url": "http://web.test/admin"}, &co)
+		return co.OrderID, co.CheckoutURL[strings.LastIndex(co.CheckoutURL, "/")+1:]
+	}
+	post := func(payload []byte) {
+		t.Helper()
+		if code := e.postWebhook(payload, billing.SignWebhook("whsec_test", payload, time.Now())); code != 204 {
+			t.Fatalf("webhook: %d", code)
+		}
+	}
+	status := func(id uuid.UUID) string {
+		var o orderDTO
+		e.must(200, "GET", orgPath+"/orders/"+id.String(), tok, nil, &o)
+		return o.Status
+	}
+
+	orderID, session := checkout()
+	post(stripeEvent(t, billing.EventCheckoutCompleted, session, uuid.NewString(), "paid"))
+	if s := status(orderID); s != "pending" {
+		t.Fatalf("mismatched event paid the order: %s", s)
+	}
+	post(stripeEvent(t, billing.EventCheckoutCompleted, session, orderID.String(), "unpaid"))
+	if s := status(orderID); s != "pending" {
+		t.Fatalf("unpaid completion: %s", s)
+	}
+	post(stripeEvent(t, billing.EventCheckoutAsyncSucceeded, session, orderID.String(), "paid"))
+	if s := status(orderID); s != "paid" {
+		t.Fatalf("async payment succeeded: %s", s)
+	}
+
+	failed, session2 := checkout()
+	post(stripeEvent(t, billing.EventCheckoutAsyncFailed, session2, failed.String(), "unpaid"))
+	if s := status(failed); s != "canceled" {
+		t.Fatalf("async payment failed: %s", s)
 	}
 }

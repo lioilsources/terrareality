@@ -64,7 +64,7 @@ LEFT JOIN units pu ON pu.id = u.parent_id
 JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 JOIN organizations o ON o.id = l.org_id
-WHERE l.id = $1;
+WHERE l.id = $1 AND l.deleted_at IS NULL;
 
 -- name: ListListings :many
 SELECT l.*, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
@@ -77,8 +77,11 @@ JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 WHERE l.org_id = sqlc.arg(org_id) AND l.deleted_at IS NULL
   AND (sqlc.narg(status)::text IS NULL OR l.status = sqlc.narg(status))
-ORDER BY l.updated_at DESC
-LIMIT 200;
+  -- Keyset page after the cursor listing (same order as below).
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (l.updated_at, l.id) < (SELECT c.updated_at, c.id FROM listings c WHERE c.id = sqlc.narg(before)::uuid))
+ORDER BY l.updated_at DESC, l.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: UpdateListing :one
 UPDATE listings SET title = sqlc.arg(title), description = sqlc.arg(description), rent_amount = sqlc.narg(rent_amount),
@@ -89,17 +92,18 @@ WHERE id = sqlc.arg(id) AND org_id = sqlc.arg(org_id) AND deleted_at IS NULL
 RETURNING *;
 
 -- name: SetListingAttributes :exec
-UPDATE listings SET attributes = $3 WHERE id = $1 AND org_id = $2;
+UPDATE listings SET attributes = $3 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL;
 
 -- name: SetListingTexts :exec
-UPDATE listings SET title = $3, description = $4 WHERE id = $1 AND org_id = $2;
+UPDATE listings SET title = $3, description = $4 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL;
 
 -- name: SetListingStatus :exec
-UPDATE listings SET status = $3 WHERE id = $1 AND org_id = $2;
+UPDATE listings SET status = $3 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL;
 
 -- name: PublishListingVersion :exec
--- System context (backoffice review).
+-- System context (backoffice review). first_published_at is set once.
 UPDATE listings SET published_version = $2, published_at = now(),
+  first_published_at = coalesce(first_published_at, now()),
   status = CASE WHEN status IN ('draft', 'review') THEN 'published' ELSE status END
 WHERE id = $1;
 
@@ -108,6 +112,12 @@ UPDATE listings SET status = $2 WHERE id = $1;
 
 -- name: SoftDeleteListing :exec
 UPDATE listings SET deleted_at = now(), status = 'archived' WHERE id = $1 AND org_id = $2;
+
+-- name: LockListing :one
+-- Serializes per-listing counters: call first in the transaction that runs
+-- NextListingVersion + CreateListingVersion, CreateMedia (position) or
+-- PromotionEndOf + CreatePromotion.
+SELECT id FROM listings WHERE id = $1 FOR UPDATE;
 
 -- name: NextListingVersion :one
 SELECT coalesce(max(version), 0)::int + 1 AS next FROM listing_versions WHERE listing_id = $1;
@@ -176,11 +186,18 @@ UPDATE media SET status = 'ready', size_bytes = $2, sha256 = $3, width = $4, hei
   av_status = $7, content_type = $8
 WHERE id = $1;
 
+-- name: SetMediaContent :exec
+-- Replaces the stored bytes' metadata after a redaction (worker).
+UPDATE media SET size_bytes = $2, sha256 = $3, width = $4, height = $5, content_type = $6 WHERE id = $1;
+
 -- name: SetMediaVision :exec
 UPDATE media SET vision = $2 WHERE id = $1;
 
 -- name: UpdateMediaMeta :one
-UPDATE media SET position = $3, caption = $4 WHERE id = $1 AND org_id = $2 RETURNING *;
+UPDATE media SET position = $3, caption = $4 WHERE media.id = $1 AND media.org_id = $2
+  AND (media.listing_id IS NULL
+    OR EXISTS (SELECT 1 FROM listings l WHERE l.id = media.listing_id AND l.deleted_at IS NULL))
+RETURNING *;
 
 -- name: DeleteMedia :one
 DELETE FROM media WHERE id = $1 AND org_id = $2 RETURNING object_key;
@@ -205,9 +222,53 @@ SELECT * FROM ai_suggestions WHERE id = $1 AND org_id = $2;
 -- name: SystemGetSuggestion :one
 SELECT * FROM ai_suggestions WHERE id = $1;
 
+-- name: ListUndecidedPrivacyFlags :many
+-- Photos with a privacy blur suggestion nobody decided yet (or whose
+-- accepted redaction is still being applied).
+SELECT DISTINCT media_id::uuid FROM ai_suggestions
+WHERE listing_id = $1 AND kind = 'privacy_blur' AND status IN ('generating', 'pending') AND media_id IS NOT NULL;
+
+-- name: ListPrivacyFlags :many
+-- Privacy blur flags of a listing for the backoffice review (system context).
+SELECT DISTINCT ON (media_id) media_id::uuid AS media_id, status FROM ai_suggestions
+WHERE listing_id = $1 AND kind = 'privacy_blur' AND media_id IS NOT NULL
+ORDER BY media_id, created_at DESC;
+
+-- name: QueueSuggestionDecision :execrows
+-- An accepted privacy blur is recorded but stays pending until the
+-- redacted photo is stored (RedactMedia job).
+UPDATE ai_suggestions SET decision = $3, decided_by = $4
+WHERE id = $1 AND org_id = $2 AND status = 'pending';
+
+-- name: LockSuggestion :one
+SELECT * FROM ai_suggestions WHERE id = $1 FOR UPDATE;
+
+-- name: FinishSuggestion :execrows
+UPDATE ai_suggestions SET status = $2, decision = $3, decided_at = now()
+WHERE id = $1 AND status = 'pending';
+
 -- name: ListSuggestions :many
 SELECT * FROM ai_suggestions WHERE listing_id = $1 ORDER BY created_at DESC LIMIT 50;
 
 -- name: DecideSuggestion :execrows
 UPDATE ai_suggestions SET status = $3, decision = $4, decided_by = $5, decided_at = now()
 WHERE id = $1 AND org_id = $2 AND status = 'pending';
+
+-- name: ListOrphanMediaKeys :many
+-- Photo objects deleted from a working copy while a published version still
+-- showed them (DeleteMedia keeps those), which no current or pending
+-- version references any more. Keys come from the media.deleted audit
+-- events (diff.object_key, or the deterministic photo key). Worker.
+SELECT DISTINCT k.object_key::text AS object_key FROM (
+  SELECT coalesce(e.diff ->> 'object_key',
+    'orgs/' || e.org_id::text || '/media/' || e.entity_id::text || '/original') AS object_key
+  FROM audit_events e
+  WHERE e.action = 'media.deleted' AND e.entity = 'media' AND e.entity_id IS NOT NULL AND e.org_id IS NOT NULL
+    AND e.occurred_at >= sqlc.arg(since)::timestamptz AND e.occurred_at < sqlc.arg(until)::timestamptz
+) k
+WHERE NOT EXISTS (SELECT 1 FROM media m WHERE m.object_key = k.object_key)
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_versions v JOIN listings l ON l.id = v.listing_id
+    WHERE (v.status = 'pending' OR v.version = l.published_version)
+      AND v.snapshot -> 'photos' @> jsonb_build_array(jsonb_build_object('key', k.object_key)))
+LIMIT sqlc.arg(max_rows);

@@ -60,7 +60,7 @@
 						href="{localizeHref(`/auth/oidc/${p.id}`)}{nextQ}"
 						data-sveltekit-reload
 					>
-						{m.login_social({ provider: names[p.id] ?? p.id })}{p.mock ? ' (mock)' : ''}
+						{m.login_social({ provider: names[p.id] ?? p.id })}{p.mock ? m.login_mock_suffix() : ''}
 					</a>
 				{/each}
 				<p class="text-xs text-[var(--muted)]">{m.login_social_terms()}</p>

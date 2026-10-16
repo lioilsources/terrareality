@@ -59,7 +59,7 @@ class RecordingOpener implements UrlOpener {
 
 Future<RecordingOpener> _pump(WidgetTester tester, FakeBilling billing) async {
   final leases = FakeRepo();
-  await leases.sign('l1'); // signed: the rent share s2 is open and has a SPAYD
+  await leases.sign('l1', SignProviderIdEnum.mock); // signed: the rent share s2 is open and has a SPAYD
   final opener = RecordingOpener();
   await tester.pumpWidget(ProviderScope(
     overrides: [

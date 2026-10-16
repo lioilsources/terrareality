@@ -1,16 +1,19 @@
 // Faktura – daňový doklad for platform services (promo products).
-// Contains the particulars of § 29 odst. 1 zákona č. 235/2004 Sb., o DPH.
+// Contains the particulars of § 29 odst. 1 zákona č. 235/2004 Sb., o DPH;
+// up to 10 000 Kč without the buyer's DIČ it is a zjednodušený daňový
+// doklad (§ 30), data.title says which.
 // Data comes from the api as JSON in sys.inputs.data; amounts and dates are
 // already formatted. Open legal points: docs/legal-questions.md (Q-BILL-*).
 
 #let data = json(bytes(sys.inputs.data))
 #let opt(p, key) = p.at(key, default: "")
+#let title = data.at("title", default: "Faktura – daňový doklad")
 
-#set document(title: "Faktura – daňový doklad " + data.number)
+#set document(title: title + " " + data.number)
 #set page(paper: "a4", margin: (x: 2cm, y: 2.2cm),
   footer: context [
     #set text(8pt, fill: gray)
-    Faktura – daňový doklad #data.number #h(1fr) #counter(page).display("1 / 1", both: true)
+    #title #data.number #h(1fr) #counter(page).display("1 / 1", both: true)
   ])
 #set text(font: "Libertinus Serif", size: 10pt, lang: "cs")
 #set par(leading: 0.6em)
@@ -25,7 +28,7 @@
 ]
 
 #grid(columns: (1fr, auto), align: (left, right),
-  text(18pt, weight: "bold")[Faktura – daňový doklad],
+  text(18pt, weight: "bold")[#title],
   text(12pt)[č. *#data.number*])
 
 #v(0.6em)

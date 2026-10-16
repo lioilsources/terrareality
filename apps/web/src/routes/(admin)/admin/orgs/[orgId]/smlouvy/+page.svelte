@@ -5,6 +5,7 @@
 	import { fmtDate } from '#lib/labels.js';
 	import { stateLabel } from '#lib/leasing.js';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, params }: PageProps = $props();
@@ -34,7 +35,7 @@
 					<strong>{l.property_address}</strong>
 					<span class="text-sm text-[var(--muted)]">{l.tenant_names}</span>
 					<span class="text-sm"
-						>{formatMoney(l.rent_amount, locale)} Kč · {fmtDate(l.starts_on, locale)}</span
+						>{formatMoney(l.rent_amount, l.currency, locale)} · {fmtDate(l.starts_on, locale)}</span
 					>
 					<span class="ml-auto rounded bg-[var(--border)]/60 px-2 py-0.5 text-sm"
 						>{stateLabel[l.state]()}</span
@@ -43,4 +44,5 @@
 			</li>
 		{/each}
 	</ul>
+	<LoadMore next={data.paging.next} first={data.paging.first} testid="leases-more" />
 </Card>

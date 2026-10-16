@@ -23,8 +23,13 @@ output "db_private_ip" {
 }
 
 output "object_storage_endpoint" {
-  description = "S3_ENDPOINT / pgBackRest repo1-s3-endpoint."
+  description = "S3_ENDPOINT (media, app VM .env)."
   value       = "${var.object_storage_location}.your-objectstorage.com"
+}
+
+output "backup_endpoint" {
+  description = "PGBACKREST_S3_ENDPOINT in the DB VM .env (backup project)."
+  value       = "${var.backup_location}.your-objectstorage.com"
 }
 
 output "media_bucket" {
@@ -32,7 +37,8 @@ output "media_bucket" {
 }
 
 output "backup_bucket" {
-  value = minio_s3_bucket.backups.bucket
+  description = "PGBACKREST_BUCKET in the DB VM .env (backup project)."
+  value       = minio_s3_bucket.backups.bucket
 }
 
 output "ssh_app" {
@@ -41,4 +47,14 @@ output "ssh_app" {
 
 output "ssh_db" {
   value = "ssh deploy@${hcloud_server.db.ipv4_address}"
+}
+
+output "media_replica_endpoint" {
+  description = "MEDIA_REPLICA_ENDPOINT in the DB VM .env (compose/db.env.example)."
+  value       = "${var.media_replica_location}.your-objectstorage.com"
+}
+
+output "media_replica_bucket" {
+  description = "MEDIA_REPLICA_BUCKET in the DB VM .env (compose/db.env.example)."
+  value       = minio_s3_bucket.media_replica.bucket
 }

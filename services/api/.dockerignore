@@ -1,0 +1,7 @@
+# Build context of services/api/Dockerfile.
+bin
+coverage.out
+**/*_test.go.orig
+**/.env
+**/.env.*
+**/.DS_Store

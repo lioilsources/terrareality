@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/terrareality/terrareality/services/api/internal/notify"
 )
 
 // bankID verifies the user's identity through the mock BankID provider.
@@ -51,6 +53,7 @@ type appDetail struct {
 func TestApplicationsAcceptance(t *testing.T) {
 	e := newEnv(t)
 	ownerTok, orgID := e.ownerOrg("app-owner")
+	e.pushDevice(ownerTok)
 	staff := e.staffToken()
 	listingID := e.publishFlat(ownerTok, orgID, staff, "Byt pro tři "+uuid.NewString()[:6], "approximate")
 	lpath := "/v1/orgs/" + orgID.String() + "/listings/" + listingID.String()
@@ -61,6 +64,16 @@ func TestApplicationsAcceptance(t *testing.T) {
 	for i, em := range emails {
 		toks[i] = e.register(em)
 	}
+	// Groups match invitations by e-mail, so only confirmed addresses may
+	// create, list invitations or join (B-2).
+	if code := e.call("POST", "/v1/groups", toks[0], map[string]any{"name": "Unverified"}, nil); code != 403 {
+		t.Fatalf("unverified creates a group: %d", code)
+	}
+	for _, em := range emails {
+		e.verifyEmail(em)
+	}
+	e.pushDevice(toks[0])
+	annaID := e.userID(toks[0])
 	var g struct {
 		ID      uuid.UUID `json:"id"`
 		Members []struct {
@@ -129,9 +142,20 @@ func TestApplicationsAcceptance(t *testing.T) {
 	if _, ok := e.outbox.Last(ownerEmail, "application_received"); !ok {
 		t.Fatal("landlord not notified")
 	}
+	// The landlord's phone gets a push about the new application (admin
+	// screens are on the web, so it is marked for the landlord audience).
+	ownerID := e.userID(ownerTok)
+	if ps := e.pusher.of(ownerID, notify.PushApplication); len(ps) != 1 || ps[0].Data["id"] != appID.String() ||
+		ps[0].Data["audience"] != "landlord" || ps[0].Data["org_id"] != orgID.String() || ps[0].Title != "Nová žádost o nájem" {
+		t.Fatalf("landlord application push %+v", ps)
+	}
+	if ps := e.pusher.of(annaID, notify.PushApplication); len(ps) != 0 {
+		t.Fatalf("applicant pushed on submit %+v", ps)
+	}
 
 	// Two other applicants; one is verified with BankID and passes ISIR.
 	solo := e.register(uniqueEmail("solo"))
+	e.pushDevice(solo)
 	e.bankID(solo, "Dana", "Dobrá")
 	var pass struct {
 		Insolvency string `json:"insolvency"`
@@ -182,8 +206,8 @@ func TestApplicationsAcceptance(t *testing.T) {
 		Application       appDTO `json:"application"`
 		VerificationLevel string `json:"verification_level"`
 		People            []struct {
-			IncomeProofURL *string `json:"income_proof_url"`
-			Insolvency     string  `json:"insolvency"`
+			HasIncomeProof bool   `json:"has_income_proof"`
+			Insolvency     string `json:"insolvency"`
 		} `json:"people"`
 		AiSummary *struct {
 			Summary string `json:"summary"`
@@ -193,7 +217,7 @@ func TestApplicationsAcceptance(t *testing.T) {
 	if len(applicants) != 3 || applicants[0].Application.ID != soloApp.Application.ID || applicants[0].VerificationLevel != "identity" {
 		t.Fatalf("order %+v", applicants)
 	}
-	if applicants[0].People[0].IncomeProofURL == nil || applicants[0].People[0].Insolvency != "clear" || applicants[0].AiSummary == nil {
+	if !applicants[0].People[0].HasIncomeProof || applicants[0].People[0].Insolvency != "clear" || applicants[0].AiSummary == nil {
 		t.Fatalf("passport facts %+v", applicants[0])
 	}
 	for _, a := range applicants {
@@ -214,6 +238,10 @@ func TestApplicationsAcceptance(t *testing.T) {
 	e.must(204, "POST", "/v1/orgs/"+orgID.String()+"/applications/"+appID.String()+"/decision", ownerTok, map[string]string{"action": "invite"}, nil)
 	if _, ok := e.outbox.Last(emails[0], "application_invited"); !ok {
 		t.Fatal("no invitation to viewing")
+	}
+	if ps := e.pusher.of(annaID, notify.PushApplication); len(ps) != 1 || ps[0].Data["id"] != appID.String() ||
+		ps[0].Data["status"] != "invited" || ps[0].Link != "http://web.test/zadosti/"+appID.String() {
+		t.Fatalf("invitation push %+v", ps)
 	}
 	e.must(200, "GET", apath, toks[1], nil, &d)
 	if d.Application.Status != "invited" || len(d.Slots) != 1 {
@@ -264,6 +292,13 @@ func TestApplicationsAcceptance(t *testing.T) {
 	}
 	if _, ok := e.outbox.Last(emails[2], "application_accepted"); !ok {
 		t.Fatal("group member not told about acceptance")
+	}
+	if ps := e.pusher.of(annaID, notify.PushApplication); len(ps) != 2 || ps[1].Data["status"] != "accepted" || ps[1].Data["id"] != appID.String() {
+		t.Fatalf("acceptance push %+v", ps)
+	}
+	if ps := e.pusher.of(e.userID(solo), notify.PushApplication); len(ps) != 1 || ps[0].Data["status"] != "rejected" ||
+		ps[0].Data["id"] != soloApp.Application.ID.String() || !strings.Contains(ps[0].Body, "vybral jiného zájemce") {
+		t.Fatalf("auto rejection push %+v", ps)
 	}
 }
 

@@ -1,6 +1,7 @@
 import { error as kitError, fail, redirect } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { localizeHref } from '#lib/paraglide/runtime.js';
+import { EMPTY_SCHEMA } from '#lib/catalog.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -9,11 +10,21 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		locals.api.GET('/v1/listings/{listingId}', path),
 		locals.api.GET('/v1/listings/{listingId}/similar', path),
 		locals.api.GET('/v1/attributes'),
-		locals.me ? locals.api.GET('/v1/conversations', { params: { query: { as: 'seeker' } } }) : null
+		locals.me
+			? locals.api.GET('/v1/conversations', {
+					// Largest page: the conversation about this listing is usually among the recent ones.
+					params: { query: { as: 'seeker', limit: 200 } }
+				})
+			: null
 	]);
 	if (!listing.data) kitError(404);
 	const conversation = mine?.data?.find((c) => c.listing_id === params.id)?.id ?? null;
-	return { listing: listing.data, similar: similar.data ?? [], schema: schema.data!, conversation };
+	return {
+		listing: listing.data,
+		similar: similar.data ?? [],
+		schema: schema.data ?? EMPTY_SCHEMA,
+		conversation
+	};
 };
 
 export const actions: Actions = {

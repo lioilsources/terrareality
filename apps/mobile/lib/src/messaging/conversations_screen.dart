@@ -4,11 +4,36 @@ import 'package:go_router/go_router.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
+import '../common/paging.dart';
 import 'messaging_repository.dart';
 
-final conversationsProvider = FutureProvider.autoDispose<List<Conversation>>(
-  (ref) => ref.watch(messagingRepositoryProvider).conversations(),
-);
+/// The inbox, page by page (`before` cursor, newest activity first).
+class Conversations extends AsyncNotifier<CursorPage<Conversation>> {
+  @override
+  Future<CursorPage<Conversation>> build() async {
+    final items = await ref.watch(messagingRepositoryProvider).conversations();
+    return CursorPage.first(items, conversationsPageSize);
+  }
+
+  /// Fetches the page after the last conversation shown and appends it.
+  Future<void> more() async {
+    final cur = state.value;
+    if (cur == null || cur.loadingMore || !cur.hasMore || cur.items.isEmpty) return;
+    state = AsyncData(cur.loading());
+    try {
+      final page = await ref.read(messagingRepositoryProvider).conversations(before: cur.items.last.id);
+      if (!ref.mounted || !identical(state.value?.items, cur.items)) return; // reloaded meanwhile
+      state = AsyncData(cur.append(page, conversationsPageSize, (c) => c.id));
+    } catch (e) {
+      if (!ref.mounted || !identical(state.value?.items, cur.items)) return;
+      state = AsyncData(cur.failed(e));
+    }
+  }
+}
+
+final conversationsProvider =
+    AsyncNotifierProvider.autoDispose<Conversations, CursorPage<Conversation>>(Conversations.new);
 
 String titleOf(I18nText text, String locale) => (locale == 'en' && text.en.isNotEmpty) ? text.en : text.cs;
 
@@ -26,15 +51,23 @@ class ConversationsScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(conversationsProvider.future),
         child: list.when(
+          skipLoadingOnReload: true,
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ListView(children: [ListTile(title: Text(t.statusUnreachable))]),
-          data: (items) => items.isEmpty
+          error: (e, _) => ApiErrorView(error: e, scrollable: true, onRetry: () => ref.invalidate(conversationsProvider)),
+          data: (page) => page.items.isEmpty
               ? ListView(children: [ListTile(title: Text(t.messagesEmpty))])
               : ListView.separated(
-                  itemCount: items.length,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: page.items.length + 1,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) {
-                    final c = items[i];
+                    if (i == page.items.length) {
+                      return LoadMoreFooter(
+                        page: page,
+                        onMore: () => ref.read(conversationsProvider.notifier).more(),
+                      );
+                    }
+                    final c = page.items[i];
                     final peer = c.role == ConversationRole.seeker ? c.orgName : c.seekerName;
                     return ListTile(
                       title: Text(peer),

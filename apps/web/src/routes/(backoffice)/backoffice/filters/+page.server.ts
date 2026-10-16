@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { errorMessage } from '#lib/errors.js';
+import { errorMessage, serviceUnavailable } from '#lib/errors.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -7,7 +7,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		locals.api.GET('/v1/backoffice/filter-proposals', { params: { query: { status: 'pending' } } }),
 		locals.api.GET('/v1/attributes')
 	]);
-	return { proposals: proposals.data ?? [], schema: schema.data! };
+	if (!schema.data) serviceUnavailable();
+	return { proposals: proposals.data ?? [], schema: schema.data };
 };
 
 export const actions: Actions = {

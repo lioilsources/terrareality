@@ -16,6 +16,7 @@
 		description: I18nText;
 		rent_amount?: number;
 		deposit_amount?: number;
+		currency?: string;
 		attributes?: Record<string, unknown>;
 		unit: { kind: string; label: string };
 		address: { label: string };
@@ -23,8 +24,34 @@
 	const s = $derived(data.detail.snapshot as unknown as Snap);
 	const item = $derived(data.detail.item);
 	const defOf = (key: string) => data.schema.attributes.find((a) => a.key === key);
+	// Photos whose privacy blur was not applied: staff must look at them before approving.
+	const flags = $derived(data.detail.privacy_flags ?? []);
+	const flagStatus: Record<string, () => string> = {
+		generating: m.bo_privacy_status_generating,
+		pending: m.bo_privacy_status_pending,
+		rejected: m.bo_privacy_status_rejected,
+		failed: m.bo_privacy_status_failed
+	};
 </script>
 
+{#if flags.length}
+	<section
+		class="mb-6 rounded-[var(--radius-card)] border-2 border-amber-500 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+		role="alert"
+		data-testid="privacy-flags"
+	>
+		<h2 class="font-semibold">{m.bo_privacy_flags_title()} ({flags.length})</h2>
+		<p class="mt-1 text-sm">{m.bo_privacy_flags_intro()}</p>
+		<ul class="mt-2 grid gap-1 text-sm">
+			{#each flags as f (f.media_id)}
+				<li data-testid="privacy-flag">
+					<span class="font-mono">{m.bo_privacy_flag_photo({ id: f.media_id.slice(-8) })}</span>
+					· {flagStatus[f.status]?.() ?? f.status}
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
 <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
 	<Card>
 		<div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -39,8 +66,12 @@
 			{kindLabel[s.unit.kind]?.()} · {s.unit.label} · {s.address.label}
 		</p>
 		<p class="mt-2">
-			{m.field_rent()}: <strong>{formatMoney(s.rent_amount, locale)}</strong>
-			{#if s.deposit_amount}· {m.field_deposit()}: {formatMoney(s.deposit_amount, locale)}{/if}
+			{m.field_rent()}: <strong>{formatMoney(s.rent_amount, s.currency, locale)}</strong>
+			{#if s.deposit_amount}· {m.field_deposit()}: {formatMoney(
+					s.deposit_amount,
+					s.currency,
+					locale
+				)}{/if}
 		</p>
 		<p class="mt-4 text-sm whitespace-pre-line">{s.description.cs}</p>
 		{#if s.description.en}<p class="mt-4 text-sm whitespace-pre-line text-[var(--muted)]">

@@ -2,12 +2,14 @@
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
-	import { field } from '#lib/applications.js';
+	import { fmtDate } from '#lib/labels.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import LandlordNoticeForm from '#lib/components/LandlordNoticeForm.svelte';
 	import LeaseForm from '#lib/components/LeaseForm.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
+	import LeaseSignForm from '#lib/components/LeaseSignForm.svelte';
 	import LeaseSummary from '#lib/components/LeaseSummary.svelte';
 	import LeaseRisk from '#lib/components/portfolio/LeaseRisk.svelte';
 	import type { PageProps } from './$types';
@@ -42,7 +44,9 @@
 <p class="mb-2 text-sm">
 	<a href={localizeHref(`/admin/orgs/${params.orgId}/smlouvy`)}>← {m.lease_title()}</a>
 </p>
-{#if form?.error}<div class="mb-4"><Alert kind="error">{form.error}</Alert></div>{/if}
+{#if form?.error && !('noticeError' in form)}<div class="mb-4">
+		<Alert kind="error">{form.error}</Alert>
+	</div>{/if}
 <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
 	<div class="grid content-start gap-6">
 		<LeaseSummary detail={d} chain={data.chain} {locale} />
@@ -88,25 +92,21 @@
 			</form>
 		{/if}
 		{#if l.state === 'proposed' && me && !me.signed_at}
-			<form method="POST" action="?/sign" use:enhance>
-				<Button type="submit">{m.lease_sign()}</Button>
-			</form>
+			<LeaseSignForm providers={d.sign_providers} />
+		{/if}
+		{#if form && 'endsOn' in form && form.endsOn}
+			<Alert kind="success"
+				><span data-testid="notice-done"
+					>{m.lease_notice_done({ date: fmtDate(form.endsOn, locale) })}</span
+				></Alert
+			>
 		{/if}
 		{#if l.state === 'active' || l.state === 'signed'}
-			<Card title={m.lease_notice()}>
-				{#if form?.endsOn}<Alert kind="success">{m.lease_notice_done({ date: form.endsOn })}</Alert
-					>{/if}
-				<form method="POST" action="?/notice" use:enhance class="grid gap-2">
-					<label class="grid gap-1 text-sm"
-						>{m.lease_notice_on()}<input
-							type="date"
-							name="delivered_on"
-							required
-							class={field}
-						/></label
-					>
-					<Button type="submit" variant="danger">{m.lease_notice()}</Button>
-				</form>
+			<Card title={m.lease_notice_landlord()}>
+				<LandlordNoticeForm
+					endsOn={l.ends_on}
+					error={form && 'noticeError' in form ? form.error : null}
+				/>
 			</Card>
 		{/if}
 		{#if l.state === 'terminated'}

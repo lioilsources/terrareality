@@ -19,7 +19,11 @@ SELECT * FROM leases WHERE id = $1;
 -- name: ListOrgLeases :many
 SELECT l.*, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
-FROM leases l WHERE l.org_id = $1 ORDER BY l.created_at DESC;
+FROM leases l WHERE l.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (l.created_at, l.id) < (SELECT x.created_at, x.id FROM leases x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY l.created_at DESC, l.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: ListMyLeases :many
 SELECT l.*, coalesce(org_display_name(l.org_id), '')::text AS org_name
@@ -31,11 +35,20 @@ ORDER BY l.created_at DESC;
 UPDATE leases SET state = sqlc.arg(state), change_request = sqlc.narg(change_request)
 WHERE id = sqlc.arg(id) AND state = ANY(sqlc.arg(from_states)::text[]);
 
--- name: MarkLeaseSigned :exec
-UPDATE leases SET state = 'signed', signed_at = now(), workflow_id = $2 WHERE id = $1;
+-- name: MarkLeaseSigned :execrows
+-- Only a proposed lease becomes signed (a concurrent request for changes or
+-- a new proposal wins; the caller answers 409 on 0 rows).
+UPDATE leases SET state = 'signed', signed_at = now(), workflow_id = $2 WHERE id = $1 AND state = 'proposed';
+
+-- name: LeaseNoticeGiven :one
+-- Whether a notice event exists (lease_events_lease_kind index).
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = 'notice_given')::boolean;
 
 -- name: SetLeaseNotice :execrows
 UPDATE leases SET state = 'notice_given', notice_on = $2 WHERE id = $1 AND state IN ('active', 'signed');
+
+-- name: GetLeaseForUpdate :one
+SELECT * FROM leases WHERE id = $1 FOR UPDATE;
 
 -- name: AddLeaseParty :one
 INSERT INTO lease_parties (lease_id, org_id, role, user_id, name, email, share_bps, position)
@@ -119,8 +132,15 @@ JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
 WHERE s.id = $1;
 
+-- name: LockSplit :one
+SELECT * FROM obligation_splits WHERE id = $1 FOR UPDATE;
+
 -- name: AddSplitPayment :one
-UPDATE obligation_splits SET paid_amount = paid_amount + $2 WHERE id = $1 RETURNING *;
+-- Never more than what is due: no row (pgx.ErrNoRows) when the payment
+-- would exceed the share.
+UPDATE obligation_splits SET paid_amount = paid_amount + $2
+WHERE id = $1 AND paid_amount + $2 <= amount
+RETURNING *;
 
 -- name: CloseObligationIfPaid :exec
 UPDATE payment_obligations o SET status = 'paid'
@@ -188,15 +208,23 @@ ON CONFLICT (connection_id, external_id) DO NOTHING
 RETURNING *;
 
 -- name: ListBankTransactions :many
-SELECT * FROM bank_transactions WHERE org_id = $1
-  AND (sqlc.narg(status)::text IS NULL OR match_status = sqlc.narg(status)::text)
-ORDER BY booked_on DESC, created_at DESC LIMIT 200;
+SELECT t.* FROM bank_transactions t WHERE t.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(status)::text IS NULL OR t.match_status = sqlc.narg(status)::text)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (t.booked_on, t.created_at, t.id) < (SELECT x.booked_on, x.created_at, x.id FROM bank_transactions x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY t.booked_on DESC, t.created_at DESC, t.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: GetBankTransaction :one
 SELECT * FROM bank_transactions WHERE id = $1;
 
 -- name: SetTransactionMatch :exec
 UPDATE bank_transactions SET match_status = $2, split_id = $3, match_note = $4 WHERE id = $1;
+
+-- name: MatchTransaction :execrows
+-- Marks a transaction matched unless it already is (concurrent confirmations).
+UPDATE bank_transactions SET match_status = 'matched', split_id = $2, match_note = $3
+WHERE id = $1 AND match_status <> 'matched';
 
 -- name: OpenSplitsForCode :many
 -- Unpaid splits of the organization's lease with this variable symbol, oldest first.
@@ -206,6 +234,7 @@ JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
 WHERE l.org_id = $1 AND l.code = $2 AND s.paid_amount < s.amount AND o.status = 'open'
+  AND o.currency = sqlc.arg(currency)::text
 ORDER BY o.due_on, p.position;
 
 -- name: OpenSplitsByAmount :many
@@ -216,6 +245,7 @@ JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
 WHERE l.org_id = $1 AND s.amount - s.paid_amount = $2 AND o.status = 'open'
+  AND o.currency = sqlc.arg(currency)::text
   AND o.due_on BETWEEN sqlc.arg(day)::date - 10 AND sqlc.arg(day)::date + 10
 ORDER BY o.due_on;
 
@@ -223,8 +253,21 @@ ORDER BY o.due_on;
 SELECT id FROM leases WHERE id = $1 FOR UPDATE;
 
 -- name: ClaimLeaseParties :exec
--- Links parties invited by e-mail to the account with that address.
-UPDATE lease_parties SET user_id = $1 WHERE user_id IS NULL AND email = $2::citext;
+-- Links parties invited by e-mail to the account with that address, only
+-- once the account proved it owns the address (verified e-mail).
+UPDATE lease_parties p SET user_id = u.id
+FROM users u
+WHERE u.id = $1 AND u.email_verified_at IS NOT NULL AND u.pseudonymized_at IS NULL
+  AND p.user_id IS NULL AND p.email = u.email::citext;
+
+-- name: VerifiedUserByEmail :one
+-- The account with a verified e-mail address (lease parties link only to it).
+SELECT * FROM users WHERE email = $1 AND email_verified_at IS NOT NULL AND pseudonymized_at IS NULL;
+
+-- name: LeaseEventExists :one
+-- Whether an event of a kind with data.due_on already exists (idempotent reminders).
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = $2
+  AND payload->'data'->>'due_on' = sqlc.arg(due_on)::text)::boolean;
 
 -- name: CancelObligationsAfter :exec
 UPDATE payment_obligations SET status = 'cancelled' WHERE lease_id = $1 AND status = 'open' AND due_on > $2;

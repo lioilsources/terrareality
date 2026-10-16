@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/terrareality/terrareality/services/api/internal/ai"
+	"github.com/terrareality/terrareality/services/api/internal/audit"
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
@@ -55,7 +56,7 @@ func (s *Summaries) Summarize(ctx context.Context, id uuid.UUID, final bool) err
 	if err != nil {
 		return err
 	}
-	facts := ai.ApplicationFacts{ListingTitle: pick(i18n(a.ListingTitle), "cs"), Message: a.Message,
+	facts := ai.ApplicationFacts{ListingTitle: notify.Text(i18n(a.ListingTitle)).Pick("cs"), Message: a.Message,
 		HouseholdSize: int(a.HouseholdSize), Answers: map[string]string{}}
 	if f, err := q.ListingMatchFacts(ctx, a.ListingID); err == nil {
 		facts.Rent = f.RentAmount
@@ -69,7 +70,7 @@ func (s *Summaries) Summarize(ctx context.Context, id uuid.UUID, final bool) err
 	var answers []answer
 	_ = json.Unmarshal(a.Answers, &answers)
 	for _, x := range answers {
-		facts.Answers[pick(x.Question, "cs")] = x.Answer
+		facts.Answers[notify.Text(x.Question).Pick("cs")] = x.Answer
 	}
 	for _, p := range people {
 		facts.People = append(facts.People, ai.PersonFacts{Verification: p.VerificationLevel, IncomeProof: p.IncomeKey != nil,
@@ -118,23 +119,33 @@ func (r *Reminders) Remind(ctx context.Context, bookingID uuid.UUID) error {
 		to = append(to, recipient{ID: p.ID, Email: p.Email, Locale: p.Locale})
 	}
 	title := i18n(b.ListingTitle)
+	// The e-mails and an audit marker commit together; a retry after a
+	// crash between commit and job completion finds the marker and sends
+	// nothing twice (push is best effort and skipped on such a retry).
+	already := false
 	err = platformdb.InTx(ctx, r.Pool, func(tx pgx.Tx) error {
-		return svc.notifyAll(ctx, db.New(tx), tx, to, "viewing_reminder", link,
-			map[string]any{"ListingTitle": title, "When": when, "City": b.City, "Note": b.Note})
-	})
-	if err != nil || r.Pusher == nil {
-		return err
-	}
-	for _, p := range people {
-		devices, err := q.SystemPushDevices(ctx, p.ID)
+		q := db.New(tx)
+		sent, err := q.ViewingReminderSent(ctx, bookingID)
 		if err != nil {
 			return err
 		}
-		for _, d := range devices {
-			_ = r.Pusher.Push(ctx, notify.Push{Platform: d.Platform, Token: d.Token, Keys: d.Keys, UserID: p.ID.String(),
-				Title: pick(title, p.Locale), Body: when, Link: link,
-				Data: notify.PushData(notify.PushViewing, bookingID.String(), map[string]string{"application_id": b.ApplicationID.String()})})
+		if sent {
+			already = true
+			return nil
 		}
+		if err := svc.notifyAll(ctx, q, tx, to, "viewing_reminder", link,
+			map[string]any{"ListingTitle": title, "When": when, "City": b.City, "Note": b.Note}); err != nil {
+			return err
+		}
+		return audit.Record(ctx, q, audit.Event{Entity: "viewing_booking", EntityID: &bookingID, Action: "viewing.reminded",
+			Diff: map[string]any{"starts_at": b.StartsAt}})
+	})
+	if err != nil || already || r.Pusher == nil {
+		return err
+	}
+	for _, p := range people {
+		notify.PushUser(ctx, q, r.Pusher, nil, p.ID, notify.Push{Title: notify.Text(title).Pick(p.Locale), Body: when, Link: link,
+			Data: notify.PushData(notify.PushViewing, bookingID.String(), map[string]string{"application_id": b.ApplicationID.String()})})
 	}
 	return nil
 }

@@ -408,12 +408,19 @@ class BillingApi {
 
   /// Invoices (daňové doklady) issued to the organization
   ///
+  /// Paged newest first; `next_before` is the cursor of the next page.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<Response> listInvoicesWithHttpInfo(String orgId,) async {
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> listInvoicesWithHttpInfo(String orgId, { String? before, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/orgs/{orgId}/invoices'
       .replaceAll('{orgId}', orgId);
@@ -424,6 +431,13 @@ class BillingApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
 
     const contentTypes = <String>[];
 
@@ -441,11 +455,18 @@ class BillingApi {
 
   /// Invoices (daňové doklady) issued to the organization
   ///
+  /// Paged newest first; `next_before` is the cursor of the next page.
+  ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<InvoiceList?> listInvoices(String orgId,) async {
-    final response = await listInvoicesWithHttpInfo(orgId,);
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<InvoiceList?> listInvoices(String orgId, { String? before, int? limit, }) async {
+    final response = await listInvoicesWithHttpInfo(orgId,  before: before, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
@@ -461,12 +482,19 @@ class BillingApi {
 
   /// Promotion orders of the organization
   ///
+  /// Paged newest first; `next_before` is the cursor of the next page.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<Response> listOrdersWithHttpInfo(String orgId,) async {
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> listOrdersWithHttpInfo(String orgId, { String? before, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/orgs/{orgId}/orders'
       .replaceAll('{orgId}', orgId);
@@ -477,6 +505,13 @@ class BillingApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
 
     const contentTypes = <String>[];
 
@@ -494,11 +529,18 @@ class BillingApi {
 
   /// Promotion orders of the organization
   ///
+  /// Paged newest first; `next_before` is the cursor of the next page.
+  ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<OrderList?> listOrders(String orgId,) async {
-    final response = await listOrdersWithHttpInfo(orgId,);
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<OrderList?> listOrders(String orgId, { String? before, int? limit, }) async {
+    final response = await listOrdersWithHttpInfo(orgId,  before: before, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }

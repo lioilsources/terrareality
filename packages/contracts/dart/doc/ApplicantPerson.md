@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **userId** | **String** |  | 
 **displayName** | **String** |  | 
 **verificationLevel** | [**VerificationLevel**](VerificationLevel.md) |  | 
-**incomeProofUrl** | **String** | Short-lived download URL. | [optional] 
+**hasIncomeProof** | **bool** | An income proof can be downloaded now (getApplicantIncomeProof); false once the application is closed. | 
 **incomeProofName** | **String** |  | [optional] 
 **insolvency** | **String** |  | 
 

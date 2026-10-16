@@ -1,6 +1,8 @@
 # Local development dependencies. Start with `make up` from the repo root.
 # Host ports avoid the defaults so this stack can run next to other projects
 # (e.g. ChatShop on 5432).
+# Offline use (CLAUDE.md: `make dev` must work offline) needs one online `make up` first to pull
+# and build the images below; after that nothing here reaches the network.
 name: terra-dev
 
 services:

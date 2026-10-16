@@ -30,6 +30,7 @@ class LeaseParty {
 
   String name;
 
+  /// Shown to the landlord side for every party; a tenant-side caller sees only their own and the landlord's.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated

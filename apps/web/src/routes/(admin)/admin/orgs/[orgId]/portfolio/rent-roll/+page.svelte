@@ -5,7 +5,7 @@
 	import { field } from '#lib/applications.js';
 	import { fmtDate } from '#lib/labels.js';
 	import { stateLabel } from '#lib/leasing.js';
-	import { kc } from '#lib/portfolio.js';
+	import { money } from '#lib/portfolio.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
@@ -18,6 +18,8 @@
 	const base = $derived(`/admin/orgs/${params.orgId}`);
 	let view = $state<'table' | 'map'>('table');
 	const roll = $derived(data.roll);
+	// Totals are summed in one currency; rows carry it.
+	const currency = $derived(roll?.rows[0]?.currency ?? 'CZK');
 	const canOpen = $derived(roll && roll.role !== 'investor');
 	const groupName = $derived(new Map((roll?.groups ?? []).map((g) => [g.id, g])));
 	const points = $derived<MapPoint[]>(
@@ -142,7 +144,9 @@
 								<td class="px-2 py-2">{r.tenants ?? ''}</td>
 								{#if r.kind === 'vacant'}
 									<td class="px-2 py-2 text-right text-[var(--muted)]"
-										>{r.asking_rent ? m.pf_asking({ amount: kc(r.asking_rent, locale) }) : ''}</td
+										>{r.asking_rent
+											? m.pf_asking({ amount: money(r.asking_rent, r.currency, locale) })
+											: ''}</td
 									>
 									<td class="px-2 py-2"></td>
 									<td class="px-2 py-2"></td>
@@ -152,7 +156,7 @@
 									<td class="px-2 py-2"></td>
 								{:else}
 									<td class="px-2 py-2 text-right whitespace-nowrap tabular-nums"
-										>{kc((r.rent ?? 0) + (r.services ?? 0), locale)}</td
+										>{money((r.rent ?? 0) + (r.services ?? 0), r.currency, locale)}</td
 									>
 									<td class="px-2 py-2 whitespace-nowrap"
 										>{m.pf_due_day({ day: r.due_day ?? 0 })}</td
@@ -161,13 +165,17 @@
 										>{r.ends_on ? fmtDate(r.ends_on, locale) : m.pf_indefinite()}</td
 									>
 									<td class="px-2 py-2 text-right whitespace-nowrap tabular-nums"
-										>{kc(r.deposit_paid, locale)} / {kc(r.deposit, locale)}</td
+										>{money(r.deposit_paid, r.currency, locale)} / {money(
+											r.deposit,
+											r.currency,
+											locale
+										)}</td
 									>
 									<td
 										class="px-2 py-2 text-right whitespace-nowrap tabular-nums {(r.debt ?? 0) > 0
 											? 'font-semibold text-red-600 dark:text-red-400'
 											: ''}"
-										data-testid="row-debt">{kc(r.debt, locale)}</td
+										data-testid="row-debt">{money(r.debt, r.currency, locale)}</td
 									>
 									<td class="px-2 py-2">{stateLabel[r.state]?.() ?? r.state}</td>
 									<td class="px-2 py-2"><RiskBadge score={r.risk_score} band={r.risk_band} /></td>
@@ -181,12 +189,12 @@
 								>{m.pf_totals()}: {roll.totals.leases} · {m.pf_vacant()} {roll.totals.vacant}</td
 							>
 							<td class="px-2 py-2 text-right whitespace-nowrap tabular-nums"
-								>{kc(roll.totals.monthly, locale)}</td
+								>{money(roll.totals.monthly, currency, locale)}</td
 							>
 							<td colspan="3"></td>
 							<td
 								class="px-2 py-2 text-right whitespace-nowrap tabular-nums"
-								data-testid="total-debt">{kc(roll.totals.debt, locale)}</td
+								data-testid="total-debt">{money(roll.totals.debt, currency, locale)}</td
 							>
 							<td colspan="2"></td>
 						</tr>

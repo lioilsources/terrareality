@@ -53,6 +53,7 @@ func MigrateRiver(ctx context.Context, pool *pgxpool.Pool) error {
 // WorkerDeps are the collaborators of job workers.
 type WorkerDeps struct {
 	Sender      notify.Sender
+	Pusher      notify.Pusher // queued pushes (send_push); nil drops them
 	GDPR        *GDPRWorker
 	Media       *ProcessMediaWorker
 	Suggestions *SuggestionWorker
@@ -75,10 +76,13 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &HeartbeatWorker{Q: db.New(pool)})
 	river.AddWorker(workers, &SendMessageWorker{Sender: deps.Sender})
+	river.AddWorker(workers, &SendPushWorker{Q: db.New(pool), Pusher: deps.Pusher, Log: log})
 	river.AddWorker(workers, deps.GDPR)
 	river.AddWorker(workers, &CleanupWorker{Q: db.New(pool)})
 	river.AddWorker(workers, deps.Media)
 	river.AddWorker(workers, deps.Suggestions)
+	river.AddWorker(workers, &RedactMediaWorker{Media: deps.Media})
+	river.AddWorker(workers, &MediaCleanupWorker{Media: deps.Media})
 	river.AddWorker(workers, &RefreshAggregatesWorker{Q: db.New(pool)})
 	river.AddWorker(workers, deps.Digest)
 	river.AddWorker(workers, deps.Messages)
@@ -110,6 +114,8 @@ func NewWorkerClient(pool *pgxpool.Pool, log *slog.Logger, deps WorkerDeps) (*ri
 				func() (river.JobArgs, *river.InsertOpts) { return RefreshAggregatesArgs{}, nil }, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return DigestArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return MediaCleanupArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(6*time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return BankSyncArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute),

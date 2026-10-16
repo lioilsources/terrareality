@@ -3,6 +3,8 @@ package leasing
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -249,8 +251,71 @@ func (g *GoCardless) Transactions(ctx context.Context, accountID string, since t
 	if err := g.do(ctx, http.MethodGet, path, nil, &out); err != nil {
 		return nil, err
 	}
+	res := gcTransactions(out.Transactions.Booked)
+	for i := range res {
+		if validCurrency(res[i].Currency) {
+			continue
+		}
+		// Some banks omit the currency per transaction: the account's applies.
+		cur, err := g.accountCurrency(ctx, accountID)
+		if err != nil {
+			return nil, err
+		}
+		for j := i; j < len(res); j++ {
+			if !validCurrency(res[j].Currency) {
+				res[j].Currency = cur
+			}
+		}
+		break
+	}
+	return res, nil
+}
+
+// validCurrency reports an ISO 4217 code (bank_transactions.currency CHECK).
+func validCurrency(c string) bool {
+	if len(c) != 3 {
+		return false
+	}
+	for _, r := range c {
+		if r < 'A' || r > 'Z' {
+			return false
+		}
+	}
+	return true
+}
+
+// accountCurrency is the currency of the account (account details).
+func (g *GoCardless) accountCurrency(ctx context.Context, accountID string) (string, error) {
+	var d struct {
+		Account struct {
+			Currency string `json:"currency"`
+		} `json:"account"`
+	}
+	if err := g.do(ctx, http.MethodGet, "/accounts/"+accountID+"/details/", nil, &d); err != nil {
+		return "", err
+	}
+	cur := strings.ToUpper(strings.TrimSpace(d.Account.Currency))
+	if !validCurrency(cur) {
+		return "", fmt.Errorf("gocardless: account %s has no valid currency %q", accountID, d.Account.Currency)
+	}
+	return cur, nil
+}
+
+// gcFallbackID identifies a booked transaction without transactionId and
+// internalTransactionId (some banks send neither) by its content, so it is
+// neither dropped as a duplicate of every other id-less transaction nor
+// imported twice by overlapping syncs.
+func gcFallbackID(t gcTxn) string {
+	sum := sha256.Sum256([]byte(strings.Join([]string{t.BookingDate, t.TransactionAmount.Amount, t.TransactionAmount.Currency,
+		t.DebtorAccount.IBAN, t.DebtorName, t.Unstructured, strings.Join(t.UnstructuredA, " "), t.Structured, t.EndToEndID,
+		t.CreditorRef}, "\x1f")))
+	return "sha256:" + hex.EncodeToString(sum[:16])
+}
+
+func gcTransactions(booked []gcTxn) []Transaction {
 	var res []Transaction
-	for _, t := range out.Transactions.Booked {
+	seen := map[string]int{}
+	for _, t := range booked {
 		amount, err := parseMinor(t.TransactionAmount.Amount)
 		if err != nil {
 			continue
@@ -263,13 +328,22 @@ func (g *GoCardless) Transactions(ctx context.Context, accountID string, since t
 		if id == "" {
 			id = t.InternalID
 		}
+		if id == "" {
+			// Identical id-less transactions in one response are distinct
+			// payments (same tenant paying twice the same day).
+			id = gcFallbackID(t)
+			if seen[id]++; seen[id] > 1 {
+				id += "#" + strconv.Itoa(seen[id])
+			}
+		}
 		remit := strings.TrimSpace(strings.Join(append([]string{t.Unstructured, t.Structured}, t.UnstructuredA...), " "))
 		vs, ss := SymbolsFrom(remit, t.EndToEndID, t.CreditorRef)
-		res = append(res, Transaction{ExternalID: id, BookedOn: day, Amount: amount, Currency: t.TransactionAmount.Currency,
+		res = append(res, Transaction{ExternalID: id, BookedOn: day, Amount: amount,
+			Currency:       strings.ToUpper(strings.TrimSpace(t.TransactionAmount.Currency)),
 			VariableSymbol: vs, SpecificSymbol: ss, CounterpartyName: t.DebtorName, CounterpartyAccount: t.DebtorAccount.IBAN,
 			Remittance: remit})
 	}
-	return res, nil
+	return res
 }
 
 func parseMinor(s string) (int64, error) {

@@ -787,8 +787,17 @@ class BackofficeApi {
 
   /// Open reports and automatic flags, oldest first
   ///
+  /// Paged oldest first: a full page may have more; pass the last item's id as `after`.
+  ///
   /// Note: This method returns the HTTP [Response].
-  Future<Response> backofficeListModerationWithHttpInfo() async {
+  ///
+  /// Parameters:
+  ///
+  /// * [String] after:
+  ///   Cursor of oldest-first lists; return items with an id greater than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> backofficeListModerationWithHttpInfo({ String? after, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/backoffice/moderation';
 
@@ -798,6 +807,13 @@ class BackofficeApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (after != null) {
+      queryParams.addAll(_queryParams('', 'after', after));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
 
     const contentTypes = <String>[];
 
@@ -814,8 +830,17 @@ class BackofficeApi {
   }
 
   /// Open reports and automatic flags, oldest first
-  Future<List<ModerationCase>?> backofficeListModeration() async {
-    final response = await backofficeListModerationWithHttpInfo();
+  ///
+  /// Paged oldest first: a full page may have more; pass the last item's id as `after`.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] after:
+  ///   Cursor of oldest-first lists; return items with an id greater than this one.
+  ///
+  /// * [int] limit:
+  Future<List<ModerationCase>?> backofficeListModeration({ String? after, int? limit, }) async {
+    final response = await backofficeListModerationWithHttpInfo( after: after, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }

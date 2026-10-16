@@ -1,13 +1,14 @@
 ---
 import Layout from './Layout.astro';
 import { strings, type Locale } from '../i18n/strings';
+import { APP_URL } from '../lib/api';
 
 interface Props {
   lang: Locale;
 }
 const { lang } = Astro.props;
 const t = strings[lang];
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
+const prefix = lang === 'en' ? '/en' : '';
 ---
 
 <Layout title={t.title} description={t.description} lang={lang} altHref={lang === 'cs' ? '/en/' : '/'} altLabel={t.switchLang} alternates={{ cs: '/', en: '/en/' }}>
@@ -15,8 +16,8 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
     <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">{t.hero}</h1>
     <p class="mt-4 text-lg text-[var(--muted)]">{t.lead}</p>
     <div class="mt-8 flex flex-wrap gap-3">
-      <a href={appUrl} class="rounded-lg bg-[var(--accent)] px-5 py-3 font-medium text-white">{t.ctaSearch}</a>
-      <a href={`${appUrl}/admin`} class="rounded-lg border border-[var(--border)] px-5 py-3 font-medium">{t.ctaLandlord}</a>
+      <a href={`${APP_URL}${prefix}/`} class="rounded-lg bg-[var(--accent)] px-5 py-3 font-medium text-white">{t.ctaSearch}</a>
+      <a href={`${APP_URL}${prefix}/admin`} class="rounded-lg border border-[var(--border)] px-5 py-3 font-medium">{t.ctaLandlord}</a>
     </div>
   </section>
   <section class="mt-16 grid gap-4 sm:grid-cols-2">

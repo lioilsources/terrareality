@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { onMount, tick } from 'svelte';
+	import { MESSAGE_PAGE } from '#lib/messaging.js';
 	import type { Message } from '@terra/contracts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
@@ -21,7 +22,14 @@
 	// Writable deriveds: reset on navigation, updated by realtime events.
 	let messages = $derived<Message[]>(data.messages);
 	let peerReadAt = $derived(data.detail.peer_read_at ?? null);
+	let hasOlder = $derived(data.hasOlder);
+	let loadingOlder = $state(false);
+	let olderFailed = $state(false);
 	let live = $state(false);
+	// Primitive keys of the realtime subscription: a different conversation, or a
+	// block/unblock (the api revokes or restores channel access), resubscribes.
+	const convId = $derived(data.detail.conversation.id);
+	const blocked = $derived(data.detail.conversation.blocked);
 	let body = $state('');
 	let list: HTMLElement | undefined = $state();
 
@@ -63,10 +71,39 @@
 		else if (e.type === 'blocked' || e.type === 'removed') invalidateAll();
 	}
 
-	onMount(() => {
-		scrollDown();
-		return connect({ conversation: c.id, onEvent, onState: (on) => (live = on) });
+	onMount(scrollDown);
+
+	$effect(() => {
+		const conversation = convId;
+		void blocked;
+		live = false;
+		return connect({ conversation, onEvent, onState: (on) => (live = on) });
 	});
+
+	/** Prepends the previous page (api cursor `before`), keeping the scroll position. */
+	async function loadOlder() {
+		const first = messages[0];
+		if (!first || loadingOlder) return;
+		loadingOlder = true;
+		olderFailed = false;
+		try {
+			const res = await fetch(
+				`/zpravy/api/${convId}/messages?before=${encodeURIComponent(first.created_at)}`
+			);
+			if (!res.ok) throw new Error(String(res.status));
+			const older = (await res.json()) as Message[];
+			const known = new Set(messages.map((x) => x.id));
+			const height = list?.scrollHeight ?? 0;
+			messages = [...older.filter((x) => !known.has(x.id)), ...messages];
+			hasOlder = older.length >= MESSAGE_PAGE;
+			await tick();
+			if (list) list.scrollTop += list.scrollHeight - height;
+		} catch {
+			olderFailed = true;
+		} finally {
+			loadingOlder = false;
+		}
+	}
 </script>
 
 <svelte:head><title>{peer} · {m.msg_inbox_title()} · {m.app_name()}</title></svelte:head>
@@ -94,6 +131,18 @@
 			data-testid="messages"
 			aria-live="polite"
 		>
+			{#if hasOlder}
+				<li class="self-center">
+					<button
+						type="button"
+						class="text-sm underline disabled:opacity-60"
+						onclick={loadOlder}
+						disabled={loadingOlder}
+						data-testid="load-older">{m.msg_load_older()}</button
+					>
+					{#if olderFailed}<span class="ml-2 text-sm text-red-700">{m.err_generic()}</span>{/if}
+				</li>
+			{/if}
 			{#each messages as msg (msg.id)}
 				<li
 					class="grid max-w-[85%] gap-1 {mine(msg) ? 'justify-items-end self-end' : 'self-start'}"

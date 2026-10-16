@@ -9,6 +9,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -57,7 +58,7 @@
 					class="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] px-3 py-2"
 				>
 					<span>{fmtDate(t.booked_on, locale)}</span>
-					<strong>{formatMoney(t.amount, locale)} Kč</strong>
+					<strong>{formatMoney(t.amount, t.currency, locale)}</strong>
 					<span class="text-[var(--muted)]"
 						>{t.counterparty_name}
 						{#if t.variable_symbol}· VS {t.variable_symbol}{/if}
@@ -85,5 +86,6 @@
 				</li>
 			{/each}
 		</ul>
+		<LoadMore next={data.paging.next} first={data.paging.first} testid="bank-more" />
 	</Card>
 </div>

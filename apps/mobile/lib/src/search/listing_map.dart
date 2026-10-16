@@ -25,6 +25,29 @@ class MapMarker {
   final String? areaPath;
 
   bool get isArea => areaPath != null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapMarker &&
+      other.id == id &&
+      other.lat == lat &&
+      other.lng == lng &&
+      other.count == count &&
+      other.areaPath == areaPath;
+
+  @override
+  int get hashCode => Object.hash(id, lat, lng, count, areaPath);
+}
+
+/// Whether two marker lists draw the same map (rebuilds of the screen
+/// create new lists; redrawing them would flicker).
+bool sameMarkers(List<MapMarker> a, List<MapMarker> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 /// Builds the map widget. The screens only see this interface so widget
@@ -103,6 +126,7 @@ class _MapLibreViewState extends State<_MapLibreView> {
   Timer? _timeout;
   bool _styleLoaded = false;
   bool _programmaticMove = false;
+  Timer? _programmaticReset;
 
   @override
   void initState() {
@@ -119,12 +143,13 @@ class _MapLibreViewState extends State<_MapLibreView> {
   @override
   void didUpdateWidget(_MapLibreView old) {
     super.didUpdateWidget(old);
-    if (_styleLoaded && !identical(old.markers, widget.markers)) unawaited(_draw(fit: false));
+    if (_styleLoaded && !sameMarkers(old.markers, widget.markers)) unawaited(_draw(fit: false));
   }
 
   @override
   void dispose() {
     _timeout?.cancel();
+    _programmaticReset?.cancel();
     _controller?.onCircleTapped.remove(_circleTapped);
     super.dispose();
   }
@@ -163,7 +188,13 @@ class _MapLibreViewState extends State<_MapLibreView> {
 
   Future<void> _fit(MapLibreMapController c) async {
     final ms = widget.markers;
+    // The camera move we cause must not become a "search this area" filter.
+    // If the fit does not actually move the camera, no idle event comes, so
+    // the flag also expires on its own; otherwise the user's first pan would
+    // be swallowed.
     _programmaticMove = true;
+    _programmaticReset?.cancel();
+    _programmaticReset = Timer(const Duration(seconds: 1), () => _programmaticMove = false);
     if (ms.length == 1) {
       await c.moveCamera(CameraUpdate.newLatLngZoom(LatLng(ms.first.lat, ms.first.lng), 14));
       return;
@@ -185,6 +216,7 @@ class _MapLibreViewState extends State<_MapLibreView> {
   Future<void> _idle() async {
     if (_programmaticMove) {
       _programmaticMove = false;
+      _programmaticReset?.cancel();
       return;
     }
     final c = _controller;

@@ -87,11 +87,13 @@ doc/ImpersonateRequest.md
 doc/Invitation.md
 doc/InvitationInput.md
 doc/InvitationPreview.md
+doc/InvitationTokenInput.md
 doc/InviteToGroupRequest.md
 doc/Invoice.md
 doc/InvoiceList.md
 doc/Jurisdiction.md
 doc/JurisdictionsApi.md
+doc/LandlordNoticeReason.md
 doc/LeaseDetail.md
 doc/LeaseDocument.md
 doc/LeaseEvent.md
@@ -182,6 +184,7 @@ doc/PrescreenAnswer.md
 doc/PrescreenAnswerQuestion.md
 doc/PrescreenQuestion.md
 doc/PrescreenQuestionText.md
+doc/PrivacyFlag.md
 doc/Problem.md
 doc/PromoCheckout.md
 doc/PromoCheckoutInput.md
@@ -239,6 +242,7 @@ doc/SetConversationBlockedRequest.md
 doc/SetRiskWeightsRequest.md
 doc/SignLease200Response.md
 doc/SignLeaseRequest.md
+doc/SignProvider.md
 doc/StartConversation.md
 doc/SubscriptionToken.md
 doc/Suggestion.md
@@ -362,10 +366,12 @@ lib/model/impersonate_request.dart
 lib/model/invitation.dart
 lib/model/invitation_input.dart
 lib/model/invitation_preview.dart
+lib/model/invitation_token_input.dart
 lib/model/invite_to_group_request.dart
 lib/model/invoice.dart
 lib/model/invoice_list.dart
 lib/model/jurisdiction.dart
+lib/model/landlord_notice_reason.dart
 lib/model/lease_detail.dart
 lib/model/lease_document.dart
 lib/model/lease_event.dart
@@ -451,6 +457,7 @@ lib/model/prescreen_answer.dart
 lib/model/prescreen_answer_question.dart
 lib/model/prescreen_question.dart
 lib/model/prescreen_question_text.dart
+lib/model/privacy_flag.dart
 lib/model/problem.dart
 lib/model/promo_checkout.dart
 lib/model/promo_checkout_input.dart
@@ -507,6 +514,7 @@ lib/model/set_conversation_blocked_request.dart
 lib/model/set_risk_weights_request.dart
 lib/model/sign_lease200_response.dart
 lib/model/sign_lease_request.dart
+lib/model/sign_provider.dart
 lib/model/start_conversation.dart
 lib/model/subscription_token.dart
 lib/model/suggestion.dart

@@ -9,6 +9,21 @@ SELECT * FROM users WHERE id = $1;
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1;
 
+-- name: RecordLoginFailure :one
+-- S-A1: counts a failed password or second-factor attempt. From the sixth
+-- failure on the account is locked for 30 s, doubling per failure up to an
+-- hour; a lock that ran out is not counted against the next attempt's wait.
+UPDATE users SET failed_logins = failed_logins + 1,
+  locked_until = CASE WHEN failed_logins + 1 > sqlc.arg(free)::int
+    THEN now() + least(interval '30 seconds' * power(2, least(failed_logins + 1 - sqlc.arg(free)::int - 1, 12)), interval '1 hour')
+    ELSE locked_until END
+WHERE id = sqlc.arg(id)
+RETURNING failed_logins, locked_until;
+
+-- name: ResetLoginFailures :exec
+UPDATE users SET failed_logins = 0, locked_until = NULL
+WHERE id = $1 AND (failed_logins <> 0 OR locked_until IS NOT NULL);
+
 -- name: UpdateUserProfile :one
 UPDATE users SET display_name = $2, locale = $3 WHERE id = $1 RETURNING *;
 
@@ -47,8 +62,12 @@ UPDATE users SET totp_last_step = $2 WHERE id = $1 AND totp_last_step < $2;
 UPDATE users SET is_staff = $2 WHERE id = $1;
 
 -- name: SearchUsers :many
+-- The search text is matched literally (LIKE wildcards and the escape
+-- character are escaped).
 SELECT * FROM users
-WHERE (sqlc.narg(q)::text IS NULL OR email ILIKE '%' || sqlc.narg(q) || '%' OR display_name ILIKE '%' || sqlc.narg(q) || '%')
+WHERE (sqlc.narg(q)::text IS NULL
+    OR email ILIKE '%' || replace(replace(replace(sqlc.narg(q), '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    OR display_name ILIKE '%' || replace(replace(replace(sqlc.narg(q), '\', '\\'), '%', '\%'), '_', '\_') || '%')
   AND (sqlc.narg(before)::uuid IS NULL OR id < sqlc.narg(before))
 ORDER BY id DESC
 LIMIT sqlc.arg(lim);

@@ -4,6 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../applications/applications_screen.dart' show applicationDetailProvider, myApplicationsProvider;
+import '../auth/session.dart' show pushRegistrationProvider;
+import '../platform/url_opener.dart';
+import '../viewings/viewings_repository.dart' show myViewingsProvider;
+
 /// Obtains the device push token and reports taps on notifications. The
 /// Firebase implementation needs the project's google-services files
 /// (docs/open-questions.md, OQ-14); until then the app runs without push and
@@ -17,6 +22,9 @@ abstract class PushRegistrar {
 
   /// Data payloads of notifications tapped while the app runs.
   Stream<Map<String, String>> get opened;
+
+  /// New tokens when the platform rotates the current one.
+  Stream<String> get tokenRefresh;
 }
 
 class NoPush implements PushRegistrar {
@@ -30,6 +38,9 @@ class NoPush implements PushRegistrar {
 
   @override
   Stream<Map<String, String>> get opened => const Stream.empty();
+
+  @override
+  Stream<String> get tokenRefresh => const Stream.empty();
 }
 
 final pushRegistrarProvider = Provider<PushRegistrar>((ref) => const NoPush());
@@ -39,17 +50,37 @@ final _uuidish = RegExp(r'^[0-9A-Za-z-]+$');
 /// Maps a push data payload to an app route.
 ///
 /// Accepts an explicit `kind` + `id` (conversation, lease, viewing,
-/// application, listing), the `conversation_id` the message notifier sends,
-/// and otherwise the web `link` every push carries (internal/notify/push.go):
-/// /zpravy/{id}, /zadosti/{id}, /smlouvy/{id}, /inzerat/{id}.
+/// application, listing; an obligation's `id` is the payment share, its
+/// screen is the lease in `lease_id`), the `conversation_id` the message
+/// notifier sends, and otherwise the web `link` every push carries
+/// (internal/notify/push.go): /zpravy/{id}, /zadosti/{id}, /smlouvy/{id},
+/// /inzerat/{id}. Pushes for the landlord (`audience: landlord`) point to
+/// the web admin, which the app does not have: no route (see
+/// [externalLinkForPush]).
+///
+/// A viewing the landlord cancelled (`event: viewing_cancelled`, the
+/// e-mail/push template key) opens the viewings screen with a notice about
+/// it; the cancelled booking itself is no longer listed. Without that marker
+/// the API sends it as an `application` push and the application opens,
+/// where another slot can be booked.
 String? routeForPush(Map<String, String> data) {
+  if (data['audience'] == 'landlord') return null;
   final id = data['id'];
+  if (data['event'] == 'viewing_cancelled') {
+    final app = data['kind'] == 'application' ? id : data['application_id'];
+    return app != null && _uuidish.hasMatch(app)
+        ? Uri(path: '/prohlidky', queryParameters: {'zruseno': app}).toString()
+        : '/prohlidky';
+  }
   if (id != null && _uuidish.hasMatch(id)) {
     switch (data['kind']) {
       case 'conversation' || 'message':
         return '/zpravy/$id';
-      case 'lease' || 'payment' || 'obligation':
+      case 'lease':
         return '/smlouvy/$id';
+      case 'payment' || 'obligation':
+        final lease = data['lease_id'];
+        if (lease != null && _uuidish.hasMatch(lease)) return '/smlouvy/$lease';
       case 'application':
         return '/zadosti/$id';
       case 'viewing':
@@ -72,6 +103,15 @@ String? routeForPush(Map<String, String> data) {
   return null;
 }
 
+/// The web page a landlord push opens in the browser (admin features stay
+/// on the web), or null.
+Uri? externalLinkForPush(Map<String, String> data) {
+  if (data['audience'] != 'landlord') return null;
+  final link = Uri.tryParse(data['link'] ?? '');
+  if (link == null || (link.scheme != 'https' && link.scheme != 'http') || link.host.isEmpty) return null;
+  return link;
+}
+
 /// Opens the screen a tapped notification points to.
 class PushNavigation extends ConsumerStatefulWidget {
   const PushNavigation({super.key, required this.router, required this.child});
@@ -89,6 +129,8 @@ class _PushNavigationState extends ConsumerState<PushNavigation> {
   @override
   void initState() {
     super.initState();
+    // Registers the device for a restored session and follows sign-in/out.
+    ref.read(pushRegistrationProvider);
     final push = ref.read(pushRegistrarProvider);
     _sub = push.opened.listen(_open);
     push.initialMessage().then((m) {
@@ -97,8 +139,20 @@ class _PushNavigationState extends ConsumerState<PushNavigation> {
   }
 
   void _open(Map<String, String> data) {
+    // A decision or a cancelled viewing changes what these screens show,
+    // also when one of them is already open.
+    if (data['kind'] == 'application' || data['kind'] == 'viewing' || data['event'] == 'viewing_cancelled') {
+      ref.invalidate(myViewingsProvider);
+      ref.invalidate(myApplicationsProvider);
+      ref.invalidate(applicationDetailProvider);
+    }
     final route = routeForPush(data);
-    if (route != null) widget.router.push(route);
+    if (route != null) {
+      widget.router.push(route);
+      return;
+    }
+    final web = externalLinkForPush(data);
+    if (web != null) ref.read(urlOpenerProvider).open(web);
   }
 
   @override

@@ -48,6 +48,7 @@ type Service struct {
 	Jobs       Jobs
 	Outbox     notify.Outbox
 	Render     *notify.Renderer
+	Pusher     notify.Pusher // nil: no push notifications
 	Blob       storage.Blob
 	Scanner    media.Scanner
 	ISIR       isir.Checker
@@ -82,10 +83,10 @@ func (s *Service) notifyAll(ctx context.Context, q *db.Queries, tx pgx.Tx, to []
 			d[k] = v
 		}
 		if l, ok := data["ListingTitle"].(map[string]string); ok {
-			d["Listing"] = pick(l, r.Locale)
+			d["Listing"] = notify.Text(l).Pick(r.Locale)
 		}
 		if code, ok := data["Reason"].(string); ok && code != "" {
-			d["ReasonText"] = pick(reasonTexts[code], r.Locale)
+			d["ReasonText"] = notify.Text(reasonTexts[code]).Pick(r.Locale)
 		}
 		raw, _ := json.Marshal(map[string]any{"template": key, "listing": d["Listing"], "group": data["Group"]})
 		if _, err := q.InsertNotification(ctx, db.InsertNotificationParams{UserID: r.ID, Kind: key, Data: raw, Link: link}); err != nil {
@@ -113,16 +114,6 @@ var reasonTexts = map[string]map[string]string{
 	"other":                  {"cs": "jiný důvod", "en": "another reason"},
 }
 
-func pick(t map[string]string, locale string) string {
-	if v := t[locale]; v != "" {
-		return v
-	}
-	if v := t["cs"]; v != "" {
-		return v
-	}
-	return t["en"]
-}
-
 func i18n(raw []byte) map[string]string {
 	m := map[string]string{}
 	_ = json.Unmarshal(raw, &m)
@@ -142,10 +133,25 @@ type Group struct {
 
 var errGroupNotFound = apperr.NotFound("group_not_found", "group not found")
 
-func (s *Service) email(ctx context.Context, id uuid.UUID) (string, error) {
+var errEmailUnverified = apperr.Forbidden("email_unverified", "confirm your e-mail address first")
+
+// verifiedEmail returns the caller's address only when it was confirmed:
+// group invitations are matched by e-mail, so an unconfirmed registration
+// with someone else's address must not see or join their groups (B-2).
+func (s *Service) verifiedEmail(ctx context.Context, id uuid.UUID) (string, error) {
 	u, err := db.New(s.Pool).GetUser(ctx, id)
-	return u.Email, err
+	if err != nil {
+		return "", err
+	}
+	if u.EmailVerifiedAt == nil {
+		return "", errEmailUnverified
+	}
+	return u.Email, nil
 }
+
+// MaxInvitesPerDay caps group invitations one person sends (the e-mail
+// carries their name and the group name to any address).
+const MaxInvitesPerDay = 30
 
 // CreateGroup creates a group with the caller as admin and invites others.
 func (s *Service) CreateGroup(ctx context.Context, p *auth.Principal, name string, invites []string) (uuid.UUID, error) {
@@ -153,7 +159,7 @@ func (s *Service) CreateGroup(ctx context.Context, p *auth.Principal, name strin
 	if name == "" || utf8.RuneCountInString(name) > 80 {
 		return uuid.Nil, apperr.Unprocessable("group_name", "the name must have 1 to 80 characters")
 	}
-	me, err := s.email(ctx, p.UserID)
+	me, err := s.verifiedEmail(ctx, p.UserID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -192,6 +198,17 @@ func (s *Service) Invite(ctx context.Context, p *auth.Principal, groupID uuid.UU
 		return apperr.Unprocessable("invalid_email", "invalid e-mail address")
 	}
 	email = strings.ToLower(addr.Address)
+	if _, err := s.verifiedEmail(ctx, p.UserID); err != nil {
+		return err
+	}
+	sent, err := db.New(s.Pool).CountRecentActorActions(ctx, db.CountRecentActorActionsParams{ActorID: &p.UserID,
+		Action: "group.invite", Since: time.Now().Add(-24 * time.Hour)})
+	if err != nil {
+		return err
+	}
+	if sent >= MaxInvitesPerDay {
+		return apperr.TooMany("you sent too many invitations today, try again tomorrow")
+	}
 	var groupName string
 	err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if _, err := q.GetGroupMember(ctx, db.GetGroupMemberParams{GroupID: groupID, UserID: &p.UserID}); err != nil {
@@ -209,8 +226,10 @@ func (s *Service) Invite(ctx context.Context, p *auth.Principal, groupID uuid.UU
 		if len(members) >= 10 {
 			return apperr.Unprocessable("group_full", "a group has at most 10 members")
 		}
-		_, err = q.AddGroupMember(ctx, db.AddGroupMemberParams{GroupID: groupID, InvitedEmail: email, Role: "member"})
-		return err
+		if _, err = q.AddGroupMember(ctx, db.AddGroupMemberParams{GroupID: groupID, InvitedEmail: email, Role: "member"}); err != nil {
+			return err
+		}
+		return audit.Record(ctx, q, audit.Event{Entity: "tenant_group", EntityID: &groupID, Action: "group.invite"})
 	})
 	if err != nil {
 		return err
@@ -219,7 +238,8 @@ func (s *Service) Invite(ctx context.Context, p *auth.Principal, groupID uuid.UU
 	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
 		locale := "cs"
 		var to []recipient
-		if u, err := q.GetUserByEmail(ctx, email); err == nil {
+		// In-app notification only for a confirmed owner of the address.
+		if u, err := q.GetUserByEmail(ctx, email); err == nil && u.EmailVerifiedAt != nil {
 			to = append(to, recipient{ID: u.ID, Email: u.Email, Locale: u.Locale})
 			locale = u.Locale
 		}
@@ -240,7 +260,12 @@ func (s *Service) Invite(ctx context.Context, p *auth.Principal, groupID uuid.UU
 
 // MyGroups lists groups the caller belongs to or is invited to.
 func (s *Service) MyGroups(ctx context.Context, p *auth.Principal) ([]db.ListMyGroupsRow, error) {
-	email, err := s.email(ctx, p.UserID)
+	// Without a confirmed address only groups the caller already joined
+	// are listed, never invitations matched by e-mail.
+	email, err := s.verifiedEmail(ctx, p.UserID)
+	if errors.Is(err, errEmailUnverified) {
+		email, err = "", nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +307,7 @@ func (s *Service) Group(ctx context.Context, p *auth.Principal, id uuid.UUID) (G
 
 // Join accepts an invitation: the caller consents to act as a member.
 func (s *Service) Join(ctx context.Context, p *auth.Principal, id uuid.UUID) error {
-	email, err := s.email(ctx, p.UserID)
+	email, err := s.verifiedEmail(ctx, p.UserID)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { field } from '#lib/applications.js';
 	import { fmtDate, fmtDateTime } from '#lib/labels.js';
-	import { attentionLabel, bandColor, kc, pct } from '#lib/portfolio.js';
+	import { attentionLabel, bandColor, money, pct } from '#lib/portfolio.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
@@ -73,14 +73,14 @@
 		</Card>
 		<Card>
 			<p class="text-sm text-[var(--muted)]">{m.pf_monthly()}</p>
-			<p class="mt-1 text-2xl font-semibold">{kc(d.monthly, locale)}</p>
-			<p class="text-sm text-[var(--muted)]">{m.pf_debt()}: {kc(d.debt, locale)}</p>
+			<p class="mt-1 text-2xl font-semibold">{money(d.monthly, d.currency, locale)}</p>
+			<p class="text-sm text-[var(--muted)]">{m.pf_debt()}: {money(d.debt, d.currency, locale)}</p>
 		</Card>
 		<Card>
 			<p class="text-sm text-[var(--muted)]">{m.pf_this_month()}</p>
-			<p class="mt-1 text-2xl font-semibold">{kc(d.received, locale)}</p>
+			<p class="mt-1 text-2xl font-semibold">{money(d.received, d.currency, locale)}</p>
 			<p class="text-sm text-[var(--muted)]">
-				{m.pf_of_expected({ amount: kc(d.expected, locale) })}
+				{m.pf_of_expected({ amount: money(d.expected, d.currency, locale) })}
 			</p>
 		</Card>
 	</div>
@@ -111,13 +111,17 @@
 									})}{/if}</span
 							>
 							<span class="text-sm"
-								>{kc(c.monthly, locale)} · {m.pf_city_share({ share: pct(c.share) })}</span
+								>{money(c.monthly, d.currency, locale)} · {m.pf_city_share({
+									share: pct(c.share)
+								})}</span
 							>
 							<span class="text-sm text-[var(--muted)]"
-								>{m.pf_this_month()}: {kc(c.received, locale)} / {kc(
+								>{m.pf_this_month()}: {money(c.received, d.currency, locale)} / {money(
 									c.expected,
+									d.currency,
 									locale
-								)}{#if c.debt}<span> · </span>{m.pf_debt()} {kc(c.debt, locale)}{/if}</span
+								)}{#if c.debt}<span> · </span>{m.pf_debt()}
+									{money(c.debt, d.currency, locale)}{/if}</span
 							>
 						</li>
 					{/each}
@@ -132,12 +136,12 @@
 								<div
 									class="w-1/2 rounded-t bg-[var(--border)]"
 									style="height: {(t.expected / maxBar) * 100}%"
-									title="{m.pf_trend_expected()}: {kc(t.expected, locale)}"
+									title="{m.pf_trend_expected()}: {money(t.expected, d.currency, locale)}"
 								></div>
 								<div
 									class="w-1/2 rounded-t bg-[var(--accent)]"
 									style="height: {(t.received / maxBar) * 100}%"
-									title="{m.pf_trend_received()}: {kc(t.received, locale)}"
+									title="{m.pf_trend_received()}: {money(t.received, d.currency, locale)}"
 								></div>
 							</div>
 							<span class="text-[10px] text-[var(--muted)]">{monthLabel(t.period)}</span>
@@ -219,7 +223,8 @@
 								<strong class={a.severity >= 3 ? 'text-red-600 dark:text-red-400' : ''}
 									>{attentionLabel[a.kind]()}</strong
 								>
-								{#if a.amount}<span class="tabular-nums">{kc(a.amount, locale)}</span>{/if}
+								{#if a.amount}<span class="tabular-nums">{money(a.amount, d.currency, locale)}</span
+									>{/if}
 							</span>
 							{#if a.lease_id}
 								<a href={leaseHref(a.lease_id)}>{a.label}</a>

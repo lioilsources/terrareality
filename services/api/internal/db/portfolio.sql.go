@@ -140,7 +140,7 @@ func (q *Queries) DeletePortfolioRule(ctx context.Context, arg DeletePortfolioRu
 }
 
 const getLeaseRisk = `-- name: GetLeaseRisk :one
-SELECT lease_id, org_id, score, band, factors, model_version, computed_at FROM lease_risk WHERE lease_id = $1
+SELECT lease_id, org_id, score, band, factors, model_version, computed_at, last_error, failed_at FROM lease_risk WHERE lease_id = $1
 `
 
 func (q *Queries) GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error) {
@@ -154,6 +154,8 @@ func (q *Queries) GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRis
 		&i.Factors,
 		&i.ModelVersion,
 		&i.ComputedAt,
+		&i.LastError,
+		&i.FailedAt,
 	)
 	return i, err
 }
@@ -500,6 +502,26 @@ func (q *Queries) ListPortfolioRules(ctx context.Context, orgID uuid.UUID) ([]Li
 	return items, nil
 }
 
+const markLeaseRiskFailed = `-- name: MarkLeaseRiskFailed :execrows
+UPDATE lease_risk SET last_error = left($1::text, 2000), failed_at = now()
+WHERE lease_id = $2
+`
+
+type MarkLeaseRiskFailedParams struct {
+	LastError string    `json:"last_error"`
+	LeaseID   uuid.UUID `json:"lease_id"`
+}
+
+// S-P1: remembers a failed recompute on the existing score (a lease without
+// a score has no row; it is only logged).
+func (q *Queries) MarkLeaseRiskFailed(ctx context.Context, arg MarkLeaseRiskFailedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markLeaseRiskFailed, arg.LastError, arg.LeaseID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const marketStats = `-- name: MarketStats :one
 SELECT coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY s.rent_amount), 0)::bigint AS median_rent,
   count(*)::int AS listings,
@@ -530,7 +552,9 @@ func (q *Queries) MarketStats(ctx context.Context, arg MarketStatsParams) (Marke
 const municipalityInText = `-- name: MunicipalityInText :one
 SELECT path::text AS admin_path, ST_Y(centroid)::float8 AS lat, ST_X(centroid)::float8 AS lng
 FROM admin_units
-WHERE level = 2 AND lower(unaccent($1::text)) ~ ('(^|[^a-z0-9])' || search || '($|[^a-z0-9])')
+WHERE level = 2 AND search ~ '[a-z0-9]'
+  AND (' ' || regexp_replace(lower(unaccent($1::text)), '[^a-z0-9]+', ' ', 'g') || ' ')
+      LIKE ('% ' || btrim(regexp_replace(search, '[^a-z0-9]+', ' ', 'g')) || ' %')
 ORDER BY length(search) DESC LIMIT 1
 `
 
@@ -541,7 +565,9 @@ type MunicipalityInTextRow struct {
 }
 
 // The municipality named in a free-text address ("Dejvická 12, Praha 6"):
-// the longest municipality name found as a whole word.
+// the longest municipality name found as a whole word. Both sides are
+// reduced to words separated by single spaces, so names from the data are
+// compared literally (no regular expression built from data).
 func (q *Queries) MunicipalityInText(ctx context.Context, address string) (MunicipalityInTextRow, error) {
 	row := q.db.QueryRow(ctx, municipalityInText, address)
 	var i MunicipalityInTextRow
@@ -863,10 +889,10 @@ func (q *Queries) RiskLeaseIDs(ctx context.Context) ([]uuid.UUID, error) {
 
 const riskPartyStats = `-- name: RiskPartyStats :many
 SELECT p.id AS party_id, p.role, p.user_id,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= $1::date AND o.status = 'open'), 0)::bigint AS overdue,
-  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on <= $1::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < $1::date AND o.status = 'open'), 0)::bigint AS overdue,
+  coalesce(sum(s.amount - s.paid_amount) FILTER (WHERE o.kind = 'deposit' AND o.due_on < $1::date AND o.status = 'open'), 0)::bigint AS deposit_unpaid,
   coalesce(sum(s.paid_amount) FILTER (WHERE o.kind = 'deposit'), 0)::bigint AS deposit_paid,
-  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on <= $1::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
+  min(o.due_on) FILTER (WHERE o.kind <> 'deposit' AND o.due_on < $1::date AND s.paid_amount < s.amount AND o.status = 'open')::date AS oldest_unpaid,
   coalesce(u.verification_level, '')::text AS verification,
   (tp.income_uploaded_at IS NOT NULL)::boolean AS income_proof,
   coalesce(tp.isir_status, 'unchecked')::text AS isir_status
@@ -898,8 +924,9 @@ type RiskPartyStatsRow struct {
 	IsirStatus    string      `json:"isir_status"`
 }
 
-// Per tenant party: overdue amounts (rent, services, one-off items due by
-// the date), the oldest unpaid due date and passport facts.
+// Per tenant party: overdue amounts (rent, services, one-off items due
+// before the date: an item due today is not overdue until tomorrow), the
+// oldest unpaid due date and passport facts.
 func (q *Queries) RiskPartyStats(ctx context.Context, arg RiskPartyStatsParams) ([]RiskPartyStatsRow, error) {
 	rows, err := q.db.Query(ctx, riskPartyStats, arg.AsOf, arg.LeaseID)
 	if err != nil {
@@ -1016,7 +1043,9 @@ SELECT l.id FROM leases l LEFT JOIN lease_risk r ON r.lease_id = l.id
 WHERE l.state IN ('signed', 'active', 'notice_given') AND (r.lease_id IS NULL OR r.model_version <> $1
   OR r.computed_at < now() - interval '1 day'
   OR EXISTS (SELECT 1 FROM lease_events e WHERE e.lease_id = l.id AND e.created_at > r.computed_at))
-ORDER BY l.id LIMIT 500
+  -- A lease that failed recently waits an hour before the next attempt.
+  AND (r.failed_at IS NULL OR r.failed_at < now() - interval '1 hour')
+ORDER BY (r.failed_at IS NOT NULL), l.id LIMIT 500
 `
 
 // Leases whose score is missing, older than a new event, a day old or from
@@ -1095,7 +1124,7 @@ const upsertLeaseRisk = `-- name: UpsertLeaseRisk :exec
 INSERT INTO lease_risk (lease_id, org_id, score, band, factors, model_version, computed_at)
 VALUES ($1, $2, $3, $4, $5, $6, now())
 ON CONFLICT (lease_id) DO UPDATE SET score = EXCLUDED.score, band = EXCLUDED.band, factors = EXCLUDED.factors,
-  model_version = EXCLUDED.model_version, computed_at = now()
+  model_version = EXCLUDED.model_version, computed_at = now(), last_error = NULL, failed_at = NULL
 `
 
 type UpsertLeaseRiskParams struct {

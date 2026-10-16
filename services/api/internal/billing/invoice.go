@@ -22,6 +22,18 @@ var ErrNoTypst = errors.New("typst binary not found")
 // PaymentMethodCardPaid is the payment method printed on promo invoices.
 const PaymentMethodCardPaid = "Platební karta – uhrazeno"
 
+// SimplifiedLimit is the highest total (CZK minor units, VAT included) of a
+// simplified tax document (zjednodušený daňový doklad, § 30 ZDPH).
+const SimplifiedLimit = 1_000_000
+
+// Simplified reports whether a document may be a simplified tax document:
+// at most 10 000 Kč and a buyer without a VAT number (a VAT payer claiming
+// the deduction gets the full § 29 document). While the buyer's address and
+// the VAT regime are open (Q-BILL-1, Q-BILL-2) small invoices fall back to it.
+func Simplified(currency string, gross int64, buyerDIC string) bool {
+	return currency == "CZK" && gross <= SimplifiedLimit && buyerDIC == ""
+}
+
 // Party identifies the supplier or the buyer on an invoice.
 type Party struct {
 	Name    string `json:"name"`
@@ -72,6 +84,7 @@ type InvoiceData struct {
 	PaymentMethod   string        `json:"payment_method"` // default PaymentMethodCardPaid
 	OrderRef        string        `json:"order_ref,omitempty"`
 	Note            string        `json:"note,omitempty"`
+	Simplified      bool          `json:"simplified,omitempty"` // zjednodušený daňový doklad (§ 30)
 }
 
 // Totals sums the lines.
@@ -123,7 +136,11 @@ func (d InvoiceData) view() map[string]any {
 	if due.IsZero() {
 		due = d.IssuedOn
 	}
-	return map[string]any{"number": d.Number, "issued_on": FormatDate(d.IssuedOn),
+	title := "Faktura – daňový doklad"
+	if d.Simplified {
+		title = "Zjednodušený daňový doklad"
+	}
+	return map[string]any{"title": title, "number": d.Number, "issued_on": FormatDate(d.IssuedOn),
 		"taxable_supply_on": FormatDate(d.TaxableSupplyOn), "due_on": FormatDate(due),
 		"supplier": d.Supplier, "buyer": d.Buyer, "lines": lines, "recap": recap,
 		"total_net": f(net), "total_vat": f(vat), "total_gross": f(gross), "paid": f(gross), "to_pay": f(0),

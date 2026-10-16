@@ -26,6 +26,8 @@ Method | HTTP request | Description
 
 Natural-language search – turns a message into filters and a map area, then searches
 
+Errors: 400 `invalid_query`.
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -66,6 +68,8 @@ No authorization required
 > SavedSearch createSavedSearch(savedSearchInput)
 
 Save a search; new matching listings are e-mailed daily when notify is on
+
+Errors: 400 `invalid_query`, 400 `unknown_attribute`.
 
 ### Example
 ```dart
@@ -411,6 +415,8 @@ No authorization required
 > SearchResult search(searchQuery)
 
 Faceted search over published listings with map aggregates
+
+Errors: 400 `invalid_query` (detail names the problem), 400 `unknown_attribute`.
 
 ### Example
 ```dart

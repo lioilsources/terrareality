@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
-import '../leases/leases_screen.dart' show money;
+import '../common/api_error.dart';
+import '../common/money.dart';
 import 'portfolio_repository.dart';
 
 final portfolioOrgsProvider = FutureProvider.autoDispose<List<PortfolioOrg>>(
@@ -77,7 +78,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
       appBar: AppBar(title: Text(t.portfolioTitle)),
       body: orgs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(t.statusUnreachable)),
+        error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(portfolioOrgsProvider)),
         data: (list) {
           if (list.isEmpty) return Center(child: Text(t.portfolioEmpty));
           final id = orgId ?? list.first.id;
@@ -110,16 +111,17 @@ class _Dashboard extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toString();
     final dash = ref.watch(portfolioProvider(orgId));
+    String m(int minor, String currency) => money(minor, locale, currency: currency);
     return dash.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(t.portfolioEmpty)),
+      error: (e, _) => ApiErrorView(error: e, onRetry: () => ref.invalidate(portfolioProvider(orgId))),
       data: (d) => RefreshIndicator(
         onRefresh: () => ref.refresh(portfolioProvider(orgId).future),
         child: ListView(padding: const EdgeInsets.all(16), children: [
           Card(
             child: ListTile(
               title: Text(t.portfolioWeighted),
-              subtitle: Text(t.portfolioIncome(money(d.received, locale), money(d.expected, locale))),
+              subtitle: Text(t.portfolioIncome(m(d.received, d.currency), m(d.expected, d.currency))),
               trailing: RiskChip(score: d.weightedRisk, band: d.band),
             ),
           ),
@@ -136,8 +138,8 @@ class _Dashboard extends ConsumerWidget {
               ),
               child: ListTile(
                 title: Text(c.name.isEmpty ? t.portfolioUnknownCity : c.name),
-                subtitle: Text(t.portfolioCityLine(c.leases, money(c.monthly, locale), (c.share * 100).round(),
-                    money(c.debt, locale))),
+                subtitle: Text(t.portfolioCityLine(c.leases, m(c.monthly, d.currency), (c.share * 100).round(),
+                    m(c.debt, d.currency))),
                 trailing: RiskChip(score: c.weightedRisk, band: c.band),
               ),
             ),
@@ -152,7 +154,7 @@ class _Dashboard extends ConsumerWidget {
               leading: Icon(Icons.warning_amber, color: a.severity >= 3 ? Colors.red : Colors.orange),
               title: Text(attentionText(t, a.kind)),
               subtitle: Text('${a.label} · ${a.city}'),
-              trailing: a.amount == null ? null : Text(money(a.amount!, locale)),
+              trailing: a.amount == null ? null : Text(m(a.amount!, d.currency)),
             ),
         ]),
       ),

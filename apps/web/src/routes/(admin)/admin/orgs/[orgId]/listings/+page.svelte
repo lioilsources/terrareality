@@ -3,6 +3,7 @@
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { formatMoney, kindLabel, statusLabel, t } from '#lib/catalog.js';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -59,7 +60,9 @@
 										>{m.pending_review()}</span
 									>{/if}
 								{#if l.rent_amount}<span class="text-[var(--text)]"
-										>{m.price_per_month({ amount: formatMoney(l.rent_amount, getLocale()) })}</span
+										>{m.price_per_month({
+											amount: formatMoney(l.rent_amount, l.currency, getLocale())
+										})}</span
 									>{/if}
 							</span>
 						</div>
@@ -68,4 +71,5 @@
 			{/each}
 		</ul>
 	{/if}
+	<LoadMore next={data.paging.next} first={data.paging.first} testid="listings-more" />
 </div>

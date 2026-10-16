@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -32,7 +33,15 @@ var errInvalidCredentials = apperr.Unauthorized("invalid_credentials", "e-mail o
 // the verification e-mail and logs the user in.
 func (s *Service) Register(ctx context.Context, in RegisterInput) (Result, error) {
 	email := normEmail(in.Email)
+	// Consent must name the documents in force, not whatever the client sent.
+	if (s.Cfg.TermsVersion != "" && in.TermsVersion != s.Cfg.TermsVersion) ||
+		(s.Cfg.PrivacyVersion != "" && in.PrivacyVersion != s.Cfg.PrivacyVersion) {
+		return Result{}, apperr.Unprocessable("terms_outdated", "accept the current terms and privacy policy (reload the page)")
+	}
 	if err := checkPassword(in.Password, email); err != nil {
+		return Result{}, err
+	}
+	if err := s.checkBreached(ctx, in.Password); err != nil {
 		return Result{}, err
 	}
 	hash, err := auth.HashPassword(in.Password)
@@ -71,7 +80,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (Result, error
 			ActorID: &u.ID, Diff: map[string]any{"method": "password"}}); err != nil {
 			return err
 		}
-		res, err = s.newSession(ctx, q, u.ID, normClient(in.Client), nil, s.TTL(in.Client))
+		res, err = s.newSession(ctx, q, u.ID, normClient(in.Client), nil, s.TTL(in.Client), false)
 		return err
 	})
 	return res, err
@@ -79,10 +88,22 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (Result, error
 
 var digitsOnly = regexp.MustCompile(`^[0-9]+$`)
 
+// minPasswordLen matches the Password schema in the contract (ASVS V2.1.1).
+const minPasswordLen = 12
+
+// checkBreached rejects passwords found in breach corpora (ASVS V2.1.7). The
+// adapter fails open when the external service is unreachable.
+func (s *Service) checkBreached(ctx context.Context, pw string) error {
+	if s.Pwned != nil && s.Pwned.Breached(ctx, pw) {
+		return apperr.Unprocessable("password_breached", "this password appeared in a data breach; choose a different one")
+	}
+	return nil
+}
+
 // checkPassword applies NIST 800-63B style rules: length, not the e-mail, not trivially weak.
 func checkPassword(pw, email string) error {
-	if len([]rune(pw)) < 10 {
-		return apperr.Unprocessable("password_too_short", "password must have at least 10 characters")
+	if len([]rune(pw)) < minPasswordLen {
+		return apperr.Unprocessable("password_too_short", fmt.Sprintf("password must have at least %d characters", minPasswordLen))
 	}
 	if pw == email || digitsOnly.MatchString(pw) {
 		return apperr.Unprocessable("password_too_weak", "choose a less predictable password")
@@ -102,9 +123,15 @@ func (s *Service) sendVerification(ctx context.Context, q *db.Queries, tx pgx.Tx
 		map[string]any{"Name": u.DisplayName, "Link": s.link("/auth/verify-email", tok)})
 }
 
-// Login checks e-mail and password.
+// Login checks e-mail and password. Failures count per e-mail (unknown
+// addresses too, so the lockout does not reveal which accounts exist).
 func (s *Service) Login(ctx context.Context, email, password, client string) (Result, error) {
+	key := passwordKey(email)
+	if err := s.guard.check(key); err != nil {
+		return Result{}, err
+	}
 	var res Result
+	var target *uuid.UUID
 	err := s.tx(ctx, func(q *db.Queries, _ pgx.Tx) error {
 		u, err := q.GetUserByEmail(ctx, normEmail(email))
 		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (u.PasswordHash == nil || u.PseudonymizedAt != nil)) {
@@ -114,19 +141,97 @@ func (s *Service) Login(ctx context.Context, email, password, client string) (Re
 		if err != nil {
 			return err
 		}
+		if err := checkLocked(u, time.Now()); err != nil {
+			auth.EqualizeTiming(password)
+			return err
+		}
 		if err := auth.VerifyPassword(password, *u.PasswordHash); err != nil {
+			target = &u.ID
 			return errInvalidCredentials
 		}
-		res, err = s.finishLogin(ctx, q, u, normClient(client))
-		return err
+		if res, err = s.finishLogin(ctx, q, u, normClient(client)); err != nil {
+			return err
+		}
+		// Only a complete login clears the account's counter: a correct
+		// password before the second factor must not wipe MFA failures.
+		if res.Token != "" {
+			return q.ResetLoginFailures(ctx, u.ID)
+		}
+		return nil
 	})
+	switch {
+	case errors.Is(err, errInvalidCredentials):
+		s.loginFailed(ctx, key, target, "password")
+	case err == nil:
+		s.guard.reset(key)
+	}
 	return res, err
+}
+
+// prague formats times in e-mails.
+var prague = func() *time.Location {
+	if l, err := time.LoadLocation("Europe/Prague"); err == nil {
+		return l
+	}
+	return time.UTC
+}()
+
+// checkLocked refuses an account locked by repeated failures (S-A1).
+func checkLocked(u db.User, now time.Time) error {
+	if u.LockedUntil == nil {
+		return nil
+	}
+	if wait := u.LockedUntil.Sub(now); wait > 0 {
+		return apperr.TooMany(fmt.Sprintf("too many failed attempts, try again in %d s", int(wait.Seconds())+1))
+	}
+	return nil
+}
+
+func passwordKey(email string) string { return "password:" + normEmail(email) }
+
+// loginFailed counts a failed attempt in memory (per key, also for unknown
+// addresses) and, for an existing account, persistently on the user row
+// (users.failed_logins / locked_until, S-A1), records user.login_failed and
+// e-mails the owner at the lockFree-th failure. It runs outside the (rolled
+// back) login transaction.
+func (s *Service) loginFailed(ctx context.Context, key string, userID *uuid.UUID, factor string) {
+	n := s.guard.fail(key)
+	if userID == nil {
+		return
+	}
+	err := s.tx(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		row, err := q.RecordLoginFailure(ctx, db.RecordLoginFailureParams{ID: *userID, Free: lockFree})
+		if err != nil {
+			return err
+		}
+		diff := map[string]any{"factor": factor, "failures": row.FailedLogins, "recent": n}
+		if row.LockedUntil != nil {
+			diff["locked_until"] = row.LockedUntil
+		}
+		if err := audit.Record(ctx, q, audit.Event{Entity: "user", EntityID: userID, Action: "user.login_failed", Diff: diff}); err != nil {
+			return err
+		}
+		if row.FailedLogins != lockFree {
+			return nil
+		}
+		u, err := q.GetUser(ctx, *userID)
+		if err != nil {
+			return err
+		}
+		return s.send(ctx, tx, notify.Email, u.Email, u.Locale, "login_failures", map[string]any{
+			"Failures": row.FailedLogins, "When": time.Now().In(prague).Format("2. 1. 2006 15:04"),
+			"Link": s.Cfg.WebBaseURL + "/admin/settings/security"})
+	})
+	if err != nil && s.Log != nil {
+		s.Log.Warn("record login failure", "err", err)
+	}
 }
 
 // CompleteMFA finishes a login with a TOTP or recovery code.
 func (s *Service) CompleteMFA(ctx context.Context, mfaToken, code string) (Result, error) {
 	var res Result
 	var failed bool
+	var target *uuid.UUID
 	err := s.tx(ctx, func(q *db.Queries, _ pgx.Tx) error {
 		t, err := q.GetOpenAuthToken(ctx, db.GetOpenAuthTokenParams{TokenHash: tokens.Hash(mfaToken), Purpose: "mfa_challenge"})
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -137,6 +242,15 @@ func (s *Service) CompleteMFA(ctx context.Context, mfaToken, code string) (Resul
 		}
 		u, err := q.GetUser(ctx, *t.UserID)
 		if err != nil {
+			return err
+		}
+		// Per account, not per challenge: whoever knows the password can
+		// open a fresh challenge (5 tries each) at will.
+		target = &u.ID
+		if err := s.guard.check(mfaKey(u.ID)); err != nil {
+			return err
+		}
+		if err := checkLocked(u, time.Now()); err != nil {
 			return err
 		}
 		ok, err := s.checkSecondFactor(ctx, q, u, code)
@@ -161,14 +275,22 @@ func (s *Service) CompleteMFA(ctx context.Context, mfaToken, code string) (Resul
 		}
 		var data struct{ Client string }
 		_ = json.Unmarshal(t.Data, &data)
-		res, err = s.newSession(ctx, q, u.ID, normClient(data.Client), nil, s.TTL(data.Client))
-		return err
+		if res, err = s.newSession(ctx, q, u.ID, normClient(data.Client), nil, s.TTL(data.Client), true); err != nil {
+			return err
+		}
+		return q.ResetLoginFailures(ctx, u.ID)
 	})
 	if err == nil && failed {
+		s.loginFailed(ctx, mfaKey(*target), target, "mfa")
 		return Result{}, apperr.Unauthorized("invalid_code", "the code is not valid")
+	}
+	if err == nil && target != nil {
+		s.guard.reset(mfaKey(*target))
 	}
 	return res, err
 }
+
+func mfaKey(userID uuid.UUID) string { return "mfa:" + userID.String() }
 
 // RequestMagicLink e-mails a login link to an existing account. Unknown
 // addresses get no e-mail and the same response (no account enumeration).
@@ -277,6 +399,28 @@ func (s *Service) ForgotPassword(ctx context.Context, email, locale string) erro
 
 // ResetPassword sets a new password and signs the user out everywhere.
 func (s *Service) ResetPassword(ctx context.Context, token, password string) error {
+	// The token and the local rules are checked first (read only), so the
+	// unauthenticated endpoint makes no breach lookup for a bogus token. The
+	// lookup runs before the transaction so it holds no connection, and a
+	// rejected password does not burn the reset link.
+	q := db.New(s.Pool)
+	t, err := q.GetOpenAuthToken(ctx, db.GetOpenAuthTokenParams{TokenHash: tokens.Hash(token), Purpose: "password_reset"})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return apperr.BadRequest("invalid_token", "the link is invalid or has expired")
+	}
+	if err != nil {
+		return err
+	}
+	u, err := q.GetUser(ctx, *t.UserID)
+	if err != nil {
+		return err
+	}
+	if err := checkPassword(password, u.Email); err != nil {
+		return err
+	}
+	if err := s.checkBreached(ctx, password); err != nil {
+		return err
+	}
 	return s.tx(ctx, func(q *db.Queries, _ pgx.Tx) error {
 		t, err := consume(ctx, q, token, "password_reset")
 		if err != nil {
@@ -321,18 +465,37 @@ func (s *Service) ChangePassword(ctx context.Context, p *auth.Principal, current
 	if p.Impersonated() {
 		return apperr.ErrImpersonation
 	}
+	// Step-up first: changing an existing password requires the current one
+	// (ASVS V3.7.1), so a stolen session cannot probe passwords against the
+	// breach corpus. Wrong guesses count towards the login lockout.
+	u, err := db.New(s.Pool).GetUser(ctx, p.UserID)
+	if err != nil {
+		return err
+	}
+	if u.PasswordHash != nil {
+		key := passwordKey(u.Email)
+		if err := s.guard.check(key); err != nil {
+			return err
+		}
+		if current == nil || auth.VerifyPassword(*current, *u.PasswordHash) != nil {
+			s.loginFailed(ctx, key, &u.ID, "password_change")
+			return apperr.Unauthorized("invalid_credentials", "current password is incorrect")
+		}
+	}
+	if err := checkPassword(newPassword, u.Email); err != nil {
+		return err
+	}
+	if err := s.checkBreached(ctx, newPassword); err != nil {
+		return err
+	}
 	return s.tx(ctx, func(q *db.Queries, _ pgx.Tx) error {
-		u, err := q.GetUser(ctx, p.UserID)
+		cur, err := q.GetUser(ctx, p.UserID)
 		if err != nil {
 			return err
 		}
-		if u.PasswordHash != nil {
-			if current == nil || auth.VerifyPassword(*current, *u.PasswordHash) != nil {
-				return apperr.Unauthorized("invalid_credentials", "current password is incorrect")
-			}
-		}
-		if err := checkPassword(newPassword, u.Email); err != nil {
-			return err
+		// The password changed while we checked: the verified one is stale.
+		if !samePtr(cur.PasswordHash, u.PasswordHash) {
+			return apperr.Unauthorized("invalid_credentials", "current password is incorrect")
 		}
 		hash, err := auth.HashPassword(newPassword)
 		if err != nil {
@@ -348,6 +511,8 @@ func (s *Service) ChangePassword(ctx context.Context, p *auth.Principal, current
 	})
 }
 
+func samePtr(a, b *string) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
+
 // Impersonate starts a fixed one-hour session as target for a staff member.
 func (s *Service) Impersonate(ctx context.Context, staff *auth.Principal, target uuid.UUID, reason string) (Result, error) {
 	var res Result
@@ -362,7 +527,7 @@ func (s *Service) Impersonate(ctx context.Context, staff *auth.Principal, target
 		if u.IsStaff || u.PseudonymizedAt != nil || u.ID == staff.UserID {
 			return apperr.Forbidden("impersonation_not_allowed", "this account cannot be impersonated")
 		}
-		res, err = s.newSession(ctx, q, u.ID, "web", &staff.UserID, ttlImpersonation)
+		res, err = s.newSession(ctx, q, u.ID, "web", &staff.UserID, ttlImpersonation, false)
 		if err != nil {
 			return err
 		}

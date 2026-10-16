@@ -146,5 +146,13 @@
     "subject": "Žádáme o úpravu inzerátu „{{.Title}}“",
     "text": "Dobrý den,\n\nna základě oznámení (důvod: {{.Reason}}) vás žádáme o úpravu inzerátu „{{.Title}}“ (číslo případu {{.CaseID}}). Inzerát zůstává zveřejněný.\n\nCo upravit: {{.Note}}\n\nInzerát upravíte zde:\n{{.Link}}\n\nRozhodnutí učinil člověk z týmu moderátorů. Pokud s ním nesouhlasíte, odpovězte na tento e-mail.",
     "_draft": "DRAFT legal wording (DSA art. 16/17/20) for review by a lawyer, see docs/legal-questions.md Q-LEGAL-2."
+  },
+  "viewing_cancelled": {
+    "subject": "Prohlídka zrušena: {{.Listing}}, {{.When}}",
+    "text": "Dobrý den,\n\npronajímatel zrušil termín prohlídky „{{.Listing}}“ na {{.When}}. Vaše rezervace proto neplatí.\n\nNový termín si můžete vybrat u žádosti, pokud pronajímatel nabídne další:\n{{.Link}}"
+  },
+  "login_failures": {
+    "subject": "Neúspěšné pokusy o přihlášení k TerraReality",
+    "text": "Dobrý den,\n\nk vašemu účtu proběhlo {{.Failures}} neúspěšných pokusů o přihlášení (naposledy {{.When}}). Další pokusy účet dočasně zablokují.\n\nPokud jste to nebyli vy, změňte si heslo a zapněte dvoufázové ověření:\n{{.Link}}"
   }
 }

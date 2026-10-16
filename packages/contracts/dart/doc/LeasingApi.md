@@ -226,9 +226,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getBankOverview**
-> BankOverview getBankOverview(orgId, status)
+> BankOverview getBankOverview(orgId, status, before, limit)
 
 Linked accounts and recent incoming transactions with their match status
+
+Transactions are paged newest first; `transactions_next_before` is the cursor of the next page.
 
 ### Example
 ```dart
@@ -243,9 +245,11 @@ import 'package:terra_api/api.dart';
 final api_instance = LeasingApi();
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final status = status_example; // String | 
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.getBankOverview(orgId, status);
+    final result = api_instance.getBankOverview(orgId, status, before, limit);
     print(result);
 } catch (e) {
     print('Exception when calling LeasingApi->getBankOverview: $e\n');
@@ -258,6 +262,8 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orgId** | **String**|  | 
  **status** | **String**|  | [optional] 
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 
@@ -469,6 +475,8 @@ Name | Type | Description  | Notes
 
 Give notice; the lease ends after the notice period
 
+A tenant or co-tenant gives notice without a reason. The landlord (organization member with the leases permission) must state a statutory `reason`; the notice period is then at least three months. `delivered_on` lies between 30 days ago and 7 days from today. Errors: 403 `notice_not_allowed` (guarantor, subtenant), 422 `invalid_delivered_on`, 422 `landlord_notice_reason_required` (landlord without a reason, or other_serious_reason without an explanation), 422 `notice_reason_not_applicable` (flat_needed_for_landlord_or_relative on a fixed-term lease), 409 `lease_not_active`. 
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -604,9 +612,11 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listOrgLeases**
-> List<LeaseSummary> listOrgLeases(orgId)
+> List<LeaseSummary> listOrgLeases(orgId, before, limit)
 
 Leases of the organization
+
+Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
 
 ### Example
 ```dart
@@ -620,9 +630,11 @@ import 'package:terra_api/api.dart';
 
 final api_instance = LeasingApi();
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.listOrgLeases(orgId);
+    final result = api_instance.listOrgLeases(orgId, before, limit);
     print(result);
 } catch (e) {
     print('Exception when calling LeasingApi->listOrgLeases: $e\n');
@@ -634,6 +646,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orgId** | **String**|  | 
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 
@@ -704,6 +718,8 @@ void (empty response body)
 > matchBankTransaction(orgId, transactionId, matchBankTransactionRequest)
 
 Confirm a suggested match or match manually; or ignore the transaction
+
+Errors: 422 `currency_mismatch` (the transaction and the share have different currencies), 409 `already_matched`.
 
 ### Example
 ```dart
@@ -851,6 +867,8 @@ void (empty response body)
 > SignLease200Response signLease(leaseId, signLeaseRequest)
 
 Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+
+`provider` must be one of the lease detail's `sign_providers`. Errors: 422 `invalid_provider` (not enabled on this server), 409 `document_changed` (a new version was proposed meanwhile: reload and sign the new document), 409 `lease_not_proposed`, 409 `already_signed`, 403 `not_a_party`. 
 
 ### Example
 ```dart

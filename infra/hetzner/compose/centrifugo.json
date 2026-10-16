@@ -1,0 +1,30 @@
+{
+  "client": {
+    "allowed_origins": []
+  },
+  "admin": {
+    "enabled": false
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "conv",
+        "presence": true,
+        "join_leave": true,
+        "history_size": 100,
+        "history_ttl": "168h",
+        "force_recovery": true
+      },
+      {
+        "name": "user",
+        "history_size": 50,
+        "history_ttl": "168h",
+        "force_recovery": true,
+        "presence": true
+      }
+    ]
+  },
+  "health": {
+    "enabled": true
+  }
+}

@@ -35,9 +35,10 @@ type Case struct {
 	Transcript []db.ModerationTranscriptRow
 }
 
-// Queue lists open cases, oldest first (staff, system context).
-func (s *Service) Queue(ctx context.Context) ([]db.ListOpenModerationCasesRow, error) {
-	return db.New(s.Pool).ListOpenModerationCases(ctx)
+// Queue lists a page of open cases, oldest first, after the case id after
+// (staff, system context).
+func (s *Service) Queue(ctx context.Context, after *uuid.UUID, limit int32) ([]db.ListOpenModerationCasesRow, error) {
+	return db.New(s.Pool).ListOpenModerationCases(ctx, db.ListOpenModerationCasesParams{After: after, Lim: limit})
 }
 
 // Case returns one case with the conversation transcript.

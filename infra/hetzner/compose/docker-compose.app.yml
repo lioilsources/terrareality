@@ -21,7 +21,11 @@ x-api-env: &api-env
   APP_ENV: prod
   LOG_FORMAT: json
   LOG_LEVEL: ${LOG_LEVEL:-info}
-  DATABASE_URL: postgres://${POSTGRES_USER:-terra}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@${DB_HOST:?set DB_HOST}:5432/terra?sslmode=disable
+  # Least-privilege login role (IN ROLE terra_service, NOSUPERUSER NOBYPASSRLS; ADR 0012 point 5).
+  # The owner password is only given to the migrate one-shot (MIGRATE_DATABASE_URL).
+  # TLS to the DB VM with the internal CA (scripts/pg-tls-init.sh, review S-I12); DB_SSLMODE=disable
+  # only until the certificate exists on a fresh DB VM (deploy.md §1.2).
+  DATABASE_URL: postgres://terra_api:${TERRA_API_DB_PASSWORD:?set TERRA_API_DB_PASSWORD}@${DB_HOST:?set DB_HOST}:5432/terra?sslmode=${DB_SSLMODE:-verify-full}&sslrootcert=/etc/terra/pg-ca.crt
   MIGRATE_ON_START: "false"
   TEMPORAL_ADDRESS: temporal:7233
   TEMPORAL_NAMESPACE: default
@@ -43,11 +47,15 @@ x-api-env: &api-env
   OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.2}
   # Identity
   APP_SECRET_KEY: ${APP_SECRET_KEY:?set APP_SECRET_KEY}
+  APP_SECRET_KEY_PREVIOUS: ${APP_SECRET_KEY_PREVIOUS:-} # only during a rotation (docs/runbooks/key-rotation.md)
   WEB_BASE_URL: https://${APP_DOMAIN}
   API_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}
   OIDC_REDIRECT_ALLOWLIST: https://${APP_DOMAIN}/auth/,terra://auth/
   MOCK_IDP: "false"
   STAFF_REQUIRE_MFA: "true"
+  # ASVS V2.1.7 / V3.3.2: HIBP range API (k-anonymity, fail-open) and absolute session lifetime
+  PWNED_PASSWORDS: ${PWNED_PASSWORDS:-hibp}
+  SESSION_MAX_AGE: ${SESSION_MAX_AGE:-2160h}
   GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
   GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
   APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
@@ -60,8 +68,12 @@ x-api-env: &api-env
   PRIVACY_VERSION: ${PRIVACY_VERSION:-}
   # Delivery
   SMTP_ADDR: ${SMTP_ADDR:?set SMTP_ADDR}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   MAIL_FROM: ${MAIL_FROM:-no-reply@terrareality.cz}
   SMS_PROVIDER: ${SMS_PROVIDER:-log}
+  # Off until a real SMS adapter exists (the api refuses true with SMS_PROVIDER=log in prod).
+  PHONE_VERIFICATION: ${PHONE_VERIFICATION:-false}
   PUSH_PROVIDER: ${PUSH_PROVIDER:-fcm}
   FCM_CREDENTIALS_FILE: /run/secrets/fcm.json
   FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
@@ -77,6 +89,8 @@ x-api-env: &api-env
   IMGPROXY_URL: https://${IMG_DOMAIN:?set IMG_DOMAIN}
   IMGPROXY_KEY: ${IMGPROXY_KEY:?set IMGPROXY_KEY}
   IMGPROXY_SALT: ${IMGPROXY_SALT:?set IMGPROXY_SALT}
+  # Lifetime of signed imgproxy URLs (e.g. 168h); empty = URLs do not expire.
+  IMGPROXY_URL_TTL: ${IMGPROXY_URL_TTL:-}
   CLAMAV_ADDR: clamav:3310
   SEED_RUIAN_SAMPLE: "false"
   # Applications, leasing
@@ -101,12 +115,22 @@ x-api-service: &api-service
   image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY}/terra/api:${IMAGE_TAG:?set IMAGE_TAG}
   environment: *api-env
   secrets: [fcm]
+  volumes:
+    # Internal CA of the DB VM (scripts/pg-tls-init.sh output ca.crt).
+    - ${PG_CA_FILE:-/etc/terrareality/secrets/pg-ca.crt}:/etc/terra/pg-ca.crt:ro
   logging: *logging
   restart: unless-stopped
 
+# Liveness probes (review S-I4). The api image is distroless; it ships a tiny static `probe` binary.
+x-healthcheck: &healthcheck
+  interval: 15s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
 services:
   caddy:
-    image: caddy:2.10
+    image: caddy:2.10.2
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
@@ -114,34 +138,63 @@ services:
       API_DOMAIN: ${API_DOMAIN}
       SITE_DOMAIN: ${SITE_DOMAIN}
       IMG_DOMAIN: ${IMG_DOMAIN}
+      # App links (Caddyfile snippet app_links, docs/runbooks/launch.md section 8): Apple Team ID and
+      # the SHA-256 signing certificate fingerprint(s) of the Android app, comma-separated.
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # apple-app-site-association + assetlinks.json templates from the checkout.
+      - ../../../apps/web/static/.well-known:/srv/app-links/.well-known:ro
       - ${SITE_DIST_DIR:-/srv/site}:/srv/site:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [api, web, centrifugo, imgproxy]
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_healthy }
+      centrifugo: { condition: service_healthy }
+      imgproxy: { condition: service_healthy }
     logging: *logging
     restart: unless-stopped
 
   migrate:
     <<: *api-service
+    # Schema owner for goose + River; terractl run through this service still
+    # uses DATABASE_URL (terra_api).
+    environment:
+      <<: *api-env
+      MIGRATE_DATABASE_URL: postgres://${POSTGRES_USER:-terra}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@${DB_HOST}:5432/terra?sslmode=${DB_SSLMODE:-verify-full}&sslrootcert=/etc/terra/pg-ca.crt
     command: ["/app/migrate", "up"]
     restart: "no"
 
   api:
     <<: *api-service
     command: ["/app/api"]
+    # /v1/version, not /healthz: a degraded dependency (vision, worker heartbeat) must not mark
+    # the api itself unhealthy (review B-5).
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "/usr/local/bin/probe", "http://127.0.0.1:8080/v1/version"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       temporal: { condition: service_started }
+    deploy:
+      resources:
+        limits: { memory: 1g }
     networks: [default, observability]
 
   worker:
     <<: *api-service
     command: ["/app/worker"]
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "/usr/local/bin/probe", "http://127.0.0.1:9090/metrics"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       temporal: { condition: service_started }
+    deploy:
+      resources:
+        limits: { memory: 1g }
     networks: [default, observability]
 
   web:
@@ -149,11 +202,37 @@ services:
     environment:
       API_URL: http://api:8080
       ORIGIN: https://${APP_DOMAIN}
+      # Uploads (listing photos up to 20 MiB, chat attachments, income documents) go through
+      # SvelteKit form actions; adapter-node rejects bodies above 512K by default (review B-4).
+      # Keep in line with request_body max_size of the app domain in the Caddyfile.
+      BODY_SIZE_LIMIT: ${WEB_BODY_SIZE_LIMIT:-60M}
+      # Client IP for the SvelteKit server: Caddy appends it as the last X-Forwarded-For entry.
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: "1"
+      # Browser-facing origins for the runtime CSP (apps/web/src/env.ts, lib/server/csp.ts).
+      # The web refuses to start in production without them (no localhost fallbacks, review B-3).
+      API_PUBLIC_URL: https://${API_DOMAIN}
+      # img-src + form-action: imgproxy variants and presigned S3 downloads (path-style and
+      # virtual-hosted URL forms of the media bucket).
+      CSP_MEDIA_ORIGINS: ${CSP_MEDIA_ORIGINS:-https://${IMG_DOMAIN} https://${S3_ENDPOINT} https://${S3_BUCKET}.${S3_ENDPOINT}}
+      # Centrifugo is proxied on the app domain (/connection/websocket).
+      CSP_REALTIME_ORIGIN: ${CSP_REALTIME_ORIGIN:-wss://${APP_DOMAIN}}
+      # Tile/glyph/sprite hosts beyond the MAP_STYLE origin (empty for OpenFreeMap).
+      CSP_MAP_ORIGINS: ${CSP_MAP_ORIGINS:-}
+      # Off-site targets of plain form posts: Stripe Checkout, Revolut payment links, GoCardless
+      # bank consent, BankID (plus the media origins above, added by csp.ts).
+      CSP_FORM_ACTION_ORIGINS: ${CSP_FORM_ACTION_ORIGINS:-https://checkout.stripe.com https://checkout.revolut.com https://ob.gocardless.com https://oidc.bankid.cz}
       MAP_STYLE: ${MAP_STYLE:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       PUBLIC_SENTRY_DSN: ${PUBLIC_SENTRY_DSN:-}
       PUBLIC_SENTRY_ENVIRONMENT: prod
       PUBLIC_SENTRY_RELEASE: ${IMAGE_TAG}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/robots.txt"]
+    deploy:
+      resources:
+        limits: { memory: 768m }
     networks: [default, observability]
     logging: *logging
     restart: unless-stopped
@@ -164,24 +243,37 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:-not-needed}
       VISION_MODEL: ${VISION_MODEL:-vl}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/healthz', timeout=4)"]
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1g }
     logging: *logging
     restart: unless-stopped
 
   centrifugo:
-    image: centrifugo/centrifugo:v6
+    image: centrifugo/centrifugo:v6.9.7
     command: ["centrifugo", "--config", "/centrifugo/config.json"]
-    volumes: [../../dev/centrifugo/config.json:/centrifugo/config.json:ro]
+    # Production config: no admin UI, no secrets (they come from the env below), review S-I7.
+    volumes: [./centrifugo.json:/centrifugo/config.json:ro]
     environment:
       CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY}
       CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET}
       CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: https://${APP_DOMAIN}
       CENTRIFUGO_ADMIN_ENABLED: "false"
       CENTRIFUGO_LOG_LEVEL: info
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/health"]
+    deploy:
+      resources:
+        limits: { memory: 512m }
     logging: *logging
     restart: unless-stopped
 
   imgproxy:
-    image: ghcr.io/imgproxy/imgproxy:v3
+    image: ghcr.io/imgproxy/imgproxy:v3.31.4
     environment:
       IMGPROXY_USE_S3: "true"
       IMGPROXY_S3_ENDPOINT: https://${S3_ENDPOINT}
@@ -189,20 +281,32 @@ services:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       AWS_REGION: ${S3_REGION:-fsn1}
-      IMGPROXY_KEY: ${IMGPROXY_KEY}
-      IMGPROXY_SALT: ${IMGPROXY_SALT}
+      # Key rotation: imgproxy accepts comma-separated key/salt pairs; the api signs with the first
+      # (docs/runbooks/key-rotation.md).
+      IMGPROXY_KEY: ${IMGPROXY_VERIFY_KEYS:-${IMGPROXY_KEY}}
+      IMGPROXY_SALT: ${IMGPROXY_VERIFY_SALTS:-${IMGPROXY_SALT}}
       IMGPROXY_ENABLE_WEBP_DETECTION: "true"
       IMGPROXY_ENABLE_AVIF_DETECTION: "true"
       IMGPROXY_STRIP_METADATA: "true"
       IMGPROXY_TTL: "31536000"
       IMGPROXY_MAX_SRC_RESOLUTION: "50"
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "imgproxy", "health"]
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1g }
     logging: *logging
     restart: unless-stopped
 
   clamav:
-    # Upload scanning (CLAMAV_ADDR). Needs ~1.5 GB RAM; signatures update via freshclam.
-    image: clamav/clamav:1.4
+    # Upload scanning (CLAMAV_ADDR). Needs ~1.5 GB RAM, about twice that while freshclam reloads
+    # signatures; signatures update via freshclam. The image has its own HEALTHCHECK (clamdcheck.sh).
+    image: clamav/clamav:1.4.6
     volumes: [clamav_db:/var/lib/clamav]
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 3g }
     logging: *logging
     restart: unless-stopped
 
@@ -216,6 +320,12 @@ services:
       SQL_PORT: "5432"
       SQL_USER: temporal
       SQL_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD}
+      # TLS with the internal CA, host name verified against the certificate SAN (review S-I12).
+      SQL_TLS: ${DB_TLS:-true}
+      SQL_TLS_CA_FILE: /etc/terra/pg-ca.crt
+      SQL_TLS_SERVER_NAME: ${DB_HOST}
+    volumes:
+      - ${PG_CA_FILE:-/etc/terrareality/secrets/pg-ca.crt}:/etc/terra/pg-ca.crt:ro
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
@@ -239,8 +349,24 @@ services:
       SKIP_DB_CREATE: "true"
       SKIP_SCHEMA_SETUP: "true"
       BIND_ON_IP: 0.0.0.0
+      # TLS to the DB VM (review S-I12): sslmode=verify-full with the internal CA from
+      # scripts/pg-tls-init.sh. DB_TLS=false only together with DB_SSLMODE=disable on a fresh DB VM.
+      SQL_TLS_ENABLED: ${DB_TLS:-true}
+      SQL_CA: /etc/terra/pg-ca.crt
+      SQL_HOST_VERIFICATION: ${DB_TLS:-true}
+      SQL_HOST_NAME: ${DB_HOST}
+    volumes:
+      - ${PG_CA_FILE:-/etc/terrareality/secrets/pg-ca.crt}:/etc/terra/pg-ca.crt:ro
+    healthcheck:
+      <<: *healthcheck
+      start_period: 60s
+      # Frontend gRPC port accepts connections (bash /dev/tcp; nc as fallback).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/7233' 2>/dev/null || nc -z 127.0.0.1 7233"]
     depends_on:
       temporal-schema: { condition: service_completed_successfully }
+    deploy:
+      resources:
+        limits: { memory: 1536m }
     logging: *logging
     restart: unless-stopped
 

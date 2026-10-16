@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Client calls an OpenAI-compatible chat completions endpoint (AiStack
@@ -181,12 +182,26 @@ func (c *Client) DraftText(ctx context.Context, req DraftRequest) (DraftResult, 
 	if err != nil {
 		return DraftResult{}, err
 	}
-	if len(out.Title.CS) > 120 {
-		out.Title.CS = out.Title.CS[:120]
-	}
-	if len(out.Title.EN) > 120 {
-		out.Title.EN = out.Title.EN[:120]
-	}
+	out.Title.CS = truncateRunes(out.Title.CS, MaxTitleRunes)
+	out.Title.EN = truncateRunes(out.Title.EN, MaxTitleRunes)
+	out.Description.CS = truncateRunes(out.Description.CS, MaxDescriptionRunes)
+	out.Description.EN = truncateRunes(out.Description.EN, MaxDescriptionRunes)
 	out.Model = model
 	return out, nil
+}
+
+// Listing text limits (the same as the editor enforces).
+const (
+	MaxTitleRunes       = 120
+	MaxDescriptionRunes = 10000
+)
+
+// truncateRunes cuts s to at most n characters without splitting a UTF-8
+// sequence (a byte cut produces invalid UTF-8, which jsonb rejects).
+func truncateRunes(s string, n int) string {
+	if utf8.RuneCountInString(s) <= n {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:n])
 }

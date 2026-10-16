@@ -53,6 +53,18 @@ export async function localityPages(lang: Lang, kindSlug: string): Promise<Local
   return out;
 }
 
+/**
+ * Whether a locality page is worth indexing: hubs (Prague city page) always,
+ * other localities only with at least one current listing. Empty pages are
+ * thin content, so they get noindex and stay out of the sitemap.
+ */
+export const indexable = (page: LocalityPage) =>
+  page.praha?.kind === 'city' || (page.stat?.listings ?? 0) > 0;
+
+/** Czech plural of "nabídka" (1 nabídka, 2–4 nabídky, 5+ nabídek). */
+const nabidek = (n: number) => (n === 1 ? 'aktuální nabídka' : n >= 2 && n <= 4 ? 'aktuální nabídky' : 'aktuálních nabídek');
+const offers = (n: number) => (n === 1 ? 'current offer' : 'current offers');
+
 export const pagePath = (lang: Lang, kindSlug: string, slug?: string) =>
   `${lang === 'en' ? '/en' : ''}/${kindSlug}${slug ? `/${slug}` : ''}`;
 
@@ -78,7 +90,7 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
           ? `${p.name} (okres ${l.okres})`
           : p.name;
     const stats = p.stat?.listings
-      ? `${p.stat.listings} aktuálních nabídek, medián nájmu ${czk(p.stat.median_rent)}.`
+      ? `${p.stat.listings} ${nabidek(p.stat.listings)}, medián nájmu ${czk(p.stat.median_rent)}.`
       : 'Nabídky přímo od majitelů a správců.';
     const intro =
       l?.kind === 'city'
@@ -90,10 +102,10 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
             : '';
     return {
       title,
-      description: `${k.title} ${where} – ${stats} Bez provize, smlouva přes BankID, platby přímo majiteli.`,
+      description: `${k.title} ${where} – ${stats} Bez provize, smlouva online, platby přímo majiteli.`,
       intro,
       statsLine: p.stat?.listings
-        ? `${p.stat.listings} aktuálních nabídek · medián nájmu ${czk(p.stat.median_rent)} měsíčně`
+        ? `${p.stat.listings} ${nabidek(p.stat.listings)} · medián nájmu ${czk(p.stat.median_rent)} měsíčně`
         : 'Zatím tu nejsou žádné nabídky. Uložte si hledání a dáme vám vědět, až se objeví.',
       cta: 'Všechny nabídky na mapě',
       nearby: l?.kind === 'municipality' ? 'Další obce v okolí Prahy' : 'Městské části Prahy',
@@ -109,7 +121,7 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
           ? 'Prague'
           : p.name;
   const stats = p.stat?.listings
-    ? `${p.stat.listings} current offers, median rent ${czk(p.stat.median_rent)}.`
+    ? `${p.stat.listings} ${offers(p.stat.listings)}, median rent ${czk(p.stat.median_rent)}.`
     : 'Offers directly from landlords and managers.';
   const intro =
     l?.kind === 'city'
@@ -121,10 +133,10 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
           : '';
   return {
     title: `${k.title} in ${p.name === 'Praha' ? 'Prague' : p.name}`,
-    description: `${k.title} in ${where} – ${stats} No agency fee, lease signed with BankID, rent paid straight to the landlord.`,
+    description: `${k.title} in ${where} – ${stats} No agency fee, lease signed online, rent paid straight to the landlord.`,
     intro,
     statsLine: p.stat?.listings
-      ? `${p.stat.listings} current offers · median rent ${czk(p.stat.median_rent)} per month`
+      ? `${p.stat.listings} ${offers(p.stat.listings)} · median rent ${czk(p.stat.median_rent)} per month`
       : 'No offers here yet. Save your search and we will let you know.',
     cta: 'All offers on the map',
     nearby: l?.kind === 'municipality' ? 'Other towns around Prague' : 'Prague districts',

@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
 **client** | **String** |  | 
+**expiresAt** | [**DateTime**](DateTime.md) | When the session ends unless it is used again (impersonation sessions do not slide). | 
 **userAgent** | **String** |  | [optional] 
 **ip** | **String** |  | [optional] 
 **createdAt** | [**DateTime**](DateTime.md) |  | 

@@ -26,10 +26,14 @@ services:
       POSTGRES_DB: terra
       TEMPORAL_DB_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD}
       MONITORING_DB_PASSWORD: ${MONITORING_DB_PASSWORD:?set MONITORING_DB_PASSWORD}
-      # pgBackRest repository on Hetzner Object Storage (see infra/hetzner/db/pgbackrest.conf)
+      # initdb/13-api-role.sh: login role terra_api for the api and worker
+      TERRA_API_DB_PASSWORD: ${TERRA_API_DB_PASSWORD:?set TERRA_API_DB_PASSWORD}
+      # pgBackRest repository on Hetzner Object Storage (see infra/hetzner/db/pgbackrest.conf), in the
+      # separate backup project with its own keys (review V-16, docs/runbooks/backup.md). These
+      # variables exist only in the DB VM .env (db.env.example), never on the app VM.
       PGBACKREST_REPO1_S3_BUCKET: ${PGBACKREST_BUCKET:-terrareality-pgbackrest}
-      PGBACKREST_REPO1_S3_ENDPOINT: ${S3_ENDPOINT:-fsn1.your-objectstorage.com}
-      PGBACKREST_REPO1_S3_REGION: ${S3_REGION:-fsn1}
+      PGBACKREST_REPO1_S3_ENDPOINT: ${PGBACKREST_S3_ENDPOINT:-fsn1.your-objectstorage.com}
+      PGBACKREST_REPO1_S3_REGION: ${PGBACKREST_S3_REGION:-fsn1}
       PGBACKREST_REPO1_S3_KEY: ${PGBACKREST_S3_KEY:?set PGBACKREST_S3_KEY}
       PGBACKREST_REPO1_S3_KEY_SECRET: ${PGBACKREST_S3_KEY_SECRET:?set PGBACKREST_S3_KEY_SECRET}
       PGBACKREST_REPO1_CIPHER_PASS: ${PGBACKREST_CIPHER_PASS:?set PGBACKREST_CIPHER_PASS}
@@ -39,6 +43,8 @@ services:
       - ${PGDATA_DIR:-/srv/pgdata}:/var/lib/postgresql/data
       - ${PGBACKREST_SPOOL_DIR:-/srv/pgbackrest-spool}:/var/spool/pgbackrest
       - pgbackrest_log:/var/log/pgbackrest
+      # Server certificate + include file from scripts/pg-tls-init.sh (empty dir = no TLS).
+      - ${PG_TLS_DIR:-/srv/pgtls}:/etc/postgresql/tls:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U terra -d terra"]
       interval: 10s
@@ -52,6 +58,7 @@ services:
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
     environment:
+      # Same host, Docker bridge network: no traffic leaves the VM, so no TLS needed here.
       DATA_SOURCE_URI: db:5432/terra?sslmode=disable
       DATA_SOURCE_USER: monitoring
       DATA_SOURCE_PASS: ${MONITORING_DB_PASSWORD}

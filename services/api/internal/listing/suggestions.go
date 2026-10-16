@@ -17,6 +17,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/catalog"
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 	"github.com/terrareality/terrareality/services/api/internal/vision"
@@ -100,10 +101,7 @@ func (s *Service) RunSuggestion(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *Service) fail(ctx context.Context, q *db.Queries, id uuid.UUID, cause error) error {
-	msg := cause.Error()
-	if len(msg) > 500 {
-		msg = msg[:500]
-	}
+	msg := truncate(strings.ToValidUTF8(cause.Error(), "?"), 500)
 	return q.FailSuggestion(ctx, db.FailSuggestionParams{ID: id, Error: &msg})
 }
 
@@ -307,8 +305,7 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, suggesti
 		return db.AiSuggestion{}, err
 	}
 	var sg db.AiSuggestion
-	var redact *db.Medium
-	err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+	err = s.asUser(ctx, p, func(q *db.Queries, tx pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermCatalogWrite); err != nil {
 			return err
 		}
@@ -371,6 +368,9 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, suggesti
 					Title, Description I18n
 				}
 				_ = json.Unmarshal(sg.Payload, &pl)
+				if ferrs := checkTexts(pl.Title, pl.Description); len(ferrs) > 0 {
+					return &FieldErrors{Errors: ferrs}
+				}
 				if err := q.SetListingTexts(ctx, db.SetListingTextsParams{ID: l.ID, OrgID: orgID,
 					Title: jsonb(pl.Title), Description: jsonb(pl.Description)}); err != nil {
 					return err
@@ -393,11 +393,34 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, suggesti
 				}
 			case "privacy_blur":
 				if sg.MediaID != nil {
-					m, err := q.GetMedia(ctx, db.GetMediaParams{ID: *sg.MediaID, OrgID: orgID})
+					// The suggestion becomes "accepted" only once the
+					// redacted photo is stored (RedactMedia job, retried
+					// by River); until then it stays pending with the
+					// owner's decision recorded, and Submit refuses the
+					// listing (ADR 0003: the record never claims an
+					// approval that did not take effect).
+					if !s.Vision.Enabled() {
+						return apperr.Unavailable("vision_unavailable", "photo blurring is not available")
+					}
+					if _, err := q.GetMedia(ctx, db.GetMediaParams{ID: *sg.MediaID, OrgID: orgID}); err != nil {
+						return err
+					}
+					decision["queued_at"] = time.Now().UTC().Format(time.RFC3339)
+					n, err := q.QueueSuggestionDecision(ctx, db.QueueSuggestionDecisionParams{ID: sg.ID, OrgID: orgID,
+						Decision: jsonb(decision), DecidedBy: &p.UserID})
 					if err != nil {
 						return err
 					}
-					redact = &m
+					if n == 0 {
+						return apperr.Conflict("suggestion_decided", "this suggestion was already decided")
+					}
+					if err := s.Jobs.RedactMedia(ctx, tx, sg.ID); err != nil {
+						return err
+					}
+					sg.Decision = jsonb(decision)
+					return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "ai_suggestion", EntityID: &sg.ID,
+						Action: "ai_suggestion.redaction_queued", Diff: map[string]any{"kind": sg.Kind, "listing_id": sg.ListingID,
+							"media_id": sg.MediaID}})
 				}
 			}
 		}
@@ -409,29 +432,87 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, suggesti
 		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "ai_suggestion", EntityID: &sg.ID,
 			Action: "ai_suggestion." + status, Diff: map[string]any{"kind": sg.Kind, "listing_id": sg.ListingID, "decision": decision}})
 	})
-	if err == nil && redact != nil {
-		err = s.applyRedaction(ctx, *redact, sg)
-	}
 	return sg, err
 }
 
-func (s *Service) applyRedaction(ctx context.Context, m db.Medium, sg db.AiSuggestion) error {
+// redactionQueued reports whether an owner accepted a privacy blur whose
+// redaction has not been applied yet.
+func redactionQueued(sg db.AiSuggestion) bool {
+	var d struct {
+		Accept bool `json:"accept"`
+	}
+	return sg.Kind == "privacy_blur" && sg.Status == "pending" && json.Unmarshal(sg.Decision, &d) == nil && d.Accept
+}
+
+// RedactMedia applies an accepted privacy blur (worker job, retried by
+// River). The redacted image goes through the same sanitizer as uploads,
+// the media row gets its new type, size and hash, and only then is the
+// suggestion marked accepted, all under a lock on the suggestion so a
+// concurrent re-decision cannot interleave.
+func (s *Service) RedactMedia(ctx context.Context, suggestionID uuid.UUID) error {
+	q := db.New(s.Pool)
+	sg, err := q.SystemGetSuggestion(ctx, suggestionID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !redactionQueued(sg) || sg.MediaID == nil {
+		return nil
+	}
+	m, err := q.SystemGetMedia(ctx, *sg.MediaID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // photo deleted meanwhile
+	}
+	if err != nil {
+		return err
+	}
+	if !s.Vision.Enabled() {
+		return errors.New("redact media: vision unavailable")
+	}
 	var pl struct {
 		Regions []vision.Region `json:"regions"`
 	}
 	_ = json.Unmarshal(sg.Payload, &pl)
-	if !s.Vision.Enabled() {
-		return apperr.Unavailable("vision_unavailable", "photo blurring is not available")
-	}
 	u, err := s.Blob.PresignGet(ctx, m.ObjectKey, 10*time.Minute)
 	if err != nil {
 		return err
 	}
 	img, err := s.Vision.Redact(ctx, u, pl.Regions)
 	if err != nil {
-		return err
+		return fmt.Errorf("redact media %s: %w", m.ID, err)
 	}
-	return s.Blob.Put(ctx, m.ObjectKey, "image/jpeg", img)
+	clean, info, err := media.Sanitize(img)
+	if err != nil {
+		return fmt.Errorf("redact media %s: redacted image rejected: %w", m.ID, err)
+	}
+	return s.system(ctx, func(q *db.Queries, _ pgx.Tx) error {
+		cur, err := q.LockSuggestion(ctx, sg.ID)
+		if err != nil {
+			return err
+		}
+		if !redactionQueued(cur) {
+			return nil // rejected or applied meanwhile
+		}
+		if err := s.Blob.Put(ctx, m.ObjectKey, info.ContentType, clean); err != nil {
+			return err
+		}
+		w, h := int32(info.Width), int32(info.Height)
+		if err := q.SetMediaContent(ctx, db.SetMediaContentParams{ID: m.ID, SizeBytes: &info.Size, Sha256: info.SHA256,
+			Width: &w, Height: &h, ContentType: info.ContentType}); err != nil {
+			return err
+		}
+		var decision map[string]any
+		_ = json.Unmarshal(cur.Decision, &decision)
+		decision["applied_at"] = time.Now().UTC().Format(time.RFC3339)
+		if _, err := q.FinishSuggestion(ctx, db.FinishSuggestionParams{ID: sg.ID, Status: "accepted", Decision: jsonb(decision)}); err != nil {
+			return err
+		}
+		return audit.Record(ctx, q, audit.Event{OrgID: &sg.OrgID, Entity: "ai_suggestion", EntityID: &sg.ID,
+			Action: "ai_suggestion.accepted", ActorID: cur.DecidedBy, Diff: map[string]any{"kind": sg.Kind,
+				"listing_id": sg.ListingID, "decision": decision}})
+	})
 }
 
 func contains(list []string, v string) bool {

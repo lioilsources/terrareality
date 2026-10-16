@@ -1,7 +1,7 @@
 import type { Listing, ListingUpdate } from '@terra/contracts';
 import { error as kitError, fail, redirect } from '@sveltejs/kit';
 import { applicable, attributesFromForm, toMinor } from '#lib/catalog.js';
-import { errorMessage } from '#lib/errors.js';
+import { errorMessage, serviceUnavailable } from '#lib/errors.js';
 import { localizeHref } from '#lib/paraglide/runtime.js';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -13,7 +13,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		locals.api.GET('/v1/orgs/{orgId}/listings/{listingId}', path),
 		locals.api.GET('/v1/attributes')
 	]);
-	if (!listing.data || !schema.data) kitError(404);
+	if (!listing.data) kitError(404);
+	if (!schema.data) serviceUnavailable();
 	const s = url.searchParams.get('step');
 	const step = steps.includes(s as (typeof steps)[number]) ? s! : 'attributes';
 	return { listing: listing.data, schema: schema.data, step, steps: [...steps] };
@@ -57,7 +58,8 @@ export const actions: Actions = {
 			current(locals.api, params.orgId, params.listingId),
 			locals.api.GET('/v1/attributes')
 		]);
-		const defs = applicable(schema.data!, l.unit.kind);
+		if (!schema.data) return fail(503, { error: errorMessage(schema.error) });
+		const defs = applicable(schema.data, l.unit.kind);
 		const minTerm = String(f.get('min_term_months') ?? '').trim();
 		const body: ListingUpdate = {
 			...baseUpdate(l),

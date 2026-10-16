@@ -1,5 +1,6 @@
 import type { components } from '@terra/contracts';
 import { m } from '#lib/paraglide/messages.js';
+import { toMinor } from '#lib/catalog.js';
 
 type Label = () => string;
 export type LeaseInput = components['schemas']['LeaseInput'];
@@ -19,6 +20,92 @@ export const clauses = [
 	['sublet_forbidden', m.clause_sublet_forbidden],
 	['early_termination', m.clause_early_termination]
 ] as const;
+
+/** A signing method enabled on the server (LeaseDetail.sign_providers, in order of preference). */
+export type SignProvider = components['schemas']['SignProvider'];
+export type SignProviderId = SignProvider['id'];
+const signProviderIds: readonly string[] = ['mock', 'bankid_sign'] satisfies SignProviderId[];
+
+/** What the user is told they are signing with: the legal level, never the provider ("mock"). */
+export const signLevelLabel: Record<SignProvider['level'], Label> = {
+	simple: m.lease_sign_method_simple,
+	qualified: m.lease_sign_method_qualified
+};
+
+export const signLevelHint: Record<SignProvider['level'], Label> = {
+	simple: m.lease_sign_method_simple_hint,
+	qualified: m.lease_sign_method_qualified_hint
+};
+
+/** The provider chosen in the sign form; null when missing or not a known provider id. */
+export function signProviderFromForm(f: FormData): SignProviderId | null {
+	const v = String(f.get('provider') ?? '');
+	return signProviderIds.includes(v) ? (v as SignProviderId) : null;
+}
+
+export type LandlordNoticeReason = components['schemas']['LandlordNoticeReason'];
+
+/** Statutory reasons of a landlord's notice (§ 2288 OZ) with plain-language labels. */
+export const landlordNoticeReasons: readonly (readonly [LandlordNoticeReason, Label])[] = [
+	['gross_breach_tenant', m.lease_notice_reason_gross_breach_tenant],
+	['conviction', m.lease_notice_reason_conviction],
+	['public_interest_vacate', m.lease_notice_reason_public_interest_vacate],
+	['other_serious_reason', m.lease_notice_reason_other_serious_reason],
+	[
+		'flat_needed_for_landlord_or_relative',
+		m.lease_notice_reason_flat_needed_for_landlord_or_relative
+	]
+];
+
+/** Reasons offered for a lease: § 2288(2) applies to indefinite-term leases only. */
+export function noticeReasonsFor(endsOn: string | undefined | null) {
+	return endsOn
+		? landlordNoticeReasons.filter(([r]) => r !== 'flat_needed_for_landlord_or_relative')
+		: landlordNoticeReasons;
+}
+
+export type LandlordNotice = {
+	delivered_on: string;
+	reason: LandlordNoticeReason;
+	explanation?: string;
+};
+
+/**
+ * Validates the landlord notice form before it reaches the api (which checks the
+ * same rules): a known reason, a delivery date, an explanation for
+ * other_serious_reason and the confirmation that the notice is written and
+ * informs the tenant of the right to a court review.
+ */
+export function landlordNoticeFromForm(
+	f: FormData
+): { notice: LandlordNotice } | { error: string } {
+	const reason = String(f.get('reason') ?? '');
+	const delivered_on = String(f.get('delivered_on') ?? '').trim();
+	const explanation = String(f.get('explanation') ?? '').trim();
+	if (!landlordNoticeReasons.some(([r]) => r === reason))
+		return { error: m.err_landlord_notice_reason_required() };
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(delivered_on))
+		return { error: m.lease_notice_delivered_required() };
+	if (reason === 'other_serious_reason' && !explanation)
+		return { error: m.lease_notice_explanation_required() };
+	if (f.get('confirm') !== 'on') return { error: m.lease_notice_landlord_confirm_required() };
+	return {
+		notice: {
+			delivered_on,
+			reason: reason as LandlordNoticeReason,
+			explanation: explanation || undefined
+		}
+	};
+}
+
+/** Allowed delivery dates (yyyy-mm-dd): 30 days ago to 7 days from today. */
+export function deliveredOnRange(now = new Date()) {
+	const day = (offset: number) => {
+		const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset));
+		return d.toISOString().slice(0, 10);
+	};
+	return { min: day(-30), max: day(7) };
+}
 
 export const stateLabel: Record<string, Label> = {
 	draft: m.lease_state_draft,
@@ -54,9 +141,6 @@ export const matchLabel: Record<string, Label> = {
 	ignored: m.match_ignored
 };
 
-/** Whole crowns from a form field to minor units. */
-export const toMinor = (v: FormDataEntryValue | null) => Math.round(Number(v ?? 0) * 100);
-
 /** Builds the API body from the lease form. */
 export function leaseFromForm(f: FormData): LeaseInput {
 	const parties = JSON.parse(String(f.get('parties') || '[]')) as {
@@ -70,7 +154,8 @@ export function leaseFromForm(f: FormData): LeaseInput {
 		template: String(f.get('template')) as LeaseInput['template'],
 		starts_on: String(f.get('starts_on')),
 		ends_on: String(f.get('ends_on') ?? '') || undefined,
-		rent_amount: toMinor(f.get('rent')),
+		// "12 500,50" and "12500.5" both parse; an empty or invalid rent is 0, which the api rejects.
+		rent_amount: toMinor(f.get('rent')) ?? 0,
 		services_amount: toMinor(f.get('services')),
 		deposit_amount: toMinor(f.get('deposit')),
 		due_day: Number(f.get('due_day') || 15),

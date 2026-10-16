@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, apiRegister, call, login } from './api';
+import { API, apiRegister, apiRegisterVerified, call, login } from './api';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
 
 type Share = { id: string; kind: string; due_on: string; amount: number; paid_amount: number };
@@ -84,7 +84,7 @@ test('portfolio across municipalities with lease risk', async ({ browser }) => {
 	const tenants: Record<string, { email: string; token: string }> = {};
 	for (const s of specs) {
 		const email = uniqueEmail(`najemce-${s.city.toLowerCase()}`);
-		const token = await apiRegister(email, `Nájemce ${s.city}`);
+		const token = await apiRegisterVerified(email, `Nájemce ${s.city}`);
 		tenants[s.city] = { email, token };
 		const d = await call<{ lease: { id: string } }>(ownerToken, 'POST', `${org}/leases`, {
 			template: s.tpl,
@@ -219,7 +219,7 @@ test('portfolio across municipalities with lease risk', async ({ browser }) => {
 	await call(ownerToken, 'POST', `${org}/invitations`, { email: investor, role: 'investor' });
 	const invite = await waitForMail(investor, 'Pozvánka');
 	const invToken = new URL(invite.match(/https?:\/\/\S+/)![0]).pathname.split('/').pop();
-	await call(investorToken, 'POST', `/v1/invitations/${invToken}/accept`);
+	await call(investorToken, 'POST', '/v1/invitations/accept', { token: invToken });
 	const i = await login(browser, investor, PASSWORD, `/admin/orgs/${orgId}/portfolio`);
 	await expect(i.getByText('Máte přístup jen pro čtení.')).toBeVisible();
 	await expect(i.getByTestId('pf-city')).toHaveCount(3);

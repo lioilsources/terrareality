@@ -69,7 +69,7 @@
 			<div class="flex items-center gap-2 text-sm" aria-label={m.language()}>
 				{#each locales as locale (locale)}
 					<a
-						href={localizeHref(page.url.pathname, { locale })}
+						href={localizeHref(page.url.pathname + page.url.search, { locale })}
 						data-sveltekit-reload
 						class="rounded px-2 py-1 uppercase {locale === getLocale()
 							? 'bg-[var(--accent)] text-white'

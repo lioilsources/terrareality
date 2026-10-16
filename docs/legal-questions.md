@@ -66,6 +66,13 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
 - **Q-LEASE-3 Immutable event log vs. erasure.** Lease events and the ledger cannot be changed. After
   an erasure request they keep names inside past payloads. Is retention for the limitation period
   (3 years after the lease ends) the right basis, and must payloads avoid personal data?
+- **Q-LEASE-4 Landlord's notice.** A landlord's notice (§ 2286 and § 2288–2290 of the Civil Code) must be
+  in writing, state a statutory reason and inform the tenant of the right to object and to ask a court to
+  review it; the notice period is at least three months. The platform only records the notice (reason,
+  optional explanation, delivery date) and shows these requirements as a hint with a confirmation
+  checkbox; it does not produce or deliver the written notice. The legal review must confirm the hint and
+  reason texts (web `lease_notice_*` messages), whether the platform should generate the written notice
+  with the instruction about the court review, and the allowed delivery-date window (30 days back, 7 ahead).
 
 ## Portfolio risk (M6b)
 
@@ -139,6 +146,19 @@ Drafts live in `packages/attributes/legal/{cs,en}/` (terms, privacy, cookies, ds
   Is a notice required or advisable at all under § 89(3) ZEK, does the language cookie count as strictly
   necessary, and does loading map tiles from OpenFreeMap (IP address of the visitor, no cookies) need
   consent or only a mention in the privacy policy? The mobile apps set no cookies.
+- **Q-LEGAL-5 Sign-off of the legal texts and consent versions (review V-10).** Before the pilot with real
+  users, counsel signs off the four texts in `packages/attributes/legal/{cs,en}/` (terms, privacy, cookies,
+  dsa) and the operator's managing director approves them. The sign-off names the version id of each text
+  (front matter `version:`, today `2026-10` for all four, Czech and English kept identical) and is recorded
+  here with date, reviewer and the git commit of the approved text. Only then is `draft: true` removed from
+  the front matter (the web shows a draft banner and `noindex` while it is set). Consent records: the api
+  stores `TERMS_VERSION` and `PRIVACY_VERSION` (config, default `2026-10`; set explicitly in the production
+  `.env`) in the consent log, and the web takes the accepted version from the front matter, so both must be
+  equal to the `version:` of `terms.md` and `privacy.md`. Every change of a text bumps its version in the
+  markdown and the matching env variable in the same deploy (`docs/runbooks/deploy.md`), and goes through
+  this sign-off again; whether existing users must re-accept is Q-LEGAL-3. Open: who signs off on the
+  operator side (managing director or a delegated person), and whether cookies/dsa texts need versioned
+  acknowledgement at all. Status: pending, no text is signed off yet.
 - **Q-GDPR-6 Data protection officer.** The privacy policy has a DPO contact placeholder. Is a DPO
   mandatory (Art. 37: large-scale regular monitoring through the lease risk score and payment matching?),
   or is a privacy contact enough?

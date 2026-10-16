@@ -67,7 +67,7 @@ func (q *Queries) CreateOAuthIdentity(ctx context.Context, arg CreateOAuthIdenti
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, display_name, locale, email_verified_at)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at
+RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until
 `
 
 type CreateUserParams struct {
@@ -107,6 +107,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.VerificationLevel,
 		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
 	)
 	return i, err
 }
@@ -200,7 +202,7 @@ func (q *Queries) GetOAuthIdentity(ctx context.Context, arg GetOAuthIdentityPara
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users WHERE id = $1
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -226,12 +228,14 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UpdatedAt,
 		&i.VerificationLevel,
 		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users WHERE email = $1
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -257,6 +261,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 		&i.VerificationLevel,
 		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
 	)
 	return i, err
 }
@@ -320,9 +326,50 @@ func (q *Queries) PseudonymizeUser(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const recordLoginFailure = `-- name: RecordLoginFailure :one
+UPDATE users SET failed_logins = failed_logins + 1,
+  locked_until = CASE WHEN failed_logins + 1 > $1::int
+    THEN now() + least(interval '30 seconds' * power(2, least(failed_logins + 1 - $1::int - 1, 12)), interval '1 hour')
+    ELSE locked_until END
+WHERE id = $2
+RETURNING failed_logins, locked_until
+`
+
+type RecordLoginFailureParams struct {
+	Free int32     `json:"free"`
+	ID   uuid.UUID `json:"id"`
+}
+
+type RecordLoginFailureRow struct {
+	FailedLogins int32      `json:"failed_logins"`
+	LockedUntil  *time.Time `json:"locked_until"`
+}
+
+// S-A1: counts a failed password or second-factor attempt. From the sixth
+// failure on the account is locked for 30 s, doubling per failure up to an
+// hour; a lock that ran out is not counted against the next attempt's wait.
+func (q *Queries) RecordLoginFailure(ctx context.Context, arg RecordLoginFailureParams) (RecordLoginFailureRow, error) {
+	row := q.db.QueryRow(ctx, recordLoginFailure, arg.Free, arg.ID)
+	var i RecordLoginFailureRow
+	err := row.Scan(&i.FailedLogins, &i.LockedUntil)
+	return i, err
+}
+
+const resetLoginFailures = `-- name: ResetLoginFailures :exec
+UPDATE users SET failed_logins = 0, locked_until = NULL
+WHERE id = $1 AND (failed_logins <> 0 OR locked_until IS NOT NULL)
+`
+
+func (q *Queries) ResetLoginFailures(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, resetLoginFailures, id)
+	return err
+}
+
 const searchUsers = `-- name: SearchUsers :many
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users
-WHERE ($1::text IS NULL OR email ILIKE '%' || $1 || '%' OR display_name ILIKE '%' || $1 || '%')
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until FROM users
+WHERE ($1::text IS NULL
+    OR email ILIKE '%' || replace(replace(replace($1, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+    OR display_name ILIKE '%' || replace(replace(replace($1, '\', '\\'), '%', '\%'), '_', '\_') || '%')
   AND ($2::uuid IS NULL OR id < $2)
 ORDER BY id DESC
 LIMIT $3
@@ -334,6 +381,8 @@ type SearchUsersParams struct {
 	Lim    int32      `json:"lim"`
 }
 
+// The search text is matched literally (LIKE wildcards and the escape
+// character are escaped).
 func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]User, error) {
 	rows, err := q.db.Query(ctx, searchUsers, arg.Q, arg.Before, arg.Lim)
 	if err != nil {
@@ -363,6 +412,8 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Use
 			&i.UpdatedAt,
 			&i.VerificationLevel,
 			&i.MessagingSuspendedAt,
+			&i.FailedLogins,
+			&i.LockedUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -431,7 +482,7 @@ func (q *Queries) SetUserPhone(ctx context.Context, arg SetUserPhoneParams) erro
 }
 
 const updateUserProfile = `-- name: UpdateUserProfile :one
-UPDATE users SET display_name = $2, locale = $3 WHERE id = $1 RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at
+UPDATE users SET display_name = $2, locale = $3 WHERE id = $1 RETURNING id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until
 `
 
 type UpdateUserProfileParams struct {
@@ -463,6 +514,8 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.UpdatedAt,
 		&i.VerificationLevel,
 		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
 	)
 	return i, err
 }

@@ -20,7 +20,10 @@ type SessionTTL func(client string) time.Duration
 
 // Middleware resolves the bearer token into a Principal. Invalid or expired
 // tokens leave the request anonymous; handlers that need a user answer 401.
-func Middleware(q db.Querier, ttl SessionTTL, log *slog.Logger) func(http.Handler) http.Handler {
+// Activity slides the expiry by ttl, but never past created_at + maxAge
+// (absolute session lifetime, ASVS V3.3.2; 0 disables the cap). The lookup
+// itself refuses sessions older than maxAge, whatever expiry they store.
+func Middleware(q db.Querier, ttl SessionTTL, maxAge time.Duration, log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := WithMeta(r.Context(), RequestMeta{
@@ -29,16 +32,21 @@ func Middleware(q db.Querier, ttl SessionTTL, log *slog.Logger) func(http.Handle
 				RequestID: middleware.GetReqID(r.Context()),
 			})
 			if tok := bearer(r); tok != "" {
-				s, err := q.GetActiveSession(ctx, tokens.Hash(tok))
+				var createdAfter time.Time // zero: no absolute cap
+				if maxAge > 0 {
+					createdAfter = time.Now().Add(-maxAge)
+				}
+				s, err := q.GetActiveSession(ctx, db.GetActiveSessionParams{TokenHash: tokens.Hash(tok), CreatedAfter: createdAfter})
 				switch {
 				case err == nil && s.PseudonymizedAt == nil:
 					p := &Principal{UserID: s.UserID, SessionID: s.ID, Client: s.Client,
-						IsStaff: s.IsStaff && s.ImpersonatorID == nil, ImpersonatorID: s.ImpersonatorID}
+						IsStaff: s.IsStaff && s.ImpersonatorID == nil, ImpersonatorID: s.ImpersonatorID,
+						MFA: s.TotpEnabledAt != nil && s.MfaAt != nil}
 					ctx = WithPrincipal(ctx, p)
 					// Impersonation sessions have a fixed lifetime.
 					exp := s.ExpiresAt
 					if s.ImpersonatorID == nil {
-						exp = time.Now().Add(ttl(s.Client))
+						exp = SlidingExpiry(time.Now(), s.CreatedAt, ttl(s.Client), maxAge)
 					}
 					if err := q.TouchSession(ctx, db.TouchSessionParams{ID: s.ID, ExpiresAt: exp}); err != nil {
 						log.Warn("touch session", "err", err)
@@ -52,6 +60,17 @@ func Middleware(q db.Querier, ttl SessionTTL, log *slog.Logger) func(http.Handle
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// SlidingExpiry is now+ttl capped at created+maxAge (maxAge 0 = no cap).
+func SlidingExpiry(now, created time.Time, ttl, maxAge time.Duration) time.Time {
+	exp := now.Add(ttl)
+	if maxAge > 0 {
+		if hard := created.Add(maxAge); exp.After(hard) {
+			exp = hard
+		}
+	}
+	return exp
 }
 
 func bearer(r *http.Request) string {

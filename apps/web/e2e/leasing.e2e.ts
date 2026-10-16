@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, apiRegister, call, login } from './api';
+import { API, apiRegister, apiRegisterVerified, call, login } from './api';
 import { PASSWORD, uniqueEmail, waitForMail } from './helpers';
 
 type Share = { id: string; due_on: string; amount: number; paid_amount: number; party_id: string };
@@ -19,8 +19,8 @@ test('joint tenancy: sign, pay by QR, bank match, debt zero', async ({ browser }
 	await call(ownerToken, 'POST', '/v1/auth/email/verify', {
 		token: new URL(verify.match(/https?:\/\/\S+/)![0]).searchParams.get('token')
 	});
-	await apiRegister(anna, 'Anna Nováková');
-	await apiRegister(ben, 'Ben Dvořák');
+	await apiRegisterVerified(anna, 'Anna Nováková');
+	await apiRegisterVerified(ben, 'Ben Dvořák');
 	const me = await call<{ organizations: { organization: { id: string } }[] }>(
 		ownerToken,
 		'GET',
@@ -64,7 +64,9 @@ test('joint tenancy: sign, pay by QR, bank match, debt zero', async ({ browser }
 	// Both flatmates sign in the tenant portal, then the landlord.
 	for (const email of [anna, ben]) {
 		const t = await login(browser, email, PASSWORD, `/smlouvy/${leaseId}`);
-		await t.getByRole('button', { name: 'Podepsat (zkušební podpis)' }).click();
+		await expect(t.getByTestId('sign-method')).toHaveText('prostý elektronický podpis');
+		await t.getByTestId('lease-sign').getByRole('checkbox').check();
+		await t.getByRole('button', { name: 'Podepsat smlouvu' }).click();
 		await expect(t.getByTestId('lease-parties')).toContainText('✓ podepsáno');
 		if (email === anna) {
 			await t.close();
@@ -73,7 +75,8 @@ test('joint tenancy: sign, pay by QR, bank match, debt zero', async ({ browser }
 		}
 	}
 	await o.reload();
-	await o.getByRole('button', { name: 'Podepsat (zkušební podpis)' }).click();
+	await o.getByTestId('lease-sign').getByRole('checkbox').check();
+	await o.getByRole('button', { name: 'Podepsat smlouvu' }).click();
 	await expect(o.getByTestId('lease-state')).toHaveText('Podepsáno');
 
 	// Schedule 50/50 with a QR payment for each tenant.

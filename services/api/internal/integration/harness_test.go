@@ -37,6 +37,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/org"
+	"github.com/terrareality/terrareality/services/api/internal/platform/pwned"
 	"github.com/terrareality/terrareality/services/api/internal/platform/secretbox"
 	"github.com/terrareality/terrareality/services/api/internal/portfolio"
 	"github.com/terrareality/terrareality/services/api/internal/realtime"
@@ -70,6 +71,7 @@ type recJobs struct {
 	mu          sync.Mutex
 	media       []uuid.UUID
 	suggestions []uuid.UUID
+	redactions  []uuid.UUID
 }
 
 func (r *recJobs) ProcessMedia(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
@@ -83,6 +85,13 @@ func (r *recJobs) RunSuggestion(_ context.Context, _ pgx.Tx, id uuid.UUID) error
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.suggestions = append(r.suggestions, id)
+	return nil
+}
+
+func (r *recJobs) RedactMedia(_ context.Context, _ pgx.Tx, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.redactions = append(r.redactions, id)
 	return nil
 }
 
@@ -132,6 +141,25 @@ func (r *recPusher) count(userID uuid.UUID) int {
 	return n
 }
 
+// of returns the pushes to a user with the given data kind.
+func (r *recPusher) of(userID uuid.UUID, kind string) []notify.Push {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []notify.Push
+	for _, p := range r.items {
+		if p.UserID == userID.String() && p.Data["kind"] == kind {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// pushDevice registers a phone for the token's user.
+func (e *env) pushDevice(tok string) {
+	e.t.Helper()
+	e.must(201, "POST", "/v1/me/push-devices", tok, map[string]string{"platform": "fcm", "token": "fcm-" + uuid.NewString(), "label": "Phone"}, nil)
+}
+
 // recAppJobs records application jobs.
 type recAppJobs struct {
 	mu        sync.Mutex
@@ -167,8 +195,13 @@ func (r *recLeaseJobs) StartLifecycle(_ context.Context, _ pgx.Tx, id uuid.UUID)
 }
 
 type env struct {
-	t        *testing.T
-	pool     *pgxpool.Pool
+	t *testing.T
+	// pool is the schema owner: fixtures, direct assertions and cleanup only.
+	pool *pgxpool.Pool
+	// svc is what every service and the router use: a login role IN ROLE
+	// terra_service, as terra_api in production (ADR 0012 point 5), so the
+	// grants and system_all policies are exercised by every request path.
+	svc      *pgxpool.Pool
 	srv      *httptest.Server
 	outbox   *notify.MemoryOutbox
 	sched    *recScheduler
@@ -195,7 +228,7 @@ type env struct {
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
-	pool := setup(t)
+	owner, pool := apiPool(t)
 	box, err := secretbox.New(strings.Repeat("s", 32))
 	if err != nil {
 		t.Fatal(err)
@@ -204,15 +237,16 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &env{t: t, pool: pool, outbox: &notify.MemoryOutbox{}, sched: &recScheduler{}, jobs: &recJobs{},
+	e := &env{t: t, pool: owner, svc: pool, outbox: &notify.MemoryOutbox{}, sched: &recScheduler{}, jobs: &recJobs{},
 		blob: storage.NewMemory("http://blob.test")}
-	if err := catalog.Sync(context.Background(), db.New(pool)); err != nil {
+	// Reference data is seeded by the owner (setup, not a request path).
+	if err := catalog.Sync(context.Background(), db.New(owner)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ruian.SeedSample(context.Background(), pool); err != nil {
+	if _, err := ruian.SeedSample(context.Background(), owner); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := search.SeedFromRuian(context.Background(), pool); err != nil {
+	if _, err := search.SeedFromRuian(context.Background(), owner); err != nil {
 		t.Fatal(err)
 	}
 	e.vision = fakeVision(t)
@@ -230,7 +264,7 @@ func newEnv(t *testing.T) *env {
 	}
 	idp := identity.NewRegistry(mocks["bankid"], mocks["google"])
 	e.acct = &account.Service{Pool: pool, Box: box, Outbox: e.outbox, Render: render, IDP: idp,
-		Blob: e.blob, Scheduler: e.sched, Cfg: account.Config{
+		Blob: e.blob, Scheduler: e.sched, Pwned: pwned.Local(), Cfg: account.Config{
 			WebBaseURL: "http://web.test", SessionTTLWeb: time.Hour, SessionTTLMobile: time.Hour,
 			RedirectAllow: []string{redirectBase}, TermsVersion: "t1", PrivacyVersion: "p1", ErasureGrace: 0,
 		}}
@@ -251,11 +285,11 @@ func newEnv(t *testing.T) *env {
 	e.verdicts = &messaging.Verdicts{Pool: pool, AI: ai.Mock{}, Enabled: true}
 	e.appJobs = &recAppJobs{}
 	e.summary = &applications.Summaries{Pool: pool, AI: ai.Mock{}, Enabled: true}
-	apps := &applications.Service{Pool: pool, RT: e.rt, Jobs: e.appJobs, Outbox: e.outbox, Render: render, Blob: e.blob,
+	apps := &applications.Service{Pool: pool, RT: e.rt, Jobs: e.appJobs, Outbox: e.outbox, Render: render, Pusher: e.pusher, Blob: e.blob,
 		Scanner: media.NoScanner{}, ISIR: isir.Mock{}, WebBaseURL: "http://web.test", Log: log}
 	e.bank, e.leaseJob = &leasing.MockBank{}, &recLeaseJobs{}
 	e.leases = &leasing.Service{Pool: pool, Render: leasing.Typst{}, Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}},
-		Bank: e.bank, Blob: e.blob, Jobs: e.leaseJob, Outbox: e.outbox, Mail: render, WebBaseURL: "http://web.test", Log: log}
+		Bank: e.bank, Blob: e.blob, Jobs: e.leaseJob, Outbox: e.outbox, Mail: render, Pusher: e.pusher, WebBaseURL: "http://web.test", Log: log}
 	e.risk = &portfolio.Scorer{Pool: pool}
 	// Flag defaults as in config; "test.m7_flag" exists only for the flag tests.
 	e.flags = flags.New(pool, map[string]bool{"ai.attributes": true, "ai.text": true, "ai.vision": true,
@@ -277,6 +311,18 @@ func newEnv(t *testing.T) *env {
 			MockStripe: e.stripe.Handler()})
 	mux.Handle("/", h)
 	return e
+}
+
+// apiPool returns the owner pool and the pool the api runs on. The api pool
+// logs in as a temporary role IN ROLE terra_service (least privilege, W-6);
+// TEST_API_AS_OWNER=1 falls back to the owner for debugging a failure.
+func apiPool(t *testing.T) (owner, api *pgxpool.Pool) {
+	t.Helper()
+	if os.Getenv("TEST_API_AS_OWNER") == "1" {
+		owner = setup(t)
+		return owner, owner
+	}
+	return serviceRolePool(t)
 }
 
 // call performs a JSON request and decodes the response into out (if non-nil).

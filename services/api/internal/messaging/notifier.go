@@ -33,6 +33,7 @@ type Notifier struct {
 // MessageData is the payload of a "message" notification.
 type MessageData struct {
 	ConversationID uuid.UUID `json:"conversation_id"`
+	MessageID      uuid.UUID `json:"message_id"` // newest message covered (job idempotency)
 	Sender         string    `json:"sender"`
 	Listing        string    `json:"listing"`
 	Preview        string    `json:"preview"`
@@ -109,9 +110,21 @@ func (n *Notifier) notifyOne(ctx context.Context, msg db.Message, sum db.SystemC
 		n.Log.Warn("presence", "err", err)
 	}
 	var note db.Notification
+	done := false
 	err = platformdb.InTx(ctx, n.Pool, func(tx pgx.Tx) error {
 		q := db.New(tx)
-		data := MessageData{ConversationID: msg.ConversationID, Sender: sender, Listing: listing, Preview: prev, Count: 1}
+		// A retry after a partial failure (another recipient failed) must
+		// not count this message twice or e-mail and push again.
+		notified, err := q.MessageNotified(ctx, db.MessageNotifiedParams{UserID: r.ID, MessageID: msg.ID.String()})
+		if err != nil {
+			return err
+		}
+		if notified {
+			done = true
+			return nil
+		}
+		data := MessageData{ConversationID: msg.ConversationID, MessageID: msg.ID, Sender: sender, Listing: listing,
+			Preview: prev, Count: 1}
 		prevNote, err := q.BumpMessageNotification(ctx, db.BumpMessageNotificationParams{UserID: r.ID,
 			ConversationID: msg.ConversationID.String(), Data: mustJSON(data)})
 		switch {
@@ -138,7 +151,7 @@ func (n *Notifier) notifyOne(ctx context.Context, msg db.Message, sum db.SystemC
 		}
 		return q.MarkNotificationEmailed(ctx, []uuid.UUID{note.ID})
 	})
-	if err != nil {
+	if err != nil || done {
 		return err
 	}
 	if err := n.RT.Publish(ctx, realtime.UserChannel(r.ID), map[string]any{"type": "notification", "id": note.ID,

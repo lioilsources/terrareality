@@ -9,7 +9,7 @@ import 'package:terra_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **email** | **String** |  | 
-**password** | **String** |  | 
+**password** | **String** | At least 12 characters; checked against breached-password lists (error code password_breached). | 
 **displayName** | **String** |  | 
 **locale** | [**UserLocale**](UserLocale.md) |  | [optional] 
 **acceptTermsVersion** | **String** |  | 

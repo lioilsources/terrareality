@@ -5,13 +5,17 @@ import 'package:intl/intl.dart';
 import 'package:terra_api/api.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../common/api_error.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
 import 'viewings_repository.dart';
 
 /// My upcoming viewings: cancel one, or open the application to pick
-/// another slot.
+/// another slot. [cancelledApplicationId] (from a `viewing_cancelled` push)
+/// shows that the landlord cancelled the viewing of that application.
 class ViewingsScreen extends ConsumerWidget {
-  const ViewingsScreen({super.key});
+  const ViewingsScreen({super.key, this.cancelledApplicationId});
+
+  final String? cancelledApplicationId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,10 +41,31 @@ class ViewingsScreen extends ConsumerWidget {
         await ref.read(viewingsRepositoryProvider).cancel(v.id);
         ref.invalidate(myViewingsProvider);
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.bookingCancelled)));
-      } on ApiException catch (_) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.actionFailed)));
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage(t, e))));
       }
     }
+
+    final cancelledFor = cancelledApplicationId;
+    final notice = cancelledFor == null
+        ? null
+        : Card(
+            key: const Key('viewing-cancelled'),
+            margin: const EdgeInsets.all(12),
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: ListTile(
+              leading: const Icon(Icons.event_busy),
+              title: Text(t.viewingCancelledByLandlord),
+              trailing: TextButton(
+                key: const Key('open-cancelled-application'),
+                onPressed: () async {
+                  await context.push('/zadosti/$cancelledFor');
+                  ref.invalidate(myViewingsProvider);
+                },
+                child: Text(t.openApplication),
+              ),
+            ),
+          );
 
     return Scaffold(
       appBar: AppBar(title: Text(t.viewingsTitle)),
@@ -48,10 +73,11 @@ class ViewingsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(myViewingsProvider.future),
         child: list.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ListView(children: [ListTile(title: Text(t.statusUnreachable))]),
+          error: (e, _) => ApiErrorView(error: e, scrollable: true, onRetry: () => ref.invalidate(myViewingsProvider)),
           data: (items) => items.isEmpty
-              ? ListView(children: [ListTile(title: Text(t.viewingsEmpty))])
+              ? ListView(children: [?notice, ListTile(title: Text(t.viewingsEmpty))])
               : ListView(children: [
+                  ?notice,
                   for (final v in items)
                     ListTile(
                       key: Key('viewing-${v.id}'),

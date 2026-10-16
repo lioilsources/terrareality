@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
-import { alternates, kindsByLang, localityPages, pagePath } from '../lib/localities';
+import { alternates, indexable, kindsByLang, localityPages, pagePath } from '../lib/localities';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-/** Static sitemap of all landing and locality pages with cs/en alternates. */
+/** Static sitemap of the landing pages and indexable locality pages with cs/en alternates. */
 export const GET: APIRoute = async ({ site }) => {
   const abs = (p: string) => esc(new URL(p, site).toString());
   const entries: { loc: string; alt?: { cs: string; en: string } | null }[] = [
@@ -14,6 +14,7 @@ export const GET: APIRoute = async ({ site }) => {
     for (const kindSlug of Object.keys(kindsByLang[lang])) {
       entries.push({ loc: pagePath(lang, kindSlug), alt: alternates(lang, kindSlug) });
       for (const page of await localityPages(lang, kindSlug)) {
+        if (!indexable(page)) continue; // noindex pages stay out of the sitemap
         entries.push({ loc: pagePath(lang, kindSlug, page.slug), alt: alternates(lang, kindSlug, page) });
       }
     }
