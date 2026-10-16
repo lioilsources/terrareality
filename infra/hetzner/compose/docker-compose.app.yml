@@ -302,7 +302,7 @@ services:
   clamav:
     # Upload scanning (CLAMAV_ADDR). Needs ~1.5 GB RAM, about twice that while freshclam reloads
     # signatures; signatures update via freshclam. The image has its own HEALTHCHECK (clamdcheck.sh).
-    image: clamav/clamav:1.4.6
+    image: clamav/clamav:1.5.4
     volumes: [clamav_db:/var/lib/clamav]
     deploy:
       resources:
