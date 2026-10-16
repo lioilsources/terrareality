@@ -30,7 +30,9 @@ test('a listing photo loads through imgproxy (CSP img-src)', async ({ page, cons
 	const img = page.getByTestId('results').locator('img').first();
 	if ((await img.count()) === 0) {
 		test.skip(process.env.SMOKE_ALLOW_NO_IMAGES === '1', 'no listing with a photo on this stack');
-		throw new Error('no listing photo in the search results (set SMOKE_ALLOW_NO_IMAGES=1 if expected)');
+		throw new Error(
+			'no listing photo in the search results (set SMOKE_ALLOW_NO_IMAGES=1 if expected)'
+		);
 	}
 	await img.scrollIntoViewIfNeeded();
 	await expect

@@ -101,7 +101,7 @@ func TestPromoCheckoutAndInvoice(t *testing.T) {
 	var products struct {
 		Items []promoProductDTO `json:"items"`
 	}
-	e.must(200, "GET", "/v1/promo-products", "", nil, &products)
+	e.must(200, "GET", "/v1/promo-products", tok, nil, &products)
 	var top promoProductDTO
 	for _, p := range products.Items {
 		if p.Code == "top_7d" {

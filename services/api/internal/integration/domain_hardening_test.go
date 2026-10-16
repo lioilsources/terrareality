@@ -140,7 +140,7 @@ func TestIncomeProofOnlyForOpenApplications(t *testing.T) {
 
 	type applicant struct {
 		People []struct {
-			ID             uuid.UUID `json:"id"`
+			ID             uuid.UUID `json:"user_id"`
 			IncomeProofURL *string   `json:"income_proof_url"`
 		} `json:"people"`
 	}
@@ -161,6 +161,7 @@ func TestIncomeProofOnlyForOpenApplications(t *testing.T) {
 	}
 	e.must(204, "POST", "/v1/orgs/"+orgID.String()+"/applications/"+d.Application.ID.String()+"/decision", ownerTok,
 		map[string]string{"action": "reject", "reason": "incomplete"}, nil)
+	list = nil
 	e.must(200, "GET", lpath+"/applications", ownerTok, nil, &list)
 	if len(list) != 1 || list[0].People[0].IncomeProofURL != nil {
 		t.Fatalf("rejected applicant's income still downloadable: %+v", list)
@@ -259,9 +260,9 @@ func TestEditWithdrawsPendingVersion(t *testing.T) {
 	e.must(201, "POST", "/v1/orgs/"+orgID.String()+"/listings", tok, map[string]any{"ruian_id": addrs[0].RuianID, "unit_kind": "apartment",
 		"layout": "2+kk", "floor_area": 54}, &l)
 	path := "/v1/orgs/" + orgID.String() + "/listings/" + l.ID.String()
-	body := map[string]any{"title": map[string]string{"cs": "Byt ke kontrole"},
-		"description": map[string]string{"cs": strings.Repeat("Světlý byt se zahrádkou a výhledem do parku. ", 2)},
-		"rent_amount": 1_750_000, "attributes": l.Attributes}
+	body := map[string]any{"title": map[string]string{"cs": "Byt ke kontrole", "en": ""},
+		"description": map[string]string{"cs": strings.Repeat("Světlý byt se zahrádkou a výhledem do parku. ", 2), "en": ""},
+		"rent_amount": 1_750_000, "attributes": l.Attributes, "location_precision": "approximate"}
 	e.must(200, "PUT", path, tok, body, nil)
 	e.uploadPhoto(tok, orgID, l.ID, "a.jpg")
 	e.must(200, "POST", path+"/submit", tok, nil, nil)

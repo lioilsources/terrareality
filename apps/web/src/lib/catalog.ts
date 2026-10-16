@@ -78,6 +78,7 @@ export function formatMoney(
 	return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ', {
 		style: 'currency',
 		currency: currency || 'CZK',
+		currencyDisplay: 'narrowSymbol',
 		minimumFractionDigits: whole ? 0 : 2,
 		maximumFractionDigits: whole ? 0 : 2
 	}).format(minor / 100);

@@ -75,7 +75,7 @@ BEGIN
       AND NOT EXISTS (SELECT 1 FROM pg_depend d
                       WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
   LOOP
-    EXECUTE format('GRANT EXECUTE ON %s TO terra_service', f);
+    EXECUTE format('GRANT EXECUTE ON ROUTINE %s TO terra_service', f);
   END LOOP;
 END
 $$;

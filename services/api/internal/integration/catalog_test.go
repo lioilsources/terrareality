@@ -401,9 +401,9 @@ func TestPrivacyBlurSuggestion(t *testing.T) {
 	before, _ := e.blob.Get(context.Background(), key)
 	sg := findSuggestion(l, "privacy_blur")
 	lpath := "/v1/orgs/" + orgID.String() + "/listings/" + l.ID.String()
-	e.must(200, "PUT", lpath, tok, map[string]any{"title": map[string]string{"cs": "Byt s lidmi na fotce"},
-		"description": map[string]string{"cs": strings.Repeat("Světlý byt s balkonem a výhledem do parku. ", 3)},
-		"rent_amount": 2000000, "attributes": l.Attributes}, nil)
+	e.must(200, "PUT", lpath, tok, map[string]any{"title": map[string]string{"cs": "Byt s lidmi na fotce", "en": ""},
+		"description": map[string]string{"cs": strings.Repeat("Světlý byt s balkonem a výhledem do parku. ", 3), "en": ""},
+		"rent_amount": 2000000, "attributes": l.Attributes, "location_precision": "approximate"}, nil)
 	// An undecided privacy flag blocks the submission (S-D1).
 	var p struct {
 		Code   string `json:"code"`

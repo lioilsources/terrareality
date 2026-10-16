@@ -143,11 +143,6 @@ type Group struct {
 
 var errGroupNotFound = apperr.NotFound("group_not_found", "group not found")
 
-func (s *Service) email(ctx context.Context, id uuid.UUID) (string, error) {
-	u, err := db.New(s.Pool).GetUser(ctx, id)
-	return u.Email, err
-}
-
 var errEmailUnverified = apperr.Forbidden("email_unverified", "confirm your e-mail address first")
 
 // verifiedEmail returns the caller's address only when it was confirmed:

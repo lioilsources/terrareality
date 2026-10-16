@@ -203,6 +203,7 @@ class SearchResults extends AsyncNotifier<SearchPage> {
         items: [...cur.items, ...fresh],
         total: r.total,
         loadingMore: false,
+        moreError: () => null,
         exhausted: r.items.length < SearchFilters.pageSize || fresh.isEmpty,
       ));
     } catch (e) {

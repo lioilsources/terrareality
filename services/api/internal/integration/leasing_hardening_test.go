@@ -60,7 +60,7 @@ func TestUnverifiedAccountCannotClaimLeaseParty(t *testing.T) {
 	var mine []struct {
 		ID uuid.UUID `json:"id"`
 	}
-	e.must(200, "GET", "/v1/leases/mine", early, nil, &mine)
+	e.must(200, "GET", "/v1/me/leases", early, nil, &mine)
 	if len(mine) != 0 {
 		t.Fatalf("unverified account sees leases %+v", mine)
 	}
@@ -81,7 +81,7 @@ func TestUnverifiedAccountCannotClaimLeaseParty(t *testing.T) {
 	}
 	// Proving the address links the party.
 	e.verifyEmail(victim)
-	e.must(200, "GET", "/v1/leases/mine", early, nil, &mine)
+	e.must(200, "GET", "/v1/me/leases", early, nil, &mine)
 	if len(mine) != 1 || mine[0].ID != d.Lease.ID {
 		t.Fatalf("verified account not linked: %+v", mine)
 	}

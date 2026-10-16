@@ -18,6 +18,7 @@ func staging(t *testing.T) {
 	t.Setenv("PHONE_VERIFICATION", "")
 	t.Setenv("SMS_PROVIDER", "")
 	t.Setenv("OIDC_REDIRECT_ALLOWLIST", "")
+	t.Setenv("CENTRIFUGO_API_URL", "")
 }
 
 func TestSessionMaxAgeDefaultsToLongestTTL(t *testing.T) {
