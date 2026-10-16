@@ -2,10 +2,18 @@
 code, level, name, parent that search.ImportGeoJSON expects. Standard library only."""
 import json
 import os
+import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 
 PRAHA = 554782
+
+
+def label(name):
+    # Same as search.label (ltree path label): unaccented, lower case, non-alphanumerics -> "_".
+    t = "".join(c for c in unicodedata.normalize("NFD", name.lower()) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "_", unicodedata.normalize("NFC", t)).strip("_")
 
 
 def load(work, layer):
@@ -83,10 +91,14 @@ def main(work, out):
             print("skip obec without okres:", prop(f, "Nazev"), file=sys.stderr)
             continue
         obec_rows.append([prop(f, "Kod"), 2, prop(f, "Nazev"), "K" + prop(ok, "VuscKod"), f["geometry"], prop(f, "OkresKod")])
-    dup = Counter((r[3], r[2]) for r in obec_rows)
+    dup = Counter((r[3], label(r[2])) for r in obec_rows)
     for r in obec_rows:
-        if dup[(r[3], r[2])] > 1:
+        if dup[(r[3], label(r[2]))] > 1 and r[5]:
             r[2] = f"{r[2]} (okres {okres_name[r[5]]})"
+    dup = Counter((r[3], label(r[2])) for r in obec_rows)  # same name twice in one okres
+    for r in obec_rows:
+        if dup[(r[3], label(r[2]))] > 1:
+            r[2] = f"{r[2][:-1]}, {r[0]})" if r[2].endswith(")") else f"{r[2]} ({r[0]})"
         units.append(r[:5])
 
     districts = defaultdict(list)  # obec code -> [(code, geometry)]
@@ -106,11 +118,25 @@ def main(work, out):
                     parent = code
                     break
         ku_rows.append(["U" + prop(f, "Kod"), 4, prop(f, "Nazev"), parent, f["geometry"]])
-    dup = Counter((r[3], r[2]) for r in ku_rows)
+    dup = Counter((r[3], label(r[2])) for r in ku_rows)
     for r in ku_rows:
-        if dup[(r[3], r[2])] > 1:
+        if dup[(r[3], label(r[2]))] > 1:
             r[2] = f"{r[2]} ({r[0][1:]})"
         units.append(r)
+
+    # Paths must be unique: fail here, not halfway through the import transaction.
+    parent_of = {u[0]: u[3] for u in units}
+    lab = {u[0]: label(u[2]) for u in units}
+    def path(code):
+        return (path(parent_of[code]) + "." if parent_of.get(code) else "") + lab[code]
+    seen = {}
+    for u in units:
+        if u[3] and u[3] not in parent_of:
+            continue
+        p = path(u[0])
+        if p in seen:
+            sys.exit(f"duplicate path {p}: {seen[p]} and {u[0]} {u[2]}")
+        seen[p] = u[0]
 
     known = {u[0] for u in units}
     missing = [u for u in units if u[3] and u[3] not in known]
