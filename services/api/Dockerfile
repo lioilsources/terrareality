@@ -1,19 +1,23 @@
 # Builds both binaries (api, worker) plus migrate into one small image.
 # Select the process with the container command: /app/api | /app/worker | /app/migrate up
 # Patch pinned to go.mod (`go`/`toolchain` 1.26.9): govulncheck runs against this toolchain.
-FROM golang:1.26.9-alpine AS build
+# Build stages run on the builder's platform and cross-compile (CGO off), so an amd64 image builds
+# natively on an arm64 Mac (NAS staging) and vice versa.
+FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS build
+ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 ARG VERSION=dev COMMIT=none BUILT_AT=unknown
-RUN CGO_ENABLED=0 go build -trimpath \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
     -ldflags "-s -w -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.Version=${VERSION} -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.Commit=${COMMIT} -X github.com/terrareality/terrareality/services/api/internal/platform/buildinfo.BuiltAt=${BUILT_AT}" \
     -o /out/ ./cmd/...
 
 # Healthcheck probe for docker compose: `probe <url>` exits 0 on a 2xx answer. A tiny static
 # binary instead of busybox/curl, so the distroless image still has no shell.
-FROM golang:1.26.9-alpine AS probe
+FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS probe
+ARG TARGETOS TARGETARCH
 RUN mkdir /p && cd /p && go mod init probe >/dev/null 2>&1 && printf '%s\n' \
     'package main' \
     'import ("net/http"; "os"; "time")' \
@@ -22,11 +26,11 @@ RUN mkdir /p && cd /p && go mod init probe >/dev/null 2>&1 && printf '%s\n' \
     '	r, err := c.Get(os.Args[1])' \
     '	if err != nil || r.StatusCode < 200 || r.StatusCode > 299 { os.Exit(1) }' \
     '}' > main.go \
- && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/probe .
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w" -o /out/probe .
 
 # Typst renders lease documents (static musl binary). The tarball is verified against the
 # sha256 published on the GitHub release (bump version and both digests together).
-FROM alpine:3.22 AS typst
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS typst
 ARG TARGETARCH
 ARG TYPST_VERSION=0.15.1
 ARG TYPST_SHA256_X86_64=a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c
