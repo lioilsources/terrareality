@@ -92,7 +92,8 @@ services:
       # Creates terra_service + terra_api on an empty data directory (README: existing volume).
       - ../hetzner/db/initdb/13-api-role.sh:/docker-entrypoint-initdb.d/13-api-role.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U terra -d terra"]
+      # Over TCP: during first-run init the entrypoint's temporary server listens on the socket only.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U terra -d terra"]
       interval: 5s
       retries: 20
     mem_limit: 512m
@@ -242,11 +243,12 @@ services:
           f="/backups/terra-$$(date -u +%Y%m%dT%H%M%SZ).dump"
           if pg_dump -h db -U terra -d terra -Fc -f "$$f.part"; then
             mv "$$f.part" "$$f" && chmod 600 "$$f" && echo "backup ok $$f $$(du -h "$$f" | cut -f1)"
+            find /backups -name 'terra-*.dump' -mtime +$${BACKUP_KEEP_DAYS} -delete
+            sleep $${BACKUP_INTERVAL_SECONDS}
           else
-            rm -f "$$f.part"; echo "backup FAILED" >&2
+            rm -f "$$f.part"; echo "backup FAILED, retrying in 5 minutes" >&2
+            sleep 300
           fi
-          find /backups -name 'terra-*.dump' -mtime +$${BACKUP_KEEP_DAYS} -delete
-          sleep $${BACKUP_INTERVAL_SECONDS}
         done
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
