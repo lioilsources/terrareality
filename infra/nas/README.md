@@ -19,8 +19,10 @@ Pilot/staging only. Production runs on Hetzner from milestone M8 (see `docs/02-p
    Media and image hosts: `IMG_DOMAIN`, `S3_DOMAIN` (Caddy), with `S3_ENDPOINT=$S3_DOMAIN`,
    `IMGPROXY_URL=https://$IMG_DOMAIN` and `CSP_MEDIA_ORIGINS="https://$IMG_DOMAIN https://$S3_DOMAIN"`.
    The api and web reach the bucket through the public `S3_DOMAIN` too (presigned URLs are signed
-   for that host). Data locations: `TERRA_SSD_DIR` (PostgreSQL, Temporal) and `TERRA_POOL_DIR`
-   (media bucket, daily dumps), both default `./data`.
+   for that host). Data locations: `TERRA_DB_DIR` (PostgreSQL, Temporal) and `TERRA_POOL_DIR`
+   (media bucket, daily dumps), both default `./data`. On ZFS give the database its own dataset
+   (`recordsize=16k`, `compression=lz4`, `atime=off`). A snap-installed Docker only sees bind mounts
+   under /home, /media and /mnt: mount the datasets there.
 2. Build the Astro site and copy it: `npm run build -w site && cp -r apps/site/dist infra/nas/site-dist`
    (with `API_URL=https://$API_DOMAIN PUBLIC_APP_URL=https://$APP_DOMAIN` once the api is up).
 3. `docker compose up -d --build`. The `migrate` service runs goose + River migrations once before api/worker start.

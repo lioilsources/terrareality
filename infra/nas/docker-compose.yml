@@ -88,8 +88,7 @@ services:
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "effective_cache_size=512MB",
               "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB", "-c", "max_connections=60"]
     volumes:
-      # SSD: latency matters more than size here.
-      - ${TERRA_SSD_DIR:-./data}/pg:/var/lib/postgresql/data
+      - ${TERRA_DB_DIR:-./data}/pg:/var/lib/postgresql/data
       # Creates terra_service + terra_api on an empty data directory (README: existing volume).
       - ../hetzner/db/initdb/13-api-role.sh:/docker-entrypoint-initdb.d/13-api-role.sh:ro
     healthcheck:
@@ -170,7 +169,7 @@ services:
     image: temporalio/temporal:1.4.1
     user: "0:0"
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
-    volumes: ["${TERRA_SSD_DIR:-./data}/temporal:/data"]
+    volumes: ["${TERRA_DB_DIR:-./data}/temporal:/data"]
     mem_limit: 384m
     logging: *logging
     restart: unless-stopped
