@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { MAP_STYLE } from '$app/env/public';
 	import { markerLabel } from '#lib/demo.js';
+	import { loadMaplibre } from '#lib/map/maplibre.js';
 
 	let {
 		result,
@@ -91,7 +92,7 @@
 		let disposed = false;
 		// maplibre-gl (JS and CSS, ~1 MB) loads only in the browser, after hydration,
 		// so it stays out of the /hledat entry chunk and the SSR bundle.
-		Promise.all([import('maplibre-gl'), import('maplibre-gl/dist/maplibre-gl.css')]).then(
+		Promise.all([loadMaplibre(), import('maplibre-gl/dist/maplibre-gl.css')]).then(
 			([maplibregl]) => {
 				if (disposed) return;
 				map = new maplibregl.Map({
