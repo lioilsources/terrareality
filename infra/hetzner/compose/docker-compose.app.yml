@@ -313,7 +313,7 @@ services:
   # --- Temporal on PostgreSQL (DB VM, databases temporal + temporal_visibility) ---
   temporal-schema:
     # One-shot: creates/updates the Temporal schema. Idempotent.
-    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1}
+    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.29.7-tctl-1.18.4-cli-1.7.2}
     environment:
       SQL_PLUGIN: postgres12
       SQL_HOST: ${DB_HOST}
@@ -372,7 +372,7 @@ services:
 
   temporal-namespace:
     # One-shot: registers the "default" namespace (7 days retention) if missing.
-    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1}
+    image: ${TEMPORAL_ADMIN_TOOLS_IMAGE:-temporalio/admin-tools:1.29.7-tctl-1.18.4-cli-1.7.2}
     environment:
       TEMPORAL_ADDRESS: temporal:7233
     entrypoint: ["/bin/sh", "-ec"]
