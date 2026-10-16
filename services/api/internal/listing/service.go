@@ -168,33 +168,8 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 		if err != nil {
 			return err
 		}
-		prop, err := q.FindPropertyByRuian(ctx, db.FindPropertyByRuianParams{OrgID: orgID, RuianID: &place.ID})
-		if errors.Is(err, pgx.ErrNoRows) {
-			addrID, err := q.CreateAddress(ctx, db.CreateAddressParams{OrgID: orgID, RuianID: &place.ID, Street: place.Street,
-				HouseNumber: houseNumber(place), OrientationNumber: orientation(place), City: place.Municipality,
-				CityPart: firstNonNil(place.District, place.CityPart), PostalCode: place.PostalCode,
-				Lat: place.Lat, Lng: place.Lng, Label: place.Label})
-			if err != nil {
-				return err
-			}
-			if path, err := q.AdminPathAt(ctx, db.AdminPathAtParams{Lat: place.Lat, Lng: place.Lng}); err == nil {
-				if err := q.SetAddressAdminPath(ctx, db.SetAddressAdminPathParams{ID: addrID, AdminPath: &path}); err != nil {
-					return err
-				}
-			}
-			kind := "apartment_building"
-			if in.UnitKind == "house" {
-				kind = "family_house"
-			}
-			prop, err = q.CreateProperty(ctx, db.CreatePropertyParams{OrgID: orgID, AddressID: addrID, Kind: kind, Name: place.Label})
-			if err != nil {
-				return err
-			}
-			if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "property", EntityID: &prop.ID, Action: "property.created",
-				Diff: map[string]any{"address": place.Label}}); err != nil {
-				return err
-			}
-		} else if err != nil {
+		prop, err := ensureProperty(ctx, q, orgID, place, in.UnitKind)
+		if err != nil {
 			return err
 		}
 		var parent *uuid.UUID
@@ -248,6 +223,41 @@ func (s *Service) Create(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 			Diff: map[string]any{"unit_kind": in.UnitKind, "address": place.Label}})
 	})
 	return id, err
+}
+
+// ensureProperty returns the organization's property at a RÚIAN address,
+// creating the address (with its administrative path) and the property first.
+func ensureProperty(ctx context.Context, q *db.Queries, orgID uuid.UUID, place db.GetRuianPlaceRow, unitKind string) (db.Property, error) {
+	prop, err := q.FindPropertyByRuian(ctx, db.FindPropertyByRuianParams{OrgID: orgID, RuianID: &place.ID})
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return prop, err
+	}
+
+	addrID, err := q.CreateAddress(ctx, db.CreateAddressParams{OrgID: orgID, RuianID: &place.ID, Street: place.Street,
+		HouseNumber: houseNumber(place), OrientationNumber: orientation(place), City: place.Municipality,
+		CityPart: firstNonNil(place.District, place.CityPart), PostalCode: place.PostalCode,
+		Lat: place.Lat, Lng: place.Lng, Label: place.Label})
+	if err != nil {
+		return prop, err
+	}
+	if path, err := q.AdminPathAt(ctx, db.AdminPathAtParams{Lat: place.Lat, Lng: place.Lng}); err == nil {
+		if err := q.SetAddressAdminPath(ctx, db.SetAddressAdminPathParams{ID: addrID, AdminPath: &path}); err != nil {
+			return prop, err
+		}
+	}
+	kind := "apartment_building"
+	if unitKind == "house" {
+		kind = "family_house"
+	}
+	prop, err = q.CreateProperty(ctx, db.CreatePropertyParams{OrgID: orgID, AddressID: addrID, Kind: kind, Name: place.Label})
+	if err != nil {
+		return prop, err
+	}
+	if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "property", EntityID: &prop.ID, Action: "property.created",
+		Diff: map[string]any{"address": place.Label}}); err != nil {
+		return prop, err
+	}
+	return prop, nil
 }
 
 func houseNumber(p db.GetRuianPlaceRow) string {

@@ -48,6 +48,9 @@ type Query struct {
 	// PublishedAfter limits to new listings (saved-search digests; not exposed in the API).
 	PublishedAfter *time.Time `json:"-"`
 	Offset         int        `json:"offset,omitempty"`
+	// ExcludeDemo leaves out the demo listings of the closed beta (static
+	// site pages ask for it; saved-search digests always set it).
+	ExcludeDemo bool `json:"exclude_demo,omitempty"`
 }
 
 // Card is one result row.
@@ -67,6 +70,7 @@ type Card struct {
 	PublishedAt      time.Time
 	Promoted         bool // paid top placement running now (M7)
 	Highlighted      bool // paid visual highlight running now (M7)
+	IsDemo           bool // demo listing of the closed beta (terractl demo seed)
 }
 
 // FacetValue is a count per attribute value.
@@ -90,6 +94,7 @@ type Point struct {
 	ListingID  uuid.UUID
 	Lat, Lng   float64
 	RentAmount int64
+	IsDemo     bool
 }
 
 // Result is the full answer.
@@ -200,6 +205,9 @@ func (b *builder) sql() string {
 // own filter is left out (disjunctive facet counts).
 func build(q Query, schema *catalog.Schema, skip string) (*builder, error) {
 	b := &builder{}
+	if q.ExcludeDemo {
+		b.add("NOT s.is_demo")
+	}
 	if t := strings.TrimSpace(q.Text); t != "" {
 		b.add("s.tsv @@ websearch_to_tsquery('simple', lower(unaccent(" + b.arg(t) + ")))")
 	}
@@ -283,13 +291,13 @@ const highlightedCol = "(s.highlighted_until IS NOT NULL AND s.highlighted_until
 // cardCols are the columns scanned by scanCard.
 const cardCols = `s.listing_id, s.unit_kind, s.layout, s.rent_amount, s.currency, s.floor_area::float8, s.title, s.city, s.city_part,
 		ST_Y(s.location::geometry), ST_X(s.location::geometry), s.cover_key, s.cover_orientation, s.published_at, ` +
-	promotedCol + `, ` + highlightedCol
+	promotedCol + `, ` + highlightedCol + `, s.is_demo`
 
 func scanCard(rows pgx.Rows) (Card, error) {
 	var c Card
 	var title []byte
 	if err := rows.Scan(&c.ListingID, &c.UnitKind, &c.Layout, &c.RentAmount, &c.Currency, &c.FloorArea, &title, &c.City,
-		&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt, &c.Promoted, &c.Highlighted); err != nil {
+		&c.CityPart, &c.Lat, &c.Lng, &c.CoverKey, &c.CoverOrientation, &c.PublishedAt, &c.Promoted, &c.Highlighted, &c.IsDemo); err != nil {
 		return c, err
 	}
 	_ = json.Unmarshal(title, &c.Title)
@@ -560,7 +568,7 @@ func (e *Engine) areas(ctx context.Context, tx pgx.Tx, q Query, base *builder, r
 
 func (e *Engine) points(ctx context.Context, tx pgx.Tx, base *builder, res *Result) error {
 	b := &builder{where: base.where, args: slices.Clone(base.args)}
-	rows, err := tx.Query(ctx, `SELECT s.listing_id, ST_Y(s.location::geometry), ST_X(s.location::geometry), s.rent_amount
+	rows, err := tx.Query(ctx, `SELECT s.listing_id, ST_Y(s.location::geometry), ST_X(s.location::geometry), s.rent_amount, s.is_demo
 		FROM listing_search s WHERE `+b.sql()+` ORDER BY s.published_at DESC LIMIT `+b.arg(MaxPoints), b.args...)
 	if err != nil {
 		return fmt.Errorf("points: %w", err)
@@ -568,7 +576,7 @@ func (e *Engine) points(ctx context.Context, tx pgx.Tx, base *builder, res *Resu
 	defer rows.Close()
 	for rows.Next() {
 		var p Point
-		if err := rows.Scan(&p.ListingID, &p.Lat, &p.Lng, &p.RentAmount); err != nil {
+		if err := rows.Scan(&p.ListingID, &p.Lat, &p.Lng, &p.RentAmount, &p.IsDemo); err != nil {
 			return err
 		}
 		res.Points = append(res.Points, p)

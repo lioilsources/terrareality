@@ -1,0 +1,19 @@
+# Cloudflare Tunnel instead of public ports 80/443 (home NAS behind NAT). Cloudflare terminates
+# TLS; cloudflared forwards every hostname to Caddy over the compose network. Use with
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.tunnel.yml  (in .env)
+# and SITE_SCHEME=http:// . Tunnel config + credentials live in ./cloudflared (README.md).
+services:
+  caddy:
+    ports: !reset []
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.7.3
+    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
+    user: "${BACKUP_UID:-1000}:${BACKUP_UID:-1000}"
+    volumes: ["./cloudflared:/etc/cloudflared:ro"]
+    depends_on: [caddy]
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    restart: unless-stopped

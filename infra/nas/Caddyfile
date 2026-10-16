@@ -1,5 +1,16 @@
-# Public entry point for staging. TLS via Let's Encrypt. Same header baseline and access-log
-# redaction as production (infra/hetzner/compose/Caddyfile); keep the snippets in sync.
+# Public entry point for staging. TLS via Let's Encrypt, or plain HTTP behind a Cloudflare Tunnel
+# (SITE_SCHEME=http://, docker-compose.tunnel.yml). Same header baseline and access-log redaction
+# as production (infra/hetzner/compose/Caddyfile); keep the snippets in sync.
+
+{
+	servers {
+		# Behind the tunnel the client is cloudflared on the compose network; Cloudflare puts the
+		# visitor's address in Cf-Connecting-Ip. Direct visitors come from public addresses, which
+		# are not trusted, so the header cannot be spoofed on the port-80/443 setup either.
+		trusted_proxies static private_ranges
+		client_ip_headers Cf-Connecting-Ip
+	}
+}
 
 (security_headers) {
 	header {
@@ -74,30 +85,52 @@
 	}
 }
 
-{$APP_DOMAIN} {
+{$SITE_SCHEME}{$APP_DOMAIN} {
 	import common
 	import app_links
 	request_body {
 		max_size 64MB
 	}
 	reverse_proxy /connection/* centrifugo:8000
-	reverse_proxy web:3000
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-For {client_ip}
+	}
 }
 
-{$API_DOMAIN} {
+{$SITE_SCHEME}{$API_DOMAIN} {
 	import common
 	request_body {
 		max_size 50MB
 	}
 	reverse_proxy api:8080 {
 		lb_try_duration 10s
+		header_up X-Forwarded-For {client_ip}
 	}
 }
 
-{$SITE_DOMAIN} {
+{$SITE_SCHEME}{$SITE_DOMAIN} {
 	import common
 	import site_csp
 	import app_links
 	root * /srv/site
 	file_server
+}
+
+# Signed image variants (imgproxy reads the private media bucket)
+{$SITE_SCHEME}{$IMG_DOMAIN} {
+	import security_headers
+	import access_log
+	header Cache-Control "public, max-age=31536000, immutable"
+	reverse_proxy imgproxy:8080
+}
+
+# Media bucket: presigned GET/PUT only (the bucket is private; requests carry a SigV4 signature
+# over this host name, so Caddy keeps the Host header as is).
+{$SITE_SCHEME}{$S3_DOMAIN} {
+	import security_headers
+	import access_log
+	request_body {
+		max_size 64MB
+	}
+	reverse_proxy s3:8333
 }

@@ -8,6 +8,7 @@ import '../../l10n/gen/app_localizations.dart';
 import '../common/api_error.dart';
 import '../common/money.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
+import 'demo_badge.dart';
 import 'listing_map.dart';
 import 'search_repository.dart';
 import 'search_screen.dart' show kindText;
@@ -22,7 +23,8 @@ class ContactDraft {
 }
 
 /// A public listing: photos, parameters, rent, a map pin and the seeker's
-/// actions (message, viewing, application).
+/// actions (message, viewing, application). Demo listings show a banner
+/// instead of the actions.
 class ListingScreen extends ConsumerWidget {
   const ListingScreen({super.key, required this.id});
 
@@ -111,13 +113,29 @@ class _ListingBody extends ConsumerWidget {
       Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (listing.isDemo)
+            Card(
+              key: const Key('demo-banner'),
+              margin: const EdgeInsets.only(bottom: 12),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const DemoBadge(),
+                  const SizedBox(height: 8),
+                  Text(t.demoListingNote, key: const Key('demo-note')),
+                ]),
+              ),
+            ),
           Text(titleOf(listing.title, lang), style: text.titleLarge),
           if (loc.address != null || listing.areaNames.isNotEmpty)
             Text(loc.address ?? listing.areaNames.join(', '), style: text.bodyMedium),
           const SizedBox(height: 8),
           Text(t.perMonth(money(listing.rentAmount, locale.toString(), currency: listing.currency)), key: const Key('rent'), style: text.headlineSmall),
           const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 8, children: [
+          // Demo listings cannot be contacted, applied for or viewed (the API
+          // answers 409 demo_listing), so their actions are not offered.
+          if (!listing.isDemo) Wrap(spacing: 8, runSpacing: 8, children: [
             FilledButton.icon(
               key: const Key('action-chat'),
               icon: const Icon(Icons.chat_bubble_outline),

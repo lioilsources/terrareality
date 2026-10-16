@@ -2,7 +2,7 @@
 
 -- name: ListingForConversation :one
 -- Published listing a seeker may contact (system context).
-SELECT s.listing_id, s.org_id, s.title, l.prescreen
+SELECT s.listing_id, s.org_id, s.title, l.prescreen, l.is_demo
 FROM listing_search s JOIN listings l ON l.id = s.listing_id
 WHERE s.listing_id = $1 AND l.status = 'published' AND l.deleted_at IS NULL;
 

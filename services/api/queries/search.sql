@@ -80,13 +80,14 @@ SELECT id, code, level, name, slug, path::text AS path FROM admin_units WHERE sl
 -- name: UpsertListingSearch :exec
 INSERT INTO listing_search (listing_id, org_id, version, unit_kind, layout, rent_amount, currency, deposit_amount,
   floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at,
-  boosted_until, highlighted_until)
+  is_demo, boosted_until, highlighted_until)
 VALUES (sqlc.arg(listing_id), sqlc.arg(org_id), sqlc.arg(version), sqlc.arg(unit_kind), sqlc.narg(layout),
   sqlc.arg(rent_amount), sqlc.arg(currency), sqlc.narg(deposit_amount), sqlc.narg(floor_area)::numeric,
   sqlc.arg(attributes), sqlc.arg(title),
   ST_SetSRID(ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8), 4326)::geography,
   sqlc.narg(admin_path)::text::ltree, sqlc.arg(city), sqlc.narg(city_part), sqlc.narg(cover_key),
   sqlc.arg(cover_orientation), to_tsvector('simple', lower(unaccent(sqlc.arg(search_text)::text))), sqlc.arg(published_at),
+  sqlc.arg(is_demo),
   -- Promotion windows (M7) survive re-indexing and unpublish/republish.
   (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = sqlc.arg(listing_id) AND p.kind = 'top'
     AND p.starts_at <= now() AND p.ends_at > now()),
@@ -97,6 +98,7 @@ ON CONFLICT (listing_id) DO UPDATE SET version = EXCLUDED.version, unit_kind = E
   floor_area = EXCLUDED.floor_area, attributes = EXCLUDED.attributes, title = EXCLUDED.title, location = EXCLUDED.location,
   admin_path = EXCLUDED.admin_path, city = EXCLUDED.city, city_part = EXCLUDED.city_part, cover_key = EXCLUDED.cover_key,
   cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at,
+  is_demo = EXCLUDED.is_demo,
   boosted_until = EXCLUDED.boosted_until, highlighted_until = EXCLUDED.highlighted_until;
 
 -- name: DeleteListingSearch :exec
@@ -111,7 +113,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY listing_aggregates;
 -- name: GetPublicListing :one
 SELECT s.listing_id, s.org_id, s.version, ST_Y(s.location::geometry)::float8 AS lat,
   ST_X(s.location::geometry)::float8 AS lng, s.admin_path::text AS admin_path, s.published_at, v.snapshot,
-  l.prescreen
+  l.prescreen, l.is_demo
 FROM listing_search s
 JOIN listing_versions v ON v.listing_id = s.listing_id AND v.version = s.version
 JOIN listings l ON l.id = s.listing_id
@@ -135,10 +137,11 @@ ORDER BY ST_Distance(s2.location, s1.location) LIMIT $2;
 
 -- name: MunicipalitiesWithListings :many
 -- Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
+-- Demo listings are not supply: they never create or inflate a locality page.
 SELECT a.name, a.slug, a.path::text AS path, count(*)::int AS listings,
   percentile_cont(0.5) WITHIN GROUP (ORDER BY s.rent_amount)::bigint AS median_rent
 FROM admin_units a JOIN listing_search s ON s.admin_path <@ a.path
-WHERE a.level = 2 AND (sqlc.narg(kind)::text IS NULL OR s.unit_kind = sqlc.narg(kind))
+WHERE a.level = 2 AND NOT s.is_demo AND (sqlc.narg(kind)::text IS NULL OR s.unit_kind = sqlc.narg(kind))
 GROUP BY a.name, a.slug, a.path
 ORDER BY listings DESC;
 
@@ -163,7 +166,7 @@ UPDATE saved_searches SET last_notified_at = $2 WHERE id = $1;
 
 -- name: GetIndexSource :one
 -- Everything the search index needs about a published listing (system context).
-SELECT l.id, l.org_id, l.status, l.published_version, l.location_precision, l.published_at,
+SELECT l.id, l.org_id, l.status, l.published_version, l.location_precision, l.published_at, l.is_demo,
   v.snapshot, coalesce(a.admin_path::text, '')::text AS admin_path
 FROM listings l
 JOIN listing_versions v ON v.listing_id = l.id AND v.version = l.published_version

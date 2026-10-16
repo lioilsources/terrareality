@@ -57,9 +57,10 @@ export async function topListings(kind: string, path: string): Promise<{ items: 
   const res = await get<SearchResult>('/v1/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kinds: [kind], admin_path: path, sort: 'newest', limit: 12 })
+    // Demo listings of the closed beta never appear on the static site.
+    body: JSON.stringify({ kinds: [kind], admin_path: path, sort: 'newest', limit: 12, exclude_demo: true })
   });
-  return { items: res?.items ?? [], total: res?.total ?? 0 };
+  return { items: (res?.items ?? []).filter((c) => !c.is_demo), total: res?.total ?? 0 };
 }
 
 /** Median rents from /v1/seo/municipalities are CZK minor units (the stat has no currency). */

@@ -29,6 +29,7 @@ class PublicListing {
     this.areaNames = const [],
     this.photos = const [],
     required this.publishedAt,
+    this.isDemo = false,
   });
 
   String id;
@@ -89,6 +90,9 @@ class PublicListing {
 
   DateTime publishedAt;
 
+  /// Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+  bool isDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is PublicListing &&
     other.id == id &&
@@ -106,7 +110,8 @@ class PublicListing {
     other.location == location &&
     _deepEquality.equals(other.areaNames, areaNames) &&
     _deepEquality.equals(other.photos, photos) &&
-    other.publishedAt == publishedAt;
+    other.publishedAt == publishedAt &&
+    other.isDemo == isDemo;
 
   @override
   int get hashCode =>
@@ -126,10 +131,11 @@ class PublicListing {
     (location.hashCode) +
     (areaNames.hashCode) +
     (photos.hashCode) +
-    (publishedAt.hashCode);
+    (publishedAt.hashCode) +
+    (isDemo.hashCode);
 
   @override
-  String toString() => 'PublicListing[id=$id, prescreen=$prescreen, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, unit=$unit, location=$location, areaNames=$areaNames, photos=$photos, publishedAt=$publishedAt]';
+  String toString() => 'PublicListing[id=$id, prescreen=$prescreen, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, unit=$unit, location=$location, areaNames=$areaNames, photos=$photos, publishedAt=$publishedAt, isDemo=$isDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -165,6 +171,7 @@ class PublicListing {
       json[r'area_names'] = this.areaNames;
       json[r'photos'] = this.photos;
       json[r'published_at'] = this.publishedAt.toUtc().toIso8601String();
+      json[r'is_demo'] = this.isDemo;
     return json;
   }
 
@@ -205,6 +212,7 @@ class PublicListing {
             : const [],
         photos: PhotoVariants.listFromJson(json[r'photos']),
         publishedAt: mapDateTime(json, r'published_at', r'')!,
+        isDemo: mapValueOfType<bool>(json, r'is_demo')!,
       );
     }
     return null;
@@ -264,6 +272,7 @@ class PublicListing {
     'area_names',
     'photos',
     'published_at',
+    'is_demo',
   };
 }
 

@@ -24,6 +24,7 @@ Name | Type | Description | Notes
 **areaNames** | **List<String>** | From region to neighbourhood. | [default to const []]
 **photos** | [**List<PhotoVariants>**](PhotoVariants.md) |  | [default to const []]
 **publishedAt** | [**DateTime**](DateTime.md) |  | 
+**isDemo** | **bool** | Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing). | [default to false]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

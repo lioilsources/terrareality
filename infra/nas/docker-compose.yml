@@ -1,7 +1,12 @@
 # Staging / pilot on the NAS (Ubuntu, docker compose). Production runs on
-# Hetzner (milestone M8, infra/hetzner). Only Caddy is exposed publicly.
-# Usage: cp ../../.env.example .env && edit && docker compose up -d --build
+# Hetzner (milestone M8, infra/hetzner). Only Caddy is exposed publicly, either on
+# ports 80/443 or (docker-compose.tunnel.yml) only through a Cloudflare Tunnel.
+# Usage: see README.md. Sized for a small box (4 GB RAM): every service has a memory limit.
 name: terra-staging
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
 
 x-api-env: &api-env
   APP_ENV: staging
@@ -38,7 +43,7 @@ x-api-env: &api-env
   S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
   S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
   S3_BUCKET: ${S3_BUCKET:-terrareality-media}
-  S3_REGION: ${S3_REGION:-fsn1}
+  S3_REGION: ${S3_REGION:-us-east-1}
   S3_USE_SSL: ${S3_USE_SSL:-true}
   IMGPROXY_URL: ${IMGPROXY_URL:?set IMGPROXY_URL (browser-facing imgproxy origin)}
   IMGPROXY_KEY: ${IMGPROXY_KEY:?set IMGPROXY_KEY}
@@ -54,6 +59,10 @@ services:
       APP_DOMAIN: ${APP_DOMAIN}
       API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
       SITE_DOMAIN: ${SITE_DOMAIN}
+      IMG_DOMAIN: ${IMG_DOMAIN:?set IMG_DOMAIN}
+      S3_DOMAIN: ${S3_DOMAIN:?set S3_DOMAIN}
+      # "http://" behind a TLS-terminating tunnel (docker-compose.tunnel.yml), empty = Let's Encrypt.
+      SITE_SCHEME: ${SITE_SCHEME:-}
       # App links (docs/runbooks/launch.md section 8)
       APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
       ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
@@ -62,56 +71,74 @@ services:
       - ../../apps/web/static/.well-known:/srv/app-links/.well-known:ro
       - ./site-dist:/srv/site:ro
       - caddy_data:/data
-    depends_on: [api, web]
+    depends_on: [api, web, imgproxy, s3]
+    mem_limit: 128m
+    logging: *logging
     restart: unless-stopped
 
   db:
     build: ../dev/postgres
+    image: terra/postgres:${TERRA_TAG:-staging}
     environment:
       POSTGRES_USER: terra
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: terra
       TERRA_API_DB_PASSWORD: ${TERRA_API_DB_PASSWORD}
+    # Small-box tuning (4 GB RAM shared with other services).
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "effective_cache_size=512MB",
+              "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB", "-c", "max_connections=60"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${TERRA_DB_DIR:-./data}/pg:/var/lib/postgresql/data
       # Creates terra_service + terra_api on an empty data directory (README: existing volume).
       - ../hetzner/db/initdb/13-api-role.sh:/docker-entrypoint-initdb.d/13-api-role.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U terra -d terra"]
+      # Over TCP: during first-run init the entrypoint's temporary server listens on the socket only.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U terra -d terra"]
       interval: 5s
       retries: 20
+    mem_limit: 512m
+    logging: *logging
     restart: unless-stopped
 
   migrate:
     build: ../../services/api
+    image: terra/api:${TERRA_TAG:-staging}
     command: ["/app/migrate", "up"]
     environment:
       <<: *api-env
       MIGRATE_DATABASE_URL: postgres://terra:${POSTGRES_PASSWORD}@db:5432/terra?sslmode=disable
     depends_on:
       db: { condition: service_healthy }
+    logging: *logging
     restart: "no"
 
   api:
     build: ../../services/api
+    image: terra/api:${TERRA_TAG:-staging}
     command: ["/app/api"]
     environment: *api-env
     depends_on:
       migrate: { condition: service_completed_successfully }
+    mem_limit: 256m
+    logging: *logging
     restart: unless-stopped
 
   worker:
     build: ../../services/api
+    image: terra/api:${TERRA_TAG:-staging}
     command: ["/app/worker"]
     environment: *api-env
     depends_on:
       migrate: { condition: service_completed_successfully }
+    mem_limit: 384m
+    logging: *logging
     restart: unless-stopped
 
   web:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+    image: terra/web:${TERRA_TAG:-staging}
     environment:
       API_URL: http://api:8080
       ORIGIN: https://${APP_DOMAIN}
@@ -124,12 +151,17 @@ services:
       CSP_REALTIME_ORIGIN: wss://${APP_DOMAIN}
       CSP_MAP_ORIGINS: ${CSP_MAP_ORIGINS:-}
       CSP_FORM_ACTION_ORIGINS: ${CSP_FORM_ACTION_ORIGINS:-https://checkout.stripe.com https://checkout.revolut.com https://ob.gocardless.com https://oidc.bankid.cz}
+    mem_limit: 256m
+    logging: *logging
     restart: unless-stopped
 
   vision:
     build: ../../services/vision
+    image: terra/vision:${TERRA_TAG:-staging}
     environment:
       LLM_BASE_URL: ${LLM_BASE_URL:-}
+    mem_limit: 192m
+    logging: *logging
     restart: unless-stopped
 
   temporal:
@@ -138,7 +170,9 @@ services:
     image: temporalio/temporal:1.4.1
     user: "0:0"
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
-    volumes: [temporaldata:/data]
+    volumes: ["${TERRA_DB_DIR:-./data}/temporal:/data"]
+    mem_limit: 384m
+    logging: *logging
     restart: unless-stopped
 
   centrifugo:
@@ -151,9 +185,81 @@ services:
       CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET}
       CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: https://${APP_DOMAIN}
       CENTRIFUGO_ADMIN_ENABLED: "false"
+    mem_limit: 128m
+    logging: *logging
+    restart: unless-stopped
+
+  s3:
+    # Media bucket (S3-compatible, same as dev). Data on the big disk (TERRA_POOL_DIR). The S3
+    # identity is written from env at start, so no key file lives next to the compose file.
+    image: chrislusf/seaweedfs:3.97
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        printf '{"identities":[{"name":"terra","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+        "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json &&
+        exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/tmp/s3.json -master.volumeSizeLimitMB=1024
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    volumes: ["${TERRA_POOL_DIR:-./data}/media:/data"]
+    mem_limit: 256m
+    logging: *logging
+    restart: unless-stopped
+
+  imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:v3.31.4
+    environment:
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: http://s3:8333
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_REGION: ${S3_REGION:-us-east-1}
+      IMGPROXY_KEY: ${IMGPROXY_KEY}
+      IMGPROXY_SALT: ${IMGPROXY_SALT}
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+      IMGPROXY_ENABLE_AVIF_DETECTION: "true"
+      IMGPROXY_STRIP_METADATA: "true"
+      IMGPROXY_TTL: "31536000"
+      IMGPROXY_MAX_SRC_RESOLUTION: "50"
+      # Two slow cores: one image at a time keeps memory bounded.
+      IMGPROXY_WORKERS: "2"
+      IMGPROXY_MALLOC: jemalloc
+    depends_on: [s3]
+    mem_limit: 384m
+    logging: *logging
+    restart: unless-stopped
+
+  backup:
+    # Daily logical dump (custom format) next to the media on the big disk, kept BACKUP_KEEP_DAYS.
+    # Staging has no pgBackRest; restore: README.md "Backups".
+    image: terra/postgres:${TERRA_TAG:-staging}
+    build: ../dev/postgres
+    user: "${BACKUP_UID:-1000}:${BACKUP_UID:-1000}"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        while true; do
+          f="/backups/terra-$$(date -u +%Y%m%dT%H%M%SZ).dump"
+          if pg_dump -h db -U terra -d terra -Fc -f "$$f.part"; then
+            mv "$$f.part" "$$f" && chmod 600 "$$f" && echo "backup ok $$f $$(du -h "$$f" | cut -f1)"
+            find /backups -name 'terra-*.dump' -mtime +$${BACKUP_KEEP_DAYS} -delete
+            sleep $${BACKUP_INTERVAL_SECONDS}
+          else
+            rm -f "$$f.part"; echo "backup FAILED, retrying in 5 minutes" >&2
+            sleep 300
+          fi
+        done
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+    volumes: ["${TERRA_POOL_DIR:-./data}/backups:/backups"]
+    depends_on:
+      db: { condition: service_healthy }
+    mem_limit: 128m
+    logging: *logging
     restart: unless-stopped
 
 volumes:
-  pgdata:
-  temporaldata:
   caddy_data:

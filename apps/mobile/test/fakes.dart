@@ -36,7 +36,7 @@ class FakeMap extends ListingMapFactory {
   }
 }
 
-ListingCard card(String id, String title, {bool promoted = false, String layout = '3+kk'}) => ListingCard(
+ListingCard card(String id, String title, {bool promoted = false, bool isDemo = false, String layout = '3+kk'}) => ListingCard(
       id: id,
       unitKind: UnitKind.apartment,
       layout: layout,
@@ -50,9 +50,10 @@ ListingCard card(String id, String title, {bool promoted = false, String layout 
       lng: 14.39,
       publishedAt: DateTime(2026, 10, 1),
       promoted: promoted,
+      isDemo: isDemo,
     );
 
-PublicListing publicListing({List<PrescreenQuestion> prescreen = const []}) => PublicListing(
+PublicListing publicListing({List<PrescreenQuestion> prescreen = const [], bool isDemo = false}) => PublicListing(
       id: 'l1',
       title: I18nText(cs: 'Byt 3+kk Dejvice', en: ''),
       description: I18nText(cs: 'Světlý byt u metra.', en: ''),
@@ -67,6 +68,7 @@ PublicListing publicListing({List<PrescreenQuestion> prescreen = const []}) => P
       photos: [],
       prescreen: prescreen,
       publishedAt: DateTime(2026, 10, 1),
+      isDemo: isDemo,
     );
 
 class FakeSearch implements SearchRepository {
@@ -75,6 +77,7 @@ class FakeSearch implements SearchRepository {
   final applied = <String?>[];
   String? existingApplication;
   ApiException? failWith;
+  bool demo = false;
 
   @override
   Future<SearchResult> search(SearchQuery q) async {
@@ -92,7 +95,7 @@ class FakeSearch implements SearchRepository {
   }
 
   @override
-  Future<PublicListing> listing(String id) async => publicListing();
+  Future<PublicListing> listing(String id) async => publicListing(isDemo: demo);
 
   @override
   Future<String> startChat(String listingId, String body, Map<String, String> prescreen) async {

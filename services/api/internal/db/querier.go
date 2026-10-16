@@ -158,6 +158,9 @@ type Querier interface {
 	DeleteUserGroupMemberships(ctx context.Context, userID *uuid.UUID) error
 	DeleteUserPushDevices(ctx context.Context, userID uuid.UUID) error
 	DeleteViewingSlot(ctx context.Context, arg DeleteViewingSlotParams) (int64, error)
+	// Deterministic pseudo-random pick of distinct street addresses in Praha
+	// (municipality 554782) from the imported RÚIAN address points.
+	DemoRuianPlaces(ctx context.Context, arg DemoRuianPlacesParams) ([]int64, error)
 	DigestNotifications(ctx context.Context, userID uuid.UUID) ([]Notification, error)
 	// Users with unread, not yet e-mailed notifications who chose a daily digest.
 	DigestRecipients(ctx context.Context) ([]DigestRecipientsRow, error)
@@ -166,6 +169,9 @@ type Querier interface {
 	FailSuggestion(ctx context.Context, arg FailSuggestionParams) error
 	// Place lookup for chat search ("Praha 6", "Dejvice").
 	FindAdminUnits(ctx context.Context, q_ string) ([]FindAdminUnitsRow, error)
+	// Demo listings (terractl demo, system context) ---------------------------------
+	// The company organization without members that holds the demo listings.
+	FindDemoOrganization(ctx context.Context, name string) (Organization, error)
 	FindPropertyByRuian(ctx context.Context, arg FindPropertyByRuianParams) (Property, error)
 	FinishSuggestion(ctx context.Context, arg FinishSuggestionParams) (int64, error)
 	// Returns the new case id, or null when the message was already flagged.
@@ -300,6 +306,8 @@ type Querier interface {
 	ListAdminBySlug(ctx context.Context, slug string) ([]ListAdminBySlugRow, error)
 	// Children of a unit (or regions when path is empty) with simplified outlines.
 	ListAdminChildren(ctx context.Context, arg ListAdminChildrenParams) ([]ListAdminChildrenRow, error)
+	// Every photo row of a listing, rejected ones included (demo removal).
+	ListAllListingMedia(ctx context.Context, listingID *uuid.UUID) ([]Medium, error)
 	// System context: every organization (RLS tests and backoffice).
 	ListAllOrganizationIDs(ctx context.Context) ([]uuid.UUID, error)
 	ListApplicationConsents(ctx context.Context, applicationID uuid.UUID) ([]ListApplicationConsentsRow, error)
@@ -313,6 +321,7 @@ type Querier interface {
 	ListConsents(ctx context.Context, userID uuid.UUID) ([]Consent, error)
 	// Inbox of the current user (RLS limits rows to their conversations).
 	ListConversations(ctx context.Context, arg ListConversationsParams) ([]ListConversationsRow, error)
+	ListDemoListings(ctx context.Context) ([]ListDemoListingsRow, error)
 	// M7: backoffice metrics, feature flags and the queue of AI-proposed
 	// attributes. Staff work runs in system context; authorization is in code.
 	// ---------------------------------------------------------------------------
@@ -449,6 +458,7 @@ type Querier interface {
 	// The conversation around a case, oldest first, for staff and the AI verdict.
 	ModerationTranscript(ctx context.Context, conversationID uuid.UUID) ([]ModerationTranscriptRow, error)
 	// Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
+	// Demo listings are not supply: they never create or inflate a locality page.
 	MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error)
 	// The municipality named in a free-text address ("Dejvická 12, Praha 6"):
 	// the longest municipality name found as a whole word. Both sides are
@@ -544,6 +554,7 @@ type Querier interface {
 	SetLeaseState(ctx context.Context, arg SetLeaseStateParams) (int64, error)
 	SetLeaseTerms(ctx context.Context, arg SetLeaseTermsParams) error
 	SetListingAttributes(ctx context.Context, arg SetListingAttributesParams) error
+	SetListingDemo(ctx context.Context, id uuid.UUID) error
 	SetListingEmbedding(ctx context.Context, arg SetListingEmbeddingParams) error
 	SetListingStatus(ctx context.Context, arg SetListingStatusParams) error
 	SetListingTexts(ctx context.Context, arg SetListingTextsParams) error

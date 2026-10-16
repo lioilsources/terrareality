@@ -1313,7 +1313,10 @@ export interface paths {
          */
         get: operations["listConversations"];
         put?: never;
-        /** Contact the landlord of a published listing (reuses an existing conversation) */
+        /**
+         * Contact the landlord of a published listing (reuses an existing conversation)
+         * @description A demo listing (is_demo) is refused with 409 and problem code demo_listing.
+         */
         post: operations["startConversation"];
         delete?: never;
         options?: never;
@@ -1810,7 +1813,10 @@ export interface paths {
         /** My applications, including my groups' applications */
         get: operations["listMyApplications"];
         put?: never;
-        /** Apply for a listing, alone or as a group (a group application waits for every member's consent) */
+        /**
+         * Apply for a listing, alone or as a group (a group application waits for every member's consent)
+         * @description A demo listing (is_demo) is refused with 409 and problem code demo_listing.
+         */
         post: operations["createApplication"];
         delete?: never;
         options?: never;
@@ -1878,7 +1884,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Book a viewing slot (replaces an earlier booking of this application) */
+        /**
+         * Book a viewing slot (replaces an earlier booking of this application)
+         * @description Viewings of a demo listing (is_demo) are refused with 409 and problem code demo_listing.
+         */
         post: operations["bookViewing"];
         delete?: never;
         options?: never;
@@ -3633,6 +3642,11 @@ export interface components {
             published_version?: number;
             /** Format: date-time */
             updated_at: string;
+            /**
+             * @description Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+             * @default false
+             */
+            is_demo: boolean;
         };
         Listing: {
             /** Format: uuid */
@@ -3677,6 +3691,11 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            /**
+             * @description Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+             * @default false
+             */
+            is_demo: boolean;
         };
         ReviewItem: {
             /** Format: uuid */
@@ -3775,6 +3794,11 @@ export interface components {
             sort?: "relevance" | "price_asc" | "price_desc" | "newest" | "area_desc";
             limit?: number;
             offset?: number;
+            /**
+             * @description Leave demo listings out (static site locality pages).
+             * @default false
+             */
+            exclude_demo: boolean;
         };
         ListingCard: {
             /** Format: uuid */
@@ -3806,6 +3830,11 @@ export interface components {
              * @default false
              */
             highlighted: boolean;
+            /**
+             * @description Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+             * @default false
+             */
+            is_demo: boolean;
         };
         FacetCount: {
             value: string;
@@ -3832,6 +3861,11 @@ export interface components {
             lng: number;
             /** Format: int64 */
             rent_amount: number;
+            /**
+             * @description Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+             * @default false
+             */
+            is_demo: boolean;
         };
         SearchResult: {
             total: number;
@@ -3925,6 +3959,11 @@ export interface components {
             photos: components["schemas"]["PhotoVariants"][];
             /** Format: date-time */
             published_at: string;
+            /**
+             * @description Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+             * @default false
+             */
+            is_demo: boolean;
         };
         MunicipalityStat: {
             name: string;

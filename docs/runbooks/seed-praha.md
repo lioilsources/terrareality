@@ -77,6 +77,38 @@ whose existing account already owns an organization of the same name; owners who
 a new organization and invitation, so check the audit log (`invitation.created`, source
 `terractl onboard-owner`) before re-running a batch. Keep the CSV out of the repository (personal data).
 
+## 3a. Ukázkové inzeráty (demo listings, closed beta only)
+
+So the map is not empty before the pilot owners publish, staging can carry clearly labelled demo listings.
+They show a badge "Ukázkový inzerát – nelze pronajmout" on cards, map markers and detail (web and mobile);
+contacting, applying and booking a viewing are refused (409, problem code `demo_listing`). They are not
+supply: SEO municipality stats, static site locality pages and the sitemap, the aggregate view, backoffice
+and portfolio market statistics and saved-search digests leave them out. Allowed in every `APP_ENV`, needs
+`S3_ENDPOINT` (the photos go to the object store the api serves from) and imported Praha RÚIAN addresses
+(step 1). No LLM involved.
+
+Photos directory: `manifest.json` plus one `flat-NN/` directory per flat with `living.jpg`, `kitchen.jpg`,
+`bedroom.jpg` and `bathroom.jpg`:
+
+    [{"flat": "flat-01", "type": "panel", "layout": "2+kk"},
+     {"flat": "flat-02", "type": "brick", "layout": "3+1"},
+     {"flat": "flat-03", "type": "new",   "layout": "1+kk"}]
+
+    terractl demo seed --photos ./demo-photos [--org "TerraReality – ukázka"] [--count 15]
+    terractl demo list
+    terractl demo remove
+
+`seed` creates (or reuses) a company organization of that name without members and publishes one listing
+per flat at a distinct real Praha address (deterministic pick, approximate location on the map), with
+generated area, floor, rent, deposit and availability consistent with layout and building type, a title
+starting with "Ukázka: " and a description that opens with the demo disclaimer (cs and en). Photos run
+through the normal media pipeline (blob store, sanitize, scan). Re-running skips flats that already have a
+live demo listing. `remove` archives all demo listings, takes them out of search and deletes their photos;
+re-running it is a no-op. `list` prints id, flat, status, photos, rent, title and address.
+
+**Remove the demo listings (`terractl demo remove`) before inviting seekers** to the beta, and in any case
+before launch.
+
 ## 4. Check
 
 - `/v1/seo/municipalities?kind=apartment` lists Praha once owners publish listings.

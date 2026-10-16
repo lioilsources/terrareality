@@ -151,6 +151,10 @@ type View struct {
 	Prescreen  []PrescreenAnswer
 }
 
+// ErrDemoListing refuses tenant actions on a demo listing of the closed beta
+// (terractl demo seed): nobody can contact, apply for or view it.
+var ErrDemoListing = apperr.Conflict("demo_listing", "this is a demo listing and cannot be rented")
+
 // Start opens (or reuses) the caller's conversation about a published
 // listing and sends the first message.
 func (s *Service) Start(ctx context.Context, p *auth.Principal, listingID uuid.UUID, body string, answers map[string]string) (uuid.UUID, Message, error) {
@@ -164,6 +168,9 @@ func (s *Service) Start(ctx context.Context, p *auth.Principal, listingID uuid.U
 	}
 	if err != nil {
 		return uuid.Nil, Message{}, err
+	}
+	if l.IsDemo {
+		return uuid.Nil, Message{}, ErrDemoListing
 	}
 	if _, err := sys.GetMembership(ctx, db.GetMembershipParams{OrgID: l.OrgID, UserID: p.UserID}); err == nil {
 		return uuid.Nil, Message{}, apperr.Conflict("own_listing", "you cannot message your own listing")

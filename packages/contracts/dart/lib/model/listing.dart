@@ -39,6 +39,7 @@ class Listing {
     required this.depositMaxMonths,
     required this.createdAt,
     required this.updatedAt,
+    this.isDemo = false,
   });
 
   String id;
@@ -136,6 +137,9 @@ class Listing {
 
   DateTime updatedAt;
 
+  /// Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+  bool isDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is Listing &&
     other.id == id &&
@@ -163,7 +167,8 @@ class Listing {
     _deepEquality.equals(other.versions, versions) &&
     other.depositMaxMonths == depositMaxMonths &&
     other.createdAt == createdAt &&
-    other.updatedAt == updatedAt;
+    other.updatedAt == updatedAt &&
+    other.isDemo == isDemo;
 
   @override
   int get hashCode =>
@@ -193,10 +198,11 @@ class Listing {
     (versions.hashCode) +
     (depositMaxMonths.hashCode) +
     (createdAt.hashCode) +
-    (updatedAt.hashCode);
+    (updatedAt.hashCode) +
+    (isDemo.hashCode);
 
   @override
-  String toString() => 'Listing[id=$id, orgId=$orgId, prescreen=$prescreen, status=$status, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, locationPrecision=$locationPrecision, publishedVersion=$publishedVersion, publishedAt=$publishedAt, pendingReview=$pendingReview, unit=$unit, propertyId=$propertyId, address=$address, media=$media, suggestions=$suggestions, versions=$versions, depositMaxMonths=$depositMaxMonths, createdAt=$createdAt, updatedAt=$updatedAt]';
+  String toString() => 'Listing[id=$id, orgId=$orgId, prescreen=$prescreen, status=$status, title=$title, description=$description, rentAmount=$rentAmount, depositAmount=$depositAmount, utilitiesAmount=$utilitiesAmount, currency=$currency, availableFrom=$availableFrom, minTermMonths=$minTermMonths, attributes=$attributes, locationPrecision=$locationPrecision, publishedVersion=$publishedVersion, publishedAt=$publishedAt, pendingReview=$pendingReview, unit=$unit, propertyId=$propertyId, address=$address, media=$media, suggestions=$suggestions, versions=$versions, depositMaxMonths=$depositMaxMonths, createdAt=$createdAt, updatedAt=$updatedAt, isDemo=$isDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -254,6 +260,7 @@ class Listing {
       json[r'deposit_max_months'] = this.depositMaxMonths;
       json[r'created_at'] = this.createdAt.toUtc().toIso8601String();
       json[r'updated_at'] = this.updatedAt.toUtc().toIso8601String();
+      json[r'is_demo'] = this.isDemo;
     return json;
   }
 
@@ -302,6 +309,7 @@ class Listing {
         depositMaxMonths: mapValueOfType<int>(json, r'deposit_max_months')!,
         createdAt: mapDateTime(json, r'created_at', r'')!,
         updatedAt: mapDateTime(json, r'updated_at', r'')!,
+        isDemo: mapValueOfType<bool>(json, r'is_demo')!,
       );
     }
     return null;
@@ -368,6 +376,7 @@ class Listing {
     'deposit_max_months',
     'created_at',
     'updated_at',
+    'is_demo',
   };
 }
 

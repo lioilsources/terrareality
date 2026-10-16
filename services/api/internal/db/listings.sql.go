@@ -89,7 +89,7 @@ INSERT INTO listings (org_id, unit_id, title, description, rent_amount, currency
 VALUES ($1, $2, $3, $4, $5,
   $6, $7, $8, $9,
   $10, $11, $12, $13)
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at, is_demo
 `
 
 type CreateListingParams struct {
@@ -148,6 +148,7 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		&i.DeletedAt,
 		&i.Prescreen,
 		&i.FirstPublishedAt,
+		&i.IsDemo,
 	)
 	return i, err
 }
@@ -414,6 +415,40 @@ func (q *Queries) DeleteMedia(ctx context.Context, arg DeleteMediaParams) (strin
 	return object_key, err
 }
 
+const demoRuianPlaces = `-- name: DemoRuianPlaces :many
+SELECT id FROM ruian_places
+WHERE municipality_code = 554782 AND street IS NOT NULL AND house_number_type = 'cp'
+ORDER BY md5(id::text || $1::text), id
+LIMIT $2
+`
+
+type DemoRuianPlacesParams struct {
+	Seed string `json:"seed"`
+	Lim  int32  `json:"lim"`
+}
+
+// Deterministic pseudo-random pick of distinct street addresses in Praha
+// (municipality 554782) from the imported RÚIAN address points.
+func (q *Queries) DemoRuianPlaces(ctx context.Context, arg DemoRuianPlacesParams) ([]int64, error) {
+	rows, err := q.db.Query(ctx, demoRuianPlaces, arg.Seed, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const failSuggestion = `-- name: FailSuggestion :exec
 UPDATE ai_suggestions SET status = 'failed', error = $2 WHERE id = $1
 `
@@ -426,6 +461,34 @@ type FailSuggestionParams struct {
 func (q *Queries) FailSuggestion(ctx context.Context, arg FailSuggestionParams) error {
 	_, err := q.db.Exec(ctx, failSuggestion, arg.ID, arg.Error)
 	return err
+}
+
+const findDemoOrganization = `-- name: FindDemoOrganization :one
+
+SELECT o.id, o.kind, o.name, o.registration_no, o.vat_no, o.jurisdiction_code, o.personal_owner_id, o.created_at, o.updated_at, o.deleted_at FROM organizations o
+WHERE o.kind = 'company' AND o.name = $1 AND o.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.org_id = o.id)
+ORDER BY o.created_at LIMIT 1
+`
+
+// Demo listings (terractl demo, system context) ---------------------------------
+// The company organization without members that holds the demo listings.
+func (q *Queries) FindDemoOrganization(ctx context.Context, name string) (Organization, error) {
+	row := q.db.QueryRow(ctx, findDemoOrganization, name)
+	var i Organization
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.Name,
+		&i.RegistrationNo,
+		&i.VatNo,
+		&i.JurisdictionCode,
+		&i.PersonalOwnerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const findPropertyByRuian = `-- name: FindPropertyByRuian :one
@@ -475,7 +538,7 @@ func (q *Queries) FinishSuggestion(ctx context.Context, arg FinishSuggestionPara
 }
 
 const getListing = `-- name: GetListing :one
-SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
+SELECT id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at, is_demo FROM listings WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
 
 type GetListingParams struct {
@@ -509,6 +572,7 @@ func (q *Queries) GetListing(ctx context.Context, arg GetListingParams) (Listing
 		&i.DeletedAt,
 		&i.Prescreen,
 		&i.FirstPublishedAt,
+		&i.IsDemo,
 	)
 	return i, err
 }
@@ -765,6 +829,112 @@ func (q *Queries) GetUnit(ctx context.Context, arg GetUnitParams) (Unit, error) 
 	return i, err
 }
 
+const listAllListingMedia = `-- name: ListAllListingMedia :many
+SELECT id, org_id, listing_id, kind, object_key, filename, content_type, size_bytes, sha256, width, height, orientation, status, rejection_reason, av_status, vision, position, caption, created_by, created_at, updated_at FROM media WHERE listing_id = $1 ORDER BY position, created_at
+`
+
+// Every photo row of a listing, rejected ones included (demo removal).
+func (q *Queries) ListAllListingMedia(ctx context.Context, listingID *uuid.UUID) ([]Medium, error) {
+	rows, err := q.db.Query(ctx, listAllListingMedia, listingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Medium{}
+	for rows.Next() {
+		var i Medium
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.ListingID,
+			&i.Kind,
+			&i.ObjectKey,
+			&i.Filename,
+			&i.ContentType,
+			&i.SizeBytes,
+			&i.Sha256,
+			&i.Width,
+			&i.Height,
+			&i.Orientation,
+			&i.Status,
+			&i.RejectionReason,
+			&i.AvStatus,
+			&i.Vision,
+			&i.Position,
+			&i.Caption,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDemoListings = `-- name: ListDemoListings :many
+SELECT l.id, l.org_id, l.status, l.title, l.rent_amount, l.currency, l.created_at, u.label AS unit_label,
+  a.label AS address_label, (s.listing_id IS NOT NULL)::boolean AS in_search,
+  (SELECT count(*) FROM media m WHERE m.listing_id = l.id)::int AS photos
+FROM listings l
+JOIN units u ON u.id = l.unit_id
+JOIN properties p ON p.id = u.property_id
+JOIN addresses a ON a.id = p.address_id
+LEFT JOIN listing_search s ON s.listing_id = l.id
+WHERE l.is_demo AND l.deleted_at IS NULL
+ORDER BY l.created_at, l.id
+`
+
+type ListDemoListingsRow struct {
+	ID           uuid.UUID `json:"id"`
+	OrgID        uuid.UUID `json:"org_id"`
+	Status       string    `json:"status"`
+	Title        []byte    `json:"title"`
+	RentAmount   *int64    `json:"rent_amount"`
+	Currency     string    `json:"currency"`
+	CreatedAt    time.Time `json:"created_at"`
+	UnitLabel    string    `json:"unit_label"`
+	AddressLabel string    `json:"address_label"`
+	InSearch     bool      `json:"in_search"`
+	Photos       int32     `json:"photos"`
+}
+
+func (q *Queries) ListDemoListings(ctx context.Context) ([]ListDemoListingsRow, error) {
+	rows, err := q.db.Query(ctx, listDemoListings)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDemoListingsRow{}
+	for rows.Next() {
+		var i ListDemoListingsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Status,
+			&i.Title,
+			&i.RentAmount,
+			&i.Currency,
+			&i.CreatedAt,
+			&i.UnitLabel,
+			&i.AddressLabel,
+			&i.InSearch,
+			&i.Photos,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listListingMedia = `-- name: ListListingMedia :many
 SELECT id, org_id, listing_id, kind, object_key, filename, content_type, size_bytes, sha256, width, height, orientation, status, rejection_reason, av_status, vision, position, caption, created_by, created_at, updated_at FROM media WHERE listing_id = $1 AND status <> 'rejected' ORDER BY position, created_at
 `
@@ -861,7 +1031,7 @@ func (q *Queries) ListListingVersions(ctx context.Context, listingID uuid.UUID) 
 }
 
 const listListings = `-- name: ListListings :many
-SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, l.prescreen, l.first_published_at, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
+SELECT l.id, l.org_id, l.unit_id, l.status, l.title, l.description, l.rent_amount, l.currency, l.deposit_amount, l.utilities_amount, l.available_from, l.min_term_months, l.attributes, l.location_precision, l.published_version, l.created_by, l.created_at, l.updated_at, l.published_at, l.deleted_at, l.prescreen, l.first_published_at, l.is_demo, u.kind AS unit_kind, u.label AS unit_label, a.label AS address_label,
   coalesce((SELECT m.object_key FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), '')::text AS cover_key,
   coalesce((SELECT m.orientation FROM media m WHERE m.listing_id = l.id AND m.status = 'ready' ORDER BY m.position, m.created_at LIMIT 1), 1)::int AS cover_orientation,
   EXISTS (SELECT 1 FROM listing_versions v WHERE v.listing_id = l.id AND v.status = 'pending') AS pending_review
@@ -908,6 +1078,7 @@ type ListListingsRow struct {
 	DeletedAt         *time.Time  `json:"deleted_at"`
 	Prescreen         []byte      `json:"prescreen"`
 	FirstPublishedAt  *time.Time  `json:"first_published_at"`
+	IsDemo            bool        `json:"is_demo"`
 	UnitKind          string      `json:"unit_kind"`
 	UnitLabel         string      `json:"unit_label"`
 	AddressLabel      string      `json:"address_label"`
@@ -953,6 +1124,7 @@ func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]L
 			&i.DeletedAt,
 			&i.Prescreen,
 			&i.FirstPublishedAt,
+			&i.IsDemo,
 			&i.UnitKind,
 			&i.UnitLabel,
 			&i.AddressLabel,
@@ -1389,6 +1561,15 @@ func (q *Queries) SetListingAttributes(ctx context.Context, arg SetListingAttrib
 	return err
 }
 
+const setListingDemo = `-- name: SetListingDemo :exec
+UPDATE listings SET is_demo = true WHERE id = $1
+`
+
+func (q *Queries) SetListingDemo(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, setListingDemo, id)
+	return err
+}
+
 const setListingStatus = `-- name: SetListingStatus :exec
 UPDATE listings SET status = $3 WHERE id = $1 AND org_id = $2 AND deleted_at IS NULL
 `
@@ -1604,7 +1785,7 @@ UPDATE listings SET title = $1, description = $2, rent_amount = $3,
   available_from = $6, min_term_months = $7,
   attributes = $8, location_precision = $9
 WHERE id = $10 AND org_id = $11 AND deleted_at IS NULL
-RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at
+RETURNING id, org_id, unit_id, status, title, description, rent_amount, currency, deposit_amount, utilities_amount, available_from, min_term_months, attributes, location_precision, published_version, created_by, created_at, updated_at, published_at, deleted_at, prescreen, first_published_at, is_demo
 `
 
 type UpdateListingParams struct {
@@ -1659,6 +1840,7 @@ func (q *Queries) UpdateListing(ctx context.Context, arg UpdateListingParams) (L
 		&i.DeletedAt,
 		&i.Prescreen,
 		&i.FirstPublishedAt,
+		&i.IsDemo,
 	)
 	return i, err
 }

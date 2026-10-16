@@ -6,6 +6,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import DemoBadge from '#lib/components/DemoBadge.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import type { PageProps } from './$types';
@@ -35,10 +36,26 @@
 <svelte:head>
 	<title>{title} · {m.app_name()}</title>
 	<meta name="description" content={t(l.description, locale).slice(0, 160)} />
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -- JSON-LD built from our data with < escaped -->
-	{@html '<script type="application/ld+json">' + jsonLd + '</' + 'script>'}
+	{#if l.is_demo}
+		<!-- Demo listings are no offer: no structured data, kept out of search engines. -->
+		<meta name="robots" content="noindex" />
+	{:else}
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- JSON-LD built from our data with < escaped -->
+		{@html '<script type="application/ld+json">' + jsonLd + '</' + 'script>'}
+	{/if}
 </svelte:head>
 
+{#if l.is_demo}
+	<!-- Closed-beta demo listing: the api refuses contact, applications and viewings (demo_listing). -->
+	<div
+		class="mb-6 grid gap-2 rounded-[var(--radius-card)] border-2 border-amber-500 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-400 dark:bg-amber-950/40 dark:text-amber-100"
+		role="note"
+		data-testid="demo-banner"
+	>
+		<div><DemoBadge class="text-sm" /></div>
+		<p class="text-sm">{m.listing_demo_explain()}</p>
+	</div>
+{/if}
 <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
 	<div class="grid content-start gap-4">
 		{#if l.photos.length}
@@ -95,74 +112,76 @@
 				{l.location.address ?? m.listing_location_approx()}
 			</p>
 		</Card>
-		<a
-			href={localizeHref(`/inzerat/${l.id}/zadost`)}
-			class="rounded-lg bg-[var(--accent)] px-4 py-3 text-center font-medium text-white no-underline hover:opacity-90"
-			data-testid="apply">{m.app_apply()}</a
-		>
-		<Card title={m.msg_contact_title()} testid="contact">
-			{#if data.conversation}
-				<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_existing()}</p>
-				<a href={localizeHref(`/zpravy/${data.conversation}`)}>{m.msg_open_conversation()}</a>
-			{:else if !page.data.me}
-				<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_login()}</p>
-				<a href={localizeHref(`/login?next=${encodeURIComponent(page.url.pathname)}`)}
-					>{m.nav_login()}</a
-				>
-			{:else}
-				{#if form?.error}<div class="mb-3"><Alert kind="error">{form.error}</Alert></div>{/if}
-				<form method="POST" action="?/contact" use:enhance class="grid gap-3">
-					{#if l.prescreen.length}
-						<fieldset class="grid gap-3">
-							<legend class="mb-1 text-sm font-semibold">{m.msg_prescreen_title()}</legend>
-							{#each l.prescreen as q (q.id)}
-								{@const label =
-									(q.text[locale as 'cs'] || q.text.cs || q.text.en) + (q.required ? ' *' : '')}
-								{#if q.kind === 'yes_no'}
-									<div class="grid gap-1 text-sm">
-										<span class="font-medium">{label}</span>
-										<div class="flex gap-4">
-											<label class="flex items-center gap-1"
-												><input type="radio" name="q_{q.id}" value="yes" required={q.required} />
-												{m.msg_yes()}</label
-											>
-											<label class="flex items-center gap-1"
-												><input type="radio" name="q_{q.id}" value="no" /> {m.msg_no()}</label
-											>
+		{#if !l.is_demo}
+			<a
+				href={localizeHref(`/inzerat/${l.id}/zadost`)}
+				class="rounded-lg bg-[var(--accent)] px-4 py-3 text-center font-medium text-white no-underline hover:opacity-90"
+				data-testid="apply">{m.app_apply()}</a
+			>
+			<Card title={m.msg_contact_title()} testid="contact">
+				{#if data.conversation}
+					<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_existing()}</p>
+					<a href={localizeHref(`/zpravy/${data.conversation}`)}>{m.msg_open_conversation()}</a>
+				{:else if !page.data.me}
+					<p class="mb-3 text-sm text-[var(--muted)]">{m.msg_contact_login()}</p>
+					<a href={localizeHref(`/login?next=${encodeURIComponent(page.url.pathname)}`)}
+						>{m.nav_login()}</a
+					>
+				{:else}
+					{#if form?.error}<div class="mb-3"><Alert kind="error">{form.error}</Alert></div>{/if}
+					<form method="POST" action="?/contact" use:enhance class="grid gap-3">
+						{#if l.prescreen.length}
+							<fieldset class="grid gap-3">
+								<legend class="mb-1 text-sm font-semibold">{m.msg_prescreen_title()}</legend>
+								{#each l.prescreen as q (q.id)}
+									{@const label =
+										(q.text[locale as 'cs'] || q.text.cs || q.text.en) + (q.required ? ' *' : '')}
+									{#if q.kind === 'yes_no'}
+										<div class="grid gap-1 text-sm">
+											<span class="font-medium">{label}</span>
+											<div class="flex gap-4">
+												<label class="flex items-center gap-1"
+													><input type="radio" name="q_{q.id}" value="yes" required={q.required} />
+													{m.msg_yes()}</label
+												>
+												<label class="flex items-center gap-1"
+													><input type="radio" name="q_{q.id}" value="no" /> {m.msg_no()}</label
+												>
+											</div>
 										</div>
-									</div>
-								{:else}
-									<label class="grid gap-1 text-sm font-medium"
-										>{label}
-										<input
-											name="q_{q.id}"
-											type={q.kind === 'number' ? 'number' : 'text'}
-											required={q.required}
-											maxlength="500"
-											value={form?.answers?.[q.id!] ?? ''}
-											class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-										/>
-									</label>
-								{/if}
-							{/each}
-						</fieldset>
-					{/if}
-					<label class="grid gap-1 text-sm font-medium"
-						>{m.msg_body_label()}
-						<textarea
-							name="body"
-							rows="4"
-							required
-							maxlength="4000"
-							class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-							>{form?.body ?? ''}</textarea
-						>
-					</label>
-					<p class="text-xs text-[var(--muted)]">{m.msg_safety()}</p>
-					<Button type="submit">{m.msg_send()}</Button>
-				</form>
-			{/if}
-		</Card>
+									{:else}
+										<label class="grid gap-1 text-sm font-medium"
+											>{label}
+											<input
+												name="q_{q.id}"
+												type={q.kind === 'number' ? 'number' : 'text'}
+												required={q.required}
+												maxlength="500"
+												value={form?.answers?.[q.id!] ?? ''}
+												class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+											/>
+										</label>
+									{/if}
+								{/each}
+							</fieldset>
+						{/if}
+						<label class="grid gap-1 text-sm font-medium"
+							>{m.msg_body_label()}
+							<textarea
+								name="body"
+								rows="4"
+								required
+								maxlength="4000"
+								class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+								>{form?.body ?? ''}</textarea
+							>
+						</label>
+						<p class="text-xs text-[var(--muted)]">{m.msg_safety()}</p>
+						<Button type="submit">{m.msg_send()}</Button>
+					</form>
+				{/if}
+			</Card>
+		{/if}
 		<p class="text-sm">
 			<a
 				href={localizeHref(`/inzerat/${l.id}/nahlasit`)}
@@ -179,6 +198,7 @@
 								>{t(s.title, locale) || kindLabel[s.unit_kind]()}</a
 							>
 							· {formatMoney(s.rent_amount, s.currency, locale)}
+							{#if s.is_demo}<DemoBadge short />{/if}
 						</li>
 					{/each}
 				</ul>

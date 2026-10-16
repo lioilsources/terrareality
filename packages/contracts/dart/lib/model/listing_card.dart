@@ -28,6 +28,7 @@ class ListingCard {
     required this.publishedAt,
     this.promoted = false,
     this.highlighted = false,
+    this.isDemo = false,
   });
 
   String id;
@@ -86,6 +87,9 @@ class ListingCard {
   /// Paid visual highlight running now.
   bool highlighted;
 
+  /// Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+  bool isDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is ListingCard &&
     other.id == id &&
@@ -102,7 +106,8 @@ class ListingCard {
     other.coverUrl == coverUrl &&
     other.publishedAt == publishedAt &&
     other.promoted == promoted &&
-    other.highlighted == highlighted;
+    other.highlighted == highlighted &&
+    other.isDemo == isDemo;
 
   @override
   int get hashCode =>
@@ -121,10 +126,11 @@ class ListingCard {
     (coverUrl == null ? 0 : coverUrl!.hashCode) +
     (publishedAt.hashCode) +
     (promoted.hashCode) +
-    (highlighted.hashCode);
+    (highlighted.hashCode) +
+    (isDemo.hashCode);
 
   @override
-  String toString() => 'ListingCard[id=$id, unitKind=$unitKind, layout=$layout, rentAmount=$rentAmount, currency=$currency, floorArea=$floorArea, title=$title, city=$city, cityPart=$cityPart, lat=$lat, lng=$lng, coverUrl=$coverUrl, publishedAt=$publishedAt, promoted=$promoted, highlighted=$highlighted]';
+  String toString() => 'ListingCard[id=$id, unitKind=$unitKind, layout=$layout, rentAmount=$rentAmount, currency=$currency, floorArea=$floorArea, title=$title, city=$city, cityPart=$cityPart, lat=$lat, lng=$lng, coverUrl=$coverUrl, publishedAt=$publishedAt, promoted=$promoted, highlighted=$highlighted, isDemo=$isDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -159,6 +165,7 @@ class ListingCard {
       json[r'published_at'] = this.publishedAt.toUtc().toIso8601String();
       json[r'promoted'] = this.promoted;
       json[r'highlighted'] = this.highlighted;
+      json[r'is_demo'] = this.isDemo;
     return json;
   }
 
@@ -196,6 +203,7 @@ class ListingCard {
         publishedAt: mapDateTime(json, r'published_at', r'')!,
         promoted: mapValueOfType<bool>(json, r'promoted')!,
         highlighted: mapValueOfType<bool>(json, r'highlighted')!,
+        isDemo: mapValueOfType<bool>(json, r'is_demo')!,
       );
     }
     return null;
@@ -254,6 +262,7 @@ class ListingCard {
     'published_at',
     'promoted',
     'highlighted',
+    'is_demo',
   };
 }
 

@@ -1,5 +1,6 @@
 # Build context: repository root (needs packages/ui and packages/contracts).
-FROM node:24-alpine AS build
+# The build output is plain JavaScript: build on the builder's platform (fast amd64 images on arm64).
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /repo
 COPY package.json package-lock.json .npmrc ./
 COPY apps/web/package.json apps/web/

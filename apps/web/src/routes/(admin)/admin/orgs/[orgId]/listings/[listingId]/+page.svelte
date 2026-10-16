@@ -16,6 +16,7 @@
 	import { fieldMessages } from '#lib/fieldErrors.js';
 	import { fmtDateTime } from '#lib/labels.js';
 	import Alert from '#lib/components/Alert.svelte';
+	import DemoBadge from '#lib/components/DemoBadge.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import Field from '#lib/components/Field.svelte';
@@ -94,6 +95,7 @@
 				? ` · ${m.pending_review()}`
 				: ''}</span
 		>
+		{#if l.is_demo}<DemoBadge short class="self-center" />{/if}
 	</div>
 
 	<nav class="flex flex-wrap gap-2 text-sm" aria-label={m.listings_title()}>

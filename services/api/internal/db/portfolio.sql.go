@@ -527,6 +527,7 @@ SELECT coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY s.rent_amount), 0)::
   count(*)::int AS listings,
   coalesce(avg(EXTRACT(EPOCH FROM (now() - s.published_at)) / 86400), 0)::float8 AS avg_age_days
 FROM listing_search s WHERE s.admin_path <@ $1::text::ltree AND s.currency = $2
+  AND NOT s.is_demo
 `
 
 type MarketStatsParams struct {

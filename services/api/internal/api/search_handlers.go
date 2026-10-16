@@ -66,7 +66,7 @@ func (s *Server) runSearch(ctx context.Context, q search.Query) (gen.SearchResul
 			MedianRent: a.MedianRent, Lat: a.Lat, Lng: a.Lng})
 	}
 	for _, p := range res.Points {
-		out.Points = append(out.Points, gen.MapPoint{Id: p.ListingID, Lat: p.Lat, Lng: p.Lng, RentAmount: p.RentAmount})
+		out.Points = append(out.Points, gen.MapPoint{Id: p.ListingID, Lat: p.Lat, Lng: p.Lng, RentAmount: p.RentAmount, IsDemo: p.IsDemo})
 	}
 	return out, nil
 }
@@ -75,7 +75,7 @@ func (s *Server) card(c search.Card) gen.ListingCard {
 	out := gen.ListingCard{Id: c.ListingID, UnitKind: gen.UnitKind(c.UnitKind), Layout: c.Layout, RentAmount: c.RentAmount,
 		Currency: c.Currency, FloorArea: c.FloorArea, Title: gen.I18nText{Cs: c.Title["cs"], En: c.Title["en"]},
 		City: c.City, CityPart: c.CityPart, Lat: c.Lat, Lng: c.Lng, PublishedAt: c.PublishedAt,
-		Promoted: c.Promoted, Highlighted: c.Highlighted}
+		Promoted: c.Promoted, Highlighted: c.Highlighted, IsDemo: c.IsDemo}
 	if c.CoverKey != nil {
 		u := s.Listings.PhotoURLs(*c.CoverKey, c.CoverOrientation)["thumb"]
 		out.CoverUrl = &u
@@ -184,7 +184,7 @@ func (s *Server) GetPublicListing(ctx context.Context, r gen.GetPublicListingReq
 	out := gen.GetPublicListing200JSONResponse{Id: row.ListingID, Prescreen: prescreenOf(row.Prescreen), Title: snap.Title, Description: snap.Description,
 		RentAmount: snap.RentAmount, DepositAmount: snap.DepositAmount, UtilitiesAmount: snap.UtilitiesAmount,
 		Currency: snap.Currency, MinTermMonths: snap.MinTermMonths, Attributes: snap.Attributes, PublishedAt: row.PublishedAt,
-		Photos: []gen.PhotoVariants{}, AreaNames: []string{}}
+		IsDemo: row.IsDemo, Photos: []gen.PhotoVariants{}, AreaNames: []string{}}
 	if out.Attributes == nil {
 		out.Attributes = map[string]any{}
 	}

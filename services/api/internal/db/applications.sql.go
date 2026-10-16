@@ -426,7 +426,9 @@ func (q *Queries) DeleteViewingSlot(ctx context.Context, arg DeleteViewingSlotPa
 }
 
 const getApplication = `-- name: GetApplication :one
-SELECT a.id, a.listing_id, a.org_id, a.applicant_id, a.group_id, a.status, a.message, a.answers, a.preferred_from, a.duration_months, a.household_size, a.reject_reason, a.ai_status, a.ai_summary, a.ai_model, a.created_at, a.submitted_at, a.decided_at, a.updated_at, coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title, g.name AS group_name
+SELECT a.id, a.listing_id, a.org_id, a.applicant_id, a.group_id, a.status, a.message, a.answers, a.preferred_from, a.duration_months, a.household_size, a.reject_reason, a.ai_status, a.ai_summary, a.ai_model, a.created_at, a.submitted_at, a.decided_at, a.updated_at, coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title, g.name AS group_name,
+  -- listing_search first: the applicant cannot read listings (RLS), the public index row carries the flag.
+  coalesce(s.is_demo, l.is_demo, false)::boolean AS listing_is_demo
 FROM applications a
 LEFT JOIN listing_search s ON s.listing_id = a.listing_id
 LEFT JOIN listings l ON l.id = a.listing_id
@@ -456,6 +458,7 @@ type GetApplicationRow struct {
 	UpdatedAt      time.Time   `json:"updated_at"`
 	ListingTitle   []byte      `json:"listing_title"`
 	GroupName      *string     `json:"group_name"`
+	ListingIsDemo  bool        `json:"listing_is_demo"`
 }
 
 func (q *Queries) GetApplication(ctx context.Context, id uuid.UUID) (GetApplicationRow, error) {
@@ -483,6 +486,7 @@ func (q *Queries) GetApplication(ctx context.Context, id uuid.UUID) (GetApplicat
 		&i.UpdatedAt,
 		&i.ListingTitle,
 		&i.GroupName,
+		&i.ListingIsDemo,
 	)
 	return i, err
 }

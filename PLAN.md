@@ -9,7 +9,7 @@ Plán a acceptance kritéria: `docs/02-plan.md`. Tento soubor říká, kde jsme 
 | **M6b Portfolio a riziko**                 | **hotovo, v `main`**                               | merge `f981a07` (PR #7)                                  |
 | **M7 Promo, billing, Revolut, backoffice** | **hotovo, v `main`**                               | merge `5eabb2e` (PR #8)                                  |
 | **M8 Flutter v0, produkce, launch**        | **hotovo, v `main`**; launch čeká na externí kroky | merge `2b4c69a` (PR #9)                                  |
-| **M8b Hardening a opravy z review**        | kód hotový, testy zelené lokálně                   | větev `m8b-hardening`                                    |
+| **M8b Hardening a opravy z review**        | hotovo                                             | main (PR #10)                                            |
 
 U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` lokálně i v CI.
 U M7 prošly `make test`, `make lint`, `make gen-check` a `make e2e` (18/18) lokálně i v CI.
@@ -82,6 +82,17 @@ U M8b prošly lokálně `make test`, `make lint`, `make gen-check`, `make e2e` (
 - **Změny kontraktu:** pozvánky `POST /v1/invitations/lookup|accept` (token v těle), `LeaseDetail.sign_providers`, `reason` u výpovědi, stránkování (`before`/`limit`, moderace `after`), `getApplicantIncomeProof`, `ReviewDetail.privacy_flags`, `SessionInfo.expires_at`, zdokumentované nové chybové kódy.
 - **Web TerraReality:** texty už neslibují Bank iD ani revidované šablony; stránka projektu na olin.now (`olin.now/terrareality.html`).
 
+## Beta na NAS (JODA) – 2026-10-16
+
+- Uzavřená beta běží na NAS JODA za Cloudflare Tunnel `terra`: web https://terra.ol1n.com, API `terra-api`, statický web
+  `terra-www`, obrázky `terra-img`, média `terra-s3` (`.ol1n.com`). Compose `infra/nas` + `docker-compose.tunnel.yml`,
+  postup v `infra/nas/README.md`; obrazy se staví na Macu (`buildx --platform linux/amd64`), na NAS se jen nahrají.
+- Data na ZFS raidz1 (`pool/terra`, DB ve vlastním datasetu `pool/terra/db`), denní `pg_dump` do `pool/terra/backups`
+  (14 dní); kopie mimo NAS zatím chybí. E-maily přes Resend (doména `terra.ol1n.com`).
+- Adresy RÚIAN pro region Praha (oficiální export), hranice celé ČR (`scripts/ruian-boundaries.sh`: kraje, obce,
+  obvody, katastrální území). Další města přidat do `internal/ruian/region.go` nebo udělat region pro celou ČR.
+- Ukázkové inzeráty: příznak `is_demo` (migrace 00015), fotky od Directora (Spark, 18. 10.), pak `terractl demo seed`.
+
 ## Otevřené body
 
 - **Právní** (`docs/legal-questions.md`):
@@ -114,10 +125,14 @@ U M8b prošly lokálně `make test`, `make lint`, `make gen-check`, `make e2e` (
 
 ## Kde pokračovat (launch)
 
-1. Otevřít PR z `m8b-hardening`, počkat na CI a mergnout.
+1. Beta: naplnit ukázkové inzeráty (fotky 18. 10.), adresy pro města pilotního majitele, staff účet, onboarding majitele
+   (`terractl onboard-owner`), test obnovy ze zálohy na NAS, kopie záloh mimo NAS.
 2. Zbylé body z review (nízká priorita): OIDC v mobilu potřebuje PKCE v kontraktu a jiný redirect než Apple `form_post`; `media_id` v `PhotoVariants` (spárovat privacy flag s fotkou), `next_before` i u seznamů vracených jako pole, filtr konverzací podle inzerátu, `invoice_id` u objednávky; zrušená rezervace se v mobilu neukazuje jako zrušená (jen upozornění z push); poměrná část nájmu (OQ-20) a osobní údaje v hash řetězci smlouvy; reálný SMS adaptér (telefonní ověření je mimo dev vypnuté).
 3. Projít `docs/runbooks/launch.md`, většina položek je mimo kód: účty Hetzner a registr, DNS, produkční secrets (nově oddělené `.env` pro app a db VM, klíče záloh v samostatném projektu, `APPLE_TEAM_ID`, `ANDROID_CERT_SHA256`), WireGuard peer od provozovatele Sparku, revize právních textů a DPA (Q-LEGAL-1..5, Q-LEASE-4), penetrační test, TestFlight a Play track, po nasazení `make smoke` a test obnovy na produkci.
 4. Testování se živými lidmi: `docs/04-user-testing.md` (T0 příprava: staging, analytika PostHog, tlačítko zpětné vazby, registrace jen na pozvánku – zatím neimplementováno).
 5. Reálné FCM čeká na OQ-14.
+6. Ukázkové inzeráty pro uzavřenou betu (větev `beta-demo`): `terractl demo seed|list|remove`, viz `docs/runbooks/seed-praha.md` (3a); před pozváním hledajících je odstranit (`terractl demo remove`).
+
+E2E `applications.e2e.ts` (skupinový chat přes Centrifugo) občas spadne na časování a při opakování projde.
 
 Pasti prostředí (staré procesy na :8080, `source .env` u ručně spuštěného API, migrace i na `terra_test`) jsou v memory `terrareality-dev-env-quirks.md`.

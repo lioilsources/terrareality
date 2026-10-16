@@ -43,6 +43,8 @@ func (d *Digest) Run(ctx context.Context) (int, error) {
 		since := s.LastNotifiedAt
 		now := time.Now()
 		query.PublishedAfter, query.Limit, query.Offset, query.Sort = &since, 10, 0, "newest"
+		// No e-mails about the demo listings of the closed beta.
+		query.ExcludeDemo = true
 		res, err := d.Engine.Search(ctx, query, schema)
 		var inv *InvalidQueryError
 		if errors.As(err, &inv) || (err != nil && strings.Contains(err.Error(), "unknown attribute")) {

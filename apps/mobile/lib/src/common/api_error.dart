@@ -47,8 +47,14 @@ String? errorCode(Object error) {
   }
 }
 
+/// User-facing messages for API problem codes that need a specific text.
+String? _codeMessage(AppLocalizations t, String? code) => switch (code) {
+  'demo_listing' => t.errorDemoListing,
+  _ => null,
+};
+
 /// A user-facing message for any error a screen shows.
-String errorMessage(AppLocalizations t, Object error) => switch (errorKind(error)) {
+String errorMessage(AppLocalizations t, Object error) => _codeMessage(t, errorCode(error)) ?? switch (errorKind(error)) {
   ErrorKind.signIn => t.loginRequired,
   ErrorKind.forbidden => t.errorForbidden,
   ErrorKind.notFound => t.errorNotFound,

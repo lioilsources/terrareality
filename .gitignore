@@ -44,3 +44,8 @@ playwright-report/
 apps/mobile/lib/l10n/gen/
 apps/web/src/lib/paraglide/
 *.egg-info/
+
+# NAS staging: local data, tunnel credentials, site build
+infra/nas/data/
+infra/nas/cloudflared/
+infra/nas/site-dist/

@@ -11,7 +11,8 @@ const num = (v: string | null) =>
 	v !== null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined;
 
 export function queryFromParams(p: URLSearchParams): SearchQuery {
-	const q: SearchQuery = {};
+	// The in-app search shows closed-beta demo listings (labelled); only static locality pages drop them.
+	const q: SearchQuery = { exclude_demo: false };
 	const kinds = p.getAll('kind').filter(Boolean) as UnitKind[];
 	if (kinds.length) q.kinds = kinds;
 	const layouts = p.getAll('layout').filter(Boolean);

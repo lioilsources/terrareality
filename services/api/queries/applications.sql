@@ -78,7 +78,9 @@ SELECT count(*)::int FROM application_consents WHERE application_id = $1 AND con
 UPDATE applications SET status = 'submitted', submitted_at = now() WHERE id = $1 AND status = 'pending_consent';
 
 -- name: GetApplication :one
-SELECT a.*, coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title, g.name AS group_name
+SELECT a.*, coalesce(s.title, l.title, '{}'::jsonb)::jsonb AS listing_title, g.name AS group_name,
+  -- listing_search first: the applicant cannot read listings (RLS), the public index row carries the flag.
+  coalesce(s.is_demo, l.is_demo, false)::boolean AS listing_is_demo
 FROM applications a
 LEFT JOIN listing_search s ON s.listing_id = a.listing_id
 LEFT JOIN listings l ON l.id = a.listing_id

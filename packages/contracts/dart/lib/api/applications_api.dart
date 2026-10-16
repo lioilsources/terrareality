@@ -18,6 +18,8 @@ class ApplicationsApi {
 
   /// Book a viewing slot (replaces an earlier booking of this application)
   ///
+  /// Viewings of a demo listing (is_demo) are refused with 409 and problem code demo_listing.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -52,6 +54,8 @@ class ApplicationsApi {
   }
 
   /// Book a viewing slot (replaces an earlier booking of this application)
+  ///
+  /// Viewings of a demo listing (is_demo) are refused with 409 and problem code demo_listing.
   ///
   /// Parameters:
   ///
@@ -261,6 +265,8 @@ class ApplicationsApi {
 
   /// Apply for a listing, alone or as a group (a group application waits for every member's consent)
   ///
+  /// A demo listing (is_demo) is refused with 409 and problem code demo_listing.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -292,6 +298,8 @@ class ApplicationsApi {
   }
 
   /// Apply for a listing, alone or as a group (a group application waits for every member's consent)
+  ///
+  /// A demo listing (is_demo) is refused with 409 and problem code demo_listing.
   ///
   /// Parameters:
   ///

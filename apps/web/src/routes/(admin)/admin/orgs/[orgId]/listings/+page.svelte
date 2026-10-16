@@ -3,6 +3,7 @@
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { formatMoney, kindLabel, statusLabel, t } from '#lib/catalog.js';
 	import Card from '#lib/components/Card.svelte';
+	import DemoBadge from '#lib/components/DemoBadge.svelte';
 	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
@@ -56,6 +57,7 @@
 								<span class="rounded bg-[var(--border)]/60 px-2 py-0.5 text-xs text-[var(--text)]"
 									>{statusLabel[l.status]()}</span
 								>
+								{#if l.is_demo}<DemoBadge short />{/if}
 								{#if l.pending_review && l.status !== 'review'}<span class="text-xs text-amber-700"
 										>{m.pending_review()}</span
 									>{/if}
