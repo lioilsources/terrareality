@@ -26,6 +26,7 @@ class SearchQuery {
     this.sort,
     this.limit,
     this.offset,
+    this.excludeDemo = false,
   });
 
   ///
@@ -113,6 +114,9 @@ class SearchQuery {
   ///
   int? offset;
 
+  /// Leave demo listings out (static site locality pages).
+  bool excludeDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is SearchQuery &&
     other.text == text &&
@@ -127,7 +131,8 @@ class SearchQuery {
     _deepEquality.equals(other.attributes, attributes) &&
     other.sort == sort &&
     other.limit == limit &&
-    other.offset == offset;
+    other.offset == offset &&
+    other.excludeDemo == excludeDemo;
 
   @override
   int get hashCode =>
@@ -144,10 +149,11 @@ class SearchQuery {
     (attributes.hashCode) +
     (sort == null ? 0 : sort!.hashCode) +
     (limit == null ? 0 : limit!.hashCode) +
-    (offset == null ? 0 : offset!.hashCode);
+    (offset == null ? 0 : offset!.hashCode) +
+    (excludeDemo.hashCode);
 
   @override
-  String toString() => 'SearchQuery[text=$text, kinds=$kinds, rentMin=$rentMin, rentMax=$rentMax, areaMin=$areaMin, areaMax=$areaMax, layouts=$layouts, adminPath=$adminPath, bbox=$bbox, attributes=$attributes, sort=$sort, limit=$limit, offset=$offset]';
+  String toString() => 'SearchQuery[text=$text, kinds=$kinds, rentMin=$rentMin, rentMax=$rentMax, areaMin=$areaMin, areaMax=$areaMax, layouts=$layouts, adminPath=$adminPath, bbox=$bbox, attributes=$attributes, sort=$sort, limit=$limit, offset=$offset, excludeDemo=$excludeDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -200,6 +206,7 @@ class SearchQuery {
     } else {
       json[r'offset'] = null;
     }
+      json[r'exclude_demo'] = this.excludeDemo;
     return json;
   }
 
@@ -239,6 +246,7 @@ class SearchQuery {
         sort: SearchQuerySortEnum.fromJson(json[r'sort']),
         limit: mapValueOfType<int>(json, r'limit'),
         offset: mapValueOfType<int>(json, r'offset'),
+        excludeDemo: mapValueOfType<bool>(json, r'exclude_demo') ?? false,
       );
     }
     return null;

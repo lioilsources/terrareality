@@ -54,7 +54,7 @@ func (s *Server) listingDTO(ctx context.Context, v listing.View) (gen.Listing, e
 		Description: i18nDTO(l.Description), RentAmount: l.RentAmount, DepositAmount: l.DepositAmount,
 		UtilitiesAmount: l.UtilitiesAmount, Currency: l.Currency, MinTermMonths: l.MinTermMonths, Attributes: objectOf(l.Attributes),
 		LocationPrecision: gen.ListingLocationPrecision(l.LocationPrecision), PublishedVersion: l.PublishedVersion,
-		PublishedAt: l.PublishedAt, CreatedAt: l.CreatedAt, UpdatedAt: l.UpdatedAt, PropertyId: c.PropertyID,
+		PublishedAt: l.PublishedAt, CreatedAt: l.CreatedAt, UpdatedAt: l.UpdatedAt, PropertyId: c.PropertyID, IsDemo: l.IsDemo,
 		Unit: gen.ListingUnit{Id: c.UnitID, Kind: gen.UnitKind(c.UnitKind), Label: c.UnitLabel, Floor: c.Floor,
 			FloorArea: c.FloorArea, Layout: c.Layout, ParentId: c.ParentID, ParentLabel: c.ParentLabel},
 		Address: gen.ListingAddress{Label: c.AddressLabel, City: c.City, CityPart: c.CityPart, PostalCode: c.PostalCode, Lat: c.Lat, Lng: c.Lng},
@@ -168,7 +168,7 @@ func (s *Server) ListListings(ctx context.Context, r gen.ListListingsRequestObje
 	for _, l := range rows {
 		sum := gen.ListingSummary{Id: l.ID, Status: gen.ListingStatus(l.Status), Title: i18nDTO(l.Title), UnitKind: gen.UnitKind(l.UnitKind),
 			UnitLabel: l.UnitLabel, AddressLabel: l.AddressLabel, RentAmount: l.RentAmount, Currency: l.Currency,
-			PendingReview: l.PendingReview, PublishedVersion: l.PublishedVersion, UpdatedAt: l.UpdatedAt}
+			PendingReview: l.PendingReview, PublishedVersion: l.PublishedVersion, UpdatedAt: l.UpdatedAt, IsDemo: l.IsDemo}
 		if l.CoverKey != "" {
 			u := s.Listings.PhotoURLs(l.CoverKey, l.CoverOrientation)["thumb"]
 			sum.CoverUrl = &u

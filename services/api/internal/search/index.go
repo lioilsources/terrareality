@@ -97,7 +97,8 @@ func (Indexer) Index(ctx context.Context, q *db.Queries, listingID uuid.UUID) er
 		Version: *src.PublishedVersion, UnitKind: s.Unit.Kind, Layout: s.Unit.Layout, RentAmount: *s.RentAmount,
 		Currency: s.Currency, DepositAmount: s.Deposit, FloorArea: s.Unit.FloorArea, Attributes: attrs, Title: title,
 		Lat: lat, Lng: lng, AdminPath: adminPath, City: s.Address.City, CityPart: s.Address.CityPart,
-		CoverKey: coverKey, CoverOrientation: coverOrient, SearchText: searchText(s, schema), PublishedAt: published})
+		CoverKey: coverKey, CoverOrientation: coverOrient, SearchText: searchText(s, schema), PublishedAt: published,
+		IsDemo: src.IsDemo})
 }
 
 // Remove drops a listing from search.

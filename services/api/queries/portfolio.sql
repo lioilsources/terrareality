@@ -163,7 +163,8 @@ SELECT count(*)::int FROM lease_events WHERE lease_id = $1 AND kind = $2 AND cre
 SELECT coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY s.rent_amount), 0)::bigint AS median_rent,
   count(*)::int AS listings,
   coalesce(avg(EXTRACT(EPOCH FROM (now() - s.published_at)) / 86400), 0)::float8 AS avg_age_days
-FROM listing_search s WHERE s.admin_path <@ sqlc.arg(path)::text::ltree AND s.currency = sqlc.arg(currency);
+FROM listing_search s WHERE s.admin_path <@ sqlc.arg(path)::text::ltree AND s.currency = sqlc.arg(currency)
+  AND NOT s.is_demo;
 
 -- name: UpsertLeaseRisk :exec
 INSERT INTO lease_risk (lease_id, org_id, score, band, factors, model_version, computed_at)

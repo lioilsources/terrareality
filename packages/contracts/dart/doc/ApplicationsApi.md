@@ -46,6 +46,8 @@ Method | HTTP request | Description
 
 Book a viewing slot (replaces an earlier booking of this application)
 
+Viewings of a demo listing (is_demo) are refused with 409 and problem code demo_listing.
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -276,6 +278,8 @@ void (empty response body)
 > ApplicationDetail createApplication(applicationInput)
 
 Apply for a listing, alone or as a group (a group application waits for every member's consent)
+
+A demo listing (is_demo) is refused with 409 and problem code demo_listing.
 
 ### Example
 ```dart

@@ -63,6 +63,9 @@ func (s *Service) Apply(ctx context.Context, p *auth.Principal, in ApplyInput) (
 	if err != nil {
 		return uuid.Nil, err
 	}
+	if l.IsDemo {
+		return uuid.Nil, messaging.ErrDemoListing
+	}
 	if _, err := sys.GetMembership(ctx, db.GetMembershipParams{OrgID: l.OrgID, UserID: p.UserID}); err == nil {
 		return uuid.Nil, apperr.Conflict("own_listing", "you cannot apply for your own listing")
 	}

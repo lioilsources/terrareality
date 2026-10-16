@@ -11,6 +11,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/audit"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
@@ -140,6 +141,9 @@ func (s *Service) Book(ctx context.Context, p *auth.Principal, appID, slotID uui
 	})
 	if err != nil {
 		return uuid.Nil, err
+	}
+	if app.ListingIsDemo {
+		return uuid.Nil, messaging.ErrDemoListing
 	}
 	if app.Status != StatusSubmitted && app.Status != StatusInvited {
 		return uuid.Nil, apperr.Conflict("application_closed", "viewings can be booked for open applications only")

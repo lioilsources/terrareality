@@ -230,7 +230,7 @@ func (q *Queries) GetAdminUnit(ctx context.Context, path string) (GetAdminUnitRo
 }
 
 const getIndexSource = `-- name: GetIndexSource :one
-SELECT l.id, l.org_id, l.status, l.published_version, l.location_precision, l.published_at,
+SELECT l.id, l.org_id, l.status, l.published_version, l.location_precision, l.published_at, l.is_demo,
   v.snapshot, coalesce(a.admin_path::text, '')::text AS admin_path
 FROM listings l
 JOIN listing_versions v ON v.listing_id = l.id AND v.version = l.published_version
@@ -247,6 +247,7 @@ type GetIndexSourceRow struct {
 	PublishedVersion  *int32     `json:"published_version"`
 	LocationPrecision string     `json:"location_precision"`
 	PublishedAt       *time.Time `json:"published_at"`
+	IsDemo            bool       `json:"is_demo"`
 	Snapshot          []byte     `json:"snapshot"`
 	AdminPath         string     `json:"admin_path"`
 }
@@ -262,6 +263,7 @@ func (q *Queries) GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSou
 		&i.PublishedVersion,
 		&i.LocationPrecision,
 		&i.PublishedAt,
+		&i.IsDemo,
 		&i.Snapshot,
 		&i.AdminPath,
 	)
@@ -271,7 +273,7 @@ func (q *Queries) GetIndexSource(ctx context.Context, id uuid.UUID) (GetIndexSou
 const getPublicListing = `-- name: GetPublicListing :one
 SELECT s.listing_id, s.org_id, s.version, ST_Y(s.location::geometry)::float8 AS lat,
   ST_X(s.location::geometry)::float8 AS lng, s.admin_path::text AS admin_path, s.published_at, v.snapshot,
-  l.prescreen
+  l.prescreen, l.is_demo
 FROM listing_search s
 JOIN listing_versions v ON v.listing_id = s.listing_id AND v.version = s.version
 JOIN listings l ON l.id = s.listing_id
@@ -288,6 +290,7 @@ type GetPublicListingRow struct {
 	PublishedAt time.Time `json:"published_at"`
 	Snapshot    []byte    `json:"snapshot"`
 	Prescreen   []byte    `json:"prescreen"`
+	IsDemo      bool      `json:"is_demo"`
 }
 
 func (q *Queries) GetPublicListing(ctx context.Context, listingID uuid.UUID) (GetPublicListingRow, error) {
@@ -303,6 +306,7 @@ func (q *Queries) GetPublicListing(ctx context.Context, listingID uuid.UUID) (Ge
 		&i.PublishedAt,
 		&i.Snapshot,
 		&i.Prescreen,
+		&i.IsDemo,
 	)
 	return i, err
 }
@@ -455,7 +459,7 @@ const municipalitiesWithListings = `-- name: MunicipalitiesWithListings :many
 SELECT a.name, a.slug, a.path::text AS path, count(*)::int AS listings,
   percentile_cont(0.5) WITHIN GROUP (ORDER BY s.rent_amount)::bigint AS median_rent
 FROM admin_units a JOIN listing_search s ON s.admin_path <@ a.path
-WHERE a.level = 2 AND ($1::text IS NULL OR s.unit_kind = $1)
+WHERE a.level = 2 AND NOT s.is_demo AND ($1::text IS NULL OR s.unit_kind = $1)
 GROUP BY a.name, a.slug, a.path
 ORDER BY listings DESC
 `
@@ -469,6 +473,7 @@ type MunicipalitiesWithListingsRow struct {
 }
 
 // Astro SEO pages: municipalities (level 2) with at least one listing of a kind.
+// Demo listings are not supply: they never create or inflate a locality page.
 func (q *Queries) MunicipalitiesWithListings(ctx context.Context, kind *string) ([]MunicipalitiesWithListingsRow, error) {
 	rows, err := q.db.Query(ctx, municipalitiesWithListings, kind)
 	if err != nil {
@@ -817,13 +822,14 @@ const upsertListingSearch = `-- name: UpsertListingSearch :exec
 
 INSERT INTO listing_search (listing_id, org_id, version, unit_kind, layout, rent_amount, currency, deposit_amount,
   floor_area, attributes, title, location, admin_path, city, city_part, cover_key, cover_orientation, tsv, published_at,
-  boosted_until, highlighted_until)
+  is_demo, boosted_until, highlighted_until)
 VALUES ($1, $2, $3, $4, $5,
   $6, $7, $8, $9::numeric,
   $10, $11,
   ST_SetSRID(ST_MakePoint($12::float8, $13::float8), 4326)::geography,
   $14::text::ltree, $15, $16, $17,
   $18, to_tsvector('simple', lower(unaccent($19::text))), $20,
+  $21,
   -- Promotion windows (M7) survive re-indexing and unpublish/republish.
   (SELECT max(p.ends_at) FROM promotions p WHERE p.listing_id = $1 AND p.kind = 'top'
     AND p.starts_at <= now() AND p.ends_at > now()),
@@ -834,6 +840,7 @@ ON CONFLICT (listing_id) DO UPDATE SET version = EXCLUDED.version, unit_kind = E
   floor_area = EXCLUDED.floor_area, attributes = EXCLUDED.attributes, title = EXCLUDED.title, location = EXCLUDED.location,
   admin_path = EXCLUDED.admin_path, city = EXCLUDED.city, city_part = EXCLUDED.city_part, cover_key = EXCLUDED.cover_key,
   cover_orientation = EXCLUDED.cover_orientation, tsv = EXCLUDED.tsv, published_at = EXCLUDED.published_at,
+  is_demo = EXCLUDED.is_demo,
   boosted_until = EXCLUDED.boosted_until, highlighted_until = EXCLUDED.highlighted_until
 `
 
@@ -858,6 +865,7 @@ type UpsertListingSearchParams struct {
 	CoverOrientation int32     `json:"cover_orientation"`
 	SearchText       string    `json:"search_text"`
 	PublishedAt      time.Time `json:"published_at"`
+	IsDemo           bool      `json:"is_demo"`
 }
 
 // Search index ---------------------------------------------------------------
@@ -883,6 +891,7 @@ func (q *Queries) UpsertListingSearch(ctx context.Context, arg UpsertListingSear
 		arg.CoverOrientation,
 		arg.SearchText,
 		arg.PublishedAt,
+		arg.IsDemo,
 	)
 	return err
 }

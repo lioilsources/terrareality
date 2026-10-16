@@ -25,6 +25,7 @@ class ListingSummary {
     required this.pendingReview,
     this.publishedVersion,
     required this.updatedAt,
+    this.isDemo = false,
   });
 
   String id;
@@ -69,6 +70,9 @@ class ListingSummary {
 
   DateTime updatedAt;
 
+  /// Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+  bool isDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is ListingSummary &&
     other.id == id &&
@@ -82,7 +86,8 @@ class ListingSummary {
     other.coverUrl == coverUrl &&
     other.pendingReview == pendingReview &&
     other.publishedVersion == publishedVersion &&
-    other.updatedAt == updatedAt;
+    other.updatedAt == updatedAt &&
+    other.isDemo == isDemo;
 
   @override
   int get hashCode =>
@@ -98,10 +103,11 @@ class ListingSummary {
     (coverUrl == null ? 0 : coverUrl!.hashCode) +
     (pendingReview.hashCode) +
     (publishedVersion == null ? 0 : publishedVersion!.hashCode) +
-    (updatedAt.hashCode);
+    (updatedAt.hashCode) +
+    (isDemo.hashCode);
 
   @override
-  String toString() => 'ListingSummary[id=$id, status=$status, title=$title, unitKind=$unitKind, unitLabel=$unitLabel, addressLabel=$addressLabel, rentAmount=$rentAmount, currency=$currency, coverUrl=$coverUrl, pendingReview=$pendingReview, publishedVersion=$publishedVersion, updatedAt=$updatedAt]';
+  String toString() => 'ListingSummary[id=$id, status=$status, title=$title, unitKind=$unitKind, unitLabel=$unitLabel, addressLabel=$addressLabel, rentAmount=$rentAmount, currency=$currency, coverUrl=$coverUrl, pendingReview=$pendingReview, publishedVersion=$publishedVersion, updatedAt=$updatedAt, isDemo=$isDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -129,6 +135,7 @@ class ListingSummary {
       json[r'published_version'] = null;
     }
       json[r'updated_at'] = this.updatedAt.toUtc().toIso8601String();
+      json[r'is_demo'] = this.isDemo;
     return json;
   }
 
@@ -163,6 +170,7 @@ class ListingSummary {
         pendingReview: mapValueOfType<bool>(json, r'pending_review')!,
         publishedVersion: mapValueOfType<int>(json, r'published_version'),
         updatedAt: mapDateTime(json, r'updated_at', r'')!,
+        isDemo: mapValueOfType<bool>(json, r'is_demo')!,
       );
     }
     return null;
@@ -219,6 +227,7 @@ class ListingSummary {
     'currency',
     'pending_review',
     'updated_at',
+    'is_demo',
   };
 }
 

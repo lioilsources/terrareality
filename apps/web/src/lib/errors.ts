@@ -28,6 +28,7 @@ const byCode: Record<string, () => string> = {
 	staff_mfa_required: m.err_staff_mfa_required,
 	invalid_fields: m.err_invalid_fields,
 	listing_locked: m.err_listing_locked,
+	demo_listing: m.err_demo_listing,
 	unsupported_format: m.err_unsupported_format,
 	file_too_large: m.err_file_too_large,
 	feature_disabled: m.err_feature_disabled,

@@ -15,9 +15,12 @@ const backofficeMetrics = `-- name: BackofficeMetrics :one
 
 SELECT
   (SELECT count(*) FROM users WHERE pseudonymized_at IS NULL)::bigint AS users,
-  (SELECT count(*) FROM organizations WHERE deleted_at IS NULL)::bigint AS orgs,
-  (SELECT count(*) FROM listing_search)::bigint AS listings_published,
-  (SELECT count(*) FROM listing_search WHERE boosted_until > now() OR highlighted_until > now())::bigint AS listings_promoted,
+  -- Demo listings and the demo organization (terractl demo seed) are not supply.
+  (SELECT count(*) FROM organizations o WHERE o.deleted_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM listings l WHERE l.org_id = o.id AND l.is_demo))::bigint AS orgs,
+  (SELECT count(*) FROM listing_search WHERE NOT is_demo)::bigint AS listings_published,
+  (SELECT count(*) FROM listing_search WHERE NOT is_demo
+    AND (boosted_until > now() OR highlighted_until > now()))::bigint AS listings_promoted,
   (SELECT count(*) FROM applications WHERE submitted_at >= now() - interval '30 days')::bigint AS applications_30d,
   (SELECT count(*) FROM leases WHERE signed_at >= now() - interval '30 days')::bigint AS leases_signed_30d,
   ((SELECT count(*) FROM moderation_cases WHERE status = 'open')

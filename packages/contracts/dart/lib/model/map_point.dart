@@ -17,6 +17,7 @@ class MapPoint {
     required this.lat,
     required this.lng,
     required this.rentAmount,
+    this.isDemo = false,
   });
 
   String id;
@@ -27,12 +28,16 @@ class MapPoint {
 
   int rentAmount;
 
+  /// Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing).
+  bool isDemo;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is MapPoint &&
     other.id == id &&
     other.lat == lat &&
     other.lng == lng &&
-    other.rentAmount == rentAmount;
+    other.rentAmount == rentAmount &&
+    other.isDemo == isDemo;
 
   @override
   int get hashCode =>
@@ -40,10 +45,11 @@ class MapPoint {
     (id.hashCode) +
     (lat.hashCode) +
     (lng.hashCode) +
-    (rentAmount.hashCode);
+    (rentAmount.hashCode) +
+    (isDemo.hashCode);
 
   @override
-  String toString() => 'MapPoint[id=$id, lat=$lat, lng=$lng, rentAmount=$rentAmount]';
+  String toString() => 'MapPoint[id=$id, lat=$lat, lng=$lng, rentAmount=$rentAmount, isDemo=$isDemo]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -51,6 +57,7 @@ class MapPoint {
       json[r'lat'] = this.lat;
       json[r'lng'] = this.lng;
       json[r'rent_amount'] = this.rentAmount;
+      json[r'is_demo'] = this.isDemo;
     return json;
   }
 
@@ -77,6 +84,7 @@ class MapPoint {
         lat: mapValueOfType<double>(json, r'lat')!,
         lng: mapValueOfType<double>(json, r'lng')!,
         rentAmount: mapValueOfType<int>(json, r'rent_amount')!,
+        isDemo: mapValueOfType<bool>(json, r'is_demo')!,
       );
     }
     return null;
@@ -128,6 +136,7 @@ class MapPoint {
     'lat',
     'lng',
     'rent_amount',
+    'is_demo',
   };
 }
 

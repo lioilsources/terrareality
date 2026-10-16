@@ -472,6 +472,7 @@ type Listing struct {
 	DeletedAt         *time.Time  `json:"deleted_at"`
 	Prescreen         []byte      `json:"prescreen"`
 	FirstPublishedAt  *time.Time  `json:"first_published_at"`
+	IsDemo            bool        `json:"is_demo"`
 }
 
 type ListingAggregate struct {
@@ -507,6 +508,7 @@ type ListingSearch struct {
 	PublishedAt      time.Time       `json:"published_at"`
 	BoostedUntil     *time.Time      `json:"boosted_until"`
 	HighlightedUntil *time.Time      `json:"highlighted_until"`
+	IsDemo           bool            `json:"is_demo"`
 }
 
 type ListingVersion struct {

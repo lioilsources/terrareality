@@ -21,6 +21,7 @@ Name | Type | Description | Notes
 **sort** | **String** |  | [optional] 
 **limit** | **int** |  | [optional] 
 **offset** | **int** |  | [optional] 
+**excludeDemo** | **bool** | Leave demo listings out (static site locality pages). | [optional] [default to false]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

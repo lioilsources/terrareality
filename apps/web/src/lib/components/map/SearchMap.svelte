@@ -2,6 +2,7 @@
 	import type { Area, AreaAggregate, SearchResult } from '@terra/contracts';
 	import { onMount } from 'svelte';
 	import { MAP_STYLE } from '$app/env/public';
+	import { markerLabel } from '#lib/demo.js';
 
 	let {
 		result,
@@ -51,7 +52,11 @@
 			features: r.points.map((p) => ({
 				type: 'Feature' as const,
 				geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
-				properties: { id: p.id, price: formatPrice(p.rent_amount) }
+				properties: {
+					id: p.id,
+					price: markerLabel(formatPrice(p.rent_amount), p.is_demo),
+					demo: p.is_demo
+				}
 			}))
 		};
 	}
@@ -169,7 +174,17 @@
 							'text-allow-overlap': false,
 							'text-font': FONT
 						},
-						paint: { 'text-color': '#fff', 'text-halo-color': '#0f766e', 'text-halo-width': 6 }
+						paint: {
+							'text-color': '#fff',
+							// Demo listings (closed beta) in amber, matching the demo label on cards.
+							'text-halo-color': [
+								'case',
+								['boolean', ['get', 'demo'], false],
+								'#d97706',
+								'#0f766e'
+							],
+							'text-halo-width': 6
+						}
 					});
 					map.on('click', 'areas-fill', (e) => {
 						const hit = map?.queryRenderedFeatures(e.point, { layers: ['clusters', 'price'] });

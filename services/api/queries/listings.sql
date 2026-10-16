@@ -272,3 +272,39 @@ WHERE NOT EXISTS (SELECT 1 FROM media m WHERE m.object_key = k.object_key)
     WHERE (v.status = 'pending' OR v.version = l.published_version)
       AND v.snapshot -> 'photos' @> jsonb_build_array(jsonb_build_object('key', k.object_key)))
 LIMIT sqlc.arg(max_rows);
+
+-- Demo listings (terractl demo, system context) ---------------------------------
+
+-- name: FindDemoOrganization :one
+-- The company organization without members that holds the demo listings.
+SELECT o.* FROM organizations o
+WHERE o.kind = 'company' AND o.name = $1 AND o.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.org_id = o.id)
+ORDER BY o.created_at LIMIT 1;
+
+-- name: DemoRuianPlaces :many
+-- Deterministic pseudo-random pick of distinct street addresses in Praha
+-- (municipality 554782) from the imported RÚIAN address points.
+SELECT id FROM ruian_places
+WHERE municipality_code = 554782 AND street IS NOT NULL AND house_number_type = 'cp'
+ORDER BY md5(id::text || sqlc.arg(seed)::text), id
+LIMIT sqlc.arg(lim);
+
+-- name: SetListingDemo :exec
+UPDATE listings SET is_demo = true WHERE id = $1;
+
+-- name: ListDemoListings :many
+SELECT l.id, l.org_id, l.status, l.title, l.rent_amount, l.currency, l.created_at, u.label AS unit_label,
+  a.label AS address_label, (s.listing_id IS NOT NULL)::boolean AS in_search,
+  (SELECT count(*) FROM media m WHERE m.listing_id = l.id)::int AS photos
+FROM listings l
+JOIN units u ON u.id = l.unit_id
+JOIN properties p ON p.id = u.property_id
+JOIN addresses a ON a.id = p.address_id
+LEFT JOIN listing_search s ON s.listing_id = l.id
+WHERE l.is_demo AND l.deleted_at IS NULL
+ORDER BY l.created_at, l.id;
+
+-- name: ListAllListingMedia :many
+-- Every photo row of a listing, rejected ones included (demo removal).
+SELECT * FROM media WHERE listing_id = $1 ORDER BY position, created_at;

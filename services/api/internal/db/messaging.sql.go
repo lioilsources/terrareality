@@ -1083,7 +1083,7 @@ func (q *Queries) ListReplyTemplates(ctx context.Context, orgID uuid.UUID) ([]Re
 
 const listingForConversation = `-- name: ListingForConversation :one
 
-SELECT s.listing_id, s.org_id, s.title, l.prescreen
+SELECT s.listing_id, s.org_id, s.title, l.prescreen, l.is_demo
 FROM listing_search s JOIN listings l ON l.id = s.listing_id
 WHERE s.listing_id = $1 AND l.status = 'published' AND l.deleted_at IS NULL
 `
@@ -1093,6 +1093,7 @@ type ListingForConversationRow struct {
 	OrgID     uuid.UUID `json:"org_id"`
 	Title     []byte    `json:"title"`
 	Prescreen []byte    `json:"prescreen"`
+	IsDemo    bool      `json:"is_demo"`
 }
 
 // M4: conversations, messages, moderation and notifications.
@@ -1105,6 +1106,7 @@ func (q *Queries) ListingForConversation(ctx context.Context, listingID uuid.UUI
 		&i.OrgID,
 		&i.Title,
 		&i.Prescreen,
+		&i.IsDemo,
 	)
 	return i, err
 }

@@ -41,19 +41,19 @@ type Region struct {
 var Regions = map[string]Region{
 	"praha": {
 		Name: "Praha a okolí",
-		// Codes from the RÚIAN register of municipalities (číselník obcí); verify
+		// Codes checked against the RÚIAN ST_UKSG export of 2026-09-30 (Obce layer); verify
 		// after the first real import: `terractl import-ruian` lists codes with no rows.
 		Municipalities: map[int32]string{
 			554782: "Praha",
 			538728: "Říčany",
 			538094: "Brandýs nad Labem-Stará Boleslav",
-			538931: "Úvaly",
-			538086: "Čelákovice",
+			538957: "Úvaly",
+			538132: "Čelákovice",
 			539325: "Jesenice",
 			539139: "Černošice",
-			539694: "Roztoky",
-			539210: "Hostivice",
-			539627: "Rudná",
+			539627: "Roztoky",
+			539244: "Hostivice",
+			531723: "Rudná",
 			531057: "Beroun",
 			532053: "Kladno",
 			534676: "Mělník",

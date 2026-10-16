@@ -8,6 +8,7 @@ import '../../l10n/gen/app_localizations.dart';
 import '../common/api_error.dart';
 import '../common/money.dart';
 import '../messaging/conversations_screen.dart' show titleOf;
+import 'demo_badge.dart';
 import 'listing_map.dart';
 import 'search_repository.dart';
 
@@ -181,7 +182,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-/// A listing card in the results, with the transparent "Promoted" label.
+/// A listing card in the results, with the transparent "Promoted" label
+/// and the "Demo listing" label on closed-beta placeholders.
 class ListingCardTile extends StatelessWidget {
   const ListingCardTile({super.key, required this.card});
 
@@ -210,7 +212,7 @@ class ListingCardTile extends StatelessWidget {
         onTap: () => context.push('/inzerat/${card.id}'),
         child: Semantics(
           button: true,
-          label: [title, rent, facts, if (card.promoted) t.promoted].join(', '),
+          label: [if (card.isDemo) t.demoBadge, title, rent, facts, if (card.promoted) t.promoted].join(', '),
           excludeSemantics: true,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (card.coverUrl != null)
@@ -225,6 +227,11 @@ class ListingCardTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (card.isDemo)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: DemoBadge(key: Key('demo-${card.id}')),
+                  ),
                 if (card.promoted)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),

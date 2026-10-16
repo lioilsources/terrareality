@@ -13,6 +13,10 @@
 //	                                create invited pilot owner organizations (magic-link invitation e-mail)
 //	terractl rotate-secrets [--dry-run] [--batch n]
 //	                                re-encrypt sealed columns with the current APP_SECRET_KEY (docs/runbooks/key-rotation.md)
+//	terractl demo seed --photos <dir> [--org "TerraReality – ukázka"] [--count 15]
+//	                                publish labelled demo listings for the closed beta (any APP_ENV, idempotent)
+//	terractl demo list              print the demo listings
+//	terractl demo remove            archive all demo listings and delete their photos (docs/runbooks/seed-praha.md)
 package main
 
 import (
@@ -65,6 +69,8 @@ func run(args []string) error {
 		return importRuian(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) >= 1 && args[0] == "onboard-owner":
 		return onboardOwners(ctx, cfg, pool, args[1:], os.Stdout)
+	case len(args) >= 1 && args[0] == "demo":
+		return demoCmd(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) >= 1 && args[0] == "rotate-secrets":
 		return rotateSecrets(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) == 3 && args[0] == "staff" && (args[1] == "grant" || args[1] == "revoke"):
@@ -148,7 +154,7 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex | import-ruian --region praha [...] | onboard-owner [...] | rotate-secrets [--dry-run] [--batch n]")
+	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex | import-ruian --region praha [...] | onboard-owner [...] | rotate-secrets [--dry-run] [--batch n] | demo seed --photos <dir> [--org o] [--count n] | demo list | demo remove")
 }
 
 func seedUser(ctx context.Context, pool *pgxpool.Pool, email, name string, staff bool) error {

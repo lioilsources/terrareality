@@ -1283,6 +1283,7 @@ paths:
       tags: [messaging]
       operationId: startConversation
       summary: Contact the landlord of a published listing (reuses an existing conversation)
+      description: A demo listing (is_demo) is refused with 409 and problem code demo_listing.
       requestBody:
         required: true
         content:
@@ -1829,6 +1830,7 @@ paths:
       tags: [applications]
       operationId: createApplication
       summary: Apply for a listing, alone or as a group (a group application waits for every member's consent)
+      description: A demo listing (is_demo) is refused with 409 and problem code demo_listing.
       requestBody:
         required: true
         content:
@@ -1877,6 +1879,7 @@ paths:
       tags: [applications]
       operationId: bookViewing
       summary: Book a viewing slot (replaces an earlier booking of this application)
+      description: Viewings of a demo listing (is_demo) are refused with 409 and problem code demo_listing.
       parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
       requestBody:
         required: true
@@ -3813,7 +3816,7 @@ components:
         review_note: { type: string }
     ListingSummary:
       type: object
-      required: [id, status, title, unit_kind, unit_label, address_label, currency, pending_review, updated_at]
+      required: [id, status, title, unit_kind, unit_label, address_label, currency, pending_review, updated_at, is_demo]
       properties:
         id: { type: string, format: uuid }
         status: { $ref: "#/components/schemas/ListingStatus" }
@@ -3827,10 +3830,11 @@ components:
         pending_review: { type: boolean }
         published_version: { type: integer, format: int32 }
         updated_at: { type: string, format: date-time }
+        is_demo: { type: boolean, default: false, description: "Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing)." }
     Listing:
       type: object
       required: [id, org_id, status, title, description, currency, attributes, location_precision, pending_review,
-        unit, property_id, address, media, suggestions, versions, deposit_max_months, created_at, updated_at, prescreen]
+        unit, property_id, address, media, suggestions, versions, deposit_max_months, created_at, updated_at, prescreen, is_demo]
       properties:
         id: { type: string, format: uuid }
         org_id: { type: string, format: uuid }
@@ -3858,6 +3862,7 @@ components:
         deposit_max_months: { type: integer, description: Jurisdiction cap for the deposit in monthly rents. }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        is_demo: { type: boolean, default: false, description: "Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing)." }
     ReviewItem:
       type: object
       required: [version_id, listing_id, org_id, org_name, version, submitted_at, submitted_by_email, title, first_publication]
@@ -3952,9 +3957,10 @@ components:
         sort: { type: string, enum: [relevance, price_asc, price_desc, newest, area_desc] }
         limit: { type: integer, minimum: 1, maximum: 100 }
         offset: { type: integer, minimum: 0, maximum: 10000 }
+        exclude_demo: { type: boolean, default: false, description: Leave demo listings out (static site locality pages). }
     ListingCard:
       type: object
-      required: [id, unit_kind, rent_amount, currency, title, city, lat, lng, published_at, promoted, highlighted]
+      required: [id, unit_kind, rent_amount, currency, title, city, lat, lng, published_at, promoted, highlighted, is_demo]
       properties:
         id: { type: string, format: uuid }
         unit_kind: { $ref: "#/components/schemas/UnitKind" }
@@ -3971,6 +3977,7 @@ components:
         published_at: { type: string, format: date-time }
         promoted: { type: boolean, default: false, description: "Paid top placement running now; the card shows a transparent \"Promoted\" label." }
         highlighted: { type: boolean, default: false, description: Paid visual highlight running now. }
+        is_demo: { type: boolean, default: false, description: "Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing)." }
     FacetCount:
       type: object
       required: [value, count]
@@ -3990,12 +3997,13 @@ components:
         lng: { type: number, format: double }
     MapPoint:
       type: object
-      required: [id, lat, lng, rent_amount]
+      required: [id, lat, lng, rent_amount, is_demo]
       properties:
         id: { type: string, format: uuid }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         rent_amount: { type: integer, format: int64 }
+        is_demo: { type: boolean, default: false, description: "Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing)." }
     SearchResult:
       type: object
       required: [total, items, facets, rent_min, rent_max, areas, points]
@@ -4044,7 +4052,7 @@ components:
         geometry: { type: object, additionalProperties: true, description: GeoJSON MultiPolygon (simplified). }
     PublicListing:
       type: object
-      required: [id, title, description, rent_amount, currency, attributes, unit, location, photos, published_at, area_names, prescreen]
+      required: [id, title, description, rent_amount, currency, attributes, unit, location, photos, published_at, area_names, prescreen, is_demo]
       properties:
         id: { type: string, format: uuid }
         prescreen: { type: array, items: { $ref: "#/components/schemas/PrescreenQuestion" }, description: Questions to answer when contacting the landlord. }
@@ -4076,6 +4084,7 @@ components:
         area_names: { type: array, items: { type: string }, description: From region to neighbourhood. }
         photos: { type: array, items: { $ref: "#/components/schemas/PhotoVariants" } }
         published_at: { type: string, format: date-time }
+        is_demo: { type: boolean, default: false, description: "Demo listing of the closed beta (terractl demo seed): shown with a prominent label, cannot be contacted, applied for or booked (problem code demo_listing)." }
     MunicipalityStat:
       type: object
       required: [name, slug, path, listings, median_rent]

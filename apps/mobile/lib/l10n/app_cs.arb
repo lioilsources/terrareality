@@ -173,6 +173,9 @@
     }
   },
   "promoted": "Topováno",
+  "demoBadge": "Ukázkový inzerát – nelze pronajmout",
+  "demoListingNote": "Tento inzerát slouží jen jako ukázka pro uzavřenou betu. Byt nelze pronajmout ani kontaktovat pronajímatele.",
+  "errorDemoListing": "Ukázkový inzerát nelze pronajmout ani kontaktovat pronajímatele.",
   "filterKind": "Typ",
   "filterLayout": "Dispozice",
   "filterRent": "Nájem za měsíc",

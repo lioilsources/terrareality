@@ -119,5 +119,6 @@ U M8b prošly lokálně `make test`, `make lint`, `make gen-check`, `make e2e` (
 3. Projít `docs/runbooks/launch.md`, většina položek je mimo kód: účty Hetzner a registr, DNS, produkční secrets (nově oddělené `.env` pro app a db VM, klíče záloh v samostatném projektu, `APPLE_TEAM_ID`, `ANDROID_CERT_SHA256`), WireGuard peer od provozovatele Sparku, revize právních textů a DPA (Q-LEGAL-1..5, Q-LEASE-4), penetrační test, TestFlight a Play track, po nasazení `make smoke` a test obnovy na produkci.
 4. Testování se živými lidmi: `docs/04-user-testing.md` (T0 příprava: staging, analytika PostHog, tlačítko zpětné vazby, registrace jen na pozvánku – zatím neimplementováno).
 5. Reálné FCM čeká na OQ-14.
+6. Ukázkové inzeráty pro uzavřenou betu (větev `beta-demo`): `terractl demo seed|list|remove`, viz `docs/runbooks/seed-praha.md` (3a); před pozváním hledajících je odstranit (`terractl demo remove`).
 
 Pasti prostředí (staré procesy na :8080, `source .env` u ručně spuštěného API, migrace i na `terra_test`) jsou v memory `terrareality-dev-env-quirks.md`.

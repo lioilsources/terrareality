@@ -232,6 +232,9 @@ func (s *Service) Checkout(ctx context.Context, p *auth.Principal, in CheckoutRe
 		if l.Status != "published" {
 			return apperr.Conflict("listing_not_published", "only a published listing can be promoted")
 		}
+		if l.IsDemo {
+			return apperr.Conflict("demo_listing", "demo listings cannot be promoted")
+		}
 		title = i18n(l.Title)
 		pp, err := q.GetActivePromoProductByCode(ctx, in.ProductCode)
 		if errors.Is(err, pgx.ErrNoRows) {
