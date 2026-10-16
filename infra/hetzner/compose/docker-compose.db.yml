@@ -56,7 +56,7 @@ services:
     restart: unless-stopped
 
   postgres-exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
       # Same host, Docker bridge network: no traffic leaves the VM, so no TLS needed here.
       DATA_SOURCE_URI: db:5432/terra?sslmode=disable
