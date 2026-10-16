@@ -69,7 +69,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.9.1
+    image: quay.io/prometheus/node-exporter:v1.12.1
     command:
       - --path.rootfs=/host
       - --web.listen-address=${DB_BIND_IP:-10.10.1.20}:9100
