@@ -17,7 +17,7 @@ Name | Type | Description | Notes
 **entity** | **String** |  | 
 **entityId** | **String** |  | [optional] 
 **action** | **String** |  | 
-**diff** | [**Map<String, Object>**](Object.md) |  | [default to const {}]
+**diff** | [**Map<String, Object>**](Object.md) | Changed values; only owners, admins and staff get them (empty otherwise). | [default to const {}]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

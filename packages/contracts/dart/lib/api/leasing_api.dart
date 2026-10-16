@@ -243,6 +243,8 @@ class LeasingApi {
 
   /// Linked accounts and recent incoming transactions with their match status
   ///
+  /// Transactions are paged newest first; `transactions_next_before` is the cursor of the next page.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -250,7 +252,12 @@ class LeasingApi {
   /// * [String] orgId (required):
   ///
   /// * [String] status:
-  Future<Response> getBankOverviewWithHttpInfo(String orgId, { String? status, }) async {
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> getBankOverviewWithHttpInfo(String orgId, { String? status, String? before, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/orgs/{orgId}/bank'
       .replaceAll('{orgId}', orgId);
@@ -264,6 +271,12 @@ class LeasingApi {
 
     if (status != null) {
       queryParams.addAll(_queryParams('', 'status', status));
+    }
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
     }
 
     const contentTypes = <String>[];
@@ -282,13 +295,20 @@ class LeasingApi {
 
   /// Linked accounts and recent incoming transactions with their match status
   ///
+  /// Transactions are paged newest first; `transactions_next_before` is the cursor of the next page.
+  ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
   ///
   /// * [String] status:
-  Future<BankOverview?> getBankOverview(String orgId, { String? status, }) async {
-    final response = await getBankOverviewWithHttpInfo(orgId,  status: status, );
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<BankOverview?> getBankOverview(String orgId, { String? status, String? before, int? limit, }) async {
+    final response = await getBankOverviewWithHttpInfo(orgId,  status: status, before: before, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
@@ -527,6 +547,8 @@ class LeasingApi {
 
   /// Give notice; the lease ends after the notice period
   ///
+  /// A tenant or co-tenant gives notice without a reason. The landlord (organization member with the leases permission) must state a statutory `reason`; the notice period is then at least three months. `delivered_on` lies between 30 days ago and 7 days from today. Errors: 403 `notice_not_allowed` (guarantor, subtenant), 422 `invalid_delivered_on`, 422 `landlord_notice_reason_required` (landlord without a reason, or other_serious_reason without an explanation), 422 `notice_reason_not_applicable` (flat_needed_for_landlord_or_relative on a fixed-term lease), 409 `lease_not_active`. 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -561,6 +583,8 @@ class LeasingApi {
   }
 
   /// Give notice; the lease ends after the notice period
+  ///
+  /// A tenant or co-tenant gives notice without a reason. The landlord (organization member with the leases permission) must state a statutory `reason`; the notice period is then at least three months. `delivered_on` lies between 30 days ago and 7 days from today. Errors: 403 `notice_not_allowed` (guarantor, subtenant), 422 `invalid_delivered_on`, 422 `landlord_notice_reason_required` (landlord without a reason, or other_serious_reason without an explanation), 422 `notice_reason_not_applicable` (flat_needed_for_landlord_or_relative on a fixed-term lease), 409 `lease_not_active`. 
   ///
   /// Parameters:
   ///
@@ -687,12 +711,19 @@ class LeasingApi {
 
   /// Leases of the organization
   ///
+  /// Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<Response> listOrgLeasesWithHttpInfo(String orgId,) async {
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<Response> listOrgLeasesWithHttpInfo(String orgId, { String? before, int? limit, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/orgs/{orgId}/leases'
       .replaceAll('{orgId}', orgId);
@@ -703,6 +734,13 @@ class LeasingApi {
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
+
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
 
     const contentTypes = <String>[];
 
@@ -720,11 +758,18 @@ class LeasingApi {
 
   /// Leases of the organization
   ///
+  /// Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Parameters:
   ///
   /// * [String] orgId (required):
-  Future<List<LeaseSummary>?> listOrgLeases(String orgId,) async {
-    final response = await listOrgLeasesWithHttpInfo(orgId,);
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
+  Future<List<LeaseSummary>?> listOrgLeases(String orgId, { String? before, int? limit, }) async {
+    final response = await listOrgLeasesWithHttpInfo(orgId,  before: before, limit: limit, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
@@ -797,6 +842,8 @@ class LeasingApi {
 
   /// Confirm a suggested match or match manually; or ignore the transaction
   ///
+  /// Errors: 422 `currency_mismatch` (the transaction and the share have different currencies), 409 `already_matched`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -834,6 +881,8 @@ class LeasingApi {
   }
 
   /// Confirm a suggested match or match manually; or ignore the transaction
+  ///
+  /// Errors: 422 `currency_mismatch` (the transaction and the share have different currencies), 409 `already_matched`.
   ///
   /// Parameters:
   ///
@@ -958,6 +1007,8 @@ class LeasingApi {
 
   /// Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
   ///
+  /// `provider` must be one of the lease detail's `sign_providers`. Errors: 422 `invalid_provider` (not enabled on this server), 409 `document_changed` (a new version was proposed meanwhile: reload and sign the new document), 409 `lease_not_proposed`, 409 `already_signed`, 403 `not_a_party`. 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -992,6 +1043,8 @@ class LeasingApi {
   }
 
   /// Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+  ///
+  /// `provider` must be one of the lease detail's `sign_providers`. Errors: 422 `invalid_provider` (not enabled on this server), 409 `document_changed` (a new version was proposed meanwhile: reload and sign the new document), 409 `lease_not_proposed`, 409 `already_signed`, 403 `not_a_party`. 
   ///
   /// Parameters:
   ///

@@ -9,6 +9,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -85,5 +86,6 @@
 				</li>
 			{/each}
 		</ul>
+		<LoadMore next={data.paging.next} first={data.paging.first} testid="bank-more" />
 	</Card>
 </div>

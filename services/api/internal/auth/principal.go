@@ -13,9 +13,9 @@ type Principal struct {
 	Client         string
 	IsStaff        bool
 	ImpersonatorID *uuid.UUID
-	// MFA reports that the session was opened after the user enabled TOTP.
-	// Every login path then requires the second factor, so such a session
-	// passed it; one opened before (possibly stolen) did not.
+	// MFA reports that this session passed the second factor at login
+	// (sessions.mfa_at, set by CompleteMFA) and the user still has TOTP on.
+	// A session opened before TOTP was enabled (possibly stolen) did not.
 	MFA bool
 }
 

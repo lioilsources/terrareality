@@ -4,6 +4,7 @@
 	import { t } from '#lib/catalog.js';
 	import { fmtDateTime } from '#lib/labels.js';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import { verdictLabel, reasonLabel } from './labels.js';
 	import type { PageProps } from './$types';
 
@@ -55,4 +56,5 @@
 			{/each}
 		</ul>
 	{/if}
+	<LoadMore next={data.paging.next} first={data.paging.first} testid="moderation-more" />
 </Card>

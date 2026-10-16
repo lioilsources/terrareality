@@ -56,7 +56,7 @@ func (s *Summaries) Summarize(ctx context.Context, id uuid.UUID, final bool) err
 	if err != nil {
 		return err
 	}
-	facts := ai.ApplicationFacts{ListingTitle: pick(i18n(a.ListingTitle), "cs"), Message: a.Message,
+	facts := ai.ApplicationFacts{ListingTitle: notify.Text(i18n(a.ListingTitle)).Pick("cs"), Message: a.Message,
 		HouseholdSize: int(a.HouseholdSize), Answers: map[string]string{}}
 	if f, err := q.ListingMatchFacts(ctx, a.ListingID); err == nil {
 		facts.Rent = f.RentAmount
@@ -70,7 +70,7 @@ func (s *Summaries) Summarize(ctx context.Context, id uuid.UUID, final bool) err
 	var answers []answer
 	_ = json.Unmarshal(a.Answers, &answers)
 	for _, x := range answers {
-		facts.Answers[pick(x.Question, "cs")] = x.Answer
+		facts.Answers[notify.Text(x.Question).Pick("cs")] = x.Answer
 	}
 	for _, p := range people {
 		facts.People = append(facts.People, ai.PersonFacts{Verification: p.VerificationLevel, IncomeProof: p.IncomeKey != nil,
@@ -144,7 +144,7 @@ func (r *Reminders) Remind(ctx context.Context, bookingID uuid.UUID) error {
 		return err
 	}
 	for _, p := range people {
-		notify.PushUser(ctx, q, r.Pusher, nil, p.ID, notify.Push{Title: pick(title, p.Locale), Body: when, Link: link,
+		notify.PushUser(ctx, q, r.Pusher, nil, p.ID, notify.Push{Title: notify.Text(title).Pick(p.Locale), Body: when, Link: link,
 			Data: notify.PushData(notify.PushViewing, bookingID.String(), map[string]string{"application_id": b.ApplicationID.String()})})
 	}
 	return nil

@@ -28,15 +28,15 @@ jobs:
       run:
         working-directory: services/api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Start PostgreSQL (PostGIS + pgvector, same image as dev)
         working-directory: .
         run: docker compose -f infra/dev/docker-compose.yml up -d --build --wait db
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/api/go.mod
           cache-dependency-path: services/api/go.sum
-      - uses: sqlc-dev/setup-sqlc@v4
+      - uses: sqlc-dev/setup-sqlc@c0209b9199cd1cce6a14fc27cabcec491b651761 # v4.0.0
         with:
           sqlc-version: "1.31.1"
       - name: Generated code is up to date (server, sqlc, attribute catalog, lease templates)
@@ -59,12 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: 21
@@ -85,12 +85,12 @@ jobs:
     timeout-minutes: 45
     needs: [go, web]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/api/go.mod
           cache-dependency-path: services/api/go.sum
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -142,8 +142,8 @@ jobs:
       run:
         working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
           cache: true
@@ -159,8 +159,8 @@ jobs:
       run:
         working-directory: services/vision
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.13"
       - run: pip install -e '.[dev]'
@@ -171,21 +171,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/api/go.mod
           cache-dependency-path: services/api/go.sum
       - name: govulncheck (reachable Go vulnerabilities)
         working-directory: services/api
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
       - name: npm audit (production dependencies, high and above)
         run: npm audit --omit=dev --audit-level=high
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.13"
       - name: pip-audit (services/vision)
@@ -195,13 +195,13 @@ jobs:
           /tmp/vision-audit/bin/pip install --quiet . pip-audit
           /tmp/vision-audit/bin/pip-audit --skip-editable --progress-spinner off
       - name: osv-scanner (lockfiles of all stacks)
-        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@e69cc6c86b31f1e7e23935bbe7031b50e51082de # v2.0.2
         with:
           scan-args: |-
             --lockfile=package-lock.json
             --lockfile=services/api/go.mod
             --lockfile=apps/mobile/pubspec.lock
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         if: hashFiles('infra/hetzner/terraform/**/*.tf') != ''
         with:
           terraform_wrapper: false
@@ -227,7 +227,7 @@ jobs:
       # Must equal IMAGE_REGISTRY in infra/hetzner/compose/.env (images: $IMAGE_REGISTRY/terra/{api,web,vision}:$IMAGE_TAG).
       IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY || format('ghcr.io/{0}', github.repository_owner) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Build terra/api (version info for /v1/version, logs and Sentry)
         run: |
           docker build -t terra/api \

@@ -4,8 +4,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../applications/applications_screen.dart' show applicationDetailProvider, myApplicationsProvider;
 import '../auth/session.dart' show pushRegistrationProvider;
 import '../platform/url_opener.dart';
+import '../viewings/viewings_repository.dart' show myViewingsProvider;
 
 /// Obtains the device push token and reports taps on notifications. The
 /// Firebase implementation needs the project's google-services files
@@ -55,9 +57,21 @@ final _uuidish = RegExp(r'^[0-9A-Za-z-]+$');
 /// /inzerat/{id}. Pushes for the landlord (`audience: landlord`) point to
 /// the web admin, which the app does not have: no route (see
 /// [externalLinkForPush]).
+///
+/// A viewing the landlord cancelled (`event: viewing_cancelled`, the
+/// e-mail/push template key) opens the viewings screen with a notice about
+/// it; the cancelled booking itself is no longer listed. Without that marker
+/// the API sends it as an `application` push and the application opens,
+/// where another slot can be booked.
 String? routeForPush(Map<String, String> data) {
   if (data['audience'] == 'landlord') return null;
   final id = data['id'];
+  if (data['event'] == 'viewing_cancelled') {
+    final app = data['kind'] == 'application' ? id : data['application_id'];
+    return app != null && _uuidish.hasMatch(app)
+        ? Uri(path: '/prohlidky', queryParameters: {'zruseno': app}).toString()
+        : '/prohlidky';
+  }
   if (id != null && _uuidish.hasMatch(id)) {
     switch (data['kind']) {
       case 'conversation' || 'message':
@@ -125,6 +139,13 @@ class _PushNavigationState extends ConsumerState<PushNavigation> {
   }
 
   void _open(Map<String, String> data) {
+    // A decision or a cancelled viewing changes what these screens show,
+    // also when one of them is already open.
+    if (data['kind'] == 'application' || data['kind'] == 'viewing' || data['event'] == 'viewing_cancelled') {
+      ref.invalidate(myViewingsProvider);
+      ref.invalidate(myApplicationsProvider);
+      ref.invalidate(applicationDetailProvider);
+    }
     final route = routeForPush(data);
     if (route != null) {
       widget.router.push(route);

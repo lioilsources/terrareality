@@ -31,9 +31,14 @@ class RealtimeEvent {
   }
 }
 
+/// Conversations per inbox page (the API default).
+const conversationsPageSize = 50;
+
 /// Messaging operations the screens need.
 abstract class MessagingRepository {
-  Future<List<Conversation>> conversations();
+  /// One page of the inbox, newest activity first; [before] is the last
+  /// conversation of the previous page.
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize});
   Future<ConversationDetail> detail(String id);
   Future<List<Message>> messages(String id);
   Future<Message> send(String id, String body);
@@ -50,7 +55,8 @@ class ApiMessagingRepository implements MessagingRepository {
   final MessagingApi api;
 
   @override
-  Future<List<Conversation>> conversations() async => await api.listConversations() ?? [];
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize}) async =>
+      await api.listConversations(before: before, limit: limit) ?? [];
 
   @override
   Future<ConversationDetail> detail(String id) async => (await api.getConversation(id))!;

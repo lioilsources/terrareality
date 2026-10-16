@@ -2,9 +2,11 @@
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
+	import { fmtDate } from '#lib/labels.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import LandlordNoticeForm from '#lib/components/LandlordNoticeForm.svelte';
 	import LeaseForm from '#lib/components/LeaseForm.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
 	import LeaseSignForm from '#lib/components/LeaseSignForm.svelte';
@@ -42,7 +44,9 @@
 <p class="mb-2 text-sm">
 	<a href={localizeHref(`/admin/orgs/${params.orgId}/smlouvy`)}>← {m.lease_title()}</a>
 </p>
-{#if form?.error}<div class="mb-4"><Alert kind="error">{form.error}</Alert></div>{/if}
+{#if form?.error && !('noticeError' in form)}<div class="mb-4">
+		<Alert kind="error">{form.error}</Alert>
+	</div>{/if}
 <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
 	<div class="grid content-start gap-6">
 		<LeaseSummary detail={d} chain={data.chain} {locale} />
@@ -88,16 +92,21 @@
 			</form>
 		{/if}
 		{#if l.state === 'proposed' && me && !me.signed_at}
-			<LeaseSignForm />
+			<LeaseSignForm providers={d.sign_providers} />
+		{/if}
+		{#if form && 'endsOn' in form && form.endsOn}
+			<Alert kind="success"
+				><span data-testid="notice-done"
+					>{m.lease_notice_done({ date: fmtDate(form.endsOn, locale) })}</span
+				></Alert
+			>
 		{/if}
 		{#if l.state === 'active' || l.state === 'signed'}
-			<Card title={m.lease_notice()}>
-				<!-- A landlord's notice needs a statutory reason (Civil Code §2288); the api
-				     refuses it (landlord_notice_reason_required) until the contract has a
-				     reason field, so the form is not offered. -->
-				<p class="text-sm text-[var(--muted)]" data-testid="landlord-notice-unavailable">
-					{m.lease_notice_landlord_unavailable()}
-				</p>
+			<Card title={m.lease_notice_landlord()}>
+				<LandlordNoticeForm
+					endsOn={l.ends_on}
+					error={form && 'noticeError' in form ? form.error : null}
+				/>
 			</Card>
 		{/if}
 		{#if l.state === 'terminated'}

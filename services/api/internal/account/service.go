@@ -113,9 +113,10 @@ func (s *Service) tx(ctx context.Context, fn func(q *db.Queries, tx pgx.Tx) erro
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error { return fn(db.New(tx), tx) })
 }
 
-// newSession stores a session and returns the raw token.
+// newSession stores a session and returns the raw token. mfa marks a session
+// that passed the second factor (sessions.mfa_at, Server.staff).
 func (s *Service) newSession(ctx context.Context, q *db.Queries, userID uuid.UUID, client string,
-	impersonator *uuid.UUID, ttl time.Duration) (Result, error) {
+	impersonator *uuid.UUID, ttl time.Duration, mfa bool) (Result, error) {
 	tok := tokens.New()
 	meta := auth.Meta(ctx)
 	exp := time.Now().Add(ttl)
@@ -123,9 +124,14 @@ func (s *Service) newSession(ctx context.Context, q *db.Queries, userID uuid.UUI
 	if meta.UserAgent != "" {
 		ua = &meta.UserAgent
 	}
+	var mfaAt *time.Time
+	if mfa {
+		now := time.Now()
+		mfaAt = &now
+	}
 	_, err := q.CreateSession(ctx, db.CreateSessionParams{
 		UserID: userID, TokenHash: tokens.Hash(tok), Client: client, ImpersonatorID: impersonator,
-		Ip: parseIP(meta.IP), UserAgent: ua, ExpiresAt: exp,
+		Ip: parseIP(meta.IP), UserAgent: ua, ExpiresAt: exp, MfaAt: mfaAt,
 	})
 	if err != nil {
 		return Result{}, err
@@ -146,7 +152,7 @@ func (s *Service) finishLogin(ctx context.Context, q *db.Queries, u db.User, cli
 		}
 		return Result{MFAToken: tok}, nil
 	}
-	return s.newSession(ctx, q, u.ID, client, nil, s.TTL(client))
+	return s.newSession(ctx, q, u.ID, client, nil, s.TTL(client), false)
 }
 
 // createToken stores a one-time token and returns the raw value.

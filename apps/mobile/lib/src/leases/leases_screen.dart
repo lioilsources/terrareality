@@ -92,7 +92,7 @@ class LeaseScreen extends ConsumerWidget {
                 style: TextStyle(color: v.chainValid ? Colors.green.shade700 : Colors.red)),
             if (l.state == LeaseState.proposed && me != null && me.signedAt == null) ...[
               const SizedBox(height: 12),
-              SignLeaseButton(leaseId: id, address: l.propertyAddress),
+              SignLeaseButton(leaseId: id, address: l.propertyAddress, providers: v.detail.signProviders),
             ],
             if (open.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -140,16 +140,20 @@ class LeaseScreen extends ConsumerWidget {
   }
 }
 
-/// The label of the signature method the app uses.
-String signMethodText(AppLocalizations t) => signProvider == 'bankid_sign' ? t.signMethodBankId : t.signMethodSimple;
+/// The label of a signature method, by its legal level.
+String signMethodText(AppLocalizations t, SignProvider p) =>
+    p.level == SignProviderLevelEnum.qualified ? t.signMethodQualified : t.signMethodSimple;
 
-/// "Sign" with a confirmation naming the address and the signature method;
-/// a provider that needs its own page opens in the browser.
+/// "Sign" with a confirmation naming the address and the signature method.
+/// The methods are the server's enabled [providers] in order of preference:
+/// one is used as is, several are offered to choose from. A provider that
+/// needs its own page opens in the browser (https only).
 class SignLeaseButton extends ConsumerStatefulWidget {
-  const SignLeaseButton({super.key, required this.leaseId, required this.address});
+  const SignLeaseButton({super.key, required this.leaseId, required this.address, required this.providers});
 
   final String leaseId;
   final String address;
+  final List<SignProvider> providers;
 
   @override
   ConsumerState<SignLeaseButton> createState() => _SignLeaseButtonState();
@@ -157,15 +161,25 @@ class SignLeaseButton extends ConsumerStatefulWidget {
 
 class _SignLeaseButtonState extends ConsumerState<SignLeaseButton> {
   bool _busy = false;
+  SignProviderIdEnum? _chosen;
+
+  /// The chosen method; the first (preferred) one until the user picks.
+  SignProvider? get _provider {
+    final ps = widget.providers;
+    if (ps.isEmpty) return null;
+    return ps.where((p) => p.id == _chosen).firstOrNull ?? ps.first;
+  }
 
   Future<void> _sign() async {
+    final provider = _provider;
+    if (provider == null) return;
     final t = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(t.signConfirmTitle),
-        content: Text(t.signConfirmBody(widget.address, signMethodText(t))),
+        content: Text(t.signConfirmBody(widget.address, signMethodText(t, provider))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(t.cancel)),
           FilledButton(key: const Key('confirm-sign'), onPressed: () => Navigator.pop(c, true), child: Text(t.leaseSign)),
@@ -175,7 +189,7 @@ class _SignLeaseButtonState extends ConsumerState<SignLeaseButton> {
     if (ok != true || !mounted) return;
     setState(() => _busy = true);
     try {
-      final res = await ref.read(leasesRepositoryProvider).sign(widget.leaseId);
+      final res = await ref.read(leasesRepositoryProvider).sign(widget.leaseId, provider.id);
       if (res.redirect != null) {
         final opened = await ref.read(urlOpenerProvider).open(res.redirect!);
         messenger.showSnackBar(SnackBar(content: Text(opened ? t.signContinue : t.actionFailed)));
@@ -188,8 +202,17 @@ class _SignLeaseButtonState extends ConsumerState<SignLeaseButton> {
       final code = errorCode(e);
       messenger.showSnackBar(SnackBar(
         key: const Key('sign-error'),
-        content: Text(code == 'invalid_provider' ? t.signUnavailable : errorMessage(t, e)),
+        content: Text(switch (code) {
+          'invalid_provider' => t.signUnavailable,
+          'document_changed' => t.signDocumentChanged,
+          _ => errorMessage(t, e),
+        }),
       ));
+      // The enabled methods or the document changed meanwhile: reload the
+      // lease so the tenant reviews what they would sign.
+      if (code == 'invalid_provider' || code == 'document_changed') {
+        ref.invalidate(leaseProvider(widget.leaseId));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -198,10 +221,35 @@ class _SignLeaseButtonState extends ConsumerState<SignLeaseButton> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final provider = _provider;
+    if (provider == null) {
+      return Text(t.signUnavailable, key: const Key('sign-unavailable'));
+    }
+    final ps = widget.providers;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (ps.length > 1) ...[
+        Text(t.signMethodChoose, style: Theme.of(context).textTheme.labelLarge),
+        RadioGroup<SignProviderIdEnum>(
+          groupValue: provider.id,
+          onChanged: (id) {
+            if (!_busy && id != null) setState(() => _chosen = id);
+          },
+          child: Column(children: [
+            for (final p in ps)
+              RadioListTile<SignProviderIdEnum>(
+                key: Key('sign-provider-${p.id.value}'),
+                value: p.id,
+                contentPadding: EdgeInsets.zero,
+                title: Text(signMethodText(t, p)),
+              ),
+          ]),
+        ),
+      ],
       FilledButton(key: const Key('sign-lease'), onPressed: _busy ? null : _sign, child: Text(t.leaseSign)),
-      const SizedBox(height: 4),
-      Text(t.signMethodLabel(signMethodText(t)), style: Theme.of(context).textTheme.bodySmall),
+      if (ps.length == 1) ...[
+        const SizedBox(height: 4),
+        Text(t.signMethodLabel(signMethodText(t, provider)), style: Theme.of(context).textTheme.bodySmall),
+      ],
     ]);
   }
 }

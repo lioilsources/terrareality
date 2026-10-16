@@ -16,6 +16,22 @@ describe('errorMessage', () => {
 		expect(errorMessage(problem(422, 'terms_outdated'))).toBe(m.err_terms_outdated());
 	});
 
+	it('translates notice and applicant codes', () => {
+		expect(errorMessage(problem(422, 'notice_reason_not_applicable'))).toBe(
+			m.err_notice_reason_not_applicable()
+		);
+		expect(errorMessage(problem(422, 'landlord_notice_reason_required'))).toBe(
+			m.err_landlord_notice_reason_required()
+		);
+		expect(errorMessage(problem(422, 'invalid_delivered_on'))).toBe(m.err_invalid_delivered_on());
+		expect(errorMessage(problem(403, 'notice_not_allowed'))).toBe(m.err_notice_not_allowed());
+		expect(errorMessage(problem(422, 'invalid_role'))).toBe(m.err_invalid_role());
+		expect(errorMessage(problem(404, 'income_proof_not_found'))).toBe(
+			m.err_income_proof_not_found()
+		);
+		expect(knownCodes()).not.toContain('slot_has_bookings');
+	});
+
 	it('falls back by status, then to the generic message', () => {
 		expect(errorMessage(problem(503, 'something_new'))).toBe(m.err_unavailable());
 		expect(errorMessage(problem(404))).toBe(m.err_not_found());

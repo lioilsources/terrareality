@@ -108,9 +108,9 @@ func (e *env) verifiedUser(prefix string) (string, string) {
 	return em, tok
 }
 
-// V-1: only a tenant or co-tenant gives notice, delivered within the window;
-// a landlord's notice (needs a statutory reason) is refused for now; the
-// event records who gave it.
+// V-1: a tenant or co-tenant gives notice without a reason, a guarantor not
+// at all, the landlord only with a statutory reason (§ 2288 OZ); delivery
+// lies within the window; the event records who gave it and why.
 func TestLeaseNoticeRules(t *testing.T) {
 	needTypst(t)
 	e := newEnv(t)
@@ -126,7 +126,34 @@ func TestLeaseNoticeRules(t *testing.T) {
 
 	var p problem
 	if code := e.call("POST", path, ownerTok, on(today), &p); code != 422 || p.Code != "landlord_notice_reason_required" {
-		t.Fatalf("landlord notice: %d %+v", code, p)
+		t.Fatalf("landlord notice without a reason: %d %+v", code, p)
+	}
+	other := map[string]string{"delivered_on": today.Format("2006-01-02"), "reason": "other_serious_reason"}
+	if code := e.call("POST", path, ownerTok, other, &p); code != 422 || p.Code != "landlord_notice_reason_required" {
+		t.Fatalf("other_serious_reason without an explanation: %d %+v", code, p)
+	}
+	if code := e.call("POST", path, ownerTok, map[string]string{"delivered_on": today.Format("2006-01-02"), "reason": "just_because"}, &p); code != 400 {
+		t.Fatalf("unknown reason: %d %+v", code, p)
+	}
+	// A tenant-side caller sees their own and the landlord's e-mail, not the
+	// guarantor's; the landlord sees all.
+	var td, ld struct {
+		Parties []struct {
+			Role  string  `json:"role"`
+			Email *string `json:"email"`
+		} `json:"parties"`
+	}
+	e.must(200, "GET", "/v1/leases/"+id.String(), tenantTok, nil, &td)
+	for _, pp := range td.Parties {
+		if (pp.Role == "guarantor" && pp.Email != nil) || (pp.Role == "tenant" && pp.Email == nil) {
+			t.Fatalf("tenant sees party e-mails: %+v", td.Parties)
+		}
+	}
+	e.must(200, "GET", "/v1/leases/"+id.String(), ownerTok, nil, &ld)
+	for _, pp := range ld.Parties {
+		if pp.Role != "landlord" && pp.Email == nil {
+			t.Fatalf("landlord misses party e-mails: %+v", ld.Parties)
+		}
 	}
 	if code := e.call("POST", path, guarantorTok, on(today), &p); code != 403 || p.Code != "notice_not_allowed" {
 		t.Fatalf("guarantor notice: %d %+v", code, p)
@@ -149,6 +176,35 @@ func TestLeaseNoticeRules(t *testing.T) {
 	}
 	if by != "tenant" || role != "tenant" || party == "" {
 		t.Fatalf("notice event by=%s role=%s party=%s", by, role, party)
+	}
+
+	// A fixed-term lease: the own-use reason (§ 2288 odst. 2) does not apply;
+	// a breach does, with at least three months of notice.
+	tenant2, tenant2Tok := e.verifiedUser("notice-tenant2")
+	fixed := e.signedLease(ownerTok, orgID, "byt_doba_urcita", []map[string]any{
+		{"name": "Nájemce Dva", "email": tenant2, "role": "tenant"}}, tenant2Tok)
+	fpath := "/v1/leases/" + fixed.String() + "/notice"
+	ownUse := map[string]string{"delivered_on": today.Format("2006-01-02"), "reason": "flat_needed_for_landlord_or_relative"}
+	if code := e.call("POST", fpath, ownerTok, ownUse, &p); code != 422 || p.Code != "notice_reason_not_applicable" {
+		t.Fatalf("own use on a fixed term: %d %+v", code, p)
+	}
+	var res struct {
+		EndsOn string `json:"ends_on"`
+	}
+	e.must(200, "POST", fpath, ownerTok, map[string]string{"delivered_on": today.Format("2006-01-02"),
+		"reason": "gross_breach_tenant", "explanation": "Nájem neplacen tři měsíce."}, &res)
+	ends, err := time.Parse("2006-01-02", res.EndsOn)
+	minEnd := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1+leasing.LandlordNoticeMonths, -1)
+	if err != nil || ends.Before(minEnd) {
+		t.Fatalf("landlord notice ends %s, want >= %s", res.EndsOn, minEnd.Format("2006-01-02"))
+	}
+	var reason, explanation string
+	if err := e.pool.QueryRow(context.Background(), `SELECT payload->'data'->>'by', payload->'data'->>'reason', payload->'data'->>'explanation'
+		FROM lease_events WHERE lease_id = $1 AND kind = 'notice_given'`, fixed).Scan(&by, &reason, &explanation); err != nil {
+		t.Fatal(err)
+	}
+	if by != "landlord" || reason != "gross_breach_tenant" || explanation == "" {
+		t.Fatalf("landlord notice event by=%s reason=%s explanation=%q", by, reason, explanation)
 	}
 }
 

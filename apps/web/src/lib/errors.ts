@@ -109,9 +109,12 @@ const byCode: Record<string, () => string> = {
 	landlord_notice_reason_required: m.err_landlord_notice_reason_required,
 	invalid_delivered_on: m.err_invalid_delivered_on,
 	email_unverified: m.err_email_unverified,
-	slot_has_bookings: m.err_slot_has_bookings,
 	listing_already_accepted: m.err_listing_already_accepted,
-	invalid_query: m.err_invalid_query
+	invalid_query: m.err_invalid_query,
+	notice_reason_not_applicable: m.err_notice_reason_not_applicable,
+	invalid_role: m.err_invalid_role,
+	income_proof_not_found: m.err_income_proof_not_found,
+	application_not_found: m.err_application_not_found
 };
 
 /** Fallback by HTTP status when the code is unknown (new api codes, proxies, outages). */

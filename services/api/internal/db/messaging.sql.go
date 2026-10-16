@@ -713,8 +713,10 @@ LEFT JOIN LATERAL (
 WHERE ($2::uuid IS NULL OR c.org_id = $2::uuid)
   AND ($3::uuid IS NULL OR c.id = $3::uuid)
   AND (NOT $4::boolean OR c.seeker_id = $1::uuid)
-ORDER BY c.last_message_at DESC
-LIMIT 200
+  AND ($5::uuid IS NULL
+    OR (c.last_message_at, c.id) < (SELECT x.last_message_at, x.id FROM conversations x WHERE x.id = $5::uuid))
+ORDER BY c.last_message_at DESC, c.id DESC
+LIMIT $6
 `
 
 type ListConversationsParams struct {
@@ -722,6 +724,8 @@ type ListConversationsParams struct {
 	OrgID          *uuid.UUID `json:"org_id"`
 	ConversationID *uuid.UUID `json:"conversation_id"`
 	AsSeeker       bool       `json:"as_seeker"`
+	Before         *uuid.UUID `json:"before"`
+	Lim            int32      `json:"lim"`
 }
 
 type ListConversationsRow struct {
@@ -750,6 +754,8 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 		arg.OrgID,
 		arg.ConversationID,
 		arg.AsSeeker,
+		arg.Before,
+		arg.Lim,
 	)
 	if err != nil {
 		return nil, err
@@ -891,8 +897,16 @@ LEFT JOIN messages msg ON msg.id = mc.message_id
 LEFT JOIN listing_search s ON s.listing_id = coalesce(mc.listing_id, c.listing_id)
 LEFT JOIN listings l ON l.id = coalesce(mc.listing_id, c.listing_id)
 WHERE mc.status = 'open'
-ORDER BY mc.created_at
+  AND ($1::uuid IS NULL
+    OR (mc.created_at, mc.id) > (SELECT x.created_at, x.id FROM moderation_cases x WHERE x.id = $1::uuid))
+ORDER BY mc.created_at, mc.id
+LIMIT $2
 `
+
+type ListOpenModerationCasesParams struct {
+	After *uuid.UUID `json:"after"`
+	Lim   int32      `json:"lim"`
+}
 
 type ListOpenModerationCasesRow struct {
 	ID                   uuid.UUID  `json:"id"`
@@ -928,8 +942,8 @@ type ListOpenModerationCasesRow struct {
 }
 
 // Conversation cases and listing reports (DSA), oldest first.
-func (q *Queries) ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error) {
-	rows, err := q.db.Query(ctx, listOpenModerationCases)
+func (q *Queries) ListOpenModerationCases(ctx context.Context, arg ListOpenModerationCasesParams) ([]ListOpenModerationCasesRow, error) {
+	rows, err := q.db.Query(ctx, listOpenModerationCases, arg.After, arg.Lim)
 	if err != nil {
 		return nil, err
 	}

@@ -703,9 +703,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **backofficeListModeration**
-> List<ModerationCase> backofficeListModeration()
+> List<ModerationCase> backofficeListModeration(after, limit)
 
 Open reports and automatic flags, oldest first
+
+Paged oldest first: a full page may have more; pass the last item's id as `after`.
 
 ### Example
 ```dart
@@ -718,9 +720,11 @@ import 'package:terra_api/api.dart';
 //defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
 
 final api_instance = BackofficeApi();
+final after = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor of oldest-first lists; return items with an id greater than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.backofficeListModeration();
+    final result = api_instance.backofficeListModeration(after, limit);
     print(result);
 } catch (e) {
     print('Exception when calling BackofficeApi->backofficeListModeration: $e\n');
@@ -728,7 +732,11 @@ try {
 ```
 
 ### Parameters
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **after** | **String**| Cursor of oldest-first lists; return items with an id greater than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 

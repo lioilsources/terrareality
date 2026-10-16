@@ -20,7 +20,8 @@ Method | HTTP request | Description
 [**createViewingSlot**](ApplicationsApi.md#createviewingslot) | **POST** /v1/orgs/{orgId}/listings/{listingId}/viewing-slots | Offer a viewing slot
 [**decideApplication**](ApplicationsApi.md#decideapplication) | **POST** /v1/orgs/{orgId}/applications/{applicationId}/decision | Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
 [**deleteIncomeProof**](ApplicationsApi.md#deleteincomeproof) | **DELETE** /v1/me/passport/income | Remove my income proof
-[**deleteViewingSlot**](ApplicationsApi.md#deleteviewingslot) | **DELETE** /v1/orgs/{orgId}/viewing-slots/{slotId} | Remove a slot (its bookings are cancelled)
+[**deleteViewingSlot**](ApplicationsApi.md#deleteviewingslot) | **DELETE** /v1/orgs/{orgId}/viewing-slots/{slotId} | Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
+[**getApplicantIncomeProof**](ApplicationsApi.md#getapplicantincomeproof) | **GET** /v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof | Short-lived download link of an applicant's income proof (every call is audited)
 [**getApplication**](ApplicationsApi.md#getapplication) | **GET** /v1/applications/{applicationId} | Application with consents, bookable viewing slots and my booking
 [**getGroup**](ApplicationsApi.md#getgroup) | **GET** /v1/groups/{groupId} | Group with members and chat (chat only for joined members)
 [**getPassport**](ApplicationsApi.md#getpassport) | **GET** /v1/me/passport | My Tenant Passport
@@ -323,6 +324,8 @@ Name | Type | Description  | Notes
 
 Create a tenant group and invite flatmates by e-mail
 
+Errors: 403 `email_unverified` (confirm the e-mail first), 429 `rate_limited` (more than 30 invitations a day).
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -468,6 +471,8 @@ Name | Type | Description  | Notes
 
 Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
 
+The applicants' e-mails and pushes are queued in the same transaction as the decision. Errors: 409 `listing_already_accepted` (another application of the listing was accepted), 409 `application_closed`, 422 `invalid_reason`. 
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -558,7 +563,7 @@ void (empty response body)
 # **deleteViewingSlot**
 > deleteViewingSlot(orgId, slotId)
 
-Remove a slot (its bookings are cancelled)
+Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
 
 ### Example
 ```dart
@@ -600,6 +605,59 @@ void (empty response body)
 
  - **Content-Type**: Not defined
  - **Accept**: application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getApplicantIncomeProof**
+> DownloadLink getApplicantIncomeProof(orgId, applicationId, userId)
+
+Short-lived download link of an applicant's income proof (every call is audited)
+
+Only while the application is open (submitted, invited) and for 30 days after it was accepted. Errors: 404 `income_proof_not_found`, 404 `application_not_found`. 
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = ApplicationsApi();
+final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final applicationId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final userId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+
+try {
+    final result = api_instance.getApplicantIncomeProof(orgId, applicationId, userId);
+    print(result);
+} catch (e) {
+    print('Exception when calling ApplicationsApi->getApplicantIncomeProof: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **orgId** | **String**|  | 
+ **applicationId** | **String**|  | 
+ **userId** | **String**|  | 
+
+### Return type
+
+[**DownloadLink**](DownloadLink.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -787,6 +845,8 @@ This endpoint does not need any parameter.
 > inviteToGroup(groupId, inviteToGroupRequest)
 
 Invite a flatmate by e-mail
+
+Errors: 403 `email_unverified`, 429 `rate_limited` (more than 30 invitations a day), 422 `group_full`.
 
 ### Example
 ```dart

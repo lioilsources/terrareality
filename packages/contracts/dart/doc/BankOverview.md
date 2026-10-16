@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **connections** | [**List<BankConnection>**](BankConnection.md) |  | [default to const []]
 **transactions** | [**List<BankTransaction>**](BankTransaction.md) |  | [default to const []]
+**transactionsNextBefore** | **String** | Cursor of the next page of transactions (absent on the last page). | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

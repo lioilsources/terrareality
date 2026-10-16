@@ -19,7 +19,11 @@ SELECT * FROM leases WHERE id = $1;
 -- name: ListOrgLeases :many
 SELECT l.*, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
-FROM leases l WHERE l.org_id = $1 ORDER BY l.created_at DESC;
+FROM leases l WHERE l.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (l.created_at, l.id) < (SELECT x.created_at, x.id FROM leases x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY l.created_at DESC, l.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: ListMyLeases :many
 SELECT l.*, coalesce(org_display_name(l.org_id), '')::text AS org_name
@@ -35,6 +39,10 @@ WHERE id = sqlc.arg(id) AND state = ANY(sqlc.arg(from_states)::text[]);
 -- Only a proposed lease becomes signed (a concurrent request for changes or
 -- a new proposal wins; the caller answers 409 on 0 rows).
 UPDATE leases SET state = 'signed', signed_at = now(), workflow_id = $2 WHERE id = $1 AND state = 'proposed';
+
+-- name: LeaseNoticeGiven :one
+-- Whether a notice event exists (lease_events_lease_kind index).
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = 'notice_given')::boolean;
 
 -- name: SetLeaseNotice :execrows
 UPDATE leases SET state = 'notice_given', notice_on = $2 WHERE id = $1 AND state IN ('active', 'signed');
@@ -200,9 +208,12 @@ ON CONFLICT (connection_id, external_id) DO NOTHING
 RETURNING *;
 
 -- name: ListBankTransactions :many
-SELECT * FROM bank_transactions WHERE org_id = $1
-  AND (sqlc.narg(status)::text IS NULL OR match_status = sqlc.narg(status)::text)
-ORDER BY booked_on DESC, created_at DESC LIMIT 200;
+SELECT t.* FROM bank_transactions t WHERE t.org_id = sqlc.arg(org_id)
+  AND (sqlc.narg(status)::text IS NULL OR t.match_status = sqlc.narg(status)::text)
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (t.booked_on, t.created_at, t.id) < (SELECT x.booked_on, x.created_at, x.id FROM bank_transactions x WHERE x.id = sqlc.narg(before)::uuid))
+ORDER BY t.booked_on DESC, t.created_at DESC, t.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: GetBankTransaction :one
 SELECT * FROM bank_transactions WHERE id = $1;

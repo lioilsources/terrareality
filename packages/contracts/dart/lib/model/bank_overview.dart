@@ -15,30 +15,47 @@ class BankOverview {
   BankOverview({
     this.connections = const [],
     this.transactions = const [],
+    this.transactionsNextBefore,
   });
 
   List<BankConnection> connections;
 
   List<BankTransaction> transactions;
 
+  /// Cursor of the next page of transactions (absent on the last page).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? transactionsNextBefore;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is BankOverview &&
     _deepEquality.equals(other.connections, connections) &&
-    _deepEquality.equals(other.transactions, transactions);
+    _deepEquality.equals(other.transactions, transactions) &&
+    other.transactionsNextBefore == transactionsNextBefore;
 
   @override
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (connections.hashCode) +
-    (transactions.hashCode);
+    (transactions.hashCode) +
+    (transactionsNextBefore == null ? 0 : transactionsNextBefore!.hashCode);
 
   @override
-  String toString() => 'BankOverview[connections=$connections, transactions=$transactions]';
+  String toString() => 'BankOverview[connections=$connections, transactions=$transactions, transactionsNextBefore=$transactionsNextBefore]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'connections'] = this.connections;
       json[r'transactions'] = this.transactions;
+    if (this.transactionsNextBefore != null) {
+      json[r'transactions_next_before'] = this.transactionsNextBefore;
+    } else {
+      json[r'transactions_next_before'] = null;
+    }
     return json;
   }
 
@@ -63,6 +80,7 @@ class BankOverview {
       return BankOverview(
         connections: BankConnection.listFromJson(json[r'connections']),
         transactions: BankTransaction.listFromJson(json[r'transactions']),
+        transactionsNextBefore: mapValueOfType<String>(json, r'transactions_next_before'),
       );
     }
     return null;

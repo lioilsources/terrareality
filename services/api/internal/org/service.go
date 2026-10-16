@@ -3,6 +3,7 @@ package org
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -165,18 +166,20 @@ func (s *Service) Update(ctx context.Context, p *auth.Principal, orgID uuid.UUID
 	return m, err
 }
 
-// Members lists members.
-func (s *Service) Members(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]db.ListMembersRow, error) {
+// Members lists members and returns the caller's role.
+func (s *Service) Members(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]db.ListMembersRow, string, error) {
 	var out []db.ListMembersRow
+	var role string
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
-		if _, err := Access(ctx, q, p.UserID, orgID, ""); err != nil {
+		m, err := Access(ctx, q, p.UserID, orgID, "")
+		if err != nil {
 			return err
 		}
-		var err error
+		role = m.Role
 		out, err = q.ListMembers(ctx, orgID)
 		return err
 	})
-	return out, err
+	return out, role, err
 }
 
 // UpdateMemberRole changes a role. Only owners grant or revoke ownership, and
@@ -261,8 +264,16 @@ func (s *Service) RemoveMember(ctx context.Context, p *auth.Principal, orgID, us
 	})
 }
 
+// InvitableRoles are the roles an invitation through the API may carry.
+// Ownership is never granted by invitation (owners promote members; pilot
+// owner invitations are created by terractl in system context).
+var InvitableRoles = []string{Admin, Agent, Accountant, Maintenance, Viewer, Investor}
+
 // Invite e-mails an invitation (owner, admin).
 func (s *Service) Invite(ctx context.Context, p *auth.Principal, orgID uuid.UUID, email, role, locale string) (db.Invitation, error) {
+	if !slices.Contains(InvitableRoles, role) {
+		return db.Invitation{}, apperr.Unprocessable("invalid_role", "invitations can carry the roles admin, agent, accountant, maintenance, viewer or investor")
+	}
 	email = strings.ToLower(strings.TrimSpace(email))
 	var inv db.Invitation
 	err := s.asUser(ctx, p, func(q *db.Queries, tx pgx.Tx) error {
@@ -421,16 +432,19 @@ func (s *Service) Accept(ctx context.Context, p *auth.Principal, token string) (
 	return m, err
 }
 
-// Audit lists an organization's audit events (owner, admin).
-func (s *Service) Audit(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]db.ListAuditEventsRow, error) {
+// Audit lists an organization's audit events (owner, admin) and returns the
+// caller's role.
+func (s *Service) Audit(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]db.ListAuditEventsRow, string, error) {
 	var out []db.ListAuditEventsRow
+	var role string
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
-		if _, err := Access(ctx, q, p.UserID, orgID, PermAuditRead); err != nil {
+		m, err := Access(ctx, q, p.UserID, orgID, PermAuditRead)
+		if err != nil {
 			return err
 		}
-		var err error
+		role = m.Role
 		out, err = q.ListAuditEvents(ctx, db.ListAuditEventsParams{OrgID: &orgID, Before: before, Lim: limit})
 		return err
 	})
-	return out, err
+	return out, role, err
 }

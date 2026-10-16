@@ -37,9 +37,9 @@ func (s *Service) pushOrgSubmitted(ctx context.Context, tx pgx.Tx, a db.SystemGe
 	}
 }
 
-// pushApplicants queues a decision (key application_invited, _accepted or
-// _rejected) for the applicant and joined group members.
-func (s *Service) pushApplicants(ctx context.Context, tx pgx.Tx, a db.SystemGetApplicationRow, people []db.ApplicationPeopleRow, key, reason string) {
+// pushApplicants queues an event (key application_invited, _accepted,
+// _rejected or viewing_cancelled) for the applicant and joined group members.
+func (s *Service) pushApplicants(ctx context.Context, tx pgx.Tx, a db.SystemGetApplicationRow, people []db.ApplicationPeopleRow, key, reason, when string) {
 	ps := s.pushes()
 	if !ps.Enabled() || notify.PushTitles[key] == nil {
 		return
@@ -51,8 +51,15 @@ func (s *Service) pushApplicants(ctx context.Context, tx pgx.Tx, a db.SystemGetA
 		if reason != "" && reasonTexts[reason] != nil {
 			body += " · " + notify.Text(reasonTexts[reason]).Pick(p.Locale)
 		}
+		if when != "" {
+			body += " · " + when
+		}
+		status := pushStatus[key]
+		if status == "" {
+			status = a.Status
+		}
 		ps.Send(ctx, tx, p.ID, notify.Push{
 			Title: notify.PushTitles[key].Pick(p.Locale), Body: body, Link: link,
-			Data: notify.PushData(notify.PushApplication, a.ID.String(), map[string]string{"status": pushStatus[key]})})
+			Data: notify.PushData(notify.PushApplication, a.ID.String(), map[string]string{"status": status, "event": key})})
 	}
 }

@@ -65,9 +65,10 @@
 					class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
 				>
 					<span>
-						<strong>{mem.display_name || mem.email}</strong>
+						<!-- email is omitted for viewer/investor callers (except their own row) -->
+						<strong>{mem.display_name || mem.email || '—'}</strong>
 						<span class="text-[var(--muted)]"
-							>· {mem.email} · {levelLabel[mem.verification_level]()}</span
+							>{#if mem.email}· {mem.email}{/if} · {levelLabel[mem.verification_level]()}</span
 						>
 					</span>
 					{#if data.manage}

@@ -119,13 +119,17 @@ func (s *Server) ListOrders(ctx context.Context, r gen.ListOrdersRequestObject) 
 	if err != nil {
 		return nil, err
 	}
-	rows, err := b.Orders(ctx, p, r.OrgId)
+	lim := limitOf(r.Params.Limit)
+	rows, err := b.Orders(ctx, p, r.OrgId, r.Params.Before, lim)
 	if err != nil {
 		return nil, err
 	}
 	out := gen.ListOrders200JSONResponse{Items: []gen.Order{}}
 	for _, o := range rows {
 		out.Items = append(out.Items, orderDTO(o))
+	}
+	if int32(len(rows)) == lim {
+		out.NextBefore = &rows[len(rows)-1].ID
 	}
 	return out, nil
 }
@@ -157,13 +161,17 @@ func (s *Server) ListInvoices(ctx context.Context, r gen.ListInvoicesRequestObje
 	if err != nil {
 		return nil, err
 	}
-	rows, err := b.InvoiceList(ctx, p, r.OrgId)
+	lim := limitOf(r.Params.Limit)
+	rows, err := b.InvoiceList(ctx, p, r.OrgId, r.Params.Before, lim)
 	if err != nil {
 		return nil, err
 	}
 	out := gen.ListInvoices200JSONResponse{Items: []gen.Invoice{}}
 	for _, i := range rows {
 		out.Items = append(out.Items, invoiceDTO(i))
+	}
+	if int32(len(rows)) == lim {
+		out.NextBefore = &rows[len(rows)-1].ID
 	}
 	return out, nil
 }

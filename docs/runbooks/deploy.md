@@ -44,6 +44,17 @@ Shorthand used below (on the VM):
    writes `/srv/pgtls` (server certificate for the private IP, `ssl.conf` included by
    `postgresql.conf`) and the CA key to `/srv/pgtls-ca/ca.key`: copy `/srv/pgtls/ca.crt` to the app
    VM (§1.3 step 2), put `ca.key` into the password manager and delete it from the VM.
+   The script also writes a TLS-only `pg_hba.conf` (activated through `hba_file` in `ssl.conf`): every
+   TCP client from outside the VM must use TLS (`hostssl`, scram-sha-256), plain connections are rejected
+   (`hostnossl ... reject`); only the unix socket, loopback and the `monitoring` role from the local Docker
+   bridge (postgres-exporter) stay without TLS. The api, worker and migrate connect with
+   `sslmode=verify-full`, Temporal (`temporal`, `temporal-schema`) with `SQL_TLS_ENABLED` +
+   `SQL_HOST_VERIFICATION` and the same CA (`DB_TLS=true`, default). On an existing cluster without
+   TLS: run the script, `db up -d db` (restart), then on the app VM `DB_SSLMODE=verify-full`,
+   `DB_TLS=true` and `app up -d`. Check: `docker exec terra-db psql -U terra -d terra -c "SELECT a.usename,
+   s.ssl, s.version FROM pg_stat_ssl s JOIN pg_stat_activity a USING (pid) WHERE a.client_addr IS NOT NULL"`
+   shows `t | TLSv1.3` for `terra_api` and `temporal`. Restore drills (`make restore-test`) run without
+   the include and keep the image default `pg_hba.conf`.
    Build the image: `docker build -t terra/postgres:17-postgis-pgvector /opt/terra/infra/dev/postgres && db build`.
 4. `db up -d` — the first start runs initdb, creates the Temporal databases, the monitoring role,
    the api login role `terra_api` (§1.4) and the pgBackRest stanza (fails loudly if the bucket is unreachable or a stanza from another
@@ -63,9 +74,26 @@ Shorthand used below (on the VM):
    (photos via imgproxy, presigned downloads), `CSP_FORM_ACTION_ORIGINS` (Stripe Checkout,
    `https://checkout.revolut.com`, GoCardless bank consent `https://ob.gocardless.com`, BankID),
    `CSP_REALTIME_ORIGIN=wss://$APP_DOMAIN`, `CSP_MAP_ORIGINS` (empty for OpenFreeMap). Set them in
-   `.env` only when a host differs. Uploads go through SvelteKit form actions:
+   `.env` only when a host differs. Required for the web in every deployment: `API_URL`,
+   `API_PUBLIC_URL`, `CSP_MEDIA_ORIGINS`, `CSP_REALTIME_ORIGIN` (compose sets all four);
+   `ALLOW_LOCALHOST_DEFAULTS` is only for `vite preview` in e2e and is **never** set in a deployment.
+   Uploads go through SvelteKit form actions:
    `BODY_SIZE_LIMIT=$WEB_BODY_SIZE_LIMIT` (default `60M`, review B-4) and Caddy `max_size 64MB`
    on the app domain; keep both in line with the largest upload (photos 20 MiB each).
+   api/worker settings to decide in `.env` (compose passes them; defaults in brackets):
+   - `PHONE_VERIFICATION` (`false`): stays off until a real SMS adapter exists; the api refuses `true`
+     with `SMS_PROVIDER=log` outside dev.
+   - `IMGPROXY_URL_TTL` (empty = off): lifetime of signed image URLs, e.g. `168h`; signed URLs never
+     expire while empty. Imgproxy caches variants for a year (`IMGPROXY_TTL`), so pick a value longer
+     than the page cache of listings.
+   - `SESSION_MAX_AGE` (`2160h`): absolute session lifetime; keeps the 90-day mobile session (ADR 0004).
+   - `SMTP_ADDR` (required), `SMTP_USERNAME` / `SMTP_PASSWORD` (PLAIN auth of the relay, empty = none).
+   - `TERMS_VERSION` / `PRIVACY_VERSION`: must equal `version:` in the front matter of
+     `packages/attributes/legal/cs/{terms,privacy}.md` (the web records that version on sign-up); bump
+     both in the same release, after the sign-off in `docs/legal-questions.md` Q-LEGAL-5.
+   - App links (`launch.md` §8): `APPLE_TEAM_ID`, `ANDROID_CERT_SHA256` (Caddy renders
+     `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` on the site and app
+     domains from the templates in `apps/web/static/.well-known`, mounted from the checkout).
 2. Secrets files **before the first `app up`** (missing files otherwise turn into empty
    directories created by Docker):
    - `/etc/terrareality/secrets/fcm.json` (root:deploy 0640);
@@ -93,6 +121,12 @@ Shorthand used below (on the VM):
    - `app ps`: api, worker, web, vision, centrifugo, imgproxy, clamav `(healthy)`; temporal
      `(healthy)` within a minute.
    - `curl -fsS https://api.terrareality.cz/healthz` (worker heartbeat `ok`).
+   - App links: for `terrareality.cz` and `app.terrareality.cz`,
+     `curl -sS -D - -o /dev/null https://<host>/.well-known/apple-app-site-association` and
+     `.../assetlinks.json` answer `200` with `Content-Type: application/json` and no `Location`; the body
+     contains the real Team ID / fingerprint (not an empty `.cz.terrareality...` app ID).
+   - Site CSP: `curl -sI https://terrareality.cz/ | grep -i content-security-policy`; a locality page in
+     the browser shows no CSP errors in the console.
    - `https://app.terrareality.cz` login, `https://terrareality.cz`, a listing photo on `/hledat`
      (browser console without CSP errors), a download (`?/download`), a 10 MB photo upload.
    - `make smoke BASE_URL=… API_URL=… SITE_URL=…` (includes "a listing photo loads").

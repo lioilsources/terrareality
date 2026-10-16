@@ -21,22 +21,91 @@ export const clauses = [
 	['early_termination', m.clause_early_termination]
 ] as const;
 
-/** Signing methods the api accepts (POST /v1/leases/{id}/sign). */
-export type SignProvider = 'mock' | 'bankid_sign';
+/** A signing method enabled on the server (LeaseDetail.sign_providers, in order of preference). */
+export type SignProvider = components['schemas']['SignProvider'];
+export type SignProviderId = SignProvider['id'];
+const signProviderIds: readonly string[] = ['mock', 'bankid_sign'] satisfies SignProviderId[];
+
+/** What the user is told they are signing with: the legal level, never the provider ("mock"). */
+export const signLevelLabel: Record<SignProvider['level'], Label> = {
+	simple: m.lease_sign_method_simple,
+	qualified: m.lease_sign_method_qualified
+};
+
+export const signLevelHint: Record<SignProvider['level'], Label> = {
+	simple: m.lease_sign_method_simple_hint,
+	qualified: m.lease_sign_method_qualified_hint
+};
+
+/** The provider chosen in the sign form; null when missing or not a known provider id. */
+export function signProviderFromForm(f: FormData): SignProviderId | null {
+	const v = String(f.get('provider') ?? '');
+	return signProviderIds.includes(v) ? (v as SignProviderId) : null;
+}
+
+export type LandlordNoticeReason = components['schemas']['LandlordNoticeReason'];
+
+/** Statutory reasons of a landlord's notice (§ 2288 OZ) with plain-language labels. */
+export const landlordNoticeReasons: readonly (readonly [LandlordNoticeReason, Label])[] = [
+	['gross_breach_tenant', m.lease_notice_reason_gross_breach_tenant],
+	['conviction', m.lease_notice_reason_conviction],
+	['public_interest_vacate', m.lease_notice_reason_public_interest_vacate],
+	['other_serious_reason', m.lease_notice_reason_other_serious_reason],
+	[
+		'flat_needed_for_landlord_or_relative',
+		m.lease_notice_reason_flat_needed_for_landlord_or_relative
+	]
+];
+
+/** Reasons offered for a lease: § 2288(2) applies to indefinite-term leases only. */
+export function noticeReasonsFor(endsOn: string | undefined | null) {
+	return endsOn
+		? landlordNoticeReasons.filter(([r]) => r !== 'flat_needed_for_landlord_or_relative')
+		: landlordNoticeReasons;
+}
+
+export type LandlordNotice = {
+	delivered_on: string;
+	reason: LandlordNoticeReason;
+	explanation?: string;
+};
 
 /**
- * The method offered to the user. The api has no endpoint listing the enabled
- * signers yet (contract change requested), so the web offers the one every
- * environment has: a simple electronic signature (click + audit trail), labelled
- * as such. Switch to the api-provided list once it exists.
+ * Validates the landlord notice form before it reaches the api (which checks the
+ * same rules): a known reason, a delivery date, an explanation for
+ * other_serious_reason and the confirmation that the notice is written and
+ * informs the tenant of the right to a court review.
  */
-export const SIGN_PROVIDER: SignProvider = 'mock';
+export function landlordNoticeFromForm(
+	f: FormData
+): { notice: LandlordNotice } | { error: string } {
+	const reason = String(f.get('reason') ?? '');
+	const delivered_on = String(f.get('delivered_on') ?? '').trim();
+	const explanation = String(f.get('explanation') ?? '').trim();
+	if (!landlordNoticeReasons.some(([r]) => r === reason))
+		return { error: m.err_landlord_notice_reason_required() };
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(delivered_on))
+		return { error: m.lease_notice_delivered_required() };
+	if (reason === 'other_serious_reason' && !explanation)
+		return { error: m.lease_notice_explanation_required() };
+	if (f.get('confirm') !== 'on') return { error: m.lease_notice_landlord_confirm_required() };
+	return {
+		notice: {
+			delivered_on,
+			reason: reason as LandlordNoticeReason,
+			explanation: explanation || undefined
+		}
+	};
+}
 
-/** What the user is told they are signing with (never "mock"). */
-export const signMethodLabel: Record<SignProvider, Label> = {
-	mock: m.lease_sign_method_simple,
-	bankid_sign: m.lease_sign_method_bankid
-};
+/** Allowed delivery dates (yyyy-mm-dd): 30 days ago to 7 days from today. */
+export function deliveredOnRange(now = new Date()) {
+	const day = (offset: number) => {
+		const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset));
+		return d.toISOString().slice(0, 10);
+	};
+	return { min: day(-30), max: day(7) };
+}
 
 export const stateLabel: Record<string, Label> = {
 	draft: m.lease_state_draft,

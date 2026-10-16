@@ -74,14 +74,22 @@ func (s *Server) ListOrgMembers(ctx context.Context, r gen.ListOrgMembersRequest
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.Orgs.Members(ctx, p, r.OrgId)
+	rows, role, err := s.Orgs.Members(ctx, p, r.OrgId)
 	if err != nil {
 		return nil, err
 	}
+	// Read-only outsiders (viewer, investor) see names and roles, not the
+	// team's e-mail addresses.
+	hide := role == org.Viewer || role == org.Investor
 	out := gen.ListOrgMembers200JSONResponse{}
 	for _, m := range rows {
-		out = append(out, gen.Member{UserId: m.UserID, Email: m.Email, DisplayName: m.DisplayName, Role: gen.Role(m.Role),
-			VerificationLevel: level(m.VerificationLevel), JoinedAt: m.CreatedAt})
+		mem := gen.Member{UserId: m.UserID, DisplayName: m.DisplayName, Role: gen.Role(m.Role),
+			VerificationLevel: level(m.VerificationLevel), JoinedAt: m.CreatedAt}
+		if !hide || m.UserID == p.UserID {
+			e := m.Email
+			mem.Email = &e
+		}
+		out = append(out, mem)
 	}
 	return out, nil
 }
@@ -176,33 +184,41 @@ func (s *Server) ListOrgAudit(ctx context.Context, r gen.ListOrgAuditRequestObje
 		return nil, err
 	}
 	lim := limitOf(r.Params.Limit)
-	rows, err := s.Orgs.Audit(ctx, p, r.OrgId, r.Params.Before, lim)
+	rows, role, err := s.Orgs.Audit(ctx, p, r.OrgId, r.Params.Before, lim)
 	if err != nil {
 		return nil, err
 	}
-	return gen.ListOrgAudit200JSONResponse(auditRows(rows, lim)), nil
+	page := auditRows(rows, lim)
+	// Changed values are for owners and admins only (today only they may
+	// read the log; the guard keeps it so if audit.read is ever widened).
+	if role != org.Owner && role != org.Admin {
+		for i := range page.Items {
+			page.Items[i].Diff = map[string]any{}
+		}
+	}
+	return gen.ListOrgAudit200JSONResponse(page), nil
 }
 
-// GetInvitation implements GET /v1/invitations/{token}.
-func (s *Server) GetInvitation(ctx context.Context, r gen.GetInvitationRequestObject) (gen.GetInvitationResponseObject, error) {
+// LookupInvitation implements POST /v1/invitations/lookup.
+func (s *Server) LookupInvitation(ctx context.Context, r gen.LookupInvitationRequestObject) (gen.LookupInvitationResponseObject, error) {
 	if err := s.limit(ctx, ""); err != nil {
 		return nil, err
 	}
-	i, err := s.Orgs.Preview(ctx, r.Token)
+	i, err := s.Orgs.Preview(ctx, r.Body.Token)
 	if err != nil {
 		return nil, err
 	}
-	return gen.GetInvitation200JSONResponse{OrgName: i.OrgName, Role: gen.Role(i.Role), Email: i.Email,
+	return gen.LookupInvitation200JSONResponse{OrgName: i.OrgName, Role: gen.Role(i.Role), Email: i.Email,
 		InviterName: i.InviterName, ExpiresAt: i.ExpiresAt, Status: gen.InvitationPreviewStatus(org.InvitationStatus(i))}, nil
 }
 
-// AcceptInvitation implements POST /v1/invitations/{token}/accept.
+// AcceptInvitation implements POST /v1/invitations/accept.
 func (s *Server) AcceptInvitation(ctx context.Context, r gen.AcceptInvitationRequestObject) (gen.AcceptInvitationResponseObject, error) {
 	p, err := principal(ctx)
 	if err != nil {
 		return nil, err
 	}
-	m, err := s.Orgs.Accept(ctx, p, r.Token)
+	m, err := s.Orgs.Accept(ctx, p, r.Body.Token)
 	if err != nil {
 		return nil, err
 	}

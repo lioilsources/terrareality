@@ -7,7 +7,10 @@
 	<key>aps-environment</key>
 	<string>development</string>
 	<!-- Universal Links: needs /.well-known/apple-app-site-association on
-	     both hosts (served by the web, see docs/runbooks/launch.md section 8). -->
+	     both hosts (served by the web, see docs/runbooks/launch.md section 8).
+	     The entitlement only names the hosts; the paths the app claims
+	     (/zpravy/*, /zadosti/*, /smlouvy/*, /inzerat/*, /prohlidky*,
+	     /auth/magic, /auth/reset) are listed in that AASA file. -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:terrareality.cz</string>

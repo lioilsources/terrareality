@@ -9,7 +9,7 @@ import 'package:terra_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **userId** | **String** |  | 
-**email** | **String** |  | 
+**email** | **String** | Omitted for callers with the viewer or investor role (except their own row). | [optional] 
 **displayName** | **String** |  | 
 **role** | [**Role**](Role.md) |  | 
 **verificationLevel** | [**VerificationLevel**](VerificationLevel.md) |  | 

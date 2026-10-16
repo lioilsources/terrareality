@@ -16,6 +16,7 @@ class ReviewDetail {
     required this.item,
     this.snapshot = const {},
     this.photos = const [],
+    this.privacyFlags = const [],
   });
 
   ReviewItem item;
@@ -24,27 +25,33 @@ class ReviewDetail {
 
   List<PhotoVariants> photos;
 
+  /// Submitted photos whose privacy blur suggestion was not applied (the owner kept the photo or has not decided); staff must look at them.
+  List<PrivacyFlag> privacyFlags;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is ReviewDetail &&
     other.item == item &&
     _deepEquality.equals(other.snapshot, snapshot) &&
-    _deepEquality.equals(other.photos, photos);
+    _deepEquality.equals(other.photos, photos) &&
+    _deepEquality.equals(other.privacyFlags, privacyFlags);
 
   @override
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (item.hashCode) +
     (snapshot.hashCode) +
-    (photos.hashCode);
+    (photos.hashCode) +
+    (privacyFlags.hashCode);
 
   @override
-  String toString() => 'ReviewDetail[item=$item, snapshot=$snapshot, photos=$photos]';
+  String toString() => 'ReviewDetail[item=$item, snapshot=$snapshot, photos=$photos, privacyFlags=$privacyFlags]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'item'] = this.item;
       json[r'snapshot'] = this.snapshot;
       json[r'photos'] = this.photos;
+      json[r'privacy_flags'] = this.privacyFlags;
     return json;
   }
 
@@ -70,6 +77,7 @@ class ReviewDetail {
         item: ReviewItem.fromJson(json[r'item'])!,
         snapshot: mapCastOfType<String, Object>(json, r'snapshot')!,
         photos: PhotoVariants.listFromJson(json[r'photos']),
+        privacyFlags: PrivacyFlag.listFromJson(json[r'privacy_flags']),
       );
     }
     return null;
@@ -120,6 +128,7 @@ class ReviewDetail {
     'item',
     'snapshot',
     'photos',
+    'privacy_flags',
   };
 }
 

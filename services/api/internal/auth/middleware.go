@@ -41,7 +41,7 @@ func Middleware(q db.Querier, ttl SessionTTL, maxAge time.Duration, log *slog.Lo
 				case err == nil && s.PseudonymizedAt == nil:
 					p := &Principal{UserID: s.UserID, SessionID: s.ID, Client: s.Client,
 						IsStaff: s.IsStaff && s.ImpersonatorID == nil, ImpersonatorID: s.ImpersonatorID,
-						MFA: s.TotpEnabledAt != nil && s.CreatedAt.After(*s.TotpEnabledAt)}
+						MFA: s.TotpEnabledAt != nil && s.MfaAt != nil}
 					ctx = WithPrincipal(ctx, p)
 					// Impersonation sessions have a fixed lifetime.
 					exp := s.ExpiresAt

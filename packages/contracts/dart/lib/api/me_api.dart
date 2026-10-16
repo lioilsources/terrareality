@@ -1093,6 +1093,8 @@ class MeApi {
 
   /// Send a verification code by SMS
   ///
+  /// Errors: 503 `phone_verification_unavailable` while SMS verification is switched off.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -1124,6 +1126,8 @@ class MeApi {
   }
 
   /// Send a verification code by SMS
+  ///
+  /// Errors: 503 `phone_verification_unavailable` while SMS verification is switched off.
   ///
   /// Parameters:
   ///

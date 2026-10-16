@@ -85,7 +85,10 @@ func (s *Server) leaseDetail(ctx context.Context, p *auth.Principal, id uuid.UUI
 	out := gen.LeaseDetail{Lease: leaseSummary(l, nil, nil), LandlordView: d.Landlord, PayeeIban: leasing.FormatIBAN(l.PayeeIban),
 		PayeeName: l.PayeeName, DueDay: int(l.DueDay), NoticeMonths: int(l.NoticeMonths), DepositAmount: l.DepositAmount,
 		ServicesAmount: l.ServicesAmount, Clauses: l.Clauses, ChangeRequest: l.ChangeRequest, Parties: []gen.LeaseParty{},
-		Documents: []gen.LeaseDocument{}}
+		Documents: []gen.LeaseDocument{}, SignProviders: []gen.SignProvider{}}
+	for _, sp := range s.Leases.SignProviders() {
+		out.SignProviders = append(out.SignProviders, gen.SignProvider{Id: gen.SignProviderId(sp.ID), Level: gen.SignProviderLevel(sp.Level)})
+	}
 	if out.Clauses == nil {
 		out.Clauses = []string{}
 	}
@@ -99,9 +102,14 @@ func (s *Server) leaseDetail(ctx context.Context, p *auth.Principal, id uuid.UUI
 		out.TotalDebt += x.Debt
 	}
 	for _, pp := range d.Parties {
-		gp := gen.LeaseParty{Id: pp.ID, Role: gen.LeasePartyRole(pp.Role), Name: pp.Name, Email: (*string)(pp.Email),
-			ShareBps: int(pp.ShareBps), Position: int(pp.Position), Me: d.Party != nil && d.Party.ID == pp.ID,
-			SignedAt: signed[pp.ID]}
+		me := d.Party != nil && d.Party.ID == pp.ID
+		gp := gen.LeaseParty{Id: pp.ID, Role: gen.LeasePartyRole(pp.Role), Name: pp.Name,
+			ShareBps: int(pp.ShareBps), Position: int(pp.Position), Me: me, SignedAt: signed[pp.ID]}
+		// Contact details of co-tenants and guarantors are the landlord's
+		// business; a tenant-side caller sees their own and the landlord's.
+		if d.Landlord || me || pp.Role == "landlord" {
+			gp.Email = (*string)(pp.Email)
+		}
 		if v, ok := debt[pp.ID]; ok {
 			gp.Debt = &v
 		}
@@ -121,7 +129,7 @@ func (s *Server) ListOrgLeases(ctx context.Context, r gen.ListOrgLeasesRequestOb
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.Leases.List(ctx, p, r.OrgId)
+	rows, err := s.Leases.List(ctx, p, r.OrgId, r.Params.Before, limitOf(r.Params.Limit))
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +367,15 @@ func (s *Server) GiveLeaseNotice(ctx context.Context, r gen.GiveLeaseNoticeReque
 	if err != nil {
 		return nil, err
 	}
-	end, err := s.Leases.GiveNotice(ctx, p, r.LeaseId, r.Body.DeliveredOn.Time)
+	var reason, explanation string
+	if r.Body.Reason != nil {
+		reason = string(*r.Body.Reason)
+	}
+	if r.Body.Explanation != nil {
+		explanation = *r.Body.Explanation
+	}
+	end, err := s.Leases.GiveNotice(ctx, p, r.LeaseId, leasing.NoticeInput{DeliveredOn: r.Body.DeliveredOn.Time,
+		Reason: reason, Explanation: explanation})
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +411,8 @@ func (s *Server) GetBankOverview(ctx context.Context, r gen.GetBankOverviewReque
 		st := string(*r.Params.Status)
 		status = &st
 	}
-	conns, txns, err := s.Leases.BankOverview(ctx, p, r.OrgId, status)
+	lim := limitOf(r.Params.Limit)
+	conns, txns, err := s.Leases.BankOverview(ctx, p, r.OrgId, status, r.Params.Before, lim)
 	if err != nil {
 		return nil, err
 	}
@@ -408,6 +425,9 @@ func (s *Server) GetBankOverview(ctx context.Context, r gen.GetBankOverviewReque
 			Currency: t.Currency, VariableSymbol: t.VariableSymbol, SpecificSymbol: t.SpecificSymbol,
 			CounterpartyName: t.CounterpartyName, Remittance: t.Remittance,
 			MatchStatus: gen.BankTransactionMatchStatus(t.MatchStatus), ShareId: t.SplitID, MatchNote: t.MatchNote})
+	}
+	if int32(len(txns)) == lim {
+		out.TransactionsNextBefore = &txns[len(txns)-1].ID
 	}
 	return out, nil
 }

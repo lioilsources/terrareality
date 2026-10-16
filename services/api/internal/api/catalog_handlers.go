@@ -160,7 +160,7 @@ func (s *Server) ListListings(ctx context.Context, r gen.ListListingsRequestObje
 		st := string(*r.Params.Status)
 		status = &st
 	}
-	rows, err := s.Listings.List(ctx, p, r.OrgId, status)
+	rows, err := s.Listings.List(ctx, p, r.OrgId, status, r.Params.Before, limitOf(r.Params.Limit))
 	if err != nil {
 		return nil, err
 	}
@@ -438,8 +438,7 @@ func (s *Server) BackofficeGetReview(ctx context.Context, r gen.BackofficeGetRev
 		photos = append(photos, gen.PhotoVariants{Thumb: u["thumb"], Medium: u["medium"], Large: u["large"]})
 	}
 	// Privacy flags of the submitted photos that were not blurred (owner
-	// kept the photo or never decided): staff must look at them. Carried in
-	// the free-form snapshot until the contract has a dedicated field.
+	// kept the photo or never decided): staff must look at them (S-D1).
 	flags, err := s.Listings.PrivacyFlags(ctx, v.ListingID)
 	if err != nil {
 		return nil, err
@@ -448,15 +447,13 @@ func (s *Server) BackofficeGetReview(ctx context.Context, r gen.BackofficeGetRev
 	for _, ph := range snap.Photos {
 		inSnap[ph.MediaID] = true
 	}
-	open := []map[string]any{}
+	open := []gen.PrivacyFlag{}
 	for _, f := range flags {
 		if inSnap[f.MediaID] && f.Status != "accepted" {
-			open = append(open, map[string]any{"media_id": f.MediaID, "status": f.Status})
+			open = append(open, gen.PrivacyFlag{MediaId: f.MediaID, Status: gen.PrivacyFlagStatus(f.Status)})
 		}
 	}
-	snapshot := objectOf(v.Snapshot)
-	snapshot["privacy_flags"] = open
-	return gen.BackofficeGetReview200JSONResponse{Item: item, Snapshot: snapshot, Photos: photos}, nil
+	return gen.BackofficeGetReview200JSONResponse{Item: item, Snapshot: objectOf(v.Snapshot), Photos: photos, PrivacyFlags: open}, nil
 }
 
 // BackofficeDecideReview implements POST /v1/backoffice/reviews/{versionId}/decision.

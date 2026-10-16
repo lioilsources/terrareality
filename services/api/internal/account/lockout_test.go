@@ -3,6 +3,9 @@ package account
 import (
 	"testing"
 	"time"
+
+	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
 )
 
 func TestLockoutBacksOffExponentially(t *testing.T) {
@@ -45,5 +48,20 @@ func TestLockoutBacksOffExponentially(t *testing.T) {
 	l.reset(key)
 	if err := l.check(key); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestCheckLockedUsesPersistentLock(t *testing.T) {
+	now := time.Now()
+	if err := checkLocked(db.User{}, now); err != nil {
+		t.Fatalf("never failed: %v", err)
+	}
+	past := now.Add(-time.Second)
+	if err := checkLocked(db.User{LockedUntil: &past}, now); err != nil {
+		t.Fatalf("expired lock: %v", err)
+	}
+	future := now.Add(90 * time.Second)
+	if e, ok := apperr.As(checkLocked(db.User{LockedUntil: &future}, now)); !ok || e.Status != 429 {
+		t.Fatalf("locked account: %v", e)
 	}
 }

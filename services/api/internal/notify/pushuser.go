@@ -29,6 +29,7 @@ var PushTitles = map[string]Text{
 	"application_invited":         {"cs": "Pozvánka na prohlídku", "en": "Invitation to a viewing"},
 	"application_accepted":        {"cs": "Vaše žádost byla přijata", "en": "Your application was accepted"},
 	"application_rejected":        {"cs": "Vaše žádost nebyla vybrána", "en": "Your application was not selected"},
+	"viewing_cancelled":           {"cs": "Prohlídka byla zrušena", "en": "A viewing was cancelled"},
 	"lease_proposed":              {"cs": "Smlouva čeká na váš podpis", "en": "Your lease is ready to sign"},
 	"lease_changes_requested":     {"cs": "Nájemník žádá změny smlouvy", "en": "Lease changes requested"},
 	"lease_signed":                {"cs": "Smlouva je podepsaná všemi stranami", "en": "The lease is fully signed"},

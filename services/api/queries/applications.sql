@@ -301,10 +301,18 @@ SELECT id FROM listings WHERE id = $1 AND org_id = $2 FOR NO KEY UPDATE;
 -- name: CountOtherAcceptedApplications :one
 SELECT count(*)::int FROM applications WHERE listing_id = $1 AND id <> $2 AND status = 'accepted';
 
--- name: CountActiveSlotBookings :one
--- Active bookings of a slot that has not started yet (RLS: organization members).
-SELECT count(*)::int FROM viewing_bookings b JOIN viewing_slots s ON s.id = b.slot_id
-WHERE b.slot_id = $1 AND s.org_id = $2 AND b.cancelled_at IS NULL AND s.starts_at > now();
+-- name: CancelSlotBookings :many
+-- Cancels the active bookings of an organization's upcoming slot before it
+-- is deleted and returns the applications to notify (RLS: organization
+-- members).
+UPDATE viewing_bookings b SET cancelled_at = now()
+FROM viewing_slots s
+WHERE s.id = b.slot_id AND b.slot_id = sqlc.arg(slot_id) AND s.org_id = sqlc.arg(org_id)
+  AND b.cancelled_at IS NULL AND s.starts_at > now()
+RETURNING b.id, b.application_id;
+
+-- name: GetViewingSlot :one
+SELECT * FROM viewing_slots WHERE id = $1 AND org_id = $2;
 
 -- name: CountRecentActorActions :one
 -- Rate limits backed by the audit log (system context).

@@ -36,7 +36,7 @@ class FailingRepo implements MessagingRepository {
   );
 
   @override
-  Future<List<Conversation>> conversations() async {
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize}) async {
     loads++;
     if (error != null) throw error!;
     return [_conv()];

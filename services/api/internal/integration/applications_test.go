@@ -206,8 +206,8 @@ func TestApplicationsAcceptance(t *testing.T) {
 		Application       appDTO `json:"application"`
 		VerificationLevel string `json:"verification_level"`
 		People            []struct {
-			IncomeProofURL *string `json:"income_proof_url"`
-			Insolvency     string  `json:"insolvency"`
+			HasIncomeProof bool   `json:"has_income_proof"`
+			Insolvency     string `json:"insolvency"`
 		} `json:"people"`
 		AiSummary *struct {
 			Summary string `json:"summary"`
@@ -217,7 +217,7 @@ func TestApplicationsAcceptance(t *testing.T) {
 	if len(applicants) != 3 || applicants[0].Application.ID != soloApp.Application.ID || applicants[0].VerificationLevel != "identity" {
 		t.Fatalf("order %+v", applicants)
 	}
-	if applicants[0].People[0].IncomeProofURL == nil || applicants[0].People[0].Insolvency != "clear" || applicants[0].AiSummary == nil {
+	if !applicants[0].People[0].HasIncomeProof || applicants[0].People[0].Insolvency != "clear" || applicants[0].AiSummary == nil {
 		t.Fatalf("passport facts %+v", applicants[0])
 	}
 	for _, a := range applicants {

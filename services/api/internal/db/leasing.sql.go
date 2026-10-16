@@ -968,6 +968,18 @@ func (q *Queries) LeaseEventExists(ctx context.Context, arg LeaseEventExistsPara
 	return column_1, err
 }
 
+const leaseNoticeGiven = `-- name: LeaseNoticeGiven :one
+SELECT EXISTS (SELECT 1 FROM lease_events WHERE lease_id = $1 AND kind = 'notice_given')::boolean
+`
+
+// Whether a notice event exists (lease_events_lease_kind index).
+func (q *Queries) LeaseNoticeGiven(ctx context.Context, leaseID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, leaseNoticeGiven, leaseID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const linkedBankConnections = `-- name: LinkedBankConnections :many
 SELECT id, org_id, provider, institution_id, requisition_id, account_id, iban, status, last_synced_at, created_by, created_at FROM bank_connections WHERE status = 'linked' ORDER BY last_synced_at NULLS FIRST LIMIT 200
 `
@@ -1041,18 +1053,28 @@ func (q *Queries) ListBankConnections(ctx context.Context, orgID uuid.UUID) ([]B
 }
 
 const listBankTransactions = `-- name: ListBankTransactions :many
-SELECT id, org_id, connection_id, external_id, booked_on, amount, currency, variable_symbol, specific_symbol, counterparty_name, counterparty_account, remittance, match_status, split_id, match_note, created_at FROM bank_transactions WHERE org_id = $1
-  AND ($2::text IS NULL OR match_status = $2::text)
-ORDER BY booked_on DESC, created_at DESC LIMIT 200
+SELECT t.id, t.org_id, t.connection_id, t.external_id, t.booked_on, t.amount, t.currency, t.variable_symbol, t.specific_symbol, t.counterparty_name, t.counterparty_account, t.remittance, t.match_status, t.split_id, t.match_note, t.created_at FROM bank_transactions t WHERE t.org_id = $1
+  AND ($2::text IS NULL OR t.match_status = $2::text)
+  AND ($3::uuid IS NULL
+    OR (t.booked_on, t.created_at, t.id) < (SELECT x.booked_on, x.created_at, x.id FROM bank_transactions x WHERE x.id = $3::uuid))
+ORDER BY t.booked_on DESC, t.created_at DESC, t.id DESC
+LIMIT $4
 `
 
 type ListBankTransactionsParams struct {
-	OrgID  uuid.UUID `json:"org_id"`
-	Status *string   `json:"status"`
+	OrgID  uuid.UUID  `json:"org_id"`
+	Status *string    `json:"status"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
 }
 
 func (q *Queries) ListBankTransactions(ctx context.Context, arg ListBankTransactionsParams) ([]BankTransaction, error) {
-	rows, err := q.db.Query(ctx, listBankTransactions, arg.OrgID, arg.Status)
+	rows, err := q.db.Query(ctx, listBankTransactions,
+		arg.OrgID,
+		arg.Status,
+		arg.Before,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1410,8 +1432,18 @@ func (q *Queries) ListObligations(ctx context.Context, leaseID uuid.UUID) ([]Lis
 const listOrgLeases = `-- name: ListOrgLeases :many
 SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
-FROM leases l WHERE l.org_id = $1 ORDER BY l.created_at DESC
+FROM leases l WHERE l.org_id = $1
+  AND ($2::uuid IS NULL
+    OR (l.created_at, l.id) < (SELECT x.created_at, x.id FROM leases x WHERE x.id = $2::uuid))
+ORDER BY l.created_at DESC, l.id DESC
+LIMIT $3
 `
+
+type ListOrgLeasesParams struct {
+	OrgID  uuid.UUID  `json:"org_id"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
+}
 
 type ListOrgLeasesRow struct {
 	ID               uuid.UUID   `json:"id"`
@@ -1451,8 +1483,8 @@ type ListOrgLeasesRow struct {
 	TenantNames      string      `json:"tenant_names"`
 }
 
-func (q *Queries) ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error) {
-	rows, err := q.db.Query(ctx, listOrgLeases, orgID)
+func (q *Queries) ListOrgLeases(ctx context.Context, arg ListOrgLeasesParams) ([]ListOrgLeasesRow, error) {
+	rows, err := q.db.Query(ctx, listOrgLeases, arg.OrgID, arg.Before, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -1998,7 +2030,7 @@ func (q *Queries) UpdateLeaseDraft(ctx context.Context, arg UpdateLeaseDraftPara
 }
 
 const verifiedUserByEmail = `-- name: VerifiedUserByEmail :one
-SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at FROM users WHERE email = $1 AND email_verified_at IS NOT NULL AND pseudonymized_at IS NULL
+SELECT id, email, email_verified_at, password_hash, display_name, locale, phone, phone_verified_at, identity_verified_at, totp_secret, totp_pending_secret, totp_enabled_at, totp_last_step, is_staff, pseudonymized_at, created_at, updated_at, verification_level, messaging_suspended_at, failed_logins, locked_until FROM users WHERE email = $1 AND email_verified_at IS NOT NULL AND pseudonymized_at IS NULL
 `
 
 // The account with a verified e-mail address (lease parties link only to it).
@@ -2025,6 +2057,8 @@ func (q *Queries) VerifiedUserByEmail(ctx context.Context, email string) (User, 
 		&i.UpdatedAt,
 		&i.VerificationLevel,
 		&i.MessagingSuspendedAt,
+		&i.FailedLogins,
+		&i.LockedUntil,
 	)
 	return i, err
 }

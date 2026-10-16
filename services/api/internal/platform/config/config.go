@@ -103,10 +103,11 @@ type Config struct {
 
 	// Catalog (M2).
 	LLMAPIKey    string
-	ImgproxyURL  string // browser-reachable imgproxy
-	ImgproxyKey  string // hex
-	ImgproxySalt string // hex
-	ClamAVAddr   string // host:port of clamd; empty = scanning skipped
+	ImgproxyURL  string        // browser-reachable imgproxy
+	ImgproxyKey  string        // hex
+	ImgproxySalt string        // hex
+	ImgproxyTTL  time.Duration // IMGPROXY_URL_TTL: signed photo URLs expire after 1-2x this; 0 = never
+	ClamAVAddr   string        // host:port of clamd; empty = scanning skipped
 	Flags        map[string]bool
 	SeedRuian    bool // load the embedded RÚIAN sample when the table is empty
 
@@ -314,6 +315,7 @@ func Load() (Config, error) {
 		{"SESSION_MAX_AGE", "0", &c.SessionMaxAge}, // 0 = max(SESSION_TTL_WEB, SESSION_TTL_MOBILE), below
 		{"GDPR_ERASURE_GRACE", "720h", &c.ErasureGrace},
 		{"MESSAGE_NOTIFY_DELAY", "20s", &c.MessageNotifyDelay},
+		{"IMGPROXY_URL_TTL", "0", &c.ImgproxyTTL},
 	}
 	for _, d := range durations {
 		v, err := time.ParseDuration(get(d.key, d.def))
@@ -321,6 +323,9 @@ func Load() (Config, error) {
 			return c, fmt.Errorf("%s: %w", d.key, err)
 		}
 		*d.dst = v
+	}
+	if c.ImgproxyTTL < 0 {
+		return c, fmt.Errorf("IMGPROXY_URL_TTL must not be negative")
 	}
 	if c.Env != "dev" && c.Env != "staging" && c.Env != "prod" && c.Env != "test" {
 		return c, fmt.Errorf("APP_ENV must be dev|staging|prod|test, got %q", c.Env)

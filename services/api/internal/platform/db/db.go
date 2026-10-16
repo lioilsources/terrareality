@@ -105,3 +105,18 @@ func AsUser(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID, fn func(p
 		return fn(tx)
 	})
 }
+
+// Elevate ends row-level security for the rest of an AsUser transaction: the
+// role returns to the login role (system context) and app.current_user is
+// cleared. Callers first check the user's access under RLS, then do the
+// system part of the same change (notifications to other users, the e-mail
+// outbox) in the same transaction, so both commit or roll back together.
+func Elevate(ctx context.Context, tx pgx.Tx) error {
+	if _, err := tx.Exec(ctx, "RESET ROLE"); err != nil {
+		return fmt.Errorf("reset role: %w", err)
+	}
+	if _, err := tx.Exec(ctx, "SELECT set_config('app.current_user', '', true)"); err != nil {
+		return fmt.Errorf("clear current user: %w", err)
+	}
+	return nil
+}

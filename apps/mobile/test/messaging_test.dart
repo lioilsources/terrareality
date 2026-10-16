@@ -47,7 +47,8 @@ class FakeRepo implements MessagingRepository {
   DateTime? peerReadAt;
 
   @override
-  Future<List<Conversation>> conversations() async => [_conv()];
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize}) async =>
+      before == null ? [_conv()] : [];
 
   @override
   Future<ConversationDetail> detail(String id) async =>

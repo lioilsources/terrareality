@@ -603,11 +603,21 @@ func (q *Queries) InvoiceBuyer(ctx context.Context, arg InvoiceBuyerParams) (Inv
 }
 
 const listInvoices = `-- name: ListInvoices :many
-SELECT id, org_id, order_id, number, issued_on, taxable_supply_on, net_amount, vat_amount, gross_amount, currency, vat_rate_bp, buyer, supplier, pdf_key, sent_at, created_at FROM invoices WHERE org_id = $1 ORDER BY issued_on DESC, number DESC LIMIT 500
+SELECT i.id, i.org_id, i.order_id, i.number, i.issued_on, i.taxable_supply_on, i.net_amount, i.vat_amount, i.gross_amount, i.currency, i.vat_rate_bp, i.buyer, i.supplier, i.pdf_key, i.sent_at, i.created_at FROM invoices i WHERE i.org_id = $1
+  AND ($2::uuid IS NULL
+    OR (i.issued_on, i.number) < (SELECT x.issued_on, x.number FROM invoices x WHERE x.id = $2::uuid))
+ORDER BY i.issued_on DESC, i.number DESC
+LIMIT $3
 `
 
-func (q *Queries) ListInvoices(ctx context.Context, orgID uuid.UUID) ([]Invoice, error) {
-	rows, err := q.db.Query(ctx, listInvoices, orgID)
+type ListInvoicesParams struct {
+	OrgID  uuid.UUID  `json:"org_id"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
+}
+
+func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error) {
+	rows, err := q.db.Query(ctx, listInvoices, arg.OrgID, arg.Before, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -704,9 +714,17 @@ JOIN promo_products p ON p.id = o.product_id
 JOIN listings l ON l.id = o.listing_id
 LEFT JOIN invoices i ON i.order_id = o.id
 WHERE o.org_id = $1
-ORDER BY o.created_at DESC
-LIMIT 500
+  AND ($2::uuid IS NULL
+    OR (o.created_at, o.id) < (SELECT x.created_at, x.id FROM orders x WHERE x.id = $2::uuid))
+ORDER BY o.created_at DESC, o.id DESC
+LIMIT $3
 `
+
+type ListOrdersParams struct {
+	OrgID  uuid.UUID  `json:"org_id"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
+}
 
 type ListOrdersRow struct {
 	ID              uuid.UUID  `json:"id"`
@@ -731,8 +749,8 @@ type ListOrdersRow struct {
 	InvoiceID       *uuid.UUID `json:"invoice_id"`
 }
 
-func (q *Queries) ListOrders(ctx context.Context, orgID uuid.UUID) ([]ListOrdersRow, error) {
-	rows, err := q.db.Query(ctx, listOrders, orgID)
+func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error) {
+	rows, err := q.db.Query(ctx, listOrders, arg.OrgID, arg.Before, arg.Lim)
 	if err != nil {
 		return nil, err
 	}

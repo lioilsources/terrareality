@@ -13,6 +13,19 @@ import 'token_store.dart';
 abstract class AuthRepository {
   Future<AuthResult> login(String email, String password);
   Future<AuthResult> completeMfa(String mfaToken, String code);
+
+  /// E-mails a one-time sign-in link (always succeeds, no account enumeration).
+  Future<void> requestMagicLink(String email, UserLocale? locale);
+
+  /// Exchanges the token from the sign-in link for a session.
+  Future<AuthResult> verifyMagicLink(String token);
+
+  /// E-mails a password reset link (always succeeds, no account enumeration).
+  Future<void> forgotPassword(String email, UserLocale? locale);
+
+  /// Sets a new password with the token from the reset link.
+  Future<void> resetPassword(String token, String password);
+
   Future<void> logout();
   Future<Me?> me();
 
@@ -33,6 +46,22 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<AuthResult> completeMfa(String mfaToken, String code) async =>
       (await AuthApi(client).completeMfa(MfaRequest(mfaToken: mfaToken, code: code)))!;
+
+  @override
+  Future<void> requestMagicLink(String email, UserLocale? locale) =>
+      AuthApi(client).requestMagicLink(MagicLinkRequest(email: email, locale: locale));
+
+  @override
+  Future<AuthResult> verifyMagicLink(String token) async =>
+      (await AuthApi(client).verifyMagicLink(TokenRequest(token: token, client: ClientKind.mobile)))!;
+
+  @override
+  Future<void> forgotPassword(String email, UserLocale? locale) =>
+      AuthApi(client).forgotPassword(MagicLinkRequest(email: email, locale: locale));
+
+  @override
+  Future<void> resetPassword(String token, String password) =>
+      AuthApi(client).resetPassword(PasswordResetRequest(token: token, password: password));
 
   @override
   Future<void> logout() => AuthApi(client).logout();
@@ -77,6 +106,21 @@ class AuthService {
   Future<LoginOutcome> login(String email, String password) => _finish(_repo.login(email, password));
 
   Future<LoginOutcome> completeMfa(String mfaToken, String code) => _finish(_repo.completeMfa(mfaToken, code));
+
+  /// Signs in with the token from an e-mailed sign-in link. Like the
+  /// password step it may answer with [MfaRequired].
+  Future<LoginOutcome> verifyMagicLink(String token) => _finish(_repo.verifyMagicLink(token));
+
+  Future<void> requestMagicLink(String email, UserLocale? locale) => _repo.requestMagicLink(email, locale);
+
+  Future<void> forgotPassword(String email, UserLocale? locale) => _repo.forgotPassword(email, locale);
+
+  /// Sets the new password. The API revokes every session of the account,
+  /// so a session stored on this phone is dropped as well.
+  Future<void> resetPassword(String token, String password) async {
+    await _repo.resetPassword(token, password);
+    if (ref.read(authSessionProvider) != null) await signOut();
+  }
 
   Future<LoginOutcome> _finish(Future<AuthResult> call) async {
     final res = await call;

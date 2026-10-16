@@ -12,6 +12,10 @@ class FakeAuth implements AuthRepository {
   Object? mfaError;
   Object? registerError;
   Object? logoutError;
+  Object? magicError;
+  Object? resetError;
+  Object? sendError;
+  final sent = <String>[];
   final calls = <String>[];
   final registered = <String>[];
   final deleted = <String>[];
@@ -36,6 +40,34 @@ class FakeAuth implements AuthRepository {
     codes.add(code);
     if (mfaError != null) throw mfaError!;
     return _session('tok-mfa');
+  }
+
+  @override
+  Future<void> requestMagicLink(String email, UserLocale? locale) async {
+    calls.add('magic-request');
+    if (sendError != null) throw sendError!;
+    sent.add('magic:$email:${locale?.value}');
+  }
+
+  @override
+  Future<AuthResult> verifyMagicLink(String token) async {
+    calls.add('magic:$token');
+    if (magicError != null) throw magicError!;
+    if (mfa) return AuthResult(status: AuthResultStatusEnum.mfaRequired, mfaToken: 'mfa-magic');
+    return _session('tok-magic');
+  }
+
+  @override
+  Future<void> forgotPassword(String email, UserLocale? locale) async {
+    calls.add('forgot');
+    if (sendError != null) throw sendError!;
+    sent.add('reset:$email:${locale?.value}');
+  }
+
+  @override
+  Future<void> resetPassword(String token, String password) async {
+    calls.add('reset:$token');
+    if (resetError != null) throw resetError!;
   }
 
   @override

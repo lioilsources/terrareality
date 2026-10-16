@@ -44,6 +44,9 @@
                 <data android:pathPrefix="/smlouvy"/>
                 <data android:pathPrefix="/inzerat"/>
                 <data android:pathPrefix="/prohlidky"/>
+                <!-- E-mailed sign-in and password reset links (?token=). -->
+                <data android:path="/auth/magic"/>
+                <data android:path="/auth/reset"/>
             </intent-filter>
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true"/>
         </activity>

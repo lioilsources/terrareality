@@ -18,6 +18,8 @@ class SearchApi {
 
   /// Natural-language search – turns a message into filters and a map area, then searches
   ///
+  /// Errors: 400 `invalid_query`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -50,6 +52,8 @@ class SearchApi {
 
   /// Natural-language search – turns a message into filters and a map area, then searches
   ///
+  /// Errors: 400 `invalid_query`.
+  ///
   /// Parameters:
   ///
   /// * [ChatRequest] chatRequest (required):
@@ -69,6 +73,8 @@ class SearchApi {
   }
 
   /// Save a search; new matching listings are e-mailed daily when notify is on
+  ///
+  /// Errors: 400 `invalid_query`, 400 `unknown_attribute`.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -101,6 +107,8 @@ class SearchApi {
   }
 
   /// Save a search; new matching listings are e-mailed daily when notify is on
+  ///
+  /// Errors: 400 `invalid_query`, 400 `unknown_attribute`.
   ///
   /// Parameters:
   ///
@@ -502,6 +510,8 @@ class SearchApi {
 
   /// Faceted search over published listings with map aggregates
   ///
+  /// Errors: 400 `invalid_query` (detail names the problem), 400 `unknown_attribute`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -533,6 +543,8 @@ class SearchApi {
   }
 
   /// Faceted search over published listings with map aggregates
+  ///
+  /// Errors: 400 `invalid_query` (detail names the problem), 400 `unknown_attribute`.
   ///
   /// Parameters:
   ///

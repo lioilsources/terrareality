@@ -80,7 +80,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (Result, error
 			ActorID: &u.ID, Diff: map[string]any{"method": "password"}}); err != nil {
 			return err
 		}
-		res, err = s.newSession(ctx, q, u.ID, normClient(in.Client), nil, s.TTL(in.Client))
+		res, err = s.newSession(ctx, q, u.ID, normClient(in.Client), nil, s.TTL(in.Client), false)
 		return err
 	})
 	return res, err
@@ -141,12 +141,23 @@ func (s *Service) Login(ctx context.Context, email, password, client string) (Re
 		if err != nil {
 			return err
 		}
+		if err := checkLocked(u, time.Now()); err != nil {
+			auth.EqualizeTiming(password)
+			return err
+		}
 		if err := auth.VerifyPassword(password, *u.PasswordHash); err != nil {
 			target = &u.ID
 			return errInvalidCredentials
 		}
-		res, err = s.finishLogin(ctx, q, u, normClient(client))
-		return err
+		if res, err = s.finishLogin(ctx, q, u, normClient(client)); err != nil {
+			return err
+		}
+		// Only a complete login clears the account's counter: a correct
+		// password before the second factor must not wipe MFA failures.
+		if res.Token != "" {
+			return q.ResetLoginFailures(ctx, u.ID)
+		}
+		return nil
 	})
 	switch {
 	case errors.Is(err, errInvalidCredentials):
@@ -157,17 +168,63 @@ func (s *Service) Login(ctx context.Context, email, password, client string) (Re
 	return res, err
 }
 
+// prague formats times in e-mails.
+var prague = func() *time.Location {
+	if l, err := time.LoadLocation("Europe/Prague"); err == nil {
+		return l
+	}
+	return time.UTC
+}()
+
+// checkLocked refuses an account locked by repeated failures (S-A1).
+func checkLocked(u db.User, now time.Time) error {
+	if u.LockedUntil == nil {
+		return nil
+	}
+	if wait := u.LockedUntil.Sub(now); wait > 0 {
+		return apperr.TooMany(fmt.Sprintf("too many failed attempts, try again in %d s", int(wait.Seconds())+1))
+	}
+	return nil
+}
+
 func passwordKey(email string) string { return "password:" + normEmail(email) }
 
-// loginFailed counts a failed attempt and, for an existing account, records
-// user.login_failed outside the (rolled back) login transaction.
+// loginFailed counts a failed attempt in memory (per key, also for unknown
+// addresses) and, for an existing account, persistently on the user row
+// (users.failed_logins / locked_until, S-A1), records user.login_failed and
+// e-mails the owner at the lockFree-th failure. It runs outside the (rolled
+// back) login transaction.
 func (s *Service) loginFailed(ctx context.Context, key string, userID *uuid.UUID, factor string) {
 	n := s.guard.fail(key)
 	if userID == nil {
 		return
 	}
-	_ = audit.Record(ctx, db.New(s.Pool), audit.Event{Entity: "user", EntityID: userID, Action: "user.login_failed",
-		Diff: map[string]any{"factor": factor, "failures": n}})
+	err := s.tx(ctx, func(q *db.Queries, tx pgx.Tx) error {
+		row, err := q.RecordLoginFailure(ctx, db.RecordLoginFailureParams{ID: *userID, Free: lockFree})
+		if err != nil {
+			return err
+		}
+		diff := map[string]any{"factor": factor, "failures": row.FailedLogins, "recent": n}
+		if row.LockedUntil != nil {
+			diff["locked_until"] = row.LockedUntil
+		}
+		if err := audit.Record(ctx, q, audit.Event{Entity: "user", EntityID: userID, Action: "user.login_failed", Diff: diff}); err != nil {
+			return err
+		}
+		if row.FailedLogins != lockFree {
+			return nil
+		}
+		u, err := q.GetUser(ctx, *userID)
+		if err != nil {
+			return err
+		}
+		return s.send(ctx, tx, notify.Email, u.Email, u.Locale, "login_failures", map[string]any{
+			"Failures": row.FailedLogins, "When": time.Now().In(prague).Format("2. 1. 2006 15:04"),
+			"Link": s.Cfg.WebBaseURL + "/admin/settings/security"})
+	})
+	if err != nil && s.Log != nil {
+		s.Log.Warn("record login failure", "err", err)
+	}
 }
 
 // CompleteMFA finishes a login with a TOTP or recovery code.
@@ -193,6 +250,9 @@ func (s *Service) CompleteMFA(ctx context.Context, mfaToken, code string) (Resul
 		if err := s.guard.check(mfaKey(u.ID)); err != nil {
 			return err
 		}
+		if err := checkLocked(u, time.Now()); err != nil {
+			return err
+		}
 		ok, err := s.checkSecondFactor(ctx, q, u, code)
 		if err != nil {
 			return err
@@ -215,8 +275,10 @@ func (s *Service) CompleteMFA(ctx context.Context, mfaToken, code string) (Resul
 		}
 		var data struct{ Client string }
 		_ = json.Unmarshal(t.Data, &data)
-		res, err = s.newSession(ctx, q, u.ID, normClient(data.Client), nil, s.TTL(data.Client))
-		return err
+		if res, err = s.newSession(ctx, q, u.ID, normClient(data.Client), nil, s.TTL(data.Client), true); err != nil {
+			return err
+		}
+		return q.ResetLoginFailures(ctx, u.ID)
 	})
 	if err == nil && failed {
 		s.loginFailed(ctx, mfaKey(*target), target, "mfa")
@@ -465,7 +527,7 @@ func (s *Service) Impersonate(ctx context.Context, staff *auth.Principal, target
 		if u.IsStaff || u.PseudonymizedAt != nil || u.ID == staff.UserID {
 			return apperr.Forbidden("impersonation_not_allowed", "this account cannot be impersonated")
 		}
-		res, err = s.newSession(ctx, q, u.ID, "web", &staff.UserID, ttlImpersonation)
+		res, err = s.newSession(ctx, q, u.ID, "web", &staff.UserID, ttlImpersonation, false)
 		if err != nil {
 			return err
 		}

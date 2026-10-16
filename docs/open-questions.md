@@ -61,6 +61,14 @@ follows until decided otherwise.
 - **OQ-17 ISIR usage terms.** The public ISIR_CUZK_WS service is queried by name and birth date
   (`ISIR_MODE=live` outside dev). Confirm that automated checks for a rental platform fit its terms and
   whether a rate limit applies; dev and tests use the mock.
+  *Relevance scale (review S-D7):* the request sends `maxRelevanceVysledku=4` and the response carries
+  `relevanceVysledku`, but the public documentation does not define the scale (which number means
+  "surname + given name + birth date all match", whether 4 is the strictest or the loosest). Until the
+  Ministry of Justice (ISIR operator) confirms it, `internal/isir/client.go` ignores the reported relevance
+  and reports `record` only when a returned proceeding matches surname, given name and birth date of the
+  verified identity exactly; any other result is an error for manual review, never an insolvency. To
+  confirm: the meaning of each relevance value, whether the birth date is always returned, and a captured
+  live response for a test fixture. Owner: product + ops (request to the ISIR helpdesk).
 - **OQ-18 Roommate profile visibility.** Profiles are visible to all signed-in users. Alternative:
   only to verified users (phone or BankID) to reduce scraping.
 

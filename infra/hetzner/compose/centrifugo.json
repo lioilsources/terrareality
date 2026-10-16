@@ -12,7 +12,7 @@
         "presence": true,
         "join_leave": true,
         "history_size": 100,
-        "history_ttl": "720h",
+        "history_ttl": "168h",
         "force_recovery": true
       },
       {

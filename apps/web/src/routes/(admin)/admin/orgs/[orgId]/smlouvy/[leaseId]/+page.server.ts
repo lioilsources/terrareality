@@ -2,7 +2,7 @@ import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { leaseFromForm } from '#lib/leasing.js';
 import { payWithRevolut, revolutState } from '#lib/server/billing.js';
-import { loadLease, signLease } from '#lib/server/leases.js';
+import { giveLandlordNotice, loadLease, signLease } from '#lib/server/leases.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -42,15 +42,8 @@ export const actions: Actions = {
 		const f = await request.formData();
 		return payWithRevolut(locals.api, String(f.get('share_id') ?? ''));
 	},
-	notice: async ({ request, params, locals }) => {
-		const f = await request.formData();
-		const { data, error } = await locals.api.POST('/v1/leases/{leaseId}/notice', {
-			params: { path: { leaseId: params.leaseId } },
-			body: { delivered_on: String(f.get('delivered_on')) }
-		});
-		if (error) return fail(400, { error: errorMessage(error) });
-		return { endsOn: data.ends_on };
-	},
+	notice: async ({ request, params, locals }) =>
+		giveLandlordNotice(locals.api, params.leaseId, await request.formData()),
 	settle: async ({ params, locals }) => {
 		const { error } = await locals.api.POST('/v1/leases/{leaseId}/settlement', {
 			params: { path: { leaseId: params.leaseId } }

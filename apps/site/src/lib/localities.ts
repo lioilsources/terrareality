@@ -102,7 +102,7 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
             : '';
     return {
       title,
-      description: `${k.title} ${where} – ${stats} Bez provize, smlouva přes BankID, platby přímo majiteli.`,
+      description: `${k.title} ${where} – ${stats} Bez provize, smlouva online, platby přímo majiteli.`,
       intro,
       statsLine: p.stat?.listings
         ? `${p.stat.listings} ${nabidek(p.stat.listings)} · medián nájmu ${czk(p.stat.median_rent)} měsíčně`
@@ -133,7 +133,7 @@ export function localityCopy(lang: Lang, k: KindInfo, p: LocalityPage) {
           : '';
   return {
     title: `${k.title} in ${p.name === 'Praha' ? 'Prague' : p.name}`,
-    description: `${k.title} in ${where} – ${stats} No agency fee, lease signed with BankID, rent paid straight to the landlord.`,
+    description: `${k.title} in ${where} – ${stats} No agency fee, lease signed online, rent paid straight to the landlord.`,
     intro,
     statsLine: p.stat?.listings
       ? `${p.stat.listings} ${offers(p.stat.listings)} · median rent ${czk(p.stat.median_rent)} per month`

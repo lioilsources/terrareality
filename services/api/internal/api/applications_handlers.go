@@ -253,16 +253,30 @@ func (s *Server) ListListingApplications(ctx context.Context, r gen.ListListingA
 		}
 		for _, pp := range a.People {
 			person := gen.ApplicantPerson{UserId: pp.ID, DisplayName: pp.Name, VerificationLevel: gen.VerificationLevel(pp.Verification),
-				Insolvency: gen.ApplicantPersonInsolvency(pp.Insolvency)}
-			if pp.IncomeProof != "" {
-				u, n := pp.IncomeProof, pp.IncomeName
-				person.IncomeProofUrl, person.IncomeProofName = &u, &n
+				Insolvency: gen.ApplicantPersonInsolvency(pp.Insolvency), HasIncomeProof: pp.HasIncome}
+			if pp.HasIncome {
+				n := pp.IncomeName
+				person.IncomeProofName = &n
 			}
 			item.People = append(item.People, person)
 		}
 		out = append(out, item)
 	}
 	return out, nil
+}
+
+// GetApplicantIncomeProof implements GET /v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof.
+func (s *Server) GetApplicantIncomeProof(ctx context.Context, r gen.GetApplicantIncomeProofRequestObject) (gen.GetApplicantIncomeProofResponseObject, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	l, err := s.Applications.IncomeProof(ctx, p, r.OrgId, r.ApplicationId, r.UserId)
+	if err != nil {
+		return nil, err
+	}
+	name := l.Filename
+	return gen.GetApplicantIncomeProof200JSONResponse{Url: l.URL, ExpiresAt: l.ExpiresAt, Filename: &name}, nil
 }
 
 // DecideApplication implements POST /v1/orgs/{orgId}/applications/{applicationId}/decision.

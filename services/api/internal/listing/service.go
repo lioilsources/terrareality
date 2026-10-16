@@ -328,15 +328,16 @@ func loadView(ctx context.Context, q *db.Queries, orgID, id uuid.UUID, v *View) 
 	return err
 }
 
-// List returns an organization's listings.
-func (s *Service) List(ctx context.Context, p *auth.Principal, orgID uuid.UUID, status *string) ([]db.ListListingsRow, error) {
+// List returns a page of an organization's listings, recently edited first,
+// after the listing before.
+func (s *Service) List(ctx context.Context, p *auth.Principal, orgID uuid.UUID, status *string, before *uuid.UUID, limit int32) ([]db.ListListingsRow, error) {
 	var out []db.ListListingsRow
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermCatalogRead); err != nil {
 			return err
 		}
 		var err error
-		out, err = q.ListListings(ctx, db.ListListingsParams{OrgID: orgID, Status: status})
+		out, err = q.ListListings(ctx, db.ListListingsParams{OrgID: orgID, Status: status, Before: before, Lim: limit})
 		return err
 	})
 	return out, err

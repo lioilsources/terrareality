@@ -77,7 +77,7 @@ func (s *Server) ListMySessions(ctx context.Context, _ gen.ListMySessionsRequest
 	for _, x := range list {
 		imp := x.ImpersonatorID != nil
 		si := gen.SessionInfo{Id: x.ID, Client: x.Client, UserAgent: x.UserAgent, CreatedAt: x.CreatedAt,
-			LastSeenAt: x.LastSeenAt, Current: x.ID == p.SessionID, Impersonated: &imp}
+			LastSeenAt: x.LastSeenAt, ExpiresAt: x.ExpiresAt, Current: x.ID == p.SessionID, Impersonated: &imp}
 		if x.Ip != nil {
 			ip := x.Ip.String()
 			si.Ip = &ip

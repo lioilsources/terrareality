@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -66,15 +68,16 @@ func (s *Service) DocumentURL(ctx context.Context, d db.LeaseDocument) string {
 	return u
 }
 
-// List returns the organization's leases.
-func (s *Service) List(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]db.ListOrgLeasesRow, error) {
+// List returns a page of the organization's leases, newest first, older
+// than the lease before.
+func (s *Service) List(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]db.ListOrgLeasesRow, error) {
 	var out []db.ListOrgLeasesRow
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermLeases); err != nil {
 			return err
 		}
 		var err error
-		out, err = q.ListOrgLeases(ctx, orgID)
+		out, err = q.ListOrgLeases(ctx, db.ListOrgLeasesParams{OrgID: orgID, Before: before, Lim: limit})
 		return err
 	})
 	return out, err
@@ -311,23 +314,75 @@ const (
 	NoticeAheadDays = 7
 )
 
-// GiveNotice records a tenant's notice; the lease ends at the end of the
-// notice period, later obligations are cancelled. Only a tenant or co-tenant
-// may give it (not a guarantor or subtenant). A landlord's notice needs a
-// statutory reason (§ 2288 OZ) the API cannot record yet, so it is refused.
-func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUID, deliveredOn time.Time) (time.Time, error) {
+// Statutory reasons of a landlord's notice (§ 2288 of the Civil Code). The
+// first four are odst. 1 (any lease), the last odst. 2 (indefinite term only).
+const (
+	NoticeGrossBreach    = "gross_breach_tenant"
+	NoticeConviction     = "conviction"
+	NoticePublicInterest = "public_interest_vacate"
+	NoticeOtherSerious   = "other_serious_reason"
+	NoticeOwnUse         = "flat_needed_for_landlord_or_relative"
+)
+
+// NoticeReasons lists the landlord notice reasons.
+var NoticeReasons = []string{NoticeGrossBreach, NoticeConviction, NoticePublicInterest, NoticeOtherSerious, NoticeOwnUse}
+
+// LandlordNoticeMonths is the statutory notice period of a landlord's notice
+// under § 2288 (three months); a longer agreed period applies instead.
+const LandlordNoticeMonths = 3
+
+// NoticeInput is a notice: the delivery date and, for the landlord, the
+// statutory reason with an explanation.
+type NoticeInput struct {
+	DeliveredOn time.Time
+	Reason      string
+	Explanation string
+}
+
+var errReasonRequired = apperr.Unprocessable("landlord_notice_reason_required",
+	"a landlord's notice needs a statutory reason (§ 2288 of the Civil Code)")
+
+// checkLandlordReason validates a landlord's reason against the lease.
+func checkLandlordReason(l db.Lease, in NoticeInput) error {
+	if !slices.Contains(NoticeReasons, in.Reason) {
+		return errReasonRequired
+	}
+	if in.Reason == NoticeOtherSerious && strings.TrimSpace(in.Explanation) == "" {
+		return apperr.Unprocessable("landlord_notice_reason_required",
+			"explain the other serious reason (§ 2288 odst. 1 písm. d of the Civil Code)")
+	}
+	// § 2288 odst. 2 applies to leases for an indefinite term only.
+	if in.Reason == NoticeOwnUse && (l.EndsOn.Valid || l.Template == "byt_doba_urcita") {
+		return apperr.Unprocessable("notice_reason_not_applicable",
+			"this reason applies to leases for an indefinite term only")
+	}
+	return nil
+}
+
+// GiveNotice records a notice; the lease ends at the end of the notice
+// period, later obligations are cancelled. A tenant or co-tenant gives it
+// without a reason (not a guarantor or subtenant); the landlord states a
+// statutory reason (§ 2288 OZ) and the period is at least three months.
+func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUID, in NoticeInput) (time.Time, error) {
 	a, err := s.access(ctx, p, id)
 	if err != nil {
 		return time.Time{}, err
 	}
+	by := "tenant"
+	months := int(a.Lease.NoticeMonths)
 	switch {
 	case a.Party != nil && (a.Party.Role == "tenant" || a.Party.Role == "co_tenant"):
+		in.Reason, in.Explanation = "", ""
 	case a.Landlord:
-		return time.Time{}, apperr.Unprocessable("landlord_notice_reason_required",
-			"a landlord's notice needs a statutory reason (§ 2288 of the Civil Code); it cannot be given here yet")
+		if err := checkLandlordReason(a.Lease, in); err != nil {
+			return time.Time{}, err
+		}
+		by = "landlord"
+		months = max(months, LandlordNoticeMonths)
 	default:
-		return time.Time{}, apperr.Forbidden("notice_not_allowed", "only a tenant can give notice")
+		return time.Time{}, apperr.Forbidden("notice_not_allowed", "only a tenant or the landlord can give notice")
 	}
+	deliveredOn := in.DeliveredOn
 	now := s.now().In(prague)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	deliveredOn = time.Date(deliveredOn.Year(), deliveredOn.Month(), deliveredOn.Day(), 0, 0, 0, 0, time.UTC)
@@ -336,7 +391,7 @@ func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUI
 			fmt.Sprintf("the notice must be delivered between %d days ago and %d days from today", NoticeBackDays, NoticeAheadDays))
 	}
 	first := time.Date(deliveredOn.Year(), deliveredOn.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
-	end := first.AddDate(0, int(a.Lease.NoticeMonths), -1)
+	end := first.AddDate(0, months, -1)
 	if a.Lease.EndsOn.Valid && a.Lease.EndsOn.Time.Before(end) {
 		end = a.Lease.EndsOn.Time
 	}
@@ -354,9 +409,18 @@ func (s *Service) GiveNotice(ctx context.Context, p *auth.Principal, id uuid.UUI
 		if err := q.CancelObligationsAfter(ctx, db.CancelObligationsAfterParams{LeaseID: id, DueOn: date(&end)}); err != nil {
 			return err
 		}
-		_, err = appendEvent(ctx, q, a.Lease, "notice_given", &p.UserID, map[string]any{"by": "tenant",
-			"party_id": a.Party.ID, "role": a.Party.Role,
-			"delivered_on": deliveredOn.Format("2006-01-02"), "ends_on": end.Format("2006-01-02")})
+		data := map[string]any{"by": by, "delivered_on": deliveredOn.Format("2006-01-02"), "ends_on": end.Format("2006-01-02"),
+			"notice_months": months}
+		if a.Party != nil {
+			data["party_id"], data["role"] = a.Party.ID, a.Party.Role
+		}
+		if by == "landlord" {
+			data["reason"] = in.Reason
+			if e := strings.TrimSpace(in.Explanation); e != "" {
+				data["explanation"] = e
+			}
+		}
+		_, err = appendEvent(ctx, q, a.Lease, "notice_given", &p.UserID, data)
 		return err
 	})
 	if err == nil {
@@ -679,8 +743,9 @@ func (s *Service) IgnoreTransaction(ctx context.Context, p *auth.Principal, orgI
 	})
 }
 
-// BankOverview returns connections and transactions for the landlord's bank page.
-func (s *Service) BankOverview(ctx context.Context, p *auth.Principal, orgID uuid.UUID, status *string) ([]db.BankConnection, []db.BankTransaction, error) {
+// BankOverview returns connections and a page of transactions (newest
+// first, older than the transaction before) for the landlord's bank page.
+func (s *Service) BankOverview(ctx context.Context, p *auth.Principal, orgID uuid.UUID, status *string, before *uuid.UUID, limit int32) ([]db.BankConnection, []db.BankTransaction, error) {
 	var conns []db.BankConnection
 	var txns []db.BankTransaction
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
@@ -691,7 +756,7 @@ func (s *Service) BankOverview(ctx context.Context, p *auth.Principal, orgID uui
 		if conns, err = q.ListBankConnections(ctx, orgID); err != nil {
 			return err
 		}
-		txns, err = q.ListBankTransactions(ctx, db.ListBankTransactionsParams{OrgID: orgID, Status: status})
+		txns, err = q.ListBankTransactions(ctx, db.ListBankTransactionsParams{OrgID: orgID, Status: status, Before: before, Lim: limit})
 		return err
 	})
 	return conns, txns, err
@@ -699,7 +764,7 @@ func (s *Service) BankOverview(ctx context.Context, p *auth.Principal, orgID uui
 
 // SyncOrg syncs the caller's organization's linked connections now.
 func (s *Service) SyncOrg(ctx context.Context, p *auth.Principal, orgID uuid.UUID) (SyncResult, error) {
-	conns, _, err := s.BankOverview(ctx, p, orgID, nil)
+	conns, _, err := s.BankOverview(ctx, p, orgID, nil, nil, 1)
 	var total SyncResult
 	if err != nil {
 		return total, err

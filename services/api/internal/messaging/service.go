@@ -402,9 +402,10 @@ func (s *Service) publish(ctx context.Context, convID uuid.UUID, e Event, toUser
 	}
 }
 
-// List returns the caller's conversations. With orgID only that
-// organization's inbox; with asSeeker only conversations the caller started.
-func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID, asSeeker bool) ([]Conversation, error) {
+// List returns a page of the caller's conversations, latest message first,
+// after the conversation before. With orgID only that organization's inbox;
+// with asSeeker only conversations the caller started.
+func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID, asSeeker bool, before *uuid.UUID, limit int32) ([]Conversation, error) {
 	var out []Conversation
 	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
 		if orgID != nil {
@@ -412,7 +413,8 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, orgID *uuid.UUID,
 				return err
 			}
 		}
-		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, OrgID: orgID, AsSeeker: asSeeker})
+		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, OrgID: orgID, AsSeeker: asSeeker,
+			Before: before, Lim: limit})
 		if err != nil {
 			return err
 		}
@@ -440,7 +442,7 @@ func (s *Service) Get(ctx context.Context, p *auth.Principal, id uuid.UUID) (Vie
 		if err != nil {
 			return err
 		}
-		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, ConversationID: &id})
+		rows, err := q.ListConversations(ctx, db.ListConversationsParams{UserID: p.UserID, ConversationID: &id, Lim: 1})
 		if err != nil {
 			return err
 		}

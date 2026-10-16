@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:terra_api/api.dart' show UserLocale;
 
 import '../../l10n/gen/app_localizations.dart';
 import '../common/api_error.dart';
+import 'auth_errors.dart';
 import 'session.dart';
 
 /// Only in-app paths are accepted as a return target (no open redirect).
@@ -16,10 +18,14 @@ String safeNext(String? next) {
 
 /// E-mail and password sign-in, then the TOTP/recovery code when the
 /// account has two-factor authentication. Returns to [next] afterwards.
+/// Also requests a sign-in link or a password reset e-mail for the entered
+/// address. [mfaToken] opens the code step directly (a sign-in link that
+/// answered mfa_required).
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.next});
+  const LoginScreen({super.key, this.next, this.mfaToken});
 
   final String? next;
+  final String? mfaToken;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -31,7 +37,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _code = TextEditingController();
   bool _busy = false;
   String? _error;
-  String? _mfaToken;
+  String? _info;
+  late String? _mfaToken = widget.mfaToken;
 
   @override
   void dispose() {
@@ -54,6 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _info = null;
     });
     try {
       final outcome = await call();
@@ -89,6 +97,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       (e) => errorKind(e) == ErrorKind.signIn || errorCode(e) == 'invalid_code' ? t.mfaFailed : errorMessage(t, e),
     );
   }
+
+  /// Requests a sign-in link or a reset e-mail. The API answers 202 whether
+  /// or not the account exists, so the confirmation never reveals that.
+  Future<void> _sendLink(
+    Future<void> Function(AuthService, String, UserLocale) send,
+    String Function(AppLocalizations, String) sent,
+  ) async {
+    final t = AppLocalizations.of(context);
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _error = t.loginEmailNeeded;
+        _info = null;
+      });
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      await send(ref.read(authServiceProvider), email, mailLocale(context));
+      if (mounted) setState(() => _info = sent(t, email));
+    } catch (e) {
+      if (mounted) setState(() => _error = authErrorMessage(t, e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _requestMagicLink() => _sendLink((a, e, l) => a.requestMagicLink(e, l), (t, e) => t.magicLinkSent(e));
+
+  void _forgotPassword() => _sendLink((a, e, l) => a.forgotPassword(e, l), (t, e) => t.resetLinkSent(e));
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +174,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onSubmitted: (_) => _submitCode(),
               ),
             ],
+            if (_info != null) ...[
+              const SizedBox(height: 12),
+              Semantics(liveRegion: true, child: Text(_info!, key: const Key('login-info'))),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 12),
               Semantics(
@@ -149,6 +195,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: _busy ? null : (mfa ? _submitCode : _submitPassword),
               child: Text(t.loginContinue),
             ),
+            if (!mfa) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: const Key('login-magic-link'),
+                onPressed: _busy ? null : _requestMagicLink,
+                child: Text(t.loginMagicLink),
+              ),
+              TextButton(
+                key: const Key('login-forgot'),
+                onPressed: _busy ? null : _forgotPassword,
+                child: Text(t.loginForgotPassword),
+              ),
+            ],
             if (mfa)
               TextButton(
                 onPressed: _busy

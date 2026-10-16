@@ -73,13 +73,15 @@ void openLogin(BuildContext context, {String? next}) {
 }
 
 /// The error state of a screen: a message plus "Sign in" for 401 and
-/// "Retry" for everything else. [scrollable] keeps pull-to-refresh working.
+/// "Retry" for everything else. [scrollable] keeps pull-to-refresh working;
+/// [inline] places it inside a list (a failed next page).
 class ApiErrorView extends StatelessWidget {
-  const ApiErrorView({super.key, required this.error, this.onRetry, this.scrollable = false});
+  const ApiErrorView({super.key, required this.error, this.onRetry, this.scrollable = false, this.inline = false});
 
   final Object error;
   final VoidCallback? onRetry;
   final bool scrollable;
+  final bool inline;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +112,7 @@ class ApiErrorView extends StatelessWidget {
         ],
       ),
     );
+    if (inline) return body;
     if (scrollable) {
       return ListView(physics: const AlwaysScrollableScrollPhysics(), children: [body]);
     }

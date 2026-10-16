@@ -871,13 +871,18 @@ JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 WHERE l.org_id = $1 AND l.deleted_at IS NULL
   AND ($2::text IS NULL OR l.status = $2)
-ORDER BY l.updated_at DESC
-LIMIT 200
+  -- Keyset page after the cursor listing (same order as below).
+  AND ($3::uuid IS NULL
+    OR (l.updated_at, l.id) < (SELECT c.updated_at, c.id FROM listings c WHERE c.id = $3::uuid))
+ORDER BY l.updated_at DESC, l.id DESC
+LIMIT $4
 `
 
 type ListListingsParams struct {
-	OrgID  uuid.UUID `json:"org_id"`
-	Status *string   `json:"status"`
+	OrgID  uuid.UUID  `json:"org_id"`
+	Status *string    `json:"status"`
+	Before *uuid.UUID `json:"before"`
+	Lim    int32      `json:"lim"`
 }
 
 type ListListingsRow struct {
@@ -912,7 +917,12 @@ type ListListingsRow struct {
 }
 
 func (q *Queries) ListListings(ctx context.Context, arg ListListingsParams) ([]ListListingsRow, error) {
-	rows, err := q.db.Query(ctx, listListings, arg.OrgID, arg.Status)
+	rows, err := q.db.Query(ctx, listListings,
+		arg.OrgID,
+		arg.Status,
+		arg.Before,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}

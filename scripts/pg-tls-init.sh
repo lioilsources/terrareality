@@ -5,8 +5,13 @@
 #   ca.crt        internal CA: copy to the app VM as PG_CA_FILE (/etc/terrareality/secrets/pg-ca.crt)
 #   server.crt    server certificate, SAN = DB_HOST (private IP) and the name "terra-db"
 #   server.key    owned by the postgres uid (999), mode 0600
-#   ssl.conf      included by infra/hetzner/db/postgresql.conf (include_if_exists)
-# Then `db up -d db` (restart) and on the app VM `app up -d` (DATABASE_URL uses sslmode=verify-full).
+#   ssl.conf      included by infra/hetzner/db/postgresql.conf (include_if_exists); also points
+#                 hba_file at pg_hba.conf below
+#   pg_hba.conf   TLS-only client authentication: every TCP connection from outside the VM must be
+#                 `hostssl` (plain TCP is rejected); the unix socket, loopback and the monitoring
+#                 role from the Docker bridge on the same VM stay as before
+# Then `db up -d db` (restart) and on the app VM `app up -d` (DATABASE_URL uses sslmode=verify-full,
+# Temporal SQL_TLS_ENABLED with the same CA; DB_SSLMODE=verify-full and DB_TLS=true in the app .env).
 # The CA key lives in PG_TLS_CA_DIR (default /srv/pgtls-ca, root only, never mounted into a
 # container); move it OFF the VM into the password manager after issuing.
 # Server certificate validity: 825 days; renew with --renew before expiry (docs/runbooks/key-rotation.md).
@@ -44,9 +49,30 @@ ssl_cert_file = '/etc/postgresql/tls/server.crt'
 ssl_key_file = '/etc/postgresql/tls/server.key'
 ssl_ca_file = '/etc/postgresql/tls/ca.crt'
 ssl_min_protocol_version = 'TLSv1.3'
+# TLS-only pg_hba (written next to this file). Without ssl.conf (restore drills, a fresh VM) the
+# image default $PGDATA/pg_hba.conf applies.
+hba_file = '/etc/postgresql/tls/pg_hba.conf'
 CONF
 
-sudo chown "$PG_UID:$PG_UID" server.key server.crt ca.crt ssl.conf
+sudo tee pg_hba.conf >/dev/null <<'HBA'
+# Written by scripts/pg-tls-init.sh (review S-I12). First match wins.
+# TYPE     DATABASE     USER        ADDRESS          METHOD
+# Inside the container: initdb hooks, pgBackRest, `docker exec psql`, pg_isready.
+local      all          all                          trust
+host       all          all         127.0.0.1/32     trust
+host       all          all         ::1/128          trust
+local      replication  all                          trust
+host       replication  all         127.0.0.1/32     trust
+host       replication  all         ::1/128          trust
+# postgres-exporter on the same VM (Docker bridge, traffic never leaves the host).
+host       terra        monitoring  172.16.0.0/12    scram-sha-256
+# Everything else (api, worker, migrate, Temporal from the app VM over the private network): TLS only.
+hostssl    all          all         0.0.0.0/0        scram-sha-256
+hostssl    all          all         ::/0             scram-sha-256
+hostnossl  all          all         all              reject
+HBA
+
+sudo chown "$PG_UID:$PG_UID" server.key server.crt ca.crt ssl.conf pg_hba.conf
 sudo chmod 0600 server.key
-sudo chmod 0644 server.crt ca.crt ssl.conf
+sudo chmod 0644 server.crt ca.crt ssl.conf pg_hba.conf
 echo "ok: $DIR (server certificate for $HOST_IP). Copy ca.crt to the app VM, then move $CA_DIR/ca.key off this VM."

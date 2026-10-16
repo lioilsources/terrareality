@@ -73,6 +73,7 @@ class AuditEvent {
 
   String action;
 
+  /// Changed values; only owners, admins and staff get them (empty otherwise).
   Map<String, Object> diff;
 
   @override

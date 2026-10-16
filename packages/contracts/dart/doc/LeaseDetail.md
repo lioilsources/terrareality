@@ -21,6 +21,7 @@ Name | Type | Description | Notes
 **parties** | [**List<LeaseParty>**](LeaseParty.md) |  | [default to const []]
 **documents** | [**List<LeaseDocument>**](LeaseDocument.md) |  | [default to const []]
 **totalDebt** | **int** |  | 
+**signProviders** | [**List<SignProvider>**](SignProvider.md) | Signature methods enabled on this server, in order of preference. | [default to const []]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

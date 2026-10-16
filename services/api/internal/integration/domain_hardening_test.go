@@ -117,8 +117,9 @@ func TestConcurrentAcceptOneWins(t *testing.T) {
 	}
 }
 
-// V-8: income proofs are downloadable only for open applications, as
-// attachments, and every issued link is audited.
+// V-8: income proofs are downloadable only for open applications, through a
+// dedicated endpoint, as attachments, and every issued link is audited; the
+// applicant list only says whether a proof exists.
 func TestIncomeProofOnlyForOpenApplications(t *testing.T) {
 	e := newEnv(t)
 	ownerTok, orgID := e.ownerOrg("income-owner")
@@ -141,41 +142,78 @@ func TestIncomeProofOnlyForOpenApplications(t *testing.T) {
 	type applicant struct {
 		People []struct {
 			ID             uuid.UUID `json:"user_id"`
+			HasIncomeProof bool      `json:"has_income_proof"`
 			IncomeProofURL *string   `json:"income_proof_url"`
 		} `json:"people"`
 	}
+	viewed := func(uid uuid.UUID) int {
+		var n int
+		if err := e.pool.QueryRow(context.Background(), "SELECT count(*) FROM audit_events WHERE action = 'passport.income_viewed' AND entity_id = $1 AND org_id = $2",
+			uid, orgID).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
 	var list []applicant
 	e.must(200, "GET", lpath+"/applications", ownerTok, nil, &list)
-	if len(list) != 1 || list[0].People[0].IncomeProofURL == nil {
-		t.Fatalf("open application without income link: %+v", list)
+	if len(list) != 1 || !list[0].People[0].HasIncomeProof || list[0].People[0].IncomeProofURL != nil {
+		t.Fatalf("open application: %+v", list)
 	}
-	u, err := url.Parse(*list[0].People[0].IncomeProofURL)
+	uid := list[0].People[0].ID
+	if n := viewed(uid); n != 0 {
+		t.Fatalf("listing applicants audited %d downloads", n)
+	}
+	ipath := "/v1/orgs/" + orgID.String() + "/applications/" + d.Application.ID.String() + "/people/" + uid.String() + "/income-proof"
+	var link struct {
+		URL       string    `json:"url"`
+		Filename  string    `json:"filename"`
+		ExpiresAt time.Time `json:"expires_at"`
+	}
+	e.must(200, "GET", ipath, ownerTok, nil, &link)
+	u, err := url.Parse(link.URL)
 	if err != nil || !strings.HasPrefix(u.Query().Get("response-content-disposition"), "attachment") ||
 		u.Query().Get("response-content-type") != "application/octet-stream" {
-		t.Fatalf("income link renders inline: %s", *list[0].People[0].IncomeProofURL)
+		t.Fatalf("income link renders inline: %s", link.URL)
 	}
-	var viewed int
-	if err := e.pool.QueryRow(context.Background(), "SELECT count(*) FROM audit_events WHERE action = 'passport.income_viewed' AND entity_id = $1 AND org_id = $2",
-		list[0].People[0].ID, orgID).Scan(&viewed); err != nil || viewed != 1 {
-		t.Fatalf("income view audit %d %v", viewed, err)
+	if link.Filename != "pasky.pdf" || time.Until(link.ExpiresAt) > applications.IncomeProofTTL+time.Minute {
+		t.Fatalf("link %+v", link)
+	}
+	e.must(200, "GET", ipath, ownerTok, nil, &link)
+	if n := viewed(uid); n != 2 {
+		t.Fatalf("income view audit %d, want one per download", n)
+	}
+	// The applicant is not a member of the landlord's organization.
+	var p problem
+	if code := e.call("GET", ipath, tok, nil, &p); code != 403 && code != 404 {
+		t.Fatalf("applicant downloads through the landlord endpoint: %d", code)
 	}
 	e.must(204, "POST", "/v1/orgs/"+orgID.String()+"/applications/"+d.Application.ID.String()+"/decision", ownerTok,
 		map[string]string{"action": "reject", "reason": "incomplete"}, nil)
 	list = nil
 	e.must(200, "GET", lpath+"/applications", ownerTok, nil, &list)
-	if len(list) != 1 || list[0].People[0].IncomeProofURL != nil {
-		t.Fatalf("rejected applicant's income still downloadable: %+v", list)
+	if len(list) != 1 || list[0].People[0].HasIncomeProof {
+		t.Fatalf("rejected applicant's income still offered: %+v", list)
+	}
+	if code := e.call("GET", ipath, ownerTok, nil, &p); code != 404 || p.Code != "income_proof_not_found" {
+		t.Fatalf("rejected applicant's income downloadable: %d %+v", code, p)
 	}
 }
 
-// S-D4: an upcoming slot with bookings cannot silently disappear.
+// S-D4: deleting an upcoming slot with bookings cancels them and tells every
+// booked applicant (e-mail, in-app notification, push) in the same change.
 func TestDeleteBookedSlot(t *testing.T) {
 	e := newEnv(t)
 	ownerTok, orgID := e.ownerOrg("slot-owner")
 	staff := e.staffToken()
 	listingID := e.publishFlat(ownerTok, orgID, staff, "Byt prohlídka "+uuid.NewString()[:6], "approximate")
 	lpath := "/v1/orgs/" + orgID.String() + "/listings/" + listingID.String()
-	tok := e.register(uniqueEmail("viewer"))
+	viewerEmail := uniqueEmail("viewer")
+	tok := e.register(viewerEmail)
+	e.pushDevice(tok)
+	var me struct {
+		ID uuid.UUID `json:"id"`
+	}
+	e.must(200, "GET", "/v1/me", tok, nil, &me)
 	var d appDetail
 	e.must(201, "POST", "/v1/applications", tok, map[string]any{"listing_id": listingID}, &d)
 	var slot struct {
@@ -188,12 +226,32 @@ func TestDeleteBookedSlot(t *testing.T) {
 	}
 	e.must(201, "POST", "/v1/applications/"+d.Application.ID.String()+"/bookings", tok, map[string]any{"slot_id": slot.ID}, &booking)
 	spath := "/v1/orgs/" + orgID.String() + "/viewing-slots/" + slot.ID.String()
+	// Someone outside the organization cannot delete it.
 	var p problem
-	if code := e.call("DELETE", spath, ownerTok, nil, &p); code != 409 || p.Code != "slot_has_bookings" {
-		t.Fatalf("booked slot deleted: %d %+v", code, p)
+	if code := e.call("DELETE", spath, tok, nil, &p); code != 403 && code != 404 {
+		t.Fatalf("applicant deleted the slot: %d %+v", code, p)
 	}
-	e.must(204, "DELETE", "/v1/viewing-bookings/"+booking.ID.String(), tok, nil, nil)
+	pushesBefore := len(e.pusher.of(me.ID, "application"))
 	e.must(204, "DELETE", spath, ownerTok, nil, nil)
+	if n := len(e.outbox.All(viewerEmail, "viewing_cancelled")); n != 1 {
+		t.Fatalf("viewing_cancelled e-mails: %d", n)
+	}
+	if got := e.pusher.of(me.ID, "application"); len(got) != pushesBefore+1 || got[len(got)-1].Title != "Prohlídka byla zrušena" {
+		t.Fatalf("viewing_cancelled push: %+v", got)
+	}
+	var notified int
+	if err := e.pool.QueryRow(context.Background(), "SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'viewing_cancelled'",
+		me.ID).Scan(&notified); err != nil || notified != 1 {
+		t.Fatalf("in-app notification %d %v", notified, err)
+	}
+	var detail appDetail
+	e.must(200, "GET", "/v1/applications/"+d.Application.ID.String(), tok, nil, &detail)
+	if detail.Booking != nil {
+		t.Fatalf("booking survived its slot: %+v", detail.Booking)
+	}
+	if code := e.call("DELETE", spath, ownerTok, nil, &p); code != 404 || p.Code != "slot_not_found" {
+		t.Fatalf("second delete: %d %+v", code, p)
+	}
 }
 
 // B-2: an unconfirmed registration with an invitee's address neither sees

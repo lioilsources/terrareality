@@ -233,6 +233,8 @@
   "back": "Zpět",
   "cancelViewingConfirm": "Zrušit prohlídku?",
   "viewingsTitle": "Moje prohlídky",
+  "viewingCancelledByLandlord": "Pronajímatel prohlídku zrušil. Termín už neplatí, v žádosti si můžete vybrat jiný.",
+  "openApplication": "Otevřít žádost",
   "viewingsEmpty": "Nemáte domluvenou žádnou prohlídku.",
   "payByQr": "QR Platba z bankovní aplikace",
   "qrLabel": "QR kód pro platbu {amount}",
@@ -283,7 +285,9 @@
     }
   },
   "signMethodSimple": "prostý elektronický podpis",
-  "signMethodBankId": "BankID",
+  "signMethodQualified": "kvalifikovaný elektronický podpis (Bank iD)",
+  "signMethodChoose": "Vyberte způsob podpisu",
+  "signDocumentChanged": "Smlouva se mezitím změnila. Zkontrolujte novou verzi a podepište ji znovu.",
   "signMethodLabel": "Způsob podpisu: {method}",
   "@signMethodLabel": {
     "placeholders": {
@@ -303,5 +307,36 @@
         "type": "String"
       }
     }
-  }
+  },
+  "loginMagicLink": "Poslat přihlašovací odkaz",
+  "loginForgotPassword": "Zapomenuté heslo",
+  "loginEmailNeeded": "Nejdřív vyplňte e-mail.",
+  "magicLinkSent": "Pokud k e-mailu {email} existuje účet, poslali jsme na něj přihlašovací odkaz. Otevřete ho v tomto telefonu.",
+  "@magicLinkSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resetLinkSent": "Pokud k e-mailu {email} existuje účet, poslali jsme na něj odkaz pro nastavení nového hesla.",
+  "@resetLinkSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "magicLinkTitle": "Přihlášení odkazem",
+  "magicLinkSigningIn": "Přihlašujeme vás…",
+  "linkInvalid": "Odkaz je neplatný nebo už vypršel. Požádejte o nový.",
+  "linkBackToLogin": "Zpět na přihlášení",
+  "resetTitle": "Nové heslo",
+  "resetHint": "Zvolte nové heslo s alespoň 12 znaky. Po změně budete odhlášeni na všech zařízeních.",
+  "resetPassword": "Nové heslo",
+  "resetSubmit": "Nastavit heslo",
+  "resetDone": "Heslo je změněné. Přihlaste se novým heslem.",
+  "passwordTooShort": "Heslo musí mít alespoň 12 znaků.",
+  "passwordTooWeak": "Heslo je příliš snadno uhodnutelné. Zvolte jiné.",
+  "passwordBreached": "Toto heslo se objevilo v úniku dat. Zvolte jiné."
 }

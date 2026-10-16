@@ -46,8 +46,37 @@
 	respond @internal 404
 }
 
+# Strict CSP for the static Astro site (review S-W, "Astro web bez CSP"). The build ships no
+# JavaScript (JSON-LD blocks are data, not executed), one stylesheet from /_astro and the inline SVG
+# logo whose size comes from a `style="--size: ..."` attribute (hence style-src-attr only). Links to
+# the app domain are plain navigations, which CSP does not restrict. Re-check with
+# `npm run build -w site` + grep for <script/<style/style= when the site gains islands or images.
+(site_csp) {
+	header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+}
+
+# Android App Links + iOS Universal Links for the mobile app (cz.terrareality.terrareality) on the
+# site and app hosts (docs/runbooks/launch.md section 8). The templates live in
+# apps/web/static/.well-known (mounted at /srv/app-links/.well-known) and are rendered with the
+# Caddy env APPLE_TEAM_ID and ANDROID_CERT_SHA256 (comma-separated SHA-256 fingerprints: Play app
+# signing key, optionally the upload key). Served directly with Content-Type application/json and
+# status 200: no redirect, no proxying (Apple and Google reject both).
+(app_links) {
+	@app_links path /.well-known/apple-app-site-association /.well-known/assetlinks.json
+	handle @app_links {
+		root * /srv/app-links
+		header Content-Type application/json
+		header Cache-Control "public, max-age=3600"
+		templates {
+			mime application/json
+		}
+		file_server
+	}
+}
+
 {$APP_DOMAIN} {
 	import common
+	import app_links
 	request_body {
 		max_size 64MB
 	}
@@ -67,6 +96,8 @@
 
 {$SITE_DOMAIN} {
 	import common
+	import site_csp
+	import app_links
 	root * /srv/site
 	file_server
 }

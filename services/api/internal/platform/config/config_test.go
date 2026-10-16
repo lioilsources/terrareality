@@ -110,3 +110,20 @@ func TestUnsafeDevDefaults(t *testing.T) {
 		t.Fatalf("prod with real keys: %v", err)
 	}
 }
+
+func TestImgproxyURLTTL(t *testing.T) {
+	t.Setenv("APP_ENV", "test")
+	t.Setenv("IMGPROXY_URL_TTL", "")
+	c, err := Load()
+	if err != nil || c.ImgproxyTTL != 0 {
+		t.Fatalf("default ttl %s, err %v", c.ImgproxyTTL, err)
+	}
+	t.Setenv("IMGPROXY_URL_TTL", "168h")
+	if c, err = Load(); err != nil || c.ImgproxyTTL != 168*time.Hour {
+		t.Fatalf("ttl %s, err %v", c.ImgproxyTTL, err)
+	}
+	t.Setenv("IMGPROXY_URL_TTL", "-1h")
+	if _, err = Load(); err == nil {
+		t.Fatal("negative ttl accepted")
+	}
+}

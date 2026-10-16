@@ -231,6 +231,8 @@ Name | Type | Description  | Notes
 
 Accept (all or selected attributes) or reject an AI suggestion
 
+An accepted `privacy_blur` suggestion answers with status `pending`: the decision is recorded and the blurred photo replaces the original in the background, after which the status becomes `accepted`. 
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';
@@ -461,9 +463,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listListings**
-> List<ListingSummary> listListings(orgId, status)
+> List<ListingSummary> listListings(orgId, status, before, limit)
 
 Listings of an organization
+
+Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
 
 ### Example
 ```dart
@@ -478,9 +482,11 @@ import 'package:terra_api/api.dart';
 final api_instance = CatalogApi();
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
 final status = ; // ListingStatus | 
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.listListings(orgId, status);
+    final result = api_instance.listListings(orgId, status, before, limit);
     print(result);
 } catch (e) {
     print('Exception when calling CatalogApi->listListings: $e\n');
@@ -493,6 +499,8 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orgId** | **String**|  | 
  **status** | [**ListingStatus**](.md)|  | [optional] 
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 
@@ -607,6 +615,8 @@ No authorization required
 > Listing submitListing(orgId, listingId)
 
 Send the working copy to moderation as a new version
+
+Errors: 422 `invalid_fields`; a photo with an undecided privacy flag is reported as field `photos` with reason `privacy_review_pending`.
 
 ### Example
 ```dart

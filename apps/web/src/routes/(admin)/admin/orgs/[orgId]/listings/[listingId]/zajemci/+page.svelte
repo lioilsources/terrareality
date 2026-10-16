@@ -65,9 +65,13 @@
 						<li>
 							<strong>{pp.display_name}</strong> · {levelLabel[pp.verification_level]()} ·
 							{m.pass_isir()}: {isirLabel[pp.insolvency]()}
-							{#if pp.income_proof_url}·
-								<a href={pp.income_proof_url} target="_blank" rel="noopener"
-									>{m.own_income_proof()}</a
+							{#if pp.has_income_proof}·
+								<a
+									href={localizeHref(
+										`/admin/orgs/${l.org_id}/zadosti/${app.id}/prijem/${pp.user_id}`
+									)}
+									target="_blank"
+									rel="noopener">{m.own_income_proof()}</a
 								>{/if}
 						</li>
 					{/each}
@@ -154,12 +158,25 @@
 							<span>{fmtDateTime(s.starts_at, locale)} · {s.booked}/{s.capacity}</span>
 							<form method="POST" action="?/deleteSlot" use:enhance class="ml-auto">
 								<input type="hidden" name="slot_id" value={s.id} />
-								<button class="text-xs text-red-700 underline">{m.own_slot_delete()}</button>
+								<!-- Deleting cancels the bookings and notifies every booked applicant. -->
+								<button
+									class="text-xs text-red-700 underline"
+									data-testid="slot-delete"
+									onclick={(e) => {
+										const msg = s.booked
+											? m.own_slot_delete_confirm_booked({ count: String(s.booked) })
+											: m.own_slot_delete_confirm();
+										if (!confirm(msg)) e.preventDefault();
+									}}>{m.own_slot_delete()}</button
+								>
 							</form>
 						</div>
 						{#each s.bookings as b (b.id)}
 							<p class="text-[var(--muted)]">✓ {b.applicant_name} ({b.household_size})</p>
 						{/each}
+						{#if s.booked}
+							<p class="mt-1 text-xs text-[var(--muted)]">{m.own_slot_delete_hint()}</p>
+						{/if}
 					</li>
 				{/each}
 			</ul>

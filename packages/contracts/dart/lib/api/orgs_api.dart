@@ -18,24 +18,25 @@ class OrgsApi {
 
   /// Accept an invitation; the invitee e-mail must match my account
   ///
+  /// Errors: 404 `invitation_not_found`, 403 `invitation_email_mismatch`, 409 `invitation_accepted` / `invitation_revoked` / `invitation_expired`. 
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
-  /// * [String] token (required):
-  Future<Response> acceptInvitationWithHttpInfo(String token,) async {
+  /// * [InvitationTokenInput] invitationTokenInput (required):
+  Future<Response> acceptInvitationWithHttpInfo(InvitationTokenInput invitationTokenInput,) async {
     // ignore: prefer_const_declarations
-    final path = r'/v1/invitations/{token}/accept'
-      .replaceAll('{token}', token);
+    final path = r'/v1/invitations/accept';
 
     // ignore: prefer_final_locals
-    Object? postBody;
+    Object? postBody = invitationTokenInput;
 
     final queryParams = <QueryParam>[];
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
 
-    const contentTypes = <String>[];
+    const contentTypes = <String>['application/json'];
 
 
     return apiClient.invokeAPI(
@@ -51,11 +52,13 @@ class OrgsApi {
 
   /// Accept an invitation; the invitee e-mail must match my account
   ///
+  /// Errors: 404 `invitation_not_found`, 403 `invitation_email_mismatch`, 409 `invitation_accepted` / `invitation_revoked` / `invitation_expired`. 
+  ///
   /// Parameters:
   ///
-  /// * [String] token (required):
-  Future<OrgMembership?> acceptInvitation(String token,) async {
-    final response = await acceptInvitationWithHttpInfo(token,);
+  /// * [InvitationTokenInput] invitationTokenInput (required):
+  Future<OrgMembership?> acceptInvitation(InvitationTokenInput invitationTokenInput,) async {
+    final response = await acceptInvitationWithHttpInfo(invitationTokenInput,);
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }
@@ -173,59 +176,6 @@ class OrgsApi {
     // FormatException when trying to decode an empty string.
     if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
       return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'Invitation',) as Invitation;
-    
-    }
-    return null;
-  }
-
-  /// Preview an invitation before accepting it
-  ///
-  /// Note: This method returns the HTTP [Response].
-  ///
-  /// Parameters:
-  ///
-  /// * [String] token (required):
-  Future<Response> getInvitationWithHttpInfo(String token,) async {
-    // ignore: prefer_const_declarations
-    final path = r'/v1/invitations/{token}'
-      .replaceAll('{token}', token);
-
-    // ignore: prefer_final_locals
-    Object? postBody;
-
-    final queryParams = <QueryParam>[];
-    final headerParams = <String, String>{};
-    final formParams = <String, String>{};
-
-    const contentTypes = <String>[];
-
-
-    return apiClient.invokeAPI(
-      path,
-      'GET',
-      queryParams,
-      postBody,
-      headerParams,
-      formParams,
-      contentTypes.isEmpty ? null : contentTypes.first,
-    );
-  }
-
-  /// Preview an invitation before accepting it
-  ///
-  /// Parameters:
-  ///
-  /// * [String] token (required):
-  Future<InvitationPreview?> getInvitation(String token,) async {
-    final response = await getInvitationWithHttpInfo(token,);
-    if (response.statusCode >= HttpStatus.badRequest) {
-      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
-    }
-    // When a remote server returns no body with a status of 204, we shall not decode it.
-    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
-    // FormatException when trying to decode an empty string.
-    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
-      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'InvitationPreview',) as InvitationPreview;
     
     }
     return null;
@@ -509,6 +459,62 @@ class OrgsApi {
         .cast<Member>()
         .toList(growable: false);
 
+    }
+    return null;
+  }
+
+  /// Preview an invitation before accepting it
+  ///
+  /// The token travels in the body so it never lands in access logs (review S-A2).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [InvitationTokenInput] invitationTokenInput (required):
+  Future<Response> lookupInvitationWithHttpInfo(InvitationTokenInput invitationTokenInput,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/invitations/lookup';
+
+    // ignore: prefer_final_locals
+    Object? postBody = invitationTokenInput;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Preview an invitation before accepting it
+  ///
+  /// The token travels in the body so it never lands in access logs (review S-A2).
+  ///
+  /// Parameters:
+  ///
+  /// * [InvitationTokenInput] invitationTokenInput (required):
+  Future<InvitationPreview?> lookupInvitation(InvitationTokenInput invitationTokenInput,) async {
+    final response = await lookupInvitationWithHttpInfo(invitationTokenInput,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'InvitationPreview',) as InvitationPreview;
+    
     }
     return null;
   }

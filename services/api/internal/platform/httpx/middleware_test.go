@@ -14,6 +14,8 @@ func TestLogPathRedactsInvitationTokens(t *testing.T) {
 		"/v1/invitations/tok3n-secret-value-123":        "/v1/invitations/{redacted}",
 		"/v1/invitations/tok3n-secret-value-123/accept": "/v1/invitations/{redacted}/accept",
 		"/v1/invitations/":                              "/v1/invitations/",
+		"/v1/invitations/lookup":                        "/v1/invitations/lookup",
+		"/v1/invitations/accept":                        "/v1/invitations/accept",
 		"/v1/orgs/42/invitations/abc":                   "/v1/orgs/42/invitations/abc", // id, not a secret
 		"/v1/me":                                        "/v1/me",
 	}

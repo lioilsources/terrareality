@@ -89,6 +89,8 @@ x-api-env: &api-env
   IMGPROXY_URL: https://${IMG_DOMAIN:?set IMG_DOMAIN}
   IMGPROXY_KEY: ${IMGPROXY_KEY:?set IMGPROXY_KEY}
   IMGPROXY_SALT: ${IMGPROXY_SALT:?set IMGPROXY_SALT}
+  # Lifetime of signed imgproxy URLs (e.g. 168h); empty = URLs do not expire.
+  IMGPROXY_URL_TTL: ${IMGPROXY_URL_TTL:-}
   CLAMAV_ADDR: clamav:3310
   SEED_RUIAN_SAMPLE: "false"
   # Applications, leasing
@@ -136,8 +138,14 @@ services:
       API_DOMAIN: ${API_DOMAIN}
       SITE_DOMAIN: ${SITE_DOMAIN}
       IMG_DOMAIN: ${IMG_DOMAIN}
+      # App links (Caddyfile snippet app_links, docs/runbooks/launch.md section 8): Apple Team ID and
+      # the SHA-256 signing certificate fingerprint(s) of the Android app, comma-separated.
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # apple-app-site-association + assetlinks.json templates from the checkout.
+      - ../../../apps/web/static/.well-known:/srv/app-links/.well-known:ro
       - ${SITE_DIST_DIR:-/srv/site}:/srv/site:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -312,6 +320,12 @@ services:
       SQL_PORT: "5432"
       SQL_USER: temporal
       SQL_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD}
+      # TLS with the internal CA, host name verified against the certificate SAN (review S-I12).
+      SQL_TLS: ${DB_TLS:-true}
+      SQL_TLS_CA_FILE: /etc/terra/pg-ca.crt
+      SQL_TLS_SERVER_NAME: ${DB_HOST}
+    volumes:
+      - ${PG_CA_FILE:-/etc/terrareality/secrets/pg-ca.crt}:/etc/terra/pg-ca.crt:ro
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
@@ -335,6 +349,14 @@ services:
       SKIP_DB_CREATE: "true"
       SKIP_SCHEMA_SETUP: "true"
       BIND_ON_IP: 0.0.0.0
+      # TLS to the DB VM (review S-I12): sslmode=verify-full with the internal CA from
+      # scripts/pg-tls-init.sh. DB_TLS=false only together with DB_SSLMODE=disable on a fresh DB VM.
+      SQL_TLS_ENABLED: ${DB_TLS:-true}
+      SQL_CA: /etc/terra/pg-ca.crt
+      SQL_HOST_VERIFICATION: ${DB_TLS:-true}
+      SQL_HOST_NAME: ${DB_HOST}
+    volumes:
+      - ${PG_CA_FILE:-/etc/terrareality/secrets/pg-ca.crt}:/etc/terra/pg-ca.crt:ro
     healthcheck:
       <<: *healthcheck
       start_period: 60s

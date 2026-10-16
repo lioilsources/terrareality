@@ -132,6 +132,7 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	if d.Img, err = media.NewImgproxy(cfg.ImgproxyURL, cfg.S3Bucket, cfg.ImgproxyKey, cfg.ImgproxySalt); err != nil {
 		return d, err
 	}
+	d.Img.TTL = cfg.ImgproxyTTL
 	d.Scanner = media.NoScanner{}
 	if cfg.ClamAVAddr != "" {
 		d.Scanner = media.ClamAV{Addr: cfg.ClamAVAddr}

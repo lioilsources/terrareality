@@ -34,6 +34,25 @@ describe('staff session stash', () => {
 		expect(values.has(STAFF_COOKIE)).toBe(false);
 	});
 
+	it('stashes with the staff session exact expiry when it ends sooner', () => {
+		const { cookies, values } = jar();
+		const ends = new Date(now + 20 * 60_000).toISOString();
+		stashStaffSession(cookies, 'staff-token', now, ends);
+		expect(restoreStaffSession(cookies, now + 60_000)).toBe(true);
+		expect((values.get(SESSION_COOKIE)!.opts.expires as Date).toISOString()).toBe(ends);
+	});
+
+	it('never keeps the stash longer than the cap, nor an already expired session', () => {
+		const { cookies, values } = jar();
+		stashStaffSession(cookies, 'staff-token', now, new Date(now + 30 * 86_400_000).toISOString());
+		expect(parseStaffStash(values.get(STAFF_COOKIE)!.value, now)!.expires.getTime()).toBe(
+			now + STAFF_STASH_SECONDS * 1000
+		);
+		const other = jar();
+		stashStaffSession(other.cookies, 'staff-token', now, new Date(now - 1000).toISOString());
+		expect(other.values.has(STAFF_COOKIE)).toBe(false);
+	});
+
 	it('drops an expired or malformed stash and signs out', () => {
 		const { cookies, values } = jar();
 		stashStaffSession(cookies, 'staff-token', now);

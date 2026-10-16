@@ -26,6 +26,7 @@ class LeaseDetail {
     this.parties = const [],
     this.documents = const [],
     required this.totalDebt,
+    this.signProviders = const [],
   });
 
   LeaseSummary lease;
@@ -60,6 +61,9 @@ class LeaseDetail {
 
   int totalDebt;
 
+  /// Signature methods enabled on this server, in order of preference.
+  List<SignProvider> signProviders;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is LeaseDetail &&
     other.lease == lease &&
@@ -74,7 +78,8 @@ class LeaseDetail {
     other.changeRequest == changeRequest &&
     _deepEquality.equals(other.parties, parties) &&
     _deepEquality.equals(other.documents, documents) &&
-    other.totalDebt == totalDebt;
+    other.totalDebt == totalDebt &&
+    _deepEquality.equals(other.signProviders, signProviders);
 
   @override
   int get hashCode =>
@@ -91,10 +96,11 @@ class LeaseDetail {
     (changeRequest == null ? 0 : changeRequest!.hashCode) +
     (parties.hashCode) +
     (documents.hashCode) +
-    (totalDebt.hashCode);
+    (totalDebt.hashCode) +
+    (signProviders.hashCode);
 
   @override
-  String toString() => 'LeaseDetail[lease=$lease, landlordView=$landlordView, payeeIban=$payeeIban, payeeName=$payeeName, dueDay=$dueDay, noticeMonths=$noticeMonths, depositAmount=$depositAmount, servicesAmount=$servicesAmount, clauses=$clauses, changeRequest=$changeRequest, parties=$parties, documents=$documents, totalDebt=$totalDebt]';
+  String toString() => 'LeaseDetail[lease=$lease, landlordView=$landlordView, payeeIban=$payeeIban, payeeName=$payeeName, dueDay=$dueDay, noticeMonths=$noticeMonths, depositAmount=$depositAmount, servicesAmount=$servicesAmount, clauses=$clauses, changeRequest=$changeRequest, parties=$parties, documents=$documents, totalDebt=$totalDebt, signProviders=$signProviders]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -115,6 +121,7 @@ class LeaseDetail {
       json[r'parties'] = this.parties;
       json[r'documents'] = this.documents;
       json[r'total_debt'] = this.totalDebt;
+      json[r'sign_providers'] = this.signProviders;
     return json;
   }
 
@@ -152,6 +159,7 @@ class LeaseDetail {
         parties: LeaseParty.listFromJson(json[r'parties']),
         documents: LeaseDocument.listFromJson(json[r'documents']),
         totalDebt: mapValueOfType<int>(json, r'total_debt')!,
+        signProviders: SignProvider.listFromJson(json[r'sign_providers']),
       );
     }
     return null;
@@ -211,6 +219,7 @@ class LeaseDetail {
     'parties',
     'documents',
     'total_debt',
+    'sign_providers',
   };
 }
 

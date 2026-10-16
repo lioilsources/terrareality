@@ -219,7 +219,7 @@ test('portfolio across municipalities with lease risk', async ({ browser }) => {
 	await call(ownerToken, 'POST', `${org}/invitations`, { email: investor, role: 'investor' });
 	const invite = await waitForMail(investor, 'Pozvánka');
 	const invToken = new URL(invite.match(/https?:\/\/\S+/)![0]).pathname.split('/').pop();
-	await call(investorToken, 'POST', `/v1/invitations/${invToken}/accept`);
+	await call(investorToken, 'POST', '/v1/invitations/accept', { token: invToken });
 	const i = await login(browser, investor, PASSWORD, `/admin/orgs/${orgId}/portfolio`);
 	await expect(i.getByText('Máte přístup jen pro čtení.')).toBeVisible();
 	await expect(i.getByTestId('pf-city')).toHaveCount(3);

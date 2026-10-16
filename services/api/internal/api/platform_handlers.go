@@ -50,7 +50,7 @@ func (s *Server) GetJurisdiction(ctx context.Context, r gen.GetJurisdictionReque
 
 // staff returns the principal when it is a staff member. With
 // StaffRequireMFA the session itself must have passed the second factor
-// (opened after TOTP was enabled), not merely belong to a user who has it.
+// (sessions.mfa_at), not merely belong to a user who has it.
 func (s *Server) staff(ctx context.Context) (*auth.Principal, error) {
 	p, err := principal(ctx)
 	if err != nil {

@@ -67,7 +67,10 @@ paths:
       tags: [auth]
       operationId: register
       summary: Create an account with e-mail and password
-      description: Creates the user and their personal organization, records consents and sends a verification e-mail.
+      description: |
+        Creates the user and their personal organization, records consents and sends a verification e-mail.
+        Errors: 422 `terms_outdated` (terms_version/privacy_version are not the documents in force: reload),
+        409 `email_taken`, 422 `password_too_short` / `password_too_weak` / `password_breached`.
       requestBody:
         required: true
         content:
@@ -82,6 +85,9 @@ paths:
       tags: [auth]
       operationId: login
       summary: Log in with e-mail and password
+      description: |
+        Errors: 401 `invalid_credentials`; 429 `rate_limited` while the account is locked after repeated
+        failures (the lock grows exponentially up to an hour; the owner is e-mailed after the fifth failure).
       requestBody:
         required: true
         content:
@@ -341,6 +347,7 @@ paths:
       tags: [me]
       operationId: startPhoneVerification
       summary: Send a verification code by SMS
+      description: "Errors: 503 `phone_verification_unavailable` while SMS verification is switched off."
       requestBody:
         required: true
         content:
@@ -636,14 +643,18 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AuditPage" }
         default: { $ref: "#/components/responses/Problem" }
-  /v1/invitations/{token}:
-    get:
+  /v1/invitations/lookup:
+    post:
       security: []
       tags: [orgs]
-      operationId: getInvitation
+      operationId: lookupInvitation
       summary: Preview an invitation before accepting it
-      parameters:
-        - $ref: "#/components/parameters/InvitationToken"
+      description: The token travels in the body so it never lands in access logs (review S-A2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationTokenInput" }
       responses:
         "200":
           description: Invitation
@@ -651,13 +662,19 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/InvitationPreview" }
         default: { $ref: "#/components/responses/Problem" }
-  /v1/invitations/{token}/accept:
+  /v1/invitations/accept:
     post:
       tags: [orgs]
       operationId: acceptInvitation
       summary: Accept an invitation; the invitee e-mail must match my account
-      parameters:
-        - $ref: "#/components/parameters/InvitationToken"
+      description: |
+        Errors: 404 `invitation_not_found`, 403 `invitation_email_mismatch`,
+        409 `invitation_accepted` / `invitation_revoked` / `invitation_expired`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationTokenInput" }
       responses:
         "200":
           description: Joined
@@ -798,8 +815,11 @@ paths:
       tags: [catalog]
       operationId: listListings
       summary: Listings of an organization
+      description: "Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`."
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/ListingStatus" } }
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Listings, recently edited first
@@ -849,6 +869,7 @@ paths:
       tags: [catalog]
       operationId: submitListing
       summary: Send the working copy to moderation as a new version
+      description: "Errors: 422 `invalid_fields`; a photo with an undecided privacy flag is reported as field `photos` with reason `privacy_review_pending`."
       parameters:
         - $ref: "#/components/parameters/OrgId"
         - $ref: "#/components/parameters/ListingId"
@@ -977,6 +998,9 @@ paths:
       tags: [catalog]
       operationId: decideSuggestion
       summary: Accept (all or selected attributes) or reject an AI suggestion
+      description: |
+        An accepted `privacy_blur` suggestion answers with status `pending`: the decision is recorded and the
+        blurred photo replaces the original in the background, after which the status becomes `accepted`.
       parameters:
         - $ref: "#/components/parameters/OrgId"
         - { name: suggestionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -1073,6 +1097,7 @@ paths:
       tags: [search]
       operationId: search
       summary: Faceted search over published listings with map aggregates
+      description: "Errors: 400 `invalid_query` (detail names the problem), 400 `unknown_attribute`."
       requestBody:
         required: true
         content:
@@ -1091,6 +1116,7 @@ paths:
       tags: [search]
       operationId: chatSearch
       summary: Natural-language search – turns a message into filters and a map area, then searches
+      description: "Errors: 400 `invalid_query`."
       requestBody:
         required: true
         content:
@@ -1210,6 +1236,7 @@ paths:
       tags: [search]
       operationId: createSavedSearch
       summary: Save a search; new matching listings are e-mailed daily when notify is on
+      description: "Errors: 400 `invalid_query`, 400 `unknown_attribute`."
       requestBody:
         required: true
         content:
@@ -1237,7 +1264,10 @@ paths:
       tags: [messaging]
       operationId: listConversations
       summary: My conversations (as a seeker and for my organizations), newest first
+      description: "Ordered by the last message. Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`."
       parameters:
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
         - { name: org_id, in: query, required: false, description: Only this organization's inbox., schema: { type: string, format: uuid } }
         - { name: as, in: query, required: false, description: "seeker = only conversations I started.", schema: { type: string, enum: [seeker] } }
       responses:
@@ -1626,6 +1656,10 @@ paths:
       tags: [backoffice]
       operationId: backofficeListModeration
       summary: Open reports and automatic flags, oldest first
+      description: "Paged oldest first: a full page may have more; pass the last item's id as `after`."
+      parameters:
+        - $ref: "#/components/parameters/After"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Cases
@@ -1687,6 +1721,7 @@ paths:
       tags: [applications]
       operationId: createGroup
       summary: Create a tenant group and invite flatmates by e-mail
+      description: "Errors: 403 `email_unverified` (confirm the e-mail first), 429 `rate_limited` (more than 30 invitations a day)."
       requestBody:
         required: true
         content:
@@ -1722,6 +1757,7 @@ paths:
       tags: [applications]
       operationId: inviteToGroup
       summary: Invite a flatmate by e-mail
+      description: "Errors: 403 `email_unverified`, 429 `rate_limited` (more than 30 invitations a day), 422 `group_full`."
       parameters: [{ $ref: "#/components/parameters/GroupId" }]
       requestBody:
         required: true
@@ -2027,11 +2063,34 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Applicant" }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/applications/{applicationId}/people/{userId}/income-proof:
+    get:
+      tags: [applications]
+      operationId: getApplicantIncomeProof
+      summary: Short-lived download link of an applicant's income proof (every call is audited)
+      description: |
+        Only while the application is open (submitted, invited) and for 30 days after it was accepted.
+        Errors: 404 `income_proof_not_found`, 404 `application_not_found`.
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { $ref: "#/components/parameters/ApplicationId" }
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Download link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DownloadLink" }
+        default: { $ref: "#/components/responses/Problem" }
   /v1/orgs/{orgId}/applications/{applicationId}/decision:
     post:
       tags: [applications]
       operationId: decideApplication
       summary: Invite to a viewing, accept (other applicants get an automatic answer) or reject with a reason code
+      description: |
+        The applicants' e-mails and pushes are queued in the same transaction as the decision.
+        Errors: 409 `listing_already_accepted` (another application of the listing was accepted),
+        409 `application_closed`, 422 `invalid_reason`.
       parameters:
         - { $ref: "#/components/parameters/OrgId" }
         - { $ref: "#/components/parameters/ApplicationId" }
@@ -2095,7 +2154,7 @@ paths:
     delete:
       tags: [applications]
       operationId: deleteViewingSlot
-      summary: Remove a slot (its bookings are cancelled)
+      summary: Remove a slot; active bookings are cancelled and every booked applicant is notified (e-mail and push)
       parameters:
         - { $ref: "#/components/parameters/OrgId" }
         - { name: slotId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2125,6 +2184,10 @@ paths:
       tags: [leasing]
       operationId: listOrgLeases
       summary: Leases of the organization
+      description: "Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`."
+      parameters:
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Leases
@@ -2235,6 +2298,10 @@ paths:
       tags: [leasing]
       operationId: signLease
       summary: Sign the proposed document as my party (mock now; Bank iD SIGN when contracted)
+      description: |
+        `provider` must be one of the lease detail's `sign_providers`. Errors: 422 `invalid_provider` (not
+        enabled on this server), 409 `document_changed` (a new version was proposed meanwhile: reload and sign
+        the new document), 409 `lease_not_proposed`, 409 `already_signed`, 403 `not_a_party`.
       parameters: [{ $ref: "#/components/parameters/LeaseId" }]
       requestBody:
         required: true
@@ -2343,6 +2410,14 @@ paths:
       tags: [leasing]
       operationId: giveLeaseNotice
       summary: Give notice; the lease ends after the notice period
+      description: |
+        A tenant or co-tenant gives notice without a reason. The landlord (organization member with the leases
+        permission) must state a statutory `reason`; the notice period is then at least three months.
+        `delivered_on` lies between 30 days ago and 7 days from today.
+        Errors: 403 `notice_not_allowed` (guarantor, subtenant), 422 `invalid_delivered_on`,
+        422 `landlord_notice_reason_required` (landlord without a reason, or other_serious_reason without an
+        explanation), 422 `notice_reason_not_applicable` (flat_needed_for_landlord_or_relative on a fixed-term
+        lease), 409 `lease_not_active`.
       parameters: [{ $ref: "#/components/parameters/LeaseId" }]
       requestBody:
         required: true
@@ -2353,6 +2428,8 @@ paths:
               required: [delivered_on]
               properties:
                 delivered_on: { type: string, format: date }
+                reason: { $ref: "#/components/schemas/LandlordNoticeReason" }
+                explanation: { type: string, maxLength: 2000, description: Facts behind the reason; required for other_serious_reason. }
       responses:
         "200":
           description: Notice recorded
@@ -2387,8 +2464,11 @@ paths:
       tags: [leasing]
       operationId: getBankOverview
       summary: Linked accounts and recent incoming transactions with their match status
+      description: Transactions are paged newest first; `transactions_next_before` is the cursor of the next page.
       parameters:
         - { name: status, in: query, required: false, schema: { type: string, enum: [unmatched, matched, suggested, ignored] } }
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Overview
@@ -2458,6 +2538,7 @@ paths:
       tags: [leasing]
       operationId: matchBankTransaction
       summary: Confirm a suggested match or match manually; or ignore the transaction
+      description: "Errors: 422 `currency_mismatch` (the transaction and the share have different currencies), 409 `already_matched`."
       parameters:
         - { $ref: "#/components/parameters/OrgId" }
         - { name: transactionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -2654,7 +2735,7 @@ paths:
               type: object
               required: [weights]
               properties:
-                weights: { type: object, additionalProperties: { type: integer, minimum: 0, maximum: 100 } }
+                weights: { type: object, maxProperties: 32, additionalProperties: { type: integer, minimum: 0, maximum: 100 } }
       responses:
         "200":
           description: Weights
@@ -2758,7 +2839,11 @@ paths:
       tags: [billing]
       operationId: listOrders
       summary: Promotion orders of the organization
-      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      description: Paged newest first; `next_before` is the cursor of the next page.
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Orders
@@ -2786,7 +2871,11 @@ paths:
       tags: [billing]
       operationId: listInvoices
       summary: Invoices (daňové doklady) issued to the organization
-      parameters: [{ $ref: "#/components/parameters/OrgId" }]
+      description: Paged newest first; `next_before` is the cursor of the next page.
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: Invoices
@@ -3052,7 +3141,6 @@ components:
   parameters:
     OrgId: { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
     Provider: { name: provider, in: path, required: true, schema: { type: string, enum: [google, apple] } }
-    InvitationToken: { name: token, in: path, required: true, schema: { type: string, minLength: 20, maxLength: 128 } }
     Before:
       name: before
       in: query
@@ -3072,6 +3160,12 @@ components:
     ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
     ConversationId: { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    After:
+      name: after
+      in: query
+      required: false
+      description: Cursor of oldest-first lists; return items with an id greater than this one.
+      schema: { type: string, format: uuid }
   responses:
     Problem:
       description: Error
@@ -3153,7 +3247,11 @@ components:
           type: string
         code:
           type: string
-          description: Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+          description: |
+            Stable machine-readable error code for client-side translation, e.g. invalid_credentials.
+            Cross-cutting codes: 401 `unauthenticated` (an operation that needs a session got none or an
+            expired one), 400 `validation_failed` (the request does not match this contract), 429 `rate_limited`,
+            403 `forbidden`, 404 `not_found`. Operation-specific codes are listed in each operation's description.
           example: invalid_credentials
         errors:
           type: array
@@ -3321,10 +3419,11 @@ components:
         new_password: { $ref: "#/components/schemas/Password" }
     SessionInfo:
       type: object
-      required: [id, client, created_at, last_seen_at, current]
+      required: [id, client, created_at, last_seen_at, expires_at, current]
       properties:
         id: { type: string, format: uuid }
         client: { type: string }
+        expires_at: { type: string, format: date-time, description: When the session ends unless it is used again (impersonation sessions do not slide). }
         user_agent: { type: string }
         ip: { type: string }
         created_at: { type: string, format: date-time }
@@ -3388,6 +3487,7 @@ components:
       properties:
         url: { type: string, format: uri }
         expires_at: { type: string, format: date-time }
+        filename: { type: string, description: Suggested file name (income proofs). }
     # --- orgs
     Organization:
       type: object
@@ -3416,10 +3516,10 @@ components:
         jurisdiction_code: { type: string, pattern: '^[A-Z]{2}$' }
     Member:
       type: object
-      required: [user_id, email, display_name, role, verification_level, joined_at]
+      required: [user_id, display_name, role, verification_level, joined_at]
       properties:
         user_id: { type: string, format: uuid }
-        email: { type: string }
+        email: { type: string, description: Omitted for callers with the viewer or investor role (except their own row). }
         display_name: { type: string }
         role: { $ref: "#/components/schemas/Role" }
         verification_level: { $ref: "#/components/schemas/VerificationLevel" }
@@ -3429,6 +3529,11 @@ components:
       required: [role]
       properties:
         role: { $ref: "#/components/schemas/Role" }
+    InvitationTokenInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 20, maxLength: 128 }
     InvitationInput:
       type: object
       required: [email, role]
@@ -3468,7 +3573,7 @@ components:
         entity: { type: string }
         entity_id: { type: string, format: uuid }
         action: { type: string }
-        diff: { type: object, additionalProperties: true }
+        diff: { type: object, additionalProperties: true, description: "Changed values; only owners, admins and staff get them (empty otherwise)." }
     AuditPage:
       type: object
       required: [items]
@@ -3769,13 +3874,23 @@ components:
         cover_url: { type: string }
     ReviewDetail:
       type: object
-      required: [item, snapshot, photos]
+      required: [item, snapshot, photos, privacy_flags]
       properties:
         item: { $ref: "#/components/schemas/ReviewItem" }
         snapshot: { type: object, additionalProperties: true }
         photos:
           type: array
           items: { $ref: "#/components/schemas/PhotoVariants" }
+        privacy_flags:
+          type: array
+          description: Submitted photos whose privacy blur suggestion was not applied (the owner kept the photo or has not decided); staff must look at them.
+          items: { $ref: "#/components/schemas/PrivacyFlag" }
+    PrivacyFlag:
+      type: object
+      required: [media_id, status]
+      properties:
+        media_id: { type: string, format: uuid }
+        status: { type: string, enum: [generating, pending, rejected, failed], description: Status of the privacy_blur suggestion. }
     PhotoVariants:
       type: object
       required: [thumb, medium, large]
@@ -4181,8 +4296,8 @@ components:
           type: object
           description: Web push subscription keys.
           properties:
-            p256dh: { type: string }
-            auth: { type: string }
+            p256dh: { type: string, maxLength: 256 }
+            auth: { type: string, maxLength: 64 }
         label: { type: string, maxLength: 120 }
     PushDevice:
       type: object
@@ -4375,12 +4490,14 @@ components:
         booking: { $ref: "#/components/schemas/Viewing" }
     ApplicantPerson:
       type: object
-      required: [user_id, display_name, verification_level, insolvency]
+      required: [user_id, display_name, verification_level, insolvency, has_income_proof]
       properties:
         user_id: { type: string, format: uuid }
         display_name: { type: string }
         verification_level: { $ref: "#/components/schemas/VerificationLevel" }
-        income_proof_url: { type: string, description: Short-lived download URL. }
+        has_income_proof:
+          type: boolean
+          description: An income proof can be downloaded now (getApplicantIncomeProof); false once the application is closed.
         income_proof_name: { type: string }
         insolvency: { type: string, enum: [unchecked, clear, record, error] }
     ApplicationSummary:
@@ -4460,7 +4577,7 @@ components:
         notice_months: { type: integer, minimum: 1, maximum: 12, description: "Default: the portfolio rules of the place, else 3." }
         payee_iban: { type: string, maxLength: 42 }
         payee_name: { type: string, minLength: 1, maxLength: 200 }
-        clauses: { type: array, items: { type: string, enum: [pets_allowed, no_smoking, inventory, indexation, sublet_forbidden, early_termination] } }
+        clauses: { type: array, maxItems: 12, items: { type: string, enum: [pets_allowed, no_smoking, inventory, indexation, sublet_forbidden, early_termination] } }
         property_address: { type: string, maxLength: 300 }
         ruian_id: { type: integer, format: int64, description: RÚIAN address of a lease without a listing (where the lease is in the portfolio). }
         unit_label: { type: string, maxLength: 120 }
@@ -4490,7 +4607,7 @@ components:
         id: { type: string, format: uuid }
         role: { type: string, enum: [landlord, tenant, co_tenant, subtenant, guarantor] }
         name: { type: string }
-        email: { type: string }
+        email: { type: string, description: "Shown to the landlord side for every party; a tenant-side caller sees only their own and the landlord's." }
         share_bps: { type: integer }
         position: { type: integer, description: Specific symbol of this party's payments. }
         me: { type: boolean }
@@ -4507,9 +4624,32 @@ components:
         sha256: { type: string }
         url: { type: string }
         created_at: { type: string, format: date-time }
+    SignProvider:
+      type: object
+      required: [id, level]
+      properties:
+        id: { type: string, enum: [mock, bankid_sign] }
+        level:
+          type: string
+          enum: [simple, qualified]
+          description: "simple: prostý elektronický podpis (simple electronic signature); qualified: kvalifikovaný podpis (Bank iD SIGN)."
+    LandlordNoticeReason:
+      type: string
+      enum: [gross_breach_tenant, conviction, public_interest_vacate, other_serious_reason, flat_needed_for_landlord_or_relative]
+      description: |
+        Statutory reasons of a landlord's notice (§ 2288 of the Czech Civil Code):
+        odst. 1 a) gross_breach_tenant – the tenant grossly breaches their duties;
+        b) conviction – the tenant was convicted of an intentional crime against the landlord, a member of their
+        household, a person living in the house or property in the house;
+        c) public_interest_vacate – the flat must be vacated because the flat or house is to be dealt with in the
+        public interest so that it cannot be used at all;
+        d) other_serious_reason – another similarly serious reason (explanation required);
+        odst. 2 flat_needed_for_landlord_or_relative – leases for an indefinite term only: the flat is to be used
+        by the landlord, their spouse (in the situations the law names) or a relative in the direct line or a
+        sibling of the landlord or the spouse.
     LeaseDetail:
       type: object
-      required: [lease, parties, documents, landlord_view, payee_iban, payee_name, due_day, notice_months, deposit_amount, services_amount, clauses, total_debt]
+      required: [lease, parties, documents, landlord_view, payee_iban, payee_name, due_day, notice_months, deposit_amount, services_amount, clauses, total_debt, sign_providers]
       properties:
         lease: { $ref: "#/components/schemas/LeaseSummary" }
         landlord_view: { type: boolean }
@@ -4524,6 +4664,10 @@ components:
         parties: { type: array, items: { $ref: "#/components/schemas/LeaseParty" } }
         documents: { type: array, items: { $ref: "#/components/schemas/LeaseDocument" } }
         total_debt: { type: integer, format: int64 }
+        sign_providers:
+          type: array
+          description: Signature methods enabled on this server, in order of preference.
+          items: { $ref: "#/components/schemas/SignProvider" }
     ObligationShare:
       type: object
       required: [id, obligation_id, kind, period, due_on, amount, paid_amount, currency, party_id, party_name, mine, status]
@@ -4607,6 +4751,7 @@ components:
       properties:
         connections: { type: array, items: { $ref: "#/components/schemas/BankConnection" } }
         transactions: { type: array, items: { $ref: "#/components/schemas/BankTransaction" } }
+        transactions_next_before: { type: string, format: uuid, description: Cursor of the next page of transactions (absent on the last page). }
     # --- portfolio (M6b)
     RiskBand:
       type: string
@@ -4792,6 +4937,7 @@ components:
     PortfolioRules:
       type: object
       description: Unset fields inherit (jurisdiction defaults, then municipality, then group).
+      maxProperties: 10
       properties:
         reminder_before_days: { type: integer, minimum: 0, maximum: 14 }
         overdue_days: { type: integer, minimum: 1, maximum: 14 }
@@ -4841,8 +4987,8 @@ components:
       type: object
       required: [weights, defaults]
       properties:
-        weights: { type: object, additionalProperties: { type: integer } }
-        defaults: { type: object, additionalProperties: { type: integer } }
+        weights: { type: object, maxProperties: 32, additionalProperties: { type: integer } }
+        defaults: { type: object, maxProperties: 32, additionalProperties: { type: integer } }
     PortfolioSummary:
       type: object
       required: [summary, changes, actions, model, created_at]
@@ -4952,6 +5098,7 @@ components:
       required: [items]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Order" } }
+        next_before: { type: string, format: uuid, description: Cursor of the next page (absent on the last page). }
     Invoice:
       type: object
       required: [id, number, order_id, issued_on, taxable_supply_on, net_amount, vat_amount, gross_amount, currency, vat_rate_bp]
@@ -4972,6 +5119,7 @@ components:
       required: [items]
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
+        next_before: { type: string, format: uuid, description: Cursor of the next page (absent on the last page). }
     RevolutMode:
       type: string
       enum: [sandbox, live]

@@ -72,6 +72,28 @@ void main() {
     expect(externalLinkForPush({'kind': 'lease', 'id': 'l1'}), isNull);
   });
 
+  test('a viewing the landlord cancelled opens the viewings screen with a notice', () {
+    // The applicant push of a deleted slot (internal/applications/viewings.go → push.go).
+    expect(
+      routeForPush({
+        'kind': 'application',
+        'id': 'a1',
+        'event': 'viewing_cancelled',
+        'status': 'invited',
+        'link': 'https://terrareality.cz/zadosti/a1',
+      }),
+      '/prohlidky?zruseno=a1',
+    );
+    expect(routeForPush({'kind': 'viewing', 'id': 'b1', 'event': 'viewing_cancelled', 'application_id': 'a2'}),
+        '/prohlidky?zruseno=a2');
+    expect(routeForPush({'kind': 'application', 'id': 'a/../x', 'event': 'viewing_cancelled'}), '/prohlidky');
+    // Other decisions still open the application.
+    expect(routeForPush({'kind': 'application', 'id': 'a1', 'event': 'application_accepted'}), '/zadosti/a1');
+    // A landlord push never takes the applicant route.
+    expect(routeForPush({'kind': 'application', 'id': 'a1', 'event': 'viewing_cancelled', 'audience': 'landlord'}),
+        isNull);
+  });
+
   test('landlord pushes open the web admin instead of an app route', () {
     final data = {
       'kind': 'application',

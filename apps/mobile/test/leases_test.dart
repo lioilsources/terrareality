@@ -43,12 +43,22 @@ class FakeRepo implements LeasesRepository {
   var signCalls = 0;
   Object? signError;
   Uri? redirect;
+  final signedWith = <SignProviderIdEnum>[];
+  int loads = 0;
+
+  /// The server's enabled signature methods (LeaseDetail.sign_providers).
+  List<SignProvider> providers = [SignProvider(id: SignProviderIdEnum.mock, level: SignProviderLevelEnum.simple)];
 
   @override
   Future<List<LeaseSummary>> mine() async => [_summary(state)];
 
   @override
-  Future<LeaseView> lease(String id) async => LeaseView(
+  Future<LeaseView> lease(String id) async {
+    loads++;
+    return _view();
+  }
+
+  LeaseView _view() => LeaseView(
         LeaseDetail(
           lease: _summary(state),
           landlordView: false,
@@ -62,9 +72,12 @@ class FakeRepo implements LeasesRepository {
           parties: [
             LeaseParty(id: 'p1', role: LeasePartyRoleEnum.coTenant, name: 'Anna', shareBps: 5000, position: 1, me: true,
                 signedAt: signed ? DateTime(2026, 10, 14) : null),
+            // Another tenant's e-mail is not shown to a tenant-side caller.
+            LeaseParty(id: 'p2', role: LeasePartyRoleEnum.coTenant, name: 'Petr', shareBps: 5000, position: 2, me: false),
           ],
           documents: [],
           totalDebt: signed ? 1200000 : 0,
+          signProviders: providers,
         ),
         signed
             ? [
@@ -76,8 +89,9 @@ class FakeRepo implements LeasesRepository {
       );
 
   @override
-  Future<SignOutcome> sign(String id) async {
+  Future<SignOutcome> sign(String id, SignProviderIdEnum provider) async {
     signCalls++;
+    signedWith.add(provider);
     if (signError != null) throw signError!;
     if (redirect != null) return SignOutcome(signed: false, redirect: redirect);
     signed = true;

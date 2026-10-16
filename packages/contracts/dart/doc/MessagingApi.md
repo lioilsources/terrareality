@@ -354,9 +354,11 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listConversations**
-> List<Conversation> listConversations(orgId, as_)
+> List<Conversation> listConversations(before, limit, orgId, as_)
 
 My conversations (as a seeker and for my organizations), newest first
+
+Ordered by the last message. Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
 
 ### Example
 ```dart
@@ -369,11 +371,13 @@ import 'package:terra_api/api.dart';
 //defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
 
 final api_instance = MessagingApi();
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Only this organization's inbox.
 final as_ = as__example; // String | seeker = only conversations I started.
 
 try {
-    final result = api_instance.listConversations(orgId, as_);
+    final result = api_instance.listConversations(before, limit, orgId, as_);
     print(result);
 } catch (e) {
     print('Exception when calling MessagingApi->listConversations: $e\n');
@@ -384,6 +388,8 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
  **orgId** | **String**| Only this organization's inbox. | [optional] 
  **as_** | **String**| seeker = only conversations I started. | [optional] 
 

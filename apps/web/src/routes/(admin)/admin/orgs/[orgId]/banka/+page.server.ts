@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
+import { PAGE_SIZE, cursorFrom, pageLinks } from '#lib/paging.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -11,9 +12,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		});
 	}
 	const { data } = await locals.api.GET('/v1/orgs/{orgId}/bank', {
-		params: { path: { orgId: params.orgId } }
+		params: { path: { orgId: params.orgId }, query: { before: cursorFrom(url), limit: PAGE_SIZE } }
 	});
-	return { bank: data ?? { connections: [], transactions: [] } };
+	return {
+		bank: data ?? { connections: [], transactions: [] },
+		paging: pageLinks(url, 'before', data?.transactions_next_before, ['connection'])
+	};
 };
 
 const path = (orgId: string) => ({ params: { path: { orgId } } });

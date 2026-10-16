@@ -84,9 +84,9 @@ func (q *Queries) CreateAuthToken(ctx context.Context, arg CreateAuthTokenParams
 }
 
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (user_id, token_hash, client, impersonator_id, ip, user_agent, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, token_hash, client, impersonator_id, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at
+INSERT INTO sessions (user_id, token_hash, client, impersonator_id, ip, user_agent, expires_at, mfa_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, user_id, token_hash, client, impersonator_id, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at, mfa_at
 `
 
 type CreateSessionParams struct {
@@ -97,6 +97,7 @@ type CreateSessionParams struct {
 	Ip             *netip.Addr `json:"ip"`
 	UserAgent      *string     `json:"user_agent"`
 	ExpiresAt      time.Time   `json:"expires_at"`
+	MfaAt          *time.Time  `json:"mfa_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -108,6 +109,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.Ip,
 		arg.UserAgent,
 		arg.ExpiresAt,
+		arg.MfaAt,
 	)
 	var i Session
 	err := row.Scan(
@@ -122,6 +124,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.LastSeenAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.MfaAt,
 	)
 	return i, err
 }
@@ -154,7 +157,7 @@ func (q *Queries) DeleteExpiredSessions(ctx context.Context) (int64, error) {
 }
 
 const getActiveSession = `-- name: GetActiveSession :one
-SELECT s.id, s.user_id, s.token_hash, s.client, s.impersonator_id, s.ip, s.user_agent, s.created_at, s.last_seen_at, s.expires_at, s.revoked_at, u.is_staff, u.pseudonymized_at, u.totp_enabled_at
+SELECT s.id, s.user_id, s.token_hash, s.client, s.impersonator_id, s.ip, s.user_agent, s.created_at, s.last_seen_at, s.expires_at, s.revoked_at, s.mfa_at, u.is_staff, u.pseudonymized_at, u.totp_enabled_at
 FROM sessions s JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now()
   AND s.created_at > $2::timestamptz
@@ -177,6 +180,7 @@ type GetActiveSessionRow struct {
 	LastSeenAt      time.Time   `json:"last_seen_at"`
 	ExpiresAt       time.Time   `json:"expires_at"`
 	RevokedAt       *time.Time  `json:"revoked_at"`
+	MfaAt           *time.Time  `json:"mfa_at"`
 	IsStaff         bool        `json:"is_staff"`
 	PseudonymizedAt *time.Time  `json:"pseudonymized_at"`
 	TotpEnabledAt   *time.Time  `json:"totp_enabled_at"`
@@ -199,6 +203,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		&i.LastSeenAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.MfaAt,
 		&i.IsStaff,
 		&i.PseudonymizedAt,
 		&i.TotpEnabledAt,
@@ -291,7 +296,7 @@ func (q *Queries) InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTo
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, token_hash, client, impersonator_id, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at FROM sessions
+SELECT id, user_id, token_hash, client, impersonator_id, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at, mfa_at FROM sessions
 WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC
 `
@@ -317,6 +322,7 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID uuid.UUID) ([]Ses
 			&i.LastSeenAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.MfaAt,
 		); err != nil {
 			return nil, err
 		}

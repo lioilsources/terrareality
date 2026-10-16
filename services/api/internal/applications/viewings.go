@@ -13,6 +13,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/db"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
 )
 
 // SlotInput is a new viewing slot.
@@ -49,21 +50,26 @@ func (s *Service) CreateSlot(ctx context.Context, p *auth.Principal, orgID, list
 	return out, err
 }
 
-// DeleteSlot removes a slot. An upcoming slot with active bookings cannot be
-// deleted: the bookings would disappear with it (ON DELETE CASCADE) and the
-// applicants would come to a viewing that no longer exists. Past slots and
-// slots nobody booked can go.
+// DeleteSlot removes a slot. Active bookings of an upcoming slot are
+// cancelled first and every booked applicant (with joined group members) is
+// told by e-mail, in-app notification and push, all in the same transaction
+// (S-D4); the bookings would otherwise vanish with the slot (ON DELETE
+// CASCADE) and the applicants come to a viewing that no longer exists.
 func (s *Service) DeleteSlot(ctx context.Context, p *auth.Principal, orgID, id uuid.UUID) error {
-	return s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+	return s.asUser(ctx, p, func(q *db.Queries, tx pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermMessages); err != nil {
 			return err
 		}
-		booked, err := q.CountActiveSlotBookings(ctx, db.CountActiveSlotBookingsParams{SlotID: id, OrgID: orgID})
+		slot, err := q.GetViewingSlot(ctx, db.GetViewingSlotParams{ID: id, OrgID: orgID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperr.NotFound("slot_not_found", "slot not found")
+		}
 		if err != nil {
 			return err
 		}
-		if booked > 0 {
-			return apperr.Conflict("slot_has_bookings", "applicants booked this viewing; it cannot be deleted")
+		cancelled, err := q.CancelSlotBookings(ctx, db.CancelSlotBookingsParams{SlotID: id, OrgID: orgID})
+		if err != nil {
+			return err
 		}
 		n, err := q.DeleteViewingSlot(ctx, db.DeleteViewingSlotParams{ID: id, OrgID: orgID})
 		if err != nil {
@@ -72,7 +78,28 @@ func (s *Service) DeleteSlot(ctx context.Context, p *auth.Principal, orgID, id u
 		if n == 0 {
 			return apperr.NotFound("slot_not_found", "slot not found")
 		}
-		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "viewing_slot", EntityID: &id, Action: "viewing.slot_delete"})
+		if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "viewing_slot", EntityID: &id, Action: "viewing.slot_delete",
+			Diff: map[string]any{"starts_at": slot.StartsAt, "cancelled_bookings": len(cancelled)}}); err != nil {
+			return err
+		}
+		if len(cancelled) == 0 {
+			return nil
+		}
+		if err := platformdb.Elevate(ctx, tx); err != nil {
+			return err
+		}
+		when := slot.StartsAt.In(prague).Format("2. 1. 2006 15:04")
+		for _, b := range cancelled {
+			bid := b.ID
+			if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "viewing_booking", EntityID: &bid,
+				Action: "viewing.cancelled_by_landlord", Diff: map[string]any{"slot_id": id, "application_id": b.ApplicationID}}); err != nil {
+				return err
+			}
+			if err := s.notifyApplicants(ctx, q, tx, b.ApplicationID, "viewing_cancelled", "", map[string]any{"When": when}); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 

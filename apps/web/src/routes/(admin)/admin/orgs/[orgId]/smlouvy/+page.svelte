@@ -5,6 +5,7 @@
 	import { fmtDate } from '#lib/labels.js';
 	import { stateLabel } from '#lib/leasing.js';
 	import Card from '#lib/components/Card.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, params }: PageProps = $props();
@@ -43,4 +44,5 @@
 			</li>
 		{/each}
 	</ul>
+	<LoadMore next={data.paging.next} first={data.paging.first} testid="leases-more" />
 </Card>

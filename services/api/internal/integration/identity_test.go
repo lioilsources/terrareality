@@ -127,22 +127,26 @@ func TestRegistrationMFAOrgInvitation(t *testing.T) {
 		OrgName string `json:"org_name"`
 		Status  string `json:"status"`
 	}
-	e.must(200, "GET", "/v1/invitations/"+invTok, "", nil, &preview)
+	e.must(200, "POST", "/v1/invitations/lookup", "", map[string]string{"token": invTok}, &preview)
 	if preview.Status != "open" || preview.OrgName != "Alice Reality s.r.o." {
 		t.Fatalf("preview %+v", preview)
 	}
 	// Someone else cannot use Bob's invitation.
 	mallory := e.register(uniqueEmail("mallory"))
-	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", mallory, nil, &p); code != 403 || p.Code != "invitation_email_mismatch" {
+	if code := e.call("POST", "/v1/invitations/accept", mallory, map[string]string{"token": invTok}, &p); code != 403 || p.Code != "invitation_email_mismatch" {
 		t.Fatalf("foreign accept: %d %+v", code, p)
 	}
 	bobTok := e.register(bob)
 	var joined membership
-	e.must(200, "POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, &joined)
+	// S-A2: the token travels in the body; the old path routes are gone.
+	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, nil); code != 404 && code != 405 {
+		t.Fatalf("token in the path still accepted: %d", code)
+	}
+	e.must(200, "POST", "/v1/invitations/accept", bobTok, map[string]string{"token": invTok}, &joined)
 	if joined.Role != "agent" || joined.Organization.ID != org.Organization.ID {
 		t.Fatalf("joined %+v", joined)
 	}
-	if code := e.call("POST", "/v1/invitations/"+invTok+"/accept", bobTok, nil, &p); code != 409 {
+	if code := e.call("POST", "/v1/invitations/accept", bobTok, map[string]string{"token": invTok}, &p); code != 409 || p.Code != "invitation_accepted" {
 		t.Fatalf("second accept: %d", code)
 	}
 	var members []struct {

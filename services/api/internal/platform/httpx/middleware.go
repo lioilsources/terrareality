@@ -50,16 +50,21 @@ func AccessLog(log *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// secretPathPrefixes are routes whose next path segment is a bearer secret
-// (invitation tokens are valid for days, review S-A2).
+// secretPathPrefixes are routes whose next path segment may be a bearer
+// secret. Invitation tokens now travel in POST bodies (/v1/invitations/lookup
+// and /accept, review S-A2); a client still putting one in the path (the
+// removed routes) is redacted all the same.
 var secretPathPrefixes = []string{"/v1/invitations/"}
+
+// publicSegments are known route segments after a secret prefix.
+var publicSegments = map[string]bool{"lookup": true, "accept": true}
 
 // LogPath returns path with secret segments replaced by "{redacted}", for
 // logs and traces.
 func LogPath(path string) string {
 	for _, p := range secretPathPrefixes {
 		rest, ok := strings.CutPrefix(path, p)
-		if !ok || rest == "" {
+		if !ok || rest == "" || publicSegments[rest] {
 			continue
 		}
 		_, tail, hasTail := strings.Cut(rest, "/")

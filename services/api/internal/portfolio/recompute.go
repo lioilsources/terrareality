@@ -163,10 +163,11 @@ func (s *Scorer) Recompute(ctx context.Context, id uuid.UUID) (Result, error) {
 }
 
 // RecomputeStale rescores leases with new events, stale or missing scores
-// and returns how many were rescored. A lease that fails is logged and
-// skipped, so one broken lease does not stop the others (it stays stale and
-// is tried again next time); only when every lease failed is an error
-// returned.
+// and returns how many were rescored. A lease that fails is logged, marked
+// on its score row (lease_risk.last_error / failed_at, S-P1) and skipped, so
+// one broken lease does not stop the others; a marked lease waits an hour
+// before the next attempt (StaleRiskLeaseIDs) and is ordered last. Only when
+// every lease failed is an error returned.
 func (s *Scorer) RecomputeStale(ctx context.Context) (int, error) {
 	ids, err := db.New(s.Pool).StaleRiskLeaseIDs(ctx, ModelVersion)
 	if err != nil {
@@ -184,6 +185,10 @@ func (s *Scorer) RecomputeStale(ctx context.Context) (int, error) {
 				return done, ctx.Err()
 			}
 			log.Error("lease risk recompute failed", "lease_id", id, "err", err)
+			if _, merr := db.New(s.Pool).MarkLeaseRiskFailed(ctx, db.MarkLeaseRiskFailedParams{LeaseID: id,
+				LastError: err.Error()}); merr != nil {
+				log.Warn("mark lease risk failure", "lease_id", id, "err", merr)
+			}
 			if first == nil {
 				first = fmt.Errorf("lease %s: %w", id, err)
 			}

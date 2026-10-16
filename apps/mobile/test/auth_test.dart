@@ -10,10 +10,12 @@ import 'package:terrareality/src/auth/login_screen.dart';
 import 'package:terrareality/src/auth/session.dart';
 import 'package:terrareality/src/auth/token_store.dart';
 import 'package:terrareality/src/messaging/conversations_screen.dart';
+import 'package:terrareality/src/messaging/messaging_repository.dart';
 import 'package:terrareality/src/push/push_registrar.dart';
 import 'package:terrareality/src/status/status_repository.dart';
 
 import 'auth_fakes.dart';
+import 'messaging_test.dart' show FakeRepo;
 
 class _Env {
   _Env({String? token, String? device})
@@ -155,10 +157,7 @@ void main() {
       var loads = 0;
       final c = ProviderContainer(overrides: [
         ...env.overrides,
-        conversationsProvider.overrideWith((ref) async {
-          loads++;
-          return <Conversation>[];
-        }),
+        messagingRepositoryProvider.overrideWithValue(_CountingInbox(() => loads++)),
       ]);
       addTearDown(c.dispose);
       final sub = c.listen(conversationsProvider, (_, _) {});
@@ -227,4 +226,17 @@ void main() {
       expect(find.text('Stav platformy'), findsOneWidget);
     });
   });
+}
+
+/// An empty inbox that counts how often it is loaded.
+class _CountingInbox extends FakeRepo {
+  _CountingInbox(this.onLoad);
+
+  final void Function() onLoad;
+
+  @override
+  Future<List<Conversation>> conversations({String? before, int limit = conversationsPageSize}) async {
+    onLoad();
+    return [];
+  }
 }

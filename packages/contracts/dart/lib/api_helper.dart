@@ -67,6 +67,9 @@ String parameterToString(dynamic value) {
   if (value is ConversationRole) {
     return ConversationRoleTypeTransformer().encode(value).toString();
   }
+  if (value is LandlordNoticeReason) {
+    return LandlordNoticeReasonTypeTransformer().encode(value).toString();
+  }
   if (value is LeaseState) {
     return LeaseStateTypeTransformer().encode(value).toString();
   }

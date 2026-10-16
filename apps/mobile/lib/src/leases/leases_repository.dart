@@ -12,12 +12,6 @@ class LeaseView {
   final bool chainValid;
 }
 
-/// The signature method the app offers. Until the API lists the enabled
-/// providers (contract change, see docs/05-review-implementation.md V-12),
-/// the build picks it: `--dart-define=SIGN_PROVIDER=bankid_sign`; the
-/// default is the platform's simple electronic signature (`mock`).
-const signProvider = String.fromEnvironment('SIGN_PROVIDER', defaultValue: 'mock');
-
 /// The result of a signature: done, or continue at the provider.
 class SignOutcome {
   const SignOutcome({required this.signed, this.redirect});
@@ -32,7 +26,9 @@ class SignOutcome {
 abstract class LeasesRepository {
   Future<List<LeaseSummary>> mine();
   Future<LeaseView> lease(String id);
-  Future<SignOutcome> sign(String id);
+
+  /// Signs with [provider], one of the lease detail's `sign_providers`.
+  Future<SignOutcome> sign(String id, SignProviderIdEnum provider);
 }
 
 /// Only https pages leave the app (payment and signature providers).
@@ -59,9 +55,11 @@ class ApiLeasesRepository implements LeasesRepository {
   }
 
   @override
-  Future<SignOutcome> sign(String id) async {
-    final provider = SignLeaseRequestProviderEnum.fromJson(signProvider) ?? SignLeaseRequestProviderEnum.mock;
-    final res = await api.signLease(id, SignLeaseRequest(provider: provider));
+  Future<SignOutcome> sign(String id, SignProviderIdEnum provider) async {
+    final req = SignLeaseRequestProviderEnum.fromJson(provider.value);
+    // A provider this client build does not know cannot be requested.
+    if (req == null) throw ApiException(422, '{"code":"invalid_provider","status":422,"title":"Unprocessable Entity"}');
+    final res = await api.signLease(id, SignLeaseRequest(provider: req));
     return SignOutcome(signed: res?.signed ?? false, redirect: safeExternalUrl(res?.redirectUrl));
   }
 }

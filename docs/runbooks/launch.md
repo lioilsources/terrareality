@@ -129,6 +129,11 @@ Checklist se odškrtává v PR / issue „Launch“ s datem a jménem; tento sou
       (`packages/attributes/legal`), stránky na webu s označením „návrh“, cookie lišta — my · repo
 - [ ] Právník zkontroloval všechny texty a doplnil údaje provozovatele (Q-LEGAL-1); odstranit
       označení „návrh“ — zákazník · venku
+- [ ] Sign-off verzí právních textů zapsaný v `docs/legal-questions.md` Q-LEGAL-5 (kdo, kdy, verze,
+      commit); `TERMS_VERSION`/`PRIVACY_VERSION` v `.env` = `version:` ve front matter — zákazník + my · venku
+- [ ] Texty na webu odpovídají realitě (review V-12): podpis smlouvy elektronicky v aplikaci, Bank iD SIGN
+      jen „připravujeme“ (OQ-19), šablony „procházejí právní revizí“, dokud `LEASE_TEMPLATES_REVIEWED=false`;
+      po podpisu smlouvy s Bank iD a revizi šablon upravit `apps/site/src/i18n/strings.ts` — my · repo
 - [ ] DPA podle `docs/legal/dpa-checklist.md` podepsané nebo vědomě přijaté právníkem — zákazník · venku:
   - [ ] Hetzner (hosting, Object Storage, zálohy)
   - [ ] Bank iD
@@ -145,7 +150,7 @@ Checklist se odškrtává v PR / issue „Launch“ s datem a jménem; tento sou
 - [ ] Záznamy o činnostech zpracování (čl. 30), DPIA pro rizikové skóre (Q-RISK-1), seznam
       subdodavatelů zveřejněn — zákazník · venku
 - [ ] Otevřené otázky z `docs/legal-questions.md` uzavřené nebo vědomě odložené po launchi — zákazník · venku.
-      Blokující pro launch: Q-LEGAL-1…4, Q-GDPR-1…6, Q-CZ-1…4, Q-LEASE-1…3, Q-RISK-1, Q-APP-1…3,
+      Blokující pro launch: Q-LEGAL-1…5, Q-GDPR-1…6, Q-CZ-1…4, Q-LEASE-1…3, Q-RISK-1, Q-APP-1…3,
       Q-MSG-1…3, Q-IMP-1, Q-BILL-1…3, Q-AI-1 (jen pokud se zapíná cloud fallback). Po launchi: Q-STR-1…2.
 
 ## 7. Data (seed Praha)
@@ -177,9 +182,19 @@ Checklist se odškrtává v PR / issue „Launch“ s datem a jménem; tento sou
       V Play Console zapnout Play App Signing a nahrát upload certifikát — my · venku
 - [ ] App Links / Universal Links: `/.well-known/assetlinks.json` (package `cz.terrareality.terrareality`,
       SHA-256 **app signing** certifikátu z Play Console) a `/.well-known/apple-app-site-association`
-      (`<TEAM_ID>.cz.terrareality.terrareality`, cesty `/zpravy/*`, `/zadosti/*`, `/smlouvy/*`, `/inzerat/*`,
-      `/prohlidky`) na `terrareality.cz` i `app.terrareality.cz`; App ID s capability Associated Domains
-      a Push Notifications — my (web) + zákazník (Apple účet) · venku
+      (`<TEAM_ID>.cz.terrareality.terrareality`, cesty `/zpravy`, `/zadosti`, `/smlouvy`, `/inzerat`,
+      `/prohlidky` vč. podcest `/*` a přesně `/auth/magic` a `/auth/reset` — e-mailové odkazy s `?token=`;
+      `/auth/callback/*` a `/auth/oidc/*` aplikace **nebere**, zůstávají na webu) na `terrareality.cz`
+      i `app.terrareality.cz`. Šablony jsou v `apps/web/static/.well-known/`, vyplňuje je Caddy
+      (snippet `app_links` v obou Caddyfilech) z env `APPLE_TEAM_ID` (10 znaků) a `ANDROID_CERT_SHA256`
+      (SHA-256 otisky oddělené čárkou, formát `AA:BB:...`, nejdřív app signing klíč z Play Console →
+      App integrity, volitelně upload klíč) v `.env` app VM; odpověď 200, `Content-Type:
+      application/json`, bez přesměrování (kontrola v `deploy.md` §1.3 krok 7). Android cesty bere
+      z manifestu, `assetlinks.json` žádné cesty nemá. `WEB_BASE_URL` api musí být jeden z těchto dvou
+      hostů (dnes `https://app.terrareality.cz`), jinak se odkazy z e-mailů v aplikaci neotevřou.
+      Ověření: Apple `https://app-site-association.cdn-apple.com/a/v1/app.terrareality.cz`, Google
+      Digital Asset Links API / `adb shell pm get-app-links cz.terrareality.terrareality`.
+      App ID s capability Associated Domains a Push Notifications — my (web) + zákazník (Apple účet) · venku
 - [ ] Release build vždy s `--dart-define=API_URL=https://api.terrareality.cz` (bez něj aplikace při
       startu spadne, nikdy nemíří na localhost) — my · venku
 - [ ] FCM projekt, `google-services.json` / `GoogleService-Info.plist` mimo git, `fcm.json` na serveru — zákazník + my · venku

@@ -77,8 +77,11 @@ JOIN properties p ON p.id = u.property_id
 JOIN addresses a ON a.id = p.address_id
 WHERE l.org_id = sqlc.arg(org_id) AND l.deleted_at IS NULL
   AND (sqlc.narg(status)::text IS NULL OR l.status = sqlc.narg(status))
-ORDER BY l.updated_at DESC
-LIMIT 200;
+  -- Keyset page after the cursor listing (same order as below).
+  AND (sqlc.narg(before)::uuid IS NULL
+    OR (l.updated_at, l.id) < (SELECT c.updated_at, c.id FROM listings c WHERE c.id = sqlc.narg(before)::uuid))
+ORDER BY l.updated_at DESC, l.id DESC
+LIMIT sqlc.arg(lim);
 
 -- name: UpdateListing :one
 UPDATE listings SET title = sqlc.arg(title), description = sqlc.arg(description), rent_amount = sqlc.narg(rent_amount),

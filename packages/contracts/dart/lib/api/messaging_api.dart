@@ -385,16 +385,23 @@ class MessagingApi {
 
   /// My conversations (as a seeker and for my organizations), newest first
   ///
+  /// Ordered by the last message. Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
   ///
   /// * [String] orgId:
   ///   Only this organization's inbox.
   ///
   /// * [String] as_:
   ///   seeker = only conversations I started.
-  Future<Response> listConversationsWithHttpInfo({ String? orgId, String? as_, }) async {
+  Future<Response> listConversationsWithHttpInfo({ String? before, int? limit, String? orgId, String? as_, }) async {
     // ignore: prefer_const_declarations
     final path = r'/v1/conversations';
 
@@ -405,6 +412,12 @@ class MessagingApi {
     final headerParams = <String, String>{};
     final formParams = <String, String>{};
 
+    if (before != null) {
+      queryParams.addAll(_queryParams('', 'before', before));
+    }
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
     if (orgId != null) {
       queryParams.addAll(_queryParams('', 'org_id', orgId));
     }
@@ -428,15 +441,22 @@ class MessagingApi {
 
   /// My conversations (as a seeker and for my organizations), newest first
   ///
+  /// Ordered by the last message. Paged newest first: a full page (as many items as `limit`) may have more; pass the last item's id as `before`.
+  ///
   /// Parameters:
+  ///
+  /// * [String] before:
+  ///   Cursor; return items with an id lower than this one.
+  ///
+  /// * [int] limit:
   ///
   /// * [String] orgId:
   ///   Only this organization's inbox.
   ///
   /// * [String] as_:
   ///   seeker = only conversations I started.
-  Future<List<Conversation>?> listConversations({ String? orgId, String? as_, }) async {
-    final response = await listConversationsWithHttpInfo( orgId: orgId, as_: as_, );
+  Future<List<Conversation>?> listConversations({ String? before, int? limit, String? orgId, String? as_, }) async {
+    final response = await listConversationsWithHttpInfo( before: before, limit: limit, orgId: orgId, as_: as_, );
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }

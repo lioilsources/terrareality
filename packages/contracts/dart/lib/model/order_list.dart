@@ -14,25 +14,42 @@ class OrderList {
   /// Returns a new [OrderList] instance.
   OrderList({
     this.items = const [],
+    this.nextBefore,
   });
 
   List<Order> items;
 
+  /// Cursor of the next page (absent on the last page).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? nextBefore;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is OrderList &&
-    _deepEquality.equals(other.items, items);
+    _deepEquality.equals(other.items, items) &&
+    other.nextBefore == nextBefore;
 
   @override
   int get hashCode =>
     // ignore: unnecessary_parenthesis
-    (items.hashCode);
+    (items.hashCode) +
+    (nextBefore == null ? 0 : nextBefore!.hashCode);
 
   @override
-  String toString() => 'OrderList[items=$items]';
+  String toString() => 'OrderList[items=$items, nextBefore=$nextBefore]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'items'] = this.items;
+    if (this.nextBefore != null) {
+      json[r'next_before'] = this.nextBefore;
+    } else {
+      json[r'next_before'] = null;
+    }
     return json;
   }
 
@@ -56,6 +73,7 @@ class OrderList {
 
       return OrderList(
         items: Order.listFromJson(json[r'items']),
+        nextBefore: mapValueOfType<String>(json, r'next_before'),
       );
     }
     return null;

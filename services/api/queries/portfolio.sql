@@ -169,7 +169,13 @@ FROM listing_search s WHERE s.admin_path <@ sqlc.arg(path)::text::ltree AND s.cu
 INSERT INTO lease_risk (lease_id, org_id, score, band, factors, model_version, computed_at)
 VALUES ($1, $2, $3, $4, $5, $6, now())
 ON CONFLICT (lease_id) DO UPDATE SET score = EXCLUDED.score, band = EXCLUDED.band, factors = EXCLUDED.factors,
-  model_version = EXCLUDED.model_version, computed_at = now();
+  model_version = EXCLUDED.model_version, computed_at = now(), last_error = NULL, failed_at = NULL;
+
+-- name: MarkLeaseRiskFailed :execrows
+-- S-P1: remembers a failed recompute on the existing score (a lease without
+-- a score has no row; it is only logged).
+UPDATE lease_risk SET last_error = left(sqlc.arg(last_error)::text, 2000), failed_at = now()
+WHERE lease_id = sqlc.arg(lease_id);
 
 -- name: UpsertLeaseRiskHistory :exec
 INSERT INTO lease_risk_history (lease_id, org_id, period, score, band, monthly)
@@ -266,4 +272,6 @@ SELECT l.id FROM leases l LEFT JOIN lease_risk r ON r.lease_id = l.id
 WHERE l.state IN ('signed', 'active', 'notice_given') AND (r.lease_id IS NULL OR r.model_version <> sqlc.arg(model_version)
   OR r.computed_at < now() - interval '1 day'
   OR EXISTS (SELECT 1 FROM lease_events e WHERE e.lease_id = l.id AND e.created_at > r.computed_at))
-ORDER BY l.id LIMIT 500;
+  -- A lease that failed recently waits an hour before the next attempt.
+  AND (r.failed_at IS NULL OR r.failed_at < now() - interval '1 hour')
+ORDER BY (r.failed_at IS NOT NULL), l.id LIMIT 500;

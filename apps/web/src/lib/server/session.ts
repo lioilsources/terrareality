@@ -31,16 +31,25 @@ export function clearSessionHeaders(cookies: Cookies): string[] {
 	);
 }
 
-/** How long a staff session is kept aside during impersonation. */
+/** Upper bound for keeping a staff session aside during impersonation. */
 export const STAFF_STASH_SECONDS = 60 * 60 * 2;
 
 /**
  * Keeps the staff session aside while impersonating. The value carries its own
- * expiry, so restoring it never outlives the stash (the api does not expose the
- * staff session's own expiry; the cookie expiry is not sent back by browsers).
+ * expiry (the cookie expiry is not sent back by browsers): the staff session's
+ * exact `expires_at` from the api (S-W7; it does not slide while unused), capped
+ * at STAFF_STASH_SECONDS; without a known expiry the cap alone applies.
  */
-export function stashStaffSession(cookies: Cookies, token: string, now = Date.now()) {
-	const expires = new Date(now + STAFF_STASH_SECONDS * 1000);
+export function stashStaffSession(
+	cookies: Cookies,
+	token: string,
+	now = Date.now(),
+	sessionExpiresAt?: string
+) {
+	const cap = now + STAFF_STASH_SECONDS * 1000;
+	const exact = sessionExpiresAt ? Date.parse(sessionExpiresAt) : NaN;
+	const expires = new Date(Number.isFinite(exact) ? Math.min(exact, cap) : cap);
+	if (expires.getTime() <= now) return;
 	cookies.set(STAFF_COOKIE, `${token}|${expires.toISOString()}`, { ...base, expires });
 }
 

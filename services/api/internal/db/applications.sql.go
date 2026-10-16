@@ -167,6 +167,47 @@ func (q *Queries) CancelBooking(ctx context.Context, id uuid.UUID) (int64, error
 	return result.RowsAffected(), nil
 }
 
+const cancelSlotBookings = `-- name: CancelSlotBookings :many
+UPDATE viewing_bookings b SET cancelled_at = now()
+FROM viewing_slots s
+WHERE s.id = b.slot_id AND b.slot_id = $1 AND s.org_id = $2
+  AND b.cancelled_at IS NULL AND s.starts_at > now()
+RETURNING b.id, b.application_id
+`
+
+type CancelSlotBookingsParams struct {
+	SlotID uuid.UUID `json:"slot_id"`
+	OrgID  uuid.UUID `json:"org_id"`
+}
+
+type CancelSlotBookingsRow struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"application_id"`
+}
+
+// Cancels the active bookings of an organization's upcoming slot before it
+// is deleted and returns the applications to notify (RLS: organization
+// members).
+func (q *Queries) CancelSlotBookings(ctx context.Context, arg CancelSlotBookingsParams) ([]CancelSlotBookingsRow, error) {
+	rows, err := q.db.Query(ctx, cancelSlotBookings, arg.SlotID, arg.OrgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CancelSlotBookingsRow{}
+	for rows.Next() {
+		var i CancelSlotBookingsRow
+		if err := rows.Scan(&i.ID, &i.ApplicationID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const clearPassportIncome = `-- name: ClearPassportIncome :exec
 UPDATE tenant_passports SET income_key = NULL, income_filename = NULL, income_uploaded_at = NULL WHERE user_id = $1
 `
@@ -174,24 +215,6 @@ UPDATE tenant_passports SET income_key = NULL, income_filename = NULL, income_up
 func (q *Queries) ClearPassportIncome(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, clearPassportIncome, userID)
 	return err
-}
-
-const countActiveSlotBookings = `-- name: CountActiveSlotBookings :one
-SELECT count(*)::int FROM viewing_bookings b JOIN viewing_slots s ON s.id = b.slot_id
-WHERE b.slot_id = $1 AND s.org_id = $2 AND b.cancelled_at IS NULL AND s.starts_at > now()
-`
-
-type CountActiveSlotBookingsParams struct {
-	SlotID uuid.UUID `json:"slot_id"`
-	OrgID  uuid.UUID `json:"org_id"`
-}
-
-// Active bookings of a slot that has not started yet (RLS: organization members).
-func (q *Queries) CountActiveSlotBookings(ctx context.Context, arg CountActiveSlotBookingsParams) (int32, error) {
-	row := q.db.QueryRow(ctx, countActiveSlotBookings, arg.SlotID, arg.OrgID)
-	var column_1 int32
-	err := row.Scan(&column_1)
-	return column_1, err
 }
 
 const countMissingConsents = `-- name: CountMissingConsents :one
@@ -562,6 +585,31 @@ func (q *Queries) GetRoommateProfile(ctx context.Context, userID uuid.UUID) (Get
 		&i.Lifestyle,
 		&i.HasRoom,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getViewingSlot = `-- name: GetViewingSlot :one
+SELECT id, org_id, listing_id, starts_at, duration_min, capacity, note, created_at FROM viewing_slots WHERE id = $1 AND org_id = $2
+`
+
+type GetViewingSlotParams struct {
+	ID    uuid.UUID `json:"id"`
+	OrgID uuid.UUID `json:"org_id"`
+}
+
+func (q *Queries) GetViewingSlot(ctx context.Context, arg GetViewingSlotParams) (ViewingSlot, error) {
+	row := q.db.QueryRow(ctx, getViewingSlot, arg.ID, arg.OrgID)
+	var i ViewingSlot
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.ListingID,
+		&i.StartsAt,
+		&i.DurationMin,
+		&i.Capacity,
+		&i.Note,
+		&i.CreatedAt,
 	)
 	return i, err
 }

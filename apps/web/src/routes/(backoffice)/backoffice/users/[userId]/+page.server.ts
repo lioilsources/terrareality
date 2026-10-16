@@ -25,13 +25,16 @@ export const actions: Actions = {
 		// Nested impersonation would overwrite the stashed staff session.
 		if (locals.me?.impersonator || parseStaffStash(cookies.get(STAFF_COOKIE)))
 			return fail(409, { error: m.err_impersonation_nested() });
+		// The staff session's exact expiry, read before impersonating (S-W7).
+		const sessions = await locals.api.GET('/v1/me/sessions');
+		const staffExpires = sessions.data?.find((s) => s.current)?.expires_at;
 		const { data, error } = await locals.api.POST('/v1/backoffice/users/{userId}/impersonate', {
 			params: { path: { userId: params.userId } },
 			body: { reason }
 		});
 		if (!data?.session) return fail(400, { error: errorMessage(error) });
 		const staff = cookies.get(SESSION_COOKIE);
-		if (staff) stashStaffSession(cookies, staff);
+		if (staff) stashStaffSession(cookies, staff, Date.now(), staffExpires);
 		setSession(cookies, data.session.token, data.session.expires_at);
 		redirect(303, localizeHref('/admin'));
 	}

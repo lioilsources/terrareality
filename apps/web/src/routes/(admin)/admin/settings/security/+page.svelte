@@ -101,6 +101,9 @@
 							s.last_seen_at,
 							getLocale()
 						)}
+						<span class="text-[var(--muted)]" data-testid="session-expires">
+							· {m.security_session_expires({ date: fmtDateTime(s.expires_at, getLocale()) })}</span
+						>
 						{#if s.current}<strong> · {m.security_session_current()}</strong>{/if}
 						{#if s.impersonated}<em> · {m.security_session_impersonated()}</em>{/if}
 					</span>

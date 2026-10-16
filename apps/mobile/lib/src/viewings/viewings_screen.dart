@@ -10,9 +10,12 @@ import '../messaging/conversations_screen.dart' show titleOf;
 import 'viewings_repository.dart';
 
 /// My upcoming viewings: cancel one, or open the application to pick
-/// another slot.
+/// another slot. [cancelledApplicationId] (from a `viewing_cancelled` push)
+/// shows that the landlord cancelled the viewing of that application.
 class ViewingsScreen extends ConsumerWidget {
-  const ViewingsScreen({super.key});
+  const ViewingsScreen({super.key, this.cancelledApplicationId});
+
+  final String? cancelledApplicationId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,6 +46,27 @@ class ViewingsScreen extends ConsumerWidget {
       }
     }
 
+    final cancelledFor = cancelledApplicationId;
+    final notice = cancelledFor == null
+        ? null
+        : Card(
+            key: const Key('viewing-cancelled'),
+            margin: const EdgeInsets.all(12),
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: ListTile(
+              leading: const Icon(Icons.event_busy),
+              title: Text(t.viewingCancelledByLandlord),
+              trailing: TextButton(
+                key: const Key('open-cancelled-application'),
+                onPressed: () async {
+                  await context.push('/zadosti/$cancelledFor');
+                  ref.invalidate(myViewingsProvider);
+                },
+                child: Text(t.openApplication),
+              ),
+            ),
+          );
+
     return Scaffold(
       appBar: AppBar(title: Text(t.viewingsTitle)),
       body: RefreshIndicator(
@@ -51,8 +75,9 @@ class ViewingsScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ApiErrorView(error: e, scrollable: true, onRetry: () => ref.invalidate(myViewingsProvider)),
           data: (items) => items.isEmpty
-              ? ListView(children: [ListTile(title: Text(t.viewingsEmpty))])
+              ? ListView(children: [?notice, ListTile(title: Text(t.viewingsEmpty))])
               : ListView(children: [
+                  ?notice,
                   for (final v in items)
                     ListTile(
                       key: Key('viewing-${v.id}'),

@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { isUuid } from '#lib/billing.js';
 import { errorMessage } from '#lib/errors.js';
 import { LAST_ORDER_COOKIE } from '#lib/server/billing.js';
+import { PAGE_SIZE, cursorFrom, pageLinks } from '#lib/paging.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
@@ -15,8 +16,18 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		: undefined;
 	const [org, orders, invoices, revolut, paid] = await Promise.all([
 		locals.api.GET('/v1/orgs/{orgId}', path),
-		locals.api.GET('/v1/orgs/{orgId}/orders', path),
-		locals.api.GET('/v1/orgs/{orgId}/invoices', path),
+		locals.api.GET('/v1/orgs/{orgId}/orders', {
+			params: {
+				path: { orgId: params.orgId },
+				query: { before: cursorFrom(url, 'orders_before'), limit: PAGE_SIZE }
+			}
+		}),
+		locals.api.GET('/v1/orgs/{orgId}/invoices', {
+			params: {
+				path: { orgId: params.orgId },
+				query: { before: cursorFrom(url, 'invoices_before'), limit: PAGE_SIZE }
+			}
+		}),
 		locals.api.GET('/v1/orgs/{orgId}/revolut', path),
 		isUuid(paidId)
 			? locals.api.GET('/v1/orgs/{orgId}/orders/{orderId}', {
@@ -30,6 +41,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		manage,
 		orders: orders.data?.items ?? [],
 		invoices: invoices.data?.items ?? [],
+		// Two lists on one page, each with its own cursor parameter.
+		ordersPaging: pageLinks(url, 'orders_before', orders.data?.next_before, ['paid']),
+		invoicesPaging: pageLinks(url, 'invoices_before', invoices.data?.next_before, ['paid']),
 		// 403/404: payments.revolut flag off → the section is hidden.
 		revolut: revolut.response.ok ? (revolut.data ?? null) : null,
 		paidOrder: paid?.data ?? null,

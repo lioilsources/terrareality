@@ -5,16 +5,16 @@ import { setCookie } from '#lib/server/session.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const { data } = await locals.api.GET('/v1/invitations/{token}', {
-		params: { path: { token: params.token } }
+	const { data } = await locals.api.POST('/v1/invitations/lookup', {
+		body: { token: params.token }
 	});
 	return { invitation: data ?? null, me: locals.me };
 };
 
 export const actions: Actions = {
 	default: async ({ params, locals, cookies }) => {
-		const { data, error } = await locals.api.POST('/v1/invitations/{token}/accept', {
-			params: { path: { token: params.token } }
+		const { data, error } = await locals.api.POST('/v1/invitations/accept', {
+			body: { token: params.token }
 		});
 		if (!data) return fail(400, { error: errorMessage(error) });
 		setCookie(cookies, 'terra_org', data.organization.id, 60 * 60 * 24 * 365);

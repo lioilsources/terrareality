@@ -365,9 +365,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listInvoices**
-> InvoiceList listInvoices(orgId)
+> InvoiceList listInvoices(orgId, before, limit)
 
 Invoices (daňové doklady) issued to the organization
+
+Paged newest first; `next_before` is the cursor of the next page.
 
 ### Example
 ```dart
@@ -381,9 +383,11 @@ import 'package:terra_api/api.dart';
 
 final api_instance = BillingApi();
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.listInvoices(orgId);
+    final result = api_instance.listInvoices(orgId, before, limit);
     print(result);
 } catch (e) {
     print('Exception when calling BillingApi->listInvoices: $e\n');
@@ -395,6 +399,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orgId** | **String**|  | 
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 
@@ -412,9 +418,11 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **listOrders**
-> OrderList listOrders(orgId)
+> OrderList listOrders(orgId, before, limit)
 
 Promotion orders of the organization
+
+Paged newest first; `next_before` is the cursor of the next page.
 
 ### Example
 ```dart
@@ -428,9 +436,11 @@ import 'package:terra_api/api.dart';
 
 final api_instance = BillingApi();
 final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final before = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | Cursor; return items with an id lower than this one.
+final limit = 56; // int | 
 
 try {
-    final result = api_instance.listOrders(orgId);
+    final result = api_instance.listOrders(orgId, before, limit);
     print(result);
 } catch (e) {
     print('Exception when calling BillingApi->listOrders: $e\n');
@@ -442,6 +452,8 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orgId** | **String**|  | 
+ **before** | **String**| Cursor; return items with an id lower than this one. | [optional] 
+ **limit** | **int**|  | [optional] [default to 50]
 
 ### Return type
 

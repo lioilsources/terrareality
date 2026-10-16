@@ -83,10 +83,10 @@ func (s *Service) notifyAll(ctx context.Context, q *db.Queries, tx pgx.Tx, to []
 			d[k] = v
 		}
 		if l, ok := data["ListingTitle"].(map[string]string); ok {
-			d["Listing"] = pick(l, r.Locale)
+			d["Listing"] = notify.Text(l).Pick(r.Locale)
 		}
 		if code, ok := data["Reason"].(string); ok && code != "" {
-			d["ReasonText"] = pick(reasonTexts[code], r.Locale)
+			d["ReasonText"] = notify.Text(reasonTexts[code]).Pick(r.Locale)
 		}
 		raw, _ := json.Marshal(map[string]any{"template": key, "listing": d["Listing"], "group": data["Group"]})
 		if _, err := q.InsertNotification(ctx, db.InsertNotificationParams{UserID: r.ID, Kind: key, Data: raw, Link: link}); err != nil {
@@ -112,16 +112,6 @@ var reasonTexts = map[string]map[string]string{
 	"incomplete":             {"cs": "žádost není úplná", "en": "the application is incomplete"},
 	"listing_withdrawn":      {"cs": "inzerát byl stažen", "en": "the listing was withdrawn"},
 	"other":                  {"cs": "jiný důvod", "en": "another reason"},
-}
-
-func pick(t map[string]string, locale string) string {
-	if v := t[locale]; v != "" {
-		return v
-	}
-	if v := t["cs"]; v != "" {
-		return v
-	}
-	return t["en"]
 }
 
 func i18n(raw []byte) map[string]string {

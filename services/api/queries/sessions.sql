@@ -1,6 +1,6 @@
 -- name: CreateSession :one
-INSERT INTO sessions (user_id, token_hash, client, impersonator_id, ip, user_agent, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO sessions (user_id, token_hash, client, impersonator_id, ip, user_agent, expires_at, mfa_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.narg(mfa_at))
 RETURNING *;
 
 -- name: GetActiveSession :one

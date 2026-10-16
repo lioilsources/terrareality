@@ -1073,6 +1073,8 @@ Name | Type | Description  | Notes
 
 Send a verification code by SMS
 
+Errors: 503 `phone_verification_unavailable` while SMS verification is switched off.
+
 ### Example
 ```dart
 import 'package:terra_api/api.dart';

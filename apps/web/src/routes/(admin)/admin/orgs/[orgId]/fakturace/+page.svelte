@@ -10,6 +10,7 @@
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import Field from '#lib/components/Field.svelte';
+	import LoadMore from '#lib/components/LoadMore.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form, params }: PageProps = $props();
@@ -128,6 +129,7 @@
 				</table>
 			</div>
 		{/if}
+		<LoadMore next={data.ordersPaging.next} first={data.ordersPaging.first} testid="orders-more" />
 	</Card>
 
 	<Card title={m.billing_invoices()} testid="invoices">
@@ -177,6 +179,11 @@
 				</table>
 			</div>
 		{/if}
+		<LoadMore
+			next={data.invoicesPaging.next}
+			first={data.invoicesPaging.first}
+			testid="invoices-more"
+		/>
 	</Card>
 
 	{#if data.revolut}

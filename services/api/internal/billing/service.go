@@ -605,14 +605,15 @@ func orderOf(o db.Order, code string, title []byte, inv *uuid.UUID) Order {
 	return Order{Order: o, ProductCode: code, ListingTitle: i18n(title), InvoiceID: inv}
 }
 
-// Orders lists the organization's orders.
-func (s *Service) Orders(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]Order, error) {
+// Orders lists a page of the organization's orders, newest first, older
+// than the order before.
+func (s *Service) Orders(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]Order, error) {
 	var out []Order
 	err := s.asUser(ctx, p, func(q *db.Queries) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermFinanceRead); err != nil {
 			return err
 		}
-		rows, err := q.ListOrders(ctx, orgID)
+		rows, err := q.ListOrders(ctx, db.ListOrdersParams{OrgID: orgID, Before: before, Lim: limit})
 		for _, r := range rows {
 			out = append(out, orderOf(db.Order{ID: r.ID, OrgID: r.OrgID, ListingID: r.ListingID, ProductID: r.ProductID, Kind: r.Kind,
 				DurationDays: r.DurationDays, CreatedBy: r.CreatedBy, Status: r.Status, NetAmount: r.NetAmount, VatAmount: r.VatAmount,
@@ -666,15 +667,16 @@ func (s *Service) Promotions(ctx context.Context, p *auth.Principal, orgID, list
 	return out, err
 }
 
-// InvoiceList lists the organization's invoices.
-func (s *Service) InvoiceList(ctx context.Context, p *auth.Principal, orgID uuid.UUID) ([]db.Invoice, error) {
+// InvoiceList lists a page of the organization's invoices, newest first,
+// older than the invoice before.
+func (s *Service) InvoiceList(ctx context.Context, p *auth.Principal, orgID uuid.UUID, before *uuid.UUID, limit int32) ([]db.Invoice, error) {
 	var out []db.Invoice
 	err := s.asUser(ctx, p, func(q *db.Queries) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermFinanceRead); err != nil {
 			return err
 		}
 		var err error
-		out, err = q.ListInvoices(ctx, orgID)
+		out, err = q.ListInvoices(ctx, db.ListInvoicesParams{OrgID: orgID, Before: before, Lim: limit})
 		return err
 	})
 	return out, err

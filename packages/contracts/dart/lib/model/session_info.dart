@@ -15,6 +15,7 @@ class SessionInfo {
   SessionInfo({
     required this.id,
     required this.client,
+    required this.expiresAt,
     this.userAgent,
     this.ip,
     required this.createdAt,
@@ -26,6 +27,9 @@ class SessionInfo {
   String id;
 
   String client;
+
+  /// When the session ends unless it is used again (impersonation sessions do not slide).
+  DateTime expiresAt;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -61,6 +65,7 @@ class SessionInfo {
   bool operator ==(Object other) => identical(this, other) || other is SessionInfo &&
     other.id == id &&
     other.client == client &&
+    other.expiresAt == expiresAt &&
     other.userAgent == userAgent &&
     other.ip == ip &&
     other.createdAt == createdAt &&
@@ -73,6 +78,7 @@ class SessionInfo {
     // ignore: unnecessary_parenthesis
     (id.hashCode) +
     (client.hashCode) +
+    (expiresAt.hashCode) +
     (userAgent == null ? 0 : userAgent!.hashCode) +
     (ip == null ? 0 : ip!.hashCode) +
     (createdAt.hashCode) +
@@ -81,12 +87,13 @@ class SessionInfo {
     (impersonated == null ? 0 : impersonated!.hashCode);
 
   @override
-  String toString() => 'SessionInfo[id=$id, client=$client, userAgent=$userAgent, ip=$ip, createdAt=$createdAt, lastSeenAt=$lastSeenAt, current=$current, impersonated=$impersonated]';
+  String toString() => 'SessionInfo[id=$id, client=$client, expiresAt=$expiresAt, userAgent=$userAgent, ip=$ip, createdAt=$createdAt, lastSeenAt=$lastSeenAt, current=$current, impersonated=$impersonated]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'id'] = this.id;
       json[r'client'] = this.client;
+      json[r'expires_at'] = this.expiresAt.toUtc().toIso8601String();
     if (this.userAgent != null) {
       json[r'user_agent'] = this.userAgent;
     } else {
@@ -129,6 +136,7 @@ class SessionInfo {
       return SessionInfo(
         id: mapValueOfType<String>(json, r'id')!,
         client: mapValueOfType<String>(json, r'client')!,
+        expiresAt: mapDateTime(json, r'expires_at', r'')!,
         userAgent: mapValueOfType<String>(json, r'user_agent'),
         ip: mapValueOfType<String>(json, r'ip'),
         createdAt: mapDateTime(json, r'created_at', r'')!,
@@ -184,6 +192,7 @@ class SessionInfo {
   static const requiredKeys = <String>{
     'id',
     'client',
+    'expires_at',
     'created_at',
     'last_seen_at',
     'current',

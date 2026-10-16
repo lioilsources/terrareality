@@ -362,7 +362,7 @@ func TestPortfolioAcceptance(t *testing.T) {
 	if !ok {
 		t.Fatal("no invitation")
 	}
-	e.must(200, "POST", "/v1/invitations/"+notify.LinkToken(inv.Text)+"/accept", invTok, nil, nil)
+	e.must(200, "POST", "/v1/invitations/accept", invTok, map[string]string{"token": notify.LinkToken(inv.Text)}, nil)
 	e.must(200, "GET", orgPath+"/portfolio", invTok, nil, nil)
 	e.must(200, "GET", orgPath+"/portfolio/rent-roll", invTok, nil, &rr)
 	if rr.Role != "investor" || rr.Totals.Leases != 3 {

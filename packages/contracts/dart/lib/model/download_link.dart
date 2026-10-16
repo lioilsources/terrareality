@@ -15,30 +15,47 @@ class DownloadLink {
   DownloadLink({
     required this.url,
     required this.expiresAt,
+    this.filename,
   });
 
   String url;
 
   DateTime expiresAt;
 
+  /// Suggested file name (income proofs).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? filename;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is DownloadLink &&
     other.url == url &&
-    other.expiresAt == expiresAt;
+    other.expiresAt == expiresAt &&
+    other.filename == filename;
 
   @override
   int get hashCode =>
     // ignore: unnecessary_parenthesis
     (url.hashCode) +
-    (expiresAt.hashCode);
+    (expiresAt.hashCode) +
+    (filename == null ? 0 : filename!.hashCode);
 
   @override
-  String toString() => 'DownloadLink[url=$url, expiresAt=$expiresAt]';
+  String toString() => 'DownloadLink[url=$url, expiresAt=$expiresAt, filename=$filename]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'url'] = this.url;
       json[r'expires_at'] = this.expiresAt.toUtc().toIso8601String();
+    if (this.filename != null) {
+      json[r'filename'] = this.filename;
+    } else {
+      json[r'filename'] = null;
+    }
     return json;
   }
 
@@ -63,6 +80,7 @@ class DownloadLink {
       return DownloadLink(
         url: mapValueOfType<String>(json, r'url')!,
         expiresAt: mapDateTime(json, r'expires_at', r'')!,
+        filename: mapValueOfType<String>(json, r'filename'),
       );
     }
     return null;

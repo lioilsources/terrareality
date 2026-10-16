@@ -41,7 +41,7 @@
 		<LeaseRisk risk={data.risk} {locale} />
 		{#if l.state === 'proposed' && me && !me.signed_at}
 			<Card>
-				<LeaseSignForm />
+				<LeaseSignForm providers={d.sign_providers} />
 				<details class="mt-4">
 					<summary class="cursor-pointer text-sm">{m.lease_request_changes()}</summary>
 					<form method="POST" action="?/changes" use:enhance class="mt-2 grid gap-2">

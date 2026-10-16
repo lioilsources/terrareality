@@ -20,6 +20,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/messaging"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
+	platformdb "github.com/terrareality/terrareality/services/api/internal/platform/db"
 	"github.com/terrareality/terrareality/services/api/internal/textscan"
 )
 
@@ -320,7 +321,7 @@ type Person struct {
 	ID           uuid.UUID
 	Name         string
 	Verification string
-	IncomeProof  string // download URL, empty when not uploaded
+	HasIncome    bool // an income proof can be downloaded now (IncomeProof)
 	IncomeName   string
 	Insolvency   string
 }
@@ -348,35 +349,82 @@ func (s *Service) Applicants(ctx context.Context, p *auth.Principal, orgID, list
 	}
 	out := make([]Applicant, 0, len(rows))
 	sys := db.New(s.Pool)
-	var viewed []uuid.UUID
 	for _, r := range rows {
 		people, err := s.people(ctx, sys, r.ID, incomeVisible(r.Status, r.DecidedAt, time.Now()))
 		if err != nil {
 			return nil, err
 		}
-		for _, pp := range people {
-			if pp.IncomeProof != "" {
-				viewed = append(viewed, pp.ID)
-			}
-		}
 		out = append(out, Applicant{ListListingApplicationsRow: r, People: people})
 	}
-	// Every issued download link of an income proof is audited (ADR 0008).
-	if len(viewed) > 0 {
-		err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
-			for _, uid := range viewed {
-				if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "tenant_passport", EntityID: &uid,
-					Action: "passport.income_viewed", Diff: map[string]any{"listing_id": listingID}}); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, err
+	return out, nil
+}
+
+// IncomeProofTTL is how long a download link of an income proof works.
+const IncomeProofTTL = 5 * time.Minute
+
+// IncomeLink is a short-lived download link of an income proof.
+type IncomeLink struct {
+	URL       string
+	Filename  string
+	ExpiresAt time.Time
+}
+
+var errIncomeNotFound = apperr.NotFound("income_proof_not_found", "no income proof is available")
+
+// IncomeProof issues a short-lived download link of one applicant's income
+// proof to the landlord (V-8). Each call is audited (passport.income_viewed,
+// ADR 0008); links exist only while incomeVisible allows.
+func (s *Service) IncomeProof(ctx context.Context, p *auth.Principal, orgID, appID, userID uuid.UUID) (IncomeLink, error) {
+	var app db.GetApplicationRow
+	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermMessages); err != nil {
+			return err
+		}
+		var err error
+		app, err = q.GetApplication(ctx, appID)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && app.OrgID != orgID) {
+			return errAppNotFound
+		}
+		return err
+	})
+	if err != nil {
+		return IncomeLink{}, err
+	}
+	if !incomeVisible(app.Status, app.DecidedAt, time.Now()) {
+		return IncomeLink{}, errIncomeNotFound
+	}
+	people, err := db.New(s.Pool).ApplicationPeople(ctx, appID)
+	if err != nil {
+		return IncomeLink{}, err
+	}
+	var person *db.ApplicationPeopleRow
+	for i := range people {
+		if people[i].ID == userID && people[i].IncomeKey != nil {
+			person = &people[i]
 		}
 	}
-	return out, nil
+	if person == nil {
+		return IncomeLink{}, errIncomeNotFound
+	}
+	link := IncomeLink{Filename: incomeName(person.IncomeFilename), ExpiresAt: time.Now().Add(IncomeProofTTL)}
+	if link.URL, err = s.Blob.PresignDownload(ctx, *person.IncomeKey, link.Filename, "", IncomeProofTTL); err != nil {
+		return IncomeLink{}, err
+	}
+	err = s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "tenant_passport", EntityID: &userID,
+			Action: "passport.income_viewed", Diff: map[string]any{"application_id": appID, "listing_id": app.ListingID}})
+	})
+	if err != nil {
+		return IncomeLink{}, err
+	}
+	return link, nil
+}
+
+func incomeName(filename *string) string {
+	if filename != nil && *filename != "" {
+		return *filename
+	}
+	return "potvrzeni-prijmu"
 }
 
 var errAlreadyAccepted = apperr.Conflict("listing_already_accepted", "another application for this listing was already accepted")
@@ -415,12 +463,8 @@ func (s *Service) people(ctx context.Context, q *db.Queries, appID uuid.UUID, in
 	for _, r := range rows {
 		pp := Person{ID: r.ID, Name: r.DisplayName, Verification: r.VerificationLevel, Insolvency: r.IsirStatus}
 		if r.IncomeKey != nil && income {
-			name := "potvrzeni-prijmu"
-			if r.IncomeFilename != nil {
-				name = *r.IncomeFilename
-			}
-			pp.IncomeProof, _ = s.Blob.PresignDownload(ctx, *r.IncomeKey, name, "", 15*time.Minute)
-			pp.IncomeName = name
+			pp.HasIncome = true
+			pp.IncomeName = incomeName(r.IncomeFilename)
 		}
 		out = append(out, pp)
 	}
@@ -447,7 +491,9 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, id uuid.
 	}
 	var a db.GetApplicationRow
 	var rejected []uuid.UUID
-	err := s.asUser(ctx, p, func(q *db.Queries, _ pgx.Tx) error {
+	key := map[string]string{StatusInvited: "application_invited", StatusAccepted: "application_accepted",
+		StatusRejected: "application_rejected"}[to]
+	err := s.asUser(ctx, p, func(q *db.Queries, tx pgx.Tx) error {
 		if _, err := org.Access(ctx, q, p.UserID, orgID, org.PermMessages); err != nil {
 			return err
 		}
@@ -493,34 +539,40 @@ func (s *Service) Decide(ctx context.Context, p *auth.Principal, orgID, id uuid.
 				return err
 			}
 		}
-		return audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "application", EntityID: &id,
-			Action: "application." + action, Diff: map[string]any{"reason": reason, "auto_rejected": len(rejected)}})
-	})
-	if isAcceptedConflict(err) {
-		return errAlreadyAccepted
-	}
-	if err != nil {
-		return err
-	}
-	key := map[string]string{StatusInvited: "application_invited", StatusAccepted: "application_accepted",
-		StatusRejected: "application_rejected"}[to]
-	return s.system(ctx, func(q *db.Queries, tx pgx.Tx) error {
-		if err := s.notifyApplicants(ctx, q, tx, id, key, reason); err != nil {
+		if err := audit.Record(ctx, q, audit.Event{OrgID: &orgID, Entity: "application", EntityID: &id,
+			Action: "application." + action, Diff: map[string]any{"reason": reason, "auto_rejected": len(rejected)}}); err != nil {
+			return err
+		}
+		// The applicants' e-mails, in-app notifications and pushes go to the
+		// outbox in this transaction (S-D9): they exist exactly when the
+		// decision does. They concern other users, so the rest runs in
+		// system context.
+		if err := platformdb.Elevate(ctx, tx); err != nil {
+			return err
+		}
+		if err := s.notifyApplicants(ctx, q, tx, id, key, reason, nil); err != nil {
 			return err
 		}
 		for _, other := range rejected {
 			if err := q.CancelApplicationBookings(ctx, other); err != nil {
 				return err
 			}
-			if err := s.notifyApplicants(ctx, q, tx, other, "application_rejected", "other_applicant_chosen"); err != nil {
+			if err := s.notifyApplicants(ctx, q, tx, other, "application_rejected", "other_applicant_chosen", nil); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+	if isAcceptedConflict(err) {
+		return errAlreadyAccepted
+	}
+	return err
 }
 
-func (s *Service) notifyApplicants(ctx context.Context, q *db.Queries, tx pgx.Tx, id uuid.UUID, key, reason string) error {
+// notifyApplicants e-mails and notifies the applicant and joined group
+// members of an application (system context, inside tx) and queues their
+// pushes. extra adds template data.
+func (s *Service) notifyApplicants(ctx context.Context, q *db.Queries, tx pgx.Tx, id uuid.UUID, key, reason string, extra map[string]any) error {
 	a, err := q.SystemGetApplication(ctx, id)
 	if err != nil {
 		return err
@@ -533,10 +585,14 @@ func (s *Service) notifyApplicants(ctx context.Context, q *db.Queries, tx pgx.Tx
 	for _, pp := range people {
 		to = append(to, recipient{ID: pp.ID, Email: pp.Email, Locale: pp.Locale})
 	}
-	if err := s.notifyAll(ctx, q, tx, to, key, s.WebBaseURL+"/zadosti/"+id.String(),
-		map[string]any{"ListingTitle": i18n(a.ListingTitle), "Reason": reason}); err != nil {
+	data := map[string]any{"ListingTitle": i18n(a.ListingTitle), "Reason": reason}
+	for k, v := range extra {
+		data[k] = v
+	}
+	if err := s.notifyAll(ctx, q, tx, to, key, s.WebBaseURL+"/zadosti/"+id.String(), data); err != nil {
 		return err
 	}
-	s.pushApplicants(ctx, tx, a, people, key, reason)
+	when, _ := extra["When"].(string)
+	s.pushApplicants(ctx, tx, a, people, key, reason, when)
 	return nil
 }

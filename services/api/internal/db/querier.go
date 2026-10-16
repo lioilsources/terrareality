@@ -41,6 +41,10 @@ type Querier interface {
 	CancelApplicationBookings(ctx context.Context, applicationID uuid.UUID) error
 	CancelBooking(ctx context.Context, id uuid.UUID) (int64, error)
 	CancelObligationsAfter(ctx context.Context, arg CancelObligationsAfterParams) error
+	// Cancels the active bookings of an organization's upcoming slot before it
+	// is deleted and returns the applications to notify (RLS: organization
+	// members).
+	CancelSlotBookings(ctx context.Context, arg CancelSlotBookingsParams) ([]CancelSlotBookingsRow, error)
 	// Links parties invited by e-mail to the account with that address, only
 	// once the account proved it owns the address (verified e-mail).
 	ClaimLeaseParties(ctx context.Context, id uuid.UUID) error
@@ -57,8 +61,6 @@ type Querier interface {
 	ConversationParties(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	// RÚIAN ---------------------------------------------------------------------
 	CopyRuianStaging(ctx context.Context, arg []CopyRuianStagingParams) (int64, error)
-	// Active bookings of a slot that has not started yet (RLS: organization members).
-	CountActiveSlotBookings(ctx context.Context, arg CountActiveSlotBookingsParams) (int32, error)
 	CountAdminUnits(ctx context.Context) (int64, error)
 	CountLeaseDocuments(ctx context.Context, leaseID uuid.UUID) (int32, error)
 	CountLeaseEventsSince(ctx context.Context, arg CountLeaseEventsSinceParams) (int32, error)
@@ -240,6 +242,7 @@ type Querier interface {
 	GetUnit(ctx context.Context, arg GetUnitParams) (Unit, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetViewingSlot(ctx context.Context, arg GetViewingSlotParams) (ViewingSlot, error)
 	GiveConsent(ctx context.Context, arg GiveConsentParams) (int64, error)
 	GroupItems(ctx context.Context, orgID uuid.UUID) ([]GroupItemsRow, error)
 	// Joined members (system context, realtime fan-out and notifications).
@@ -290,6 +293,8 @@ type Querier interface {
 	// Where a lease is.
 	LeaseLocationFromListing(ctx context.Context, id uuid.UUID) (LeaseLocationFromListingRow, error)
 	LeaseLocationFromRuian(ctx context.Context, id int64) (LeaseLocationFromRuianRow, error)
+	// Whether a notice event exists (lease_events_lease_kind index).
+	LeaseNoticeGiven(ctx context.Context, leaseID uuid.UUID) (bool, error)
 	LeaveGroup(ctx context.Context, arg LeaveGroupParams) (int64, error)
 	LinkedBankConnections(ctx context.Context) ([]BankConnection, error)
 	ListAdminBySlug(ctx context.Context, slug string) ([]ListAdminBySlugRow, error)
@@ -319,7 +324,7 @@ type Querier interface {
 	ListGDPRRequests(ctx context.Context, userID uuid.UUID) ([]GdprRequest, error)
 	ListGroupMembers(ctx context.Context, groupID uuid.UUID) ([]ListGroupMembersRow, error)
 	ListGroupMessages(ctx context.Context, groupID uuid.UUID) ([]ListGroupMessagesRow, error)
-	ListInvoices(ctx context.Context, orgID uuid.UUID) ([]Invoice, error)
+	ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error)
 	ListJurisdictions(ctx context.Context) ([]Jurisdiction, error)
 	ListLeaseDocuments(ctx context.Context, leaseID uuid.UUID) ([]LeaseDocument, error)
 	ListLeaseEvents(ctx context.Context, leaseID uuid.UUID) ([]LeaseEvent, error)
@@ -342,9 +347,9 @@ type Querier interface {
 	ListObligations(ctx context.Context, leaseID uuid.UUID) ([]ListObligationsRow, error)
 	ListOpenInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	// Conversation cases and listing reports (DSA), oldest first.
-	ListOpenModerationCases(ctx context.Context) ([]ListOpenModerationCasesRow, error)
-	ListOrders(ctx context.Context, orgID uuid.UUID) ([]ListOrdersRow, error)
-	ListOrgLeases(ctx context.Context, orgID uuid.UUID) ([]ListOrgLeasesRow, error)
+	ListOpenModerationCases(ctx context.Context, arg ListOpenModerationCasesParams) ([]ListOpenModerationCasesRow, error)
+	ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error)
+	ListOrgLeases(ctx context.Context, arg ListOrgLeasesParams) ([]ListOrgLeasesRow, error)
 	ListOrgProperties(ctx context.Context, orgID uuid.UUID) ([]ListOrgPropertiesRow, error)
 	// Photo objects deleted from a working copy while a published version still
 	// showed them (DeleteMedia keeps those), which no current or pending
@@ -414,6 +419,9 @@ type Querier interface {
 	MarkEmailVerified(ctx context.Context, id uuid.UUID) error
 	MarkIdentityVerified(ctx context.Context, id uuid.UUID) error
 	MarkInvoiceSent(ctx context.Context, id uuid.UUID) error
+	// S-P1: remembers a failed recompute on the existing score (a lease without
+	// a score has no row; it is only logged).
+	MarkLeaseRiskFailed(ctx context.Context, arg MarkLeaseRiskFailedParams) (int64, error)
 	// Only a proposed lease becomes signed (a concurrent request for changes or
 	// a new proposal wins; the caller answers 409 on 0 rows).
 	MarkLeaseSigned(ctx context.Context, arg MarkLeaseSignedParams) (int64, error)
@@ -486,6 +494,10 @@ type Querier interface {
 	// @at is the caller's clock: now() is the transaction start, which can precede
 	// a promotion that starts at payment time inside the same transaction.
 	RecomputeListingPromo(ctx context.Context, arg RecomputeListingPromoParams) error
+	// S-A1: counts a failed password or second-factor attempt. From the sixth
+	// failure on the account is locked for 30 s, doubling per failure up to an
+	// hour; a lock that ran out is not counted against the next attempt's wait.
+	RecordLoginFailure(ctx context.Context, arg RecordLoginFailureParams) (RecordLoginFailureRow, error)
 	RefreshListingAggregates(ctx context.Context) error
 	RejectOtherApplications(ctx context.Context, arg RejectOtherApplicationsParams) ([]uuid.UUID, error)
 	RemoveGroupInvite(ctx context.Context, arg RemoveGroupInviteParams) (int64, error)
@@ -495,6 +507,7 @@ type Querier interface {
 	RentRollLeases(ctx context.Context, arg RentRollLeasesParams) ([]RentRollLeasesRow, error)
 	// Units without a running lease (apartments split into rooms count by room).
 	RentRollVacantUnits(ctx context.Context, orgID uuid.UUID) ([]RentRollVacantUnitsRow, error)
+	ResetLoginFailures(ctx context.Context, id uuid.UUID) error
 	ReviewListingVersion(ctx context.Context, arg ReviewListingVersionParams) (int64, error)
 	RevokeInvitation(ctx context.Context, arg RevokeInvitationParams) (int64, error)
 	RevokeOpenInvitationsForEmail(ctx context.Context, arg RevokeOpenInvitationsForEmailParams) error

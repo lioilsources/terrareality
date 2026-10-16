@@ -140,7 +140,7 @@ func (q *Queries) DeletePortfolioRule(ctx context.Context, arg DeletePortfolioRu
 }
 
 const getLeaseRisk = `-- name: GetLeaseRisk :one
-SELECT lease_id, org_id, score, band, factors, model_version, computed_at FROM lease_risk WHERE lease_id = $1
+SELECT lease_id, org_id, score, band, factors, model_version, computed_at, last_error, failed_at FROM lease_risk WHERE lease_id = $1
 `
 
 func (q *Queries) GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error) {
@@ -154,6 +154,8 @@ func (q *Queries) GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRis
 		&i.Factors,
 		&i.ModelVersion,
 		&i.ComputedAt,
+		&i.LastError,
+		&i.FailedAt,
 	)
 	return i, err
 }
@@ -498,6 +500,26 @@ func (q *Queries) ListPortfolioRules(ctx context.Context, orgID uuid.UUID) ([]Li
 		return nil, err
 	}
 	return items, nil
+}
+
+const markLeaseRiskFailed = `-- name: MarkLeaseRiskFailed :execrows
+UPDATE lease_risk SET last_error = left($1::text, 2000), failed_at = now()
+WHERE lease_id = $2
+`
+
+type MarkLeaseRiskFailedParams struct {
+	LastError string    `json:"last_error"`
+	LeaseID   uuid.UUID `json:"lease_id"`
+}
+
+// S-P1: remembers a failed recompute on the existing score (a lease without
+// a score has no row; it is only logged).
+func (q *Queries) MarkLeaseRiskFailed(ctx context.Context, arg MarkLeaseRiskFailedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markLeaseRiskFailed, arg.LastError, arg.LeaseID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const marketStats = `-- name: MarketStats :one
@@ -1021,7 +1043,9 @@ SELECT l.id FROM leases l LEFT JOIN lease_risk r ON r.lease_id = l.id
 WHERE l.state IN ('signed', 'active', 'notice_given') AND (r.lease_id IS NULL OR r.model_version <> $1
   OR r.computed_at < now() - interval '1 day'
   OR EXISTS (SELECT 1 FROM lease_events e WHERE e.lease_id = l.id AND e.created_at > r.computed_at))
-ORDER BY l.id LIMIT 500
+  -- A lease that failed recently waits an hour before the next attempt.
+  AND (r.failed_at IS NULL OR r.failed_at < now() - interval '1 hour')
+ORDER BY (r.failed_at IS NOT NULL), l.id LIMIT 500
 `
 
 // Leases whose score is missing, older than a new event, a day old or from
@@ -1100,7 +1124,7 @@ const upsertLeaseRisk = `-- name: UpsertLeaseRisk :exec
 INSERT INTO lease_risk (lease_id, org_id, score, band, factors, model_version, computed_at)
 VALUES ($1, $2, $3, $4, $5, $6, now())
 ON CONFLICT (lease_id) DO UPDATE SET score = EXCLUDED.score, band = EXCLUDED.band, factors = EXCLUDED.factors,
-  model_version = EXCLUDED.model_version, computed_at = now()
+  model_version = EXCLUDED.model_version, computed_at = now(), last_error = NULL, failed_at = NULL
 `
 
 type UpsertLeaseRiskParams struct {
