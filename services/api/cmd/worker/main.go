@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -120,31 +121,17 @@ func run() error {
 	defer rc.Stop(context.Background())
 
 	if cfg.TemporalAddress != "" {
-		// The dev server may still be starting: retry for a minute.
-		var tc client.Client
-		for attempt := 1; ; attempt++ {
-			tc, err = client.Dial(client.Options{HostPort: cfg.TemporalAddress, Namespace: cfg.TemporalNS, Logger: log})
-			if err == nil {
-				break
-			}
-			if attempt == 30 || ctx.Err() != nil {
-				return err
-			}
-			log.Warn("waiting for Temporal", "err", err)
-			time.Sleep(2 * time.Second)
-		}
-		defer tc.Close()
-		w := worker.New(tc, workflows.TaskQueue, worker.Options{})
-		w.RegisterWorkflow(workflows.Ping)
-		w.RegisterActivity(workflows.PingActivity)
-		w.RegisterWorkflow(workflows.LeaseLifecycle)
-		w.RegisterActivity(&leasing.Activities{S: leases})
-		startLeaseW.Temporal = tc
-		if err := w.Start(); err != nil {
-			return err
-		}
-		defer w.Stop()
-		log.Info("temporal worker started", "address", cfg.TemporalAddress, "queue", workflows.TaskQueue)
+		// Connect in the background and keep retrying: River jobs do not need
+		// Temporal, and exiting here turned a stuck Temporal into a restart loop
+		// that hammered the database. Lease jobs retry until the client is set.
+		temporalDone := make(chan struct{})
+		go func() {
+			defer close(temporalDone)
+			stop := runTemporalWorker(ctx, cfg.TemporalAddress, cfg.TemporalNS, log, leases, startLeaseW)
+			<-ctx.Done()
+			stop()
+		}()
+		defer func() { <-temporalDone }()
 	} else {
 		log.Warn("TEMPORAL_ADDRESS not set, Temporal worker disabled")
 	}
@@ -152,4 +139,33 @@ func run() error {
 	<-ctx.Done()
 	log.Info("shutting down worker")
 	return nil
+}
+
+// runTemporalWorker dials Temporal and starts the workflow worker, retrying
+// with backoff (2 s doubling up to a minute) until it succeeds or ctx ends.
+// The returned func stops the worker and closes the client.
+func runTemporalWorker(ctx context.Context, addr, ns string, log *slog.Logger, leases *leasing.Service,
+	startLeaseW *jobs.StartLeaseWorker) func() {
+	for backoff := 2 * time.Second; ; backoff = min(backoff*2, time.Minute) {
+		tc, err := client.Dial(client.Options{HostPort: addr, Namespace: ns, Logger: log})
+		if err == nil {
+			w := worker.New(tc, workflows.TaskQueue, worker.Options{})
+			w.RegisterWorkflow(workflows.Ping)
+			w.RegisterActivity(workflows.PingActivity)
+			w.RegisterWorkflow(workflows.LeaseLifecycle)
+			w.RegisterActivity(&leasing.Activities{S: leases})
+			if err = w.Start(); err == nil {
+				startLeaseW.SetTemporal(tc)
+				log.Info("temporal worker started", "address", addr, "queue", workflows.TaskQueue)
+				return func() { w.Stop(); tc.Close() }
+			}
+			tc.Close()
+		}
+		log.Warn("waiting for Temporal", "err", err, "retry_in", backoff)
+		select {
+		case <-ctx.Done():
+			return func() {}
+		case <-time.After(backoff):
+		}
+	}
 }
