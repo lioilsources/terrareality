@@ -115,7 +115,22 @@ const byCode: Record<string, () => string> = {
 	notice_reason_not_applicable: m.err_notice_reason_not_applicable,
 	invalid_role: m.err_invalid_role,
 	income_proof_not_found: m.err_income_proof_not_found,
-	application_not_found: m.err_application_not_found
+	application_not_found: m.err_application_not_found,
+	invalid_template: m.err_invalid_template,
+	lease_ended: m.err_lease_ended,
+	cutover_before_start: m.err_cutover_before_start,
+	cutover_too_old: m.err_cutover_too_old,
+	cutover_too_far: m.err_cutover_too_far,
+	cutover_after_end: m.err_cutover_after_end,
+	invalid_variable_symbol: m.err_invalid_variable_symbol,
+	variable_symbol_taken: m.err_variable_symbol_taken,
+	invalid_opening_balance: m.err_invalid_opening_balance,
+	opening_balance_guarantor: m.err_opening_balance_guarantor,
+	lease_not_imported: m.err_lease_not_imported,
+	party_linked: m.err_party_linked,
+	party_not_found: m.err_party_not_found,
+	upload_not_found: m.err_upload_not_found,
+	attachment_missing: m.err_attachment_missing
 };
 
 /** Fallback by HTTP status when the code is unknown (new api codes, proxies, outages). */

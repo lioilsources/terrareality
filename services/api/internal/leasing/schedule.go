@@ -23,7 +23,7 @@ type Share struct {
 
 // Item is one obligation with its split between parties.
 type Item struct {
-	Kind   string // rent | deposit
+	Kind   string // rent | deposit | opening_balance
 	Period string // YYYY-MM for rent
 	DueOn  time.Time
 	Amount int64
@@ -79,6 +79,13 @@ func Schedule(t Terms, shares []Share, fromMonth time.Time) []Item {
 		}
 		fromMonth = start
 	}
+	return append(out, months(t, shares, fromMonth)...)
+}
+
+// months lists the monthly payments from fromMonth on: for a fixed term
+// until the end, for an indefinite term IndefiniteHorizon months.
+func months(t Terms, shares []Share, fromMonth time.Time) []Item {
+	var out []Item
 	end := fromMonth.AddDate(0, IndefiniteHorizon, 0)
 	if t.EndsOn != nil {
 		end = time.Date(t.EndsOn.Year(), t.EndsOn.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
@@ -90,3 +97,56 @@ func Schedule(t Terms, shares []Share, fromMonth time.Time) []Item {
 	}
 	return out
 }
+
+// FirstPeriod is the first month an imported lease is tracked for: the
+// cutover month when its payment falls due on or after the cutover, else
+// the next month. A payment due before the cutover belongs to the time
+// before the platform; if it is unpaid, it is part of the opening balance.
+func FirstPeriod(t Terms, cutover time.Time) time.Time {
+	m := time.Date(cutover.Year(), cutover.Month(), 1, 0, 0, 0, 0, time.UTC)
+	if dueIn(m, t.DueDay, t.StartsOn).Before(day(cutover)) {
+		m = m.AddDate(0, 1, 0)
+	}
+	return m
+}
+
+func day(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC) }
+
+// Cutover is how an imported lease enters the schedule.
+type Cutover struct {
+	On          time.Time        // the platform tracks payments from this day
+	DepositHeld bool             // the deposit was collected before: no deposit obligation
+	Opening     map[string]int64 // party id -> balance owed at the cutover (>0 only)
+}
+
+// ImportSchedule lists the items of a lease signed outside the platform:
+// nothing before the cutover, the opening balance (what tenants owed at the
+// cutover) due on the cutover day, the deposit due then unless the landlord
+// already holds it, and the monthly payments from FirstPeriod on.
+func ImportSchedule(t Terms, shares []Share, c Cutover) []Item {
+	var out []Item
+	on := day(c.On)
+	opening := map[string]int64{}
+	var total int64
+	for id, v := range c.Opening {
+		if v > 0 {
+			opening[id] = v
+			total += v
+		}
+	}
+	if total > 0 {
+		out = append(out, Item{Kind: KindOpeningBalance, DueOn: on, Amount: total, Splits: opening})
+	}
+	if t.Deposit > 0 && !c.DepositHeld {
+		out = append(out, Item{Kind: "deposit", DueOn: on, Amount: t.Deposit, Splits: SplitAmount(t.Deposit, shares)})
+	}
+	first := FirstPeriod(t, on)
+	if t.EndsOn != nil && first.After(*t.EndsOn) {
+		return out
+	}
+	return append(out, months(t, shares, first)...)
+}
+
+// KindOpeningBalance is the obligation of the debt at the cutover of an
+// imported lease.
+const KindOpeningBalance = "opening_balance"

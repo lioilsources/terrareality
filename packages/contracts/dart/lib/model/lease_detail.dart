@@ -21,6 +21,8 @@ class LeaseDetail {
     required this.noticeMonths,
     required this.depositAmount,
     required this.servicesAmount,
+    required this.depositHeld,
+    this.contractScanUrl,
     this.clauses = const [],
     this.changeRequest,
     this.parties = const [],
@@ -44,6 +46,18 @@ class LeaseDetail {
   int depositAmount;
 
   int servicesAmount;
+
+  /// Imported lease: the landlord collected the deposit before the cutover (not scheduled).
+  bool depositHeld;
+
+  /// Imported lease: short-lived download link of the paper contract's scan.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? contractScanUrl;
 
   List<String> clauses;
 
@@ -74,6 +88,8 @@ class LeaseDetail {
     other.noticeMonths == noticeMonths &&
     other.depositAmount == depositAmount &&
     other.servicesAmount == servicesAmount &&
+    other.depositHeld == depositHeld &&
+    other.contractScanUrl == contractScanUrl &&
     _deepEquality.equals(other.clauses, clauses) &&
     other.changeRequest == changeRequest &&
     _deepEquality.equals(other.parties, parties) &&
@@ -92,6 +108,8 @@ class LeaseDetail {
     (noticeMonths.hashCode) +
     (depositAmount.hashCode) +
     (servicesAmount.hashCode) +
+    (depositHeld.hashCode) +
+    (contractScanUrl == null ? 0 : contractScanUrl!.hashCode) +
     (clauses.hashCode) +
     (changeRequest == null ? 0 : changeRequest!.hashCode) +
     (parties.hashCode) +
@@ -100,7 +118,7 @@ class LeaseDetail {
     (signProviders.hashCode);
 
   @override
-  String toString() => 'LeaseDetail[lease=$lease, landlordView=$landlordView, payeeIban=$payeeIban, payeeName=$payeeName, dueDay=$dueDay, noticeMonths=$noticeMonths, depositAmount=$depositAmount, servicesAmount=$servicesAmount, clauses=$clauses, changeRequest=$changeRequest, parties=$parties, documents=$documents, totalDebt=$totalDebt, signProviders=$signProviders]';
+  String toString() => 'LeaseDetail[lease=$lease, landlordView=$landlordView, payeeIban=$payeeIban, payeeName=$payeeName, dueDay=$dueDay, noticeMonths=$noticeMonths, depositAmount=$depositAmount, servicesAmount=$servicesAmount, depositHeld=$depositHeld, contractScanUrl=$contractScanUrl, clauses=$clauses, changeRequest=$changeRequest, parties=$parties, documents=$documents, totalDebt=$totalDebt, signProviders=$signProviders]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -112,6 +130,12 @@ class LeaseDetail {
       json[r'notice_months'] = this.noticeMonths;
       json[r'deposit_amount'] = this.depositAmount;
       json[r'services_amount'] = this.servicesAmount;
+      json[r'deposit_held'] = this.depositHeld;
+    if (this.contractScanUrl != null) {
+      json[r'contract_scan_url'] = this.contractScanUrl;
+    } else {
+      json[r'contract_scan_url'] = null;
+    }
       json[r'clauses'] = this.clauses;
     if (this.changeRequest != null) {
       json[r'change_request'] = this.changeRequest;
@@ -152,6 +176,8 @@ class LeaseDetail {
         noticeMonths: mapValueOfType<int>(json, r'notice_months')!,
         depositAmount: mapValueOfType<int>(json, r'deposit_amount')!,
         servicesAmount: mapValueOfType<int>(json, r'services_amount')!,
+        depositHeld: mapValueOfType<bool>(json, r'deposit_held')!,
+        contractScanUrl: mapValueOfType<String>(json, r'contract_scan_url'),
         clauses: json[r'clauses'] is Iterable
             ? (json[r'clauses'] as Iterable).cast<String>().toList(growable: false)
             : const [],
@@ -215,6 +241,7 @@ class LeaseDetail {
     'notice_months',
     'deposit_amount',
     'services_amount',
+    'deposit_held',
     'clauses',
     'parties',
     'documents',

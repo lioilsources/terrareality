@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** | Share id. | 
 **obligationId** | **String** |  | 
-**kind** | **String** |  | 
+**kind** | **String** | opening_balance: what was owed at the cutover of an imported lease. | 
 **period** | **String** |  | 
 **dueOn** | [**DateTime**](DateTime.md) |  | 
 **amount** | **int** |  | 

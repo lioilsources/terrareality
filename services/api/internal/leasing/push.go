@@ -45,6 +45,15 @@ func partyUser(ctx context.Context, q *db.Queries, p db.LeaseParty) (db.User, bo
 	return u, err == nil && u.PseudonymizedAt == nil
 }
 
+// contactable reports whether a tenant-side party may get e-mails and
+// pushes about a lease: always on a lease made on the platform (the tenant
+// was invited by e-mail and signed it here), on an imported lease only once
+// the party accepted the landlord's invitation and is linked to an account.
+// Tenants of a paper contract never agreed to hear from the platform.
+func contactable(origin string, userID *uuid.UUID) bool {
+	return origin != OriginImported || userID != nil
+}
+
 // pushParties queues a lease event for the tenant side (parties with an
 // account) and, when landlord is true, for the landlord's members.
 func (s *Service) pushParties(ctx context.Context, q *db.Queries, tx pgx.Tx, l db.Lease, key string, landlord bool) {
@@ -59,7 +68,7 @@ func (s *Service) pushParties(ctx context.Context, q *db.Queries, tx pgx.Tx, l d
 		return
 	}
 	for _, p := range parties {
-		if p.Role == "landlord" || key == "lease_changes_requested" { // the tenants asked for the changes
+		if p.Role == "landlord" || key == "lease_changes_requested" || !contactable(l.Origin, p.UserID) { // the tenants asked for the changes
 			continue
 		}
 		u, ok := partyUser(ctx, q, p)
@@ -144,6 +153,9 @@ func (s *Service) pushPayment(ctx context.Context, q *db.Queries, tx pgx.Tx, spl
 	for _, p := range parties {
 		if p.ID != sp.PartyID {
 			continue
+		}
+		if !contactable(sp.LeaseOrigin, p.UserID) {
+			return
 		}
 		u, ok := partyUser(ctx, q, p)
 		if !ok {

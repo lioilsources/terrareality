@@ -2216,6 +2216,124 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/LeaseDetail" }
         default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/import:
+    parameters: [{ $ref: "#/components/parameters/OrgId" }]
+    post:
+      tags: [leasing]
+      operationId: importLease
+      summary: Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+      description: |
+        Creates the lease directly as `active` (or `signed` when it starts later; the lifecycle activates it on the
+        start date) with `origin` = imported. No document is rendered and nobody signs: the event log records that the
+        lease was signed outside the platform. The payment schedule starts at `cutover_on` (default: the first day of
+        next month, or the start date when later); it may lie at most 31 days in the past and 12 months ahead, never
+        before the start or after the end. Each party's `opening_balance` (owed at the cutover) becomes one
+        opening-balance obligation due on the cutover day. With `deposit_held` the deposit is recorded as held and not
+        scheduled. With `variable_symbol` payments, QR codes and bank matching use the tenants' existing symbol
+        instead of `code`. Tenants get no e-mails or pushes until invited (inviteLeaseParty) and signed in.
+        Errors: 422 `address_required`, `tenant_required`, `party_incomplete`, `invalid_email`, `invalid_template`,
+        `end_required`, `end_not_allowed`, `invalid_term`, `deposit_too_high`, `invalid_iban`, `shares_total`,
+        `joint_needs_two`, `lease_ended`, `cutover_before_start`, `cutover_too_old`, `cutover_too_far`,
+        `cutover_after_end`, `invalid_variable_symbol`, `invalid_opening_balance`, `opening_balance_guarantor`;
+        409 `variable_symbol_taken` (another lease of the organization uses the symbol).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeaseImportInput" }
+      responses:
+        "201":
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { $ref: "#/components/parameters/LeaseId" }
+      - { name: partyId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [leasing]
+      operationId: inviteLeaseParty
+      summary: Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
+      description: |
+        Stores the e-mail (optional when the party has one) and sends the invitation. The tenant is linked once they
+        sign in with this verified address; only then do they get payment reminders. Errors: 409 `lease_not_imported`,
+        409 `lease_not_active`, 409 `party_linked` (already uses the portal), 404 `party_not_found`,
+        422 `invalid_email`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Invited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/{leaseId}/contract-scan:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { $ref: "#/components/parameters/LeaseId" }
+    post:
+      tags: [leasing]
+      operationId: createContractScanUpload
+      summary: Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
+      description: "Errors: 409 `lease_not_imported`, 422 `attachment_type`, 422 `attachment_size`."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_type, size_bytes]
+              properties:
+                content_type: { type: string, enum: [application/pdf, image/jpeg, image/png] }
+                size_bytes: { type: integer, format: int64, minimum: 1, maximum: 20971520 }
+      responses:
+        "201":
+          description: Upload slot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [key, upload_url]
+                properties:
+                  key: { type: string }
+                  upload_url: { type: string }
+        default: { $ref: "#/components/responses/Problem" }
+  /v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete:
+    parameters:
+      - { $ref: "#/components/parameters/OrgId" }
+      - { $ref: "#/components/parameters/LeaseId" }
+    post:
+      tags: [leasing]
+      operationId: completeContractScanUpload
+      summary: Check the uploaded scan and attach it as the lease's contract scan
+      description: "Errors: 404 `upload_not_found`, 409 `lease_not_imported`, 422 `attachment_missing`, `attachment_type`, `attachment_size`, `attachment_infected`."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, filename]
+              properties:
+                key: { type: string, maxLength: 200 }
+                filename: { type: string, minLength: 1, maxLength: 255 }
+      responses:
+        "200":
+          description: Lease with the scan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeaseDetail" }
+        default: { $ref: "#/components/responses/Problem" }
   /v1/orgs/{orgId}/leases/{leaseId}:
     parameters:
       - { $ref: "#/components/parameters/OrgId" }
@@ -4591,15 +4709,53 @@ components:
         ruian_id: { type: integer, format: int64, description: RÚIAN address of a lease without a listing (where the lease is in the portfolio). }
         unit_label: { type: string, maxLength: 120 }
         parties: { type: array, maxItems: 10, items: { $ref: "#/components/schemas/LeasePartyInput" } }
+    LeaseOrigin:
+      type: string
+      enum: [platform, imported]
+      description: "platform: drafted and signed here; imported: signed on paper before the landlord joined."
+    LeaseImportPartyInput:
+      type: object
+      required: [name, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, description: Optional; nobody is contacted at import. }
+        role: { type: string, enum: [tenant, co_tenant, subtenant, guarantor] }
+        share_bps: { type: integer, minimum: 0, maximum: 10000, description: "Payment share in basis points; all zero = equal shares." }
+        opening_balance: { type: integer, format: int64, minimum: 0, description: "Owed at the cutover (minor units); 0 = nothing." }
+    LeaseImportInput:
+      type: object
+      required: [template, starts_on, rent_amount, payee_iban, payee_name, property_address, parties]
+      properties:
+        listing_id: { type: string, format: uuid }
+        template: { $ref: "#/components/schemas/LeaseTemplate" }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        rent_amount: { type: integer, format: int64, minimum: 1 }
+        services_amount: { type: integer, format: int64, minimum: 0 }
+        deposit_amount: { type: integer, format: int64, minimum: 0 }
+        deposit_held: { type: boolean, default: false, description: The landlord already holds the deposit (no deposit obligation). }
+        due_day: { type: integer, minimum: 1, maximum: 28, default: 15 }
+        notice_months: { type: integer, minimum: 1, maximum: 12, description: "Default: the portfolio rules of the place, else 3." }
+        payee_iban: { type: string, maxLength: 42 }
+        payee_name: { type: string, minLength: 1, maxLength: 200 }
+        property_address: { type: string, minLength: 1, maxLength: 300 }
+        ruian_id: { type: integer, format: int64, description: RÚIAN address of the flat (where the lease is in the portfolio). }
+        unit_label: { type: string, maxLength: 120 }
+        cutover_on: { type: string, format: date, description: "Payments are tracked from this day (default: the first day of next month)." }
+        variable_symbol: { type: string, pattern: "^[0-9]{1,10}$", description: "The tenants' existing variable symbol (leading zeros are dropped)." }
+        parties: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/LeaseImportPartyInput" } }
     LeaseSummary:
       type: object
-      required: [id, org_id, code, state, template, property_address, starts_on, rent_amount, currency, created_at]
+      required: [id, org_id, code, state, origin, template, property_address, starts_on, rent_amount, currency, created_at]
       properties:
         id: { type: string, format: uuid }
         org_id: { type: string, format: uuid }
         org_name: { type: string }
-        code: { type: integer, format: int64, description: Variable symbol of payments. }
+        code: { type: integer, format: int64, description: "Lease number; the variable symbol of payments unless `variable_symbol` is set." }
         state: { $ref: "#/components/schemas/LeaseState" }
+        origin: { $ref: "#/components/schemas/LeaseOrigin" }
+        cutover_on: { type: string, format: date, description: "Imported lease: payments are tracked from this day." }
+        variable_symbol: { type: string, description: "Imported lease: the tenants' own variable symbol, used for payments instead of `code`." }
         template: { $ref: "#/components/schemas/LeaseTemplate" }
         property_address: { type: string }
         unit_label: { type: string }
@@ -4611,7 +4767,7 @@ components:
         created_at: { type: string, format: date-time }
     LeaseParty:
       type: object
-      required: [id, role, name, share_bps, position, me]
+      required: [id, role, name, share_bps, position, me, has_account]
       properties:
         id: { type: string, format: uuid }
         role: { type: string, enum: [landlord, tenant, co_tenant, subtenant, guarantor] }
@@ -4622,6 +4778,8 @@ components:
         me: { type: boolean }
         signed_at: { type: string, format: date-time }
         debt: { type: integer, format: int64, description: Due and unpaid amount today. }
+        has_account: { type: boolean, description: "Linked to a user account (an imported lease's tenant gets reminders only then)." }
+        invited_at: { type: string, format: date-time, description: "Landlord side: when a tenant of an imported lease was invited to the portal." }
     LeaseDocument:
       type: object
       required: [id, kind, version, filename, sha256, url, created_at]
@@ -4658,7 +4816,7 @@ components:
         sibling of the landlord or the spouse.
     LeaseDetail:
       type: object
-      required: [lease, parties, documents, landlord_view, payee_iban, payee_name, due_day, notice_months, deposit_amount, services_amount, clauses, total_debt, sign_providers]
+      required: [lease, parties, documents, landlord_view, payee_iban, payee_name, due_day, notice_months, deposit_amount, services_amount, deposit_held, clauses, total_debt, sign_providers]
       properties:
         lease: { $ref: "#/components/schemas/LeaseSummary" }
         landlord_view: { type: boolean }
@@ -4668,6 +4826,8 @@ components:
         notice_months: { type: integer }
         deposit_amount: { type: integer, format: int64 }
         services_amount: { type: integer, format: int64 }
+        deposit_held: { type: boolean, description: "Imported lease: the landlord collected the deposit before the cutover (not scheduled)." }
+        contract_scan_url: { type: string, description: "Imported lease: short-lived download link of the paper contract's scan." }
         clauses: { type: array, items: { type: string } }
         change_request: { type: string }
         parties: { type: array, items: { $ref: "#/components/schemas/LeaseParty" } }
@@ -4683,7 +4843,7 @@ components:
       properties:
         id: { type: string, format: uuid, description: Share id. }
         obligation_id: { type: string, format: uuid }
-        kind: { type: string, enum: [rent, services, deposit, oneoff] }
+        kind: { type: string, enum: [rent, services, deposit, oneoff, opening_balance], description: "opening_balance: what was owed at the cutover of an imported lease." }
         period: { type: string }
         due_on: { type: string, format: date }
         amount: { type: integer, format: int64 }

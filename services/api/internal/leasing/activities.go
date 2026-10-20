@@ -140,14 +140,14 @@ func (a *Activities) Remind(ctx context.Context, leaseID uuid.UUID, due time.Tim
 		var names []string
 		for _, r := range rows {
 			names = append(names, r.Name)
-			if r.Email == nil || a.S.Outbox == nil {
+			if r.Email == nil || a.S.Outbox == nil || !contactable(l.Origin, r.UserID) {
 				continue
 			}
 			locale := "cs"
 			if r.Locale != nil {
 				locale = *r.Locale
 			}
-			m, err := a.S.Mail.Render(notify.Email, *r.Email, locale, key, map[string]any{"Code": l.Code,
+			m, err := a.S.Mail.Render(notify.Email, *r.Email, locale, key, map[string]any{"Code": l.Code, "VS": VariableSymbol(l),
 				"Address": l.PropertyAddress, "Amount": money(r.Amount-r.PaidAmount, l.Currency),
 				"Due": day.Format("2. 1. 2006"), "Link": a.S.WebBaseURL + "/smlouvy/" + leaseID.String()})
 			if err != nil {

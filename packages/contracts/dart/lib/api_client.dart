@@ -290,6 +290,8 @@ class ApiClient {
           return ConversationRoleTypeTransformer().decode(value);
         case 'CreateAttachmentUploadRequest':
           return CreateAttachmentUploadRequest.fromJson(value);
+        case 'CreateContractScanUploadRequest':
+          return CreateContractScanUploadRequest.fromJson(value);
         case 'CreateGroupRequest':
           return CreateGroupRequest.fromJson(value);
         case 'CreateIncomeUpload201Response':
@@ -348,6 +350,8 @@ class ApiClient {
           return InvitationPreview.fromJson(value);
         case 'InvitationTokenInput':
           return InvitationTokenInput.fromJson(value);
+        case 'InviteLeasePartyRequest':
+          return InviteLeasePartyRequest.fromJson(value);
         case 'InviteToGroupRequest':
           return InviteToGroupRequest.fromJson(value);
         case 'Invoice':
@@ -366,8 +370,14 @@ class ApiClient {
           return LeaseEvent.fromJson(value);
         case 'LeaseEventLog':
           return LeaseEventLog.fromJson(value);
+        case 'LeaseImportInput':
+          return LeaseImportInput.fromJson(value);
+        case 'LeaseImportPartyInput':
+          return LeaseImportPartyInput.fromJson(value);
         case 'LeaseInput':
           return LeaseInput.fromJson(value);
+        case 'LeaseOrigin':
+          return LeaseOriginTypeTransformer().decode(value);
         case 'LeaseParty':
           return LeaseParty.fromJson(value);
         case 'LeasePartyInput':

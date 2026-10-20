@@ -101,23 +101,27 @@
   },
   "lease_signed": {
     "subject": "Lease {{.Code}} is signed",
-    "text": "Hello,\n\nall parties signed lease {{.Code}} ({{.Address}}). The payment schedule and QR payments are here:\n{{.Link}}\n\nPay directly to the landlord's account with variable symbol {{.Code}}."
+    "text": "Hello,\n\nall parties signed lease {{.Code}} ({{.Address}}). The payment schedule and QR payments are here:\n{{.Link}}\n\nPay directly to the landlord's account with variable symbol {{.VS}}."
   },
   "lease_notice": {
     "subject": "Notice given on lease {{.Code}}",
     "text": "Hello,\n\nnotice was given on lease {{.Code}} ({{.Address}}). The lease ends on {{.EndsOn}}.\n\n{{.Link}}"
   },
+  "lease_invitation": {
+    "subject": "Invitation to the tenant portal: {{.Address}}",
+    "text": "Hello,\n\nyour landlord {{.Landlord}} invites you to the TerraReality tenant portal for your lease at {{.Address}}. It shows your payments, QR codes to pay and the contract.\n\nSign in or create an account with this e-mail address ({{.Email}}) and open:\n{{.Link}}\n\nIf you do not want this, do nothing: without signing in you will get no messages from us."
+  },
   "payment_upcoming": {
     "subject": "Payment due: {{.Amount}} by {{.Due}}",
-    "text": "Hello,\n\na payment of {{.Amount}} for {{.Address}} is due on {{.Due}} (variable symbol {{.Code}}). The QR payment is here:\n{{.Link}}\n\nIf you have already paid, please ignore this message."
+    "text": "Hello,\n\na payment of {{.Amount}} for {{.Address}} is due on {{.Due}} (variable symbol {{.VS}}). The QR payment is here:\n{{.Link}}\n\nIf you have already paid, please ignore this message."
   },
   "payment_overdue": {
     "subject": "Payment overdue: {{.Amount}}",
-    "text": "Hello,\n\nwe have not seen the payment of {{.Amount}} due on {{.Due}} for {{.Address}} yet. Please pay as soon as possible (variable symbol {{.Code}}):\n{{.Link}}\n\nIf you have paid already, it will show once matched."
+    "text": "Hello,\n\nwe have not seen the payment of {{.Amount}} due on {{.Due}} for {{.Address}} yet. Please pay as soon as possible (variable symbol {{.VS}}):\n{{.Link}}\n\nIf you have paid already, it will show once matched."
   },
   "payment_escalation": {
     "subject": "Reminder: {{.Amount}} 7 days overdue",
-    "text": "Hello,\n\nthe payment of {{.Amount}} due on {{.Due}} for {{.Address}} is a week overdue. The landlord has been informed. Please pay now (variable symbol {{.Code}}) or talk to the landlord:\n{{.Link}}"
+    "text": "Hello,\n\nthe payment of {{.Amount}} due on {{.Due}} for {{.Address}} is a week overdue. The landlord has been informed. Please pay now (variable symbol {{.VS}}) or talk to the landlord:\n{{.Link}}"
   },
   "payment_escalation_landlord": {
     "subject": "Unpaid 7 days after due date: lease {{.Code}}",

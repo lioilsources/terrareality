@@ -374,6 +374,11 @@ type Lease struct {
 	AdminPath        pgtype.Text `json:"admin_path"`
 	Lat              *float64    `json:"lat"`
 	Lng              *float64    `json:"lng"`
+	Origin           string      `json:"origin"`
+	CutoverOn        pgtype.Date `json:"cutover_on"`
+	VariableSymbol   *string     `json:"variable_symbol"`
+	DepositHeld      bool        `json:"deposit_held"`
+	ContractMediaID  *uuid.UUID  `json:"contract_media_id"`
 }
 
 type LeaseDocument struct {
@@ -412,6 +417,7 @@ type LeaseParty struct {
 	Position       int32      `json:"position"`
 	SettlementOkAt *time.Time `json:"settlement_ok_at"`
 	CreatedAt      time.Time  `json:"created_at"`
+	InvitedAt      *time.Time `json:"invited_at"`
 }
 
 type LeaseRisk struct {

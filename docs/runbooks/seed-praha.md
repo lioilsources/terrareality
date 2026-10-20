@@ -1,4 +1,4 @@
-# Runbook: seed Praha (addresses, boundaries, pilot owners)
+# Runbook: seed Praha (addresses, boundaries, pilot owners, existing leases)
 
 Launch region for M8 is Praha and its surroundings (Praha 1–22, Praha-východ/-západ towns, Beroun, Kladno,
 Mělník). Everything below runs with `terractl` against the target database (`DATABASE_URL`, `APP_ENV`,
@@ -76,6 +76,40 @@ Rows are validated before anything is written (e-mail format, duplicates, name).
 whose existing account already owns an organization of the same name; owners who have not accepted yet get
 a new organization and invitation, so check the audit log (`invitation.created`, source
 `terractl onboard-owner`) before re-running a batch. Keep the CSV out of the repository (personal data).
+
+## 3b. Existing leases of a pilot owner (paper contracts)
+
+Flats an owner already rents out on paper are imported, not drafted: the lease is created directly as
+`active` (or `signed` when it starts later), with no signing round and no rendered document, and the event
+log records that it was signed outside the platform (`imported`). Payments are tracked from the **cutover**
+(`cutover_on`, default the first day of next month; at most 31 days back and 12 months ahead, never before
+the start or after the end), so no past month becomes debt, a reminder, an escalation or risk. What a tenant
+owed at the cutover goes into `opening_balance` (one obligation due on the cutover day). `deposit_held`
+records a deposit the owner already has (not scheduled, counts as paid in the risk score and rent roll).
+`variable_symbol` keeps the tenants' standing orders working: QR codes and bank matching use it instead of
+the lease code (unique among the organization's running leases).
+
+    # one row per tenant; rows with the same lease_ref form one lease (docs/examples/existing-leases.csv)
+    terractl leases import --org "Nováková Reality" --csv existing-leases.csv --dry-run
+    terractl leases import --org 0193c0de-... --csv existing-leases.csv
+
+Columns (header required, comma or semicolon): `lease_ref, address, ruian_id, unit_label, template,
+starts_on, ends_on, rent, services, deposit, deposit_held, due_day, notice_months, payee_iban, payee_name,
+variable_symbol, cutover_on, tenant_name, tenant_email, share_pct, opening_balance`. Amounts in whole CZK
+(decimals allowed), dates `YYYY-MM-DD` or `D.M.YYYY`, `deposit_held` ano/ne (yes/no, 1/0), `share_pct` empty
+for equal shares. Lease columns are taken from the first row of a lease; later rows may leave them empty
+but must not contradict it. An empty `template` means `byt_doba_neurcita` without `ends_on`, else
+`byt_doba_urcita`; one tenant is `tenant`, several are `co_tenant`. `tenant_email` is optional.
+
+Every row is checked first and all problems are printed with their line; nothing is written unless the
+whole file is valid, and then all leases are imported in one transaction (all or nothing). `--dry-run`
+runs the same import and rolls it back. `--org` takes the id or the exact name. The operator acts for the
+organization: the landlord party is linked to its owner (unlinked while the owner has not accepted the
+invitation), and the event log and audit (`lease.import`, source `terractl`) name no user. **Tenants are
+not contacted**: no e-mail or push reaches a tenant of an imported lease until the owner invites them from
+the lease page (`POST /v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite`) and they sign in with the
+invited address (Q-LEASE-5 in `docs/legal-questions.md`). The owner can attach a scan of the paper contract
+there (`contract-scan`). Keep the CSV out of the repository (personal data).
 
 ## 3a. Ukázkové inzeráty (demo listings, closed beta only)
 

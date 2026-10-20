@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/mail"
 	"slices"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ import (
 	"github.com/terrareality/terrareality/services/api/internal/audit"
 	"github.com/terrareality/terrareality/services/api/internal/auth"
 	"github.com/terrareality/terrareality/services/api/internal/db"
+	"github.com/terrareality/terrareality/services/api/internal/media"
 	"github.com/terrareality/terrareality/services/api/internal/notify"
 	"github.com/terrareality/terrareality/services/api/internal/org"
 	"github.com/terrareality/terrareality/services/api/internal/platform/apperr"
@@ -50,6 +52,7 @@ type Service struct {
 	Signers           map[string]SignatureProvider
 	Bank              BankProvider
 	Blob              storage.Blob
+	Scanner           media.Scanner // contract scans of imported leases; nil: not scanned (media.NoScanner)
 	Jobs              Jobs
 	Outbox            notify.Outbox
 	Mail              *notify.Renderer
@@ -190,6 +193,13 @@ var Clauses = []string{"pets_allowed", "no_smoking", "inventory", "indexation", 
 func invalid(code, msg string) error { return apperr.Unprocessable(code, msg) }
 
 func (s *Service) validate(in *Input, depositMaxMonths int32) error {
+	return validate(in, depositMaxMonths, true)
+}
+
+// validate checks a lease and its parties and fills defaults (notice
+// period, equal shares). Parties of a lease made on the platform need an
+// e-mail (they sign here); parties of an imported lease may have none.
+func validate(in *Input, depositMaxMonths int32, needEmail bool) error {
 	if !slices.Contains(Templates, in.Template) {
 		return invalid("invalid_template", "unknown lease template")
 	}
@@ -227,8 +237,13 @@ func (s *Service) validate(in *Input, depositMaxMonths int32) error {
 	for i := range in.Parties {
 		pp := &in.Parties[i]
 		pp.Name, pp.Email = strings.TrimSpace(pp.Name), strings.ToLower(strings.TrimSpace(pp.Email))
-		if pp.Name == "" || pp.Email == "" {
+		if pp.Name == "" || (needEmail && pp.Email == "") {
 			return invalid("party_incomplete", "every tenant needs a name and an e-mail")
+		}
+		if !needEmail && pp.Email != "" { // the contract checks the format of API input; this is for the CSV import
+			if a, err := mail.ParseAddress(pp.Email); err != nil || a.Address != pp.Email {
+				return invalid("invalid_email", "enter a valid e-mail of "+pp.Name)
+			}
 		}
 		if !slices.Contains([]string{"tenant", "co_tenant", "subtenant", "guarantor"}, pp.Role) {
 			return invalid("invalid_role", "unknown party role")
@@ -715,24 +730,48 @@ func (s *Service) finalize(ctx context.Context, q *db.Queries, tx pgx.Tx, l db.L
 
 func ptrTo[T any](v T) *T { return &v }
 
-// schedule creates obligations, splits and their receivable postings.
-func (s *Service) schedule(ctx context.Context, q *db.Queries, l db.Lease, from time.Time) error {
+// shares are the paying parties of a lease (tenant side, share > 0) and
+// every tenant-side party id (opening balances may be owed by any of them).
+func (s *Service) shares(ctx context.Context, q *db.Queries, l db.Lease) ([]Share, []string, error) {
 	parties, err := q.ListLeaseParties(ctx, l.ID)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	var shares []Share
+	var all []string
 	for _, p := range parties {
-		if p.Role != "landlord" && p.Role != "guarantor" && p.ShareBps > 0 {
+		if p.Role == "landlord" {
+			continue
+		}
+		all = append(all, p.ID.String())
+		if p.Role != "guarantor" && p.ShareBps > 0 {
 			shares = append(shares, Share{PartyID: p.ID.String(), ShareBps: int(p.ShareBps)})
 		}
 	}
+	return shares, all, nil
+}
+
+func leaseTerms(l db.Lease) Terms {
 	var ends *time.Time
 	if l.EndsOn.Valid {
 		ends = &l.EndsOn.Time
 	}
-	items := Schedule(Terms{StartsOn: l.StartsOn.Time, EndsOn: ends, Rent: l.RentAmount, Services: l.ServicesAmount,
-		Deposit: l.DepositAmount, DueDay: int(l.DueDay)}, shares, from)
+	return Terms{StartsOn: l.StartsOn.Time, EndsOn: ends, Rent: l.RentAmount, Services: l.ServicesAmount,
+		Deposit: l.DepositAmount, DueDay: int(l.DueDay)}
+}
+
+// schedule creates obligations, splits and their receivable postings.
+func (s *Service) schedule(ctx context.Context, q *db.Queries, l db.Lease, from time.Time) error {
+	shares, parties, err := s.shares(ctx, q, l)
+	if err != nil {
+		return err
+	}
+	return book(ctx, q, l, parties, Schedule(leaseTerms(l), shares, from))
+}
+
+// book writes scheduled items: the obligation, a split per party and its
+// balanced receivable posting. Items already scheduled are skipped.
+func book(ctx context.Context, q *db.Queries, l db.Lease, parties []string, items []Item) error {
 	for _, it := range items {
 		o, err := q.InsertObligation(ctx, db.InsertObligationParams{LeaseID: l.ID, OrgID: l.OrgID, Kind: it.Kind,
 			Period: it.Period, DueOn: date(&it.DueOn), Amount: it.Amount, Currency: l.Currency})
@@ -742,28 +781,41 @@ func (s *Service) schedule(ctx context.Context, q *db.Queries, l db.Lease, from 
 		if err != nil {
 			return err
 		}
-		credit := "income"
-		if it.Kind == "deposit" {
-			credit = "deposit_held"
-		}
-		for _, sh := range shares {
-			amount := it.Splits[sh.PartyID]
+		for _, id := range parties {
+			amount := it.Splits[id]
 			if amount == 0 {
 				continue
 			}
-			pid := uuid.MustParse(sh.PartyID)
+			pid := uuid.MustParse(id)
 			sp, err := q.InsertSplit(ctx, db.InsertSplitParams{ObligationID: o.ID, LeaseID: l.ID, OrgID: l.OrgID, PartyID: pid, Amount: amount})
 			if err != nil {
 				return err
 			}
-			memo := it.Kind + " " + it.Period
-			if err := post(ctx, q, l, it.DueOn, memo, &sp.ID,
-				leg{"receivable", &pid, amount}, leg{credit, nil, -amount}); err != nil {
+			if err := post(ctx, q, l, it.DueOn, it.Kind+" "+it.Period, &sp.ID, receivableLegs(it.Kind, pid, amount)...); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// receivableLegs is the posting of a party's share of an item: the party
+// owes it (receivable) against income, or against deposit_held for a
+// deposit. An opening balance is unpaid rent and services of the time
+// before the cutover: income as well.
+func receivableLegs(kind string, party uuid.UUID, amount int64) []leg {
+	credit := "income"
+	if kind == "deposit" {
+		credit = "deposit_held"
+	}
+	return []leg{{"receivable", &party, amount}, {credit, nil, -amount}}
+}
+
+// heldDepositLegs is the posting of a deposit the landlord collected before
+// the cutover of an imported lease: the money is in the landlord's account
+// (cash) and owed back at the end (deposit_held); nobody owes anything.
+func heldDepositLegs(amount int64) []leg {
+	return []leg{{"cash", nil, amount}, {"deposit_held", nil, -amount}}
 }
 
 type leg struct {
@@ -823,7 +875,7 @@ func (s *Service) mailParties(ctx context.Context, q *db.Queries, tx pgx.Tx, l d
 	type rcpt struct{ email, locale, link string }
 	var to []rcpt
 	for _, p := range parties {
-		if p.Role == "landlord" || p.Email == nil {
+		if p.Role == "landlord" || p.Email == nil || !contactable(l.Origin, p.UserID) {
 			continue
 		}
 		locale := "cs"
@@ -844,7 +896,7 @@ func (s *Service) mailParties(ctx context.Context, q *db.Queries, tx pgx.Tx, l d
 		}
 	}
 	for _, r := range to {
-		d := map[string]any{"Code": l.Code, "Address": l.PropertyAddress, "Link": r.link}
+		d := map[string]any{"Code": l.Code, "VS": VariableSymbol(l), "Address": l.PropertyAddress, "Link": r.link}
 		for k, v := range data {
 			d[k] = v
 		}

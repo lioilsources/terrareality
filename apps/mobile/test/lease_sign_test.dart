@@ -177,15 +177,16 @@ void main() {
   test('the lease detail parses enabled methods and parties without an e-mail', () {
     final d = LeaseDetail.fromJson({
       'lease': {
-        'id': 'l1', 'org_id': 'o1', 'code': 1, 'state': 'proposed', 'template': 'spolecny_najem',
+        'id': 'l1', 'org_id': 'o1', 'code': 1, 'state': 'proposed', 'origin': 'platform', 'template': 'spolecny_najem',
         'property_address': 'Dejvická 12', 'starts_on': '2026-11-01', 'rent_amount': 2000000, 'currency': 'CZK',
         'created_at': '2026-10-14T10:00:00Z',
       },
       'landlord_view': false, 'payee_iban': 'CZ65', 'payee_name': 'Lucie', 'due_day': 15, 'notice_months': 3,
-      'deposit_amount': 0, 'services_amount': 0, 'clauses': [], 'documents': [], 'total_debt': 0,
+      'deposit_amount': 0, 'services_amount': 0, 'deposit_held': false, 'clauses': [], 'documents': [], 'total_debt': 0,
       'parties': [
-        {'id': 'p1', 'role': 'co_tenant', 'name': 'Anna', 'email': 'anna@example.cz', 'share_bps': 5000, 'position': 1, 'me': true},
-        {'id': 'p2', 'role': 'co_tenant', 'name': 'Petr', 'share_bps': 5000, 'position': 2, 'me': false},
+        {'id': 'p1', 'role': 'co_tenant', 'name': 'Anna', 'email': 'anna@example.cz', 'share_bps': 5000, 'position': 1, 'me': true,
+         'has_account': true},
+        {'id': 'p2', 'role': 'co_tenant', 'name': 'Petr', 'share_bps': 5000, 'position': 2, 'me': false, 'has_account': false},
       ],
       'sign_providers': [
         {'id': 'bankid_sign', 'level': 'qualified'},

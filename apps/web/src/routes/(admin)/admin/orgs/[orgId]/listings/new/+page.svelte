@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
 	import { kindLabel, layouts } from '#lib/catalog.js';
+	import AddressPicker from '#lib/components/AddressPicker.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
@@ -10,35 +11,10 @@
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
-	let query = $state('');
-	let results: AddressSuggestion[] = $state([]);
 	let picked: AddressSuggestion | null = $state(null);
-	let searched = $state(false);
 	let kind = $state('apartment');
-	let timer: ReturnType<typeof setTimeout> | undefined;
 	const kinds = ['apartment', 'house', 'room', 'parking', 'storage', 'commercial'];
 	const select = 'rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2';
-
-	function search() {
-		picked = null;
-		clearTimeout(timer);
-		timer = setTimeout(async () => {
-			if (query.trim().length < 3) {
-				results = [];
-				searched = false;
-				return;
-			}
-			const res = await fetch(`/admin/api/addresses?q=${encodeURIComponent(query)}`);
-			results = res.ok ? await res.json() : [];
-			searched = true;
-		}, 200);
-	}
-
-	function pick(a: AddressSuggestion) {
-		picked = a;
-		query = a.label;
-		results = [];
-	}
 </script>
 
 <svelte:head><title>{m.wizard_title()}</title></svelte:head>
@@ -50,40 +26,7 @@
 		>{/if}
 
 	<Card title="1. {m.wizard_address()}">
-		<div class="relative grid gap-1">
-			<label for="address" class="text-sm font-medium">{m.wizard_address()}</label>
-			<input
-				id="address"
-				autocomplete="off"
-				role="combobox"
-				aria-expanded={results.length > 0}
-				aria-controls="address-results"
-				class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-				bind:value={query}
-				oninput={search}
-			/>
-			<p class="text-xs text-[var(--muted)]">{m.wizard_address_hint()}</p>
-			{#if results.length}
-				<ul
-					id="address-results"
-					role="listbox"
-					class="absolute top-[4.5rem] z-10 w-full overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow"
-				>
-					{#each results as a (a.ruian_id)}
-						<li role="option" aria-selected="false">
-							<button
-								type="button"
-								class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--border)]/40"
-								onclick={() => pick(a)}>{a.label}</button
-							>
-						</li>
-					{/each}
-				</ul>
-			{:else if searched && !picked}
-				<p class="text-sm text-[var(--muted)]">{m.wizard_address_none()}</p>
-			{/if}
-			<input type="hidden" name="ruian_id" value={picked?.ruian_id ?? ''} />
-		</div>
+		<AddressPicker bind:picked />
 	</Card>
 
 	<Card title="2. {m.wizard_unit()}">

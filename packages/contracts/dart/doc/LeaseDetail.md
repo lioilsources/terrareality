@@ -16,6 +16,8 @@ Name | Type | Description | Notes
 **noticeMonths** | **int** |  | 
 **depositAmount** | **int** |  | 
 **servicesAmount** | **int** |  | 
+**depositHeld** | **bool** | Imported lease: the landlord collected the deposit before the cutover (not scheduled). | 
+**contractScanUrl** | **String** | Imported lease: short-lived download link of the paper contract's scan. | [optional] 
 **clauses** | **List<String>** |  | [default to const []]
 **changeRequest** | **String** |  | [optional] 
 **parties** | [**List<LeaseParty>**](LeaseParty.md) |  | [default to const []]

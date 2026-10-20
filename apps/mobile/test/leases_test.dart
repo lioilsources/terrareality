@@ -13,6 +13,7 @@ LeaseSummary _summary(LeaseState state) => LeaseSummary(
       orgName: 'Lucie Pronajímatelka',
       code: 2600000007,
       state: state,
+      origin: LeaseOrigin.platform,
       template: LeaseTemplate.spolecnyNajem,
       propertyAddress: 'Dejvická 12, Praha 6',
       startsOn: DateTime(2026, 11, 1),
@@ -68,12 +69,13 @@ class FakeRepo implements LeasesRepository {
           noticeMonths: 3,
           depositAmount: 4000000,
           servicesAmount: 400000,
+          depositHeld: false,
           clauses: [],
           parties: [
-            LeaseParty(id: 'p1', role: LeasePartyRoleEnum.coTenant, name: 'Anna', shareBps: 5000, position: 1, me: true,
+            LeaseParty(id: 'p1', role: LeasePartyRoleEnum.coTenant, name: 'Anna', shareBps: 5000, position: 1, me: true, hasAccount: true,
                 signedAt: signed ? DateTime(2026, 10, 14) : null),
             // Another tenant's e-mail is not shown to a tenant-side caller.
-            LeaseParty(id: 'p2', role: LeasePartyRoleEnum.coTenant, name: 'Petr', shareBps: 5000, position: 2, me: false),
+            LeaseParty(id: 'p2', role: LeasePartyRoleEnum.coTenant, name: 'Petr', shareBps: 5000, position: 2, me: false, hasAccount: true),
           ],
           documents: [],
           totalDebt: signed ? 1200000 : 0,

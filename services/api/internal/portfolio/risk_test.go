@@ -185,3 +185,22 @@ func TestNoDepositAgreed(t *testing.T) {
 		t.Fatalf("agreed deposit unpaid: %+v", f)
 	}
 }
+
+// M9: an imported lease whose deposit the landlord collected before the
+// cutover has no deposit obligation; the held deposit is the cushion.
+func TestHeldDepositCovers(t *testing.T) {
+	base := Input{Today: d("2026-10-15"), State: "active", Monthly: 2_400_000, Rent: 2_000_000, Deposit: 4_000_000,
+		Parties: []Party{{HasAccount: true, Verification: "identity", IncomeProof: true, Insolvency: "clear"}}}
+	if f := factor(Score(base, nil), "deposit_coverage"); f.Value != 0.5 {
+		t.Fatalf("unpaid deposit: coverage %v, want 0.5", f.Value)
+	}
+	held := base
+	held.DepositHeld = 4_000_000
+	r := Score(held, nil)
+	if f := factor(r, "deposit_coverage"); f.Value != 0 || f.Detail["deposit_paid"] != int64(4_000_000) {
+		t.Fatalf("held deposit: %+v", f)
+	}
+	if r.Score != 0 {
+		t.Fatalf("held deposit, no debt: score %d", r.Score)
+	}
+}

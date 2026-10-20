@@ -226,7 +226,7 @@ func ISIR(cfg config.Config) isir.Checker {
 // active (the dev transaction endpoint needs it).
 func Leasing(cfg config.Config, d Deps, pool *pgxpool.Pool, jobs leasing.Jobs, outbox notify.Outbox, log *slog.Logger) (*leasing.Service, *leasing.MockBank) {
 	svc := &leasing.Service{Pool: pool, Render: leasing.Typst{Bin: cfg.TypstBin},
-		Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}}, Blob: d.Blob, Jobs: jobs,
+		Signers: map[string]leasing.SignatureProvider{"mock": leasing.MockSigner{}}, Blob: d.Blob, Scanner: d.Scanner, Jobs: jobs,
 		Outbox: outbox, Mail: d.Renderer, Pusher: d.Pusher, WebBaseURL: cfg.WebBaseURL, TemplatesReviewed: cfg.TemplatesReviewed, Log: log}
 	var mock *leasing.MockBank
 	switch cfg.BankProvider {

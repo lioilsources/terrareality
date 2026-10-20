@@ -61,3 +61,62 @@ export async function giveLandlordNotice(api: ApiClient, leaseId: string, form: 
 	if (error) return fail(400, { error: errorMessage(error), noticeError: true });
 	return { endsOn: data.ends_on };
 }
+
+const scanTypes = ['application/pdf', 'image/jpeg', 'image/png'] as const;
+
+/**
+ * The ?/scan action of an imported lease: reserves an upload for the paper
+ * contract's scan, PUTs the file to the presigned url and completes it (the
+ * api checks type, size and viruses).
+ */
+export async function uploadContractScan(
+	api: ApiClient,
+	orgId: string,
+	leaseId: string,
+	form: FormData
+) {
+	const file = form.get('file');
+	if (!(file instanceof File) || file.size === 0)
+		return fail(400, { error: m.lease_scan_missing(), scanError: true });
+	const type = scanTypes.find((t) => t === file.type);
+	if (!type)
+		return fail(400, {
+			error: errorMessage({ status: 422, title: '', code: 'attachment_type' }),
+			scanError: true
+		});
+	const path = { params: { path: { orgId, leaseId } } };
+	const { data: slot, error } = await api.POST('/v1/orgs/{orgId}/leases/{leaseId}/contract-scan', {
+		...path,
+		body: { content_type: type, size_bytes: file.size }
+	});
+	if (!slot) return fail(400, { error: errorMessage(error), scanError: true });
+	const put = await fetch(slot.upload_url, {
+		method: 'PUT',
+		headers: { 'Content-Type': type },
+		body: Buffer.from(await file.arrayBuffer())
+	});
+	if (!put.ok) return fail(400, { error: errorMessage(null), scanError: true });
+	const done = await api.POST('/v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete', {
+		...path,
+		body: { key: slot.key, filename: file.name || 'smlouva' }
+	});
+	if (done.error) return fail(400, { error: errorMessage(done.error), scanError: true });
+	return { scanned: true };
+}
+
+/** The ?/invite action: invites a tenant of an imported lease to the portal (again, if asked). */
+export async function inviteLeaseParty(
+	api: ApiClient,
+	orgId: string,
+	leaseId: string,
+	form: FormData
+) {
+	const partyId = String(form.get('party_id') ?? '');
+	const email = String(form.get('email') ?? '').trim();
+	const { error } = await api.POST('/v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite', {
+		params: { path: { orgId, leaseId, partyId } },
+		body: email ? { email } : {}
+	});
+	if (error) return fail(400, { error: errorMessage(error), inviteError: partyId });
+	return { invited: partyId };
+}

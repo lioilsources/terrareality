@@ -1,0 +1,4 @@
+lease_ref,address,ruian_id,unit_label,template,starts_on,ends_on,rent,services,deposit,deposit_held,due_day,notice_months,payee_iban,payee_name,variable_symbol,cutover_on,tenant_name,tenant_email,share_pct,opening_balance
+dejvicka-12,"Dejvická 12, Praha 6",,2+kk,byt_doba_neurcita,2024-03-01,,18000,3500,36000,ano,5,3,CZ65 0800 0000 1920 0014 5399,Jana Nováková,1203,,Petr Svoboda,petr.svoboda@example.cz,,0
+vinohradska-40,"Vinohradská 40, Praha 2",,3+1,spolecny_najem,2025-09-01,2027-08-31,26000,5000,52000,ano,15,3,CZ65 0800 0000 1920 0014 5399,Jana Nováková,40031,,Eva Malá,,50,6500
+vinohradska-40,,,,,,,,,,,,,,,,,Tomáš Velký,tomas.velky@example.cz,50,0

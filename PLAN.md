@@ -10,6 +10,7 @@ Plán a acceptance kritéria: `docs/02-plan.md`. Tento soubor říká, kde jsme 
 | **M7 Promo, billing, Revolut, backoffice** | **hotovo, v `main`**                               | merge `5eabb2e` (PR #8)                                  |
 | **M8 Flutter v0, produkce, launch**        | **hotovo, v `main`**; launch čeká na externí kroky | merge `2b4c69a` (PR #9)                                  |
 | **M8b Hardening a opravy z review**        | hotovo                                             | main (PR #10)                                            |
+| **M9 Existující nájmy**                    | hotovo, větev `m9-existing-leases`                 | PR čeká                                                  |
 
 U M6 i M6b prošly `make test`, `make lint`, `make gen-check` a `make e2e` lokálně i v CI.
 U M7 prošly `make test`, `make lint`, `make gen-check` a `make e2e` (18/18) lokálně i v CI.
@@ -81,6 +82,20 @@ U M8b prošly lokálně `make test`, `make lint`, `make gen-check`, `make e2e` (
 - **Vysoké a střední:** výpověď (kdo smí, okno data, výpověď pronajímatele s důvodem podle § 2288), souběhy (podpis × změny, souhlasy ve skupině, přijetí žádosti, platby), limit velikosti uploadu, rozmazání obličejů přes job s opakováním, doklady o příjmu jen u otevřených žádostí a stahování s auditem, utažené RLS a granty (migrace 00013: append-only tabulky, globální tabulky, rozdělené policy, indexy, CHECKy), trvalé zamykání účtu a MFA per session (migrace 00014), stránkování seznamů, oddělené `.env` a klíče záloh, healthchecky a limity v compose, TLS k PostgreSQL včetně Temporalu, akce v CI připnuté na SHA, CSP statického webu, mobil: přihlášení odkazem, reset hesla, MFA, chybové stavy, stránkování, app links.
 - **Změny kontraktu:** pozvánky `POST /v1/invitations/lookup|accept` (token v těle), `LeaseDetail.sign_providers`, `reason` u výpovědi, stránkování (`before`/`limit`, moderace `after`), `getApplicantIncomeProof`, `ReviewDetail.privacy_flags`, `SessionInfo.expires_at`, zdokumentované nové chybové kódy.
 - **Web TerraReality:** texty už neslibují Bank iD ani revidované šablony; stránka projektu na olin.now (`olin.now/terrareality.html`).
+
+## M9 – existující nájmy (2026-10-20)
+
+Majitel s už obsazenými byty naskočí bez nového podpisového kola: nájem se převezme jako podepsaný
+mimo platformu (`origin = imported`, migrace 00016).
+- Platby se sledují od data převzetí (`cutover_on`, výchozí 1. den příštího měsíce, max. 31 dní zpět);
+  dřívější dluh jde do počátečního zůstatku (`opening_balance`), držená kauce se zaúčtuje bez pohledávky.
+- Vlastní variabilní symbol (QR i párování, unikátní v organizaci), sken papírové smlouvy (`lease_documents` kind `scan`).
+- Nájemníci bez účtu nedostanou žádný e-mail ani push, dokud je majitel nepozve do nájemního portálu.
+- Web: „Přidat existující nájem“, panel převzaté smlouvy, pozvánky; `terractl leases import --org --csv [--dry-run]`
+  (vzor `docs/examples/existing-leases.csv`, runbook `docs/runbooks/seed-praha.md` 3b).
+- Právní otázka Q-LEASE-5 (údaje nájemníků bez účtu). Známé limity: vypořádání kauce vyžaduje potvrzení
+  nájemníků s účtem; pozvánka jen česky; cutover/VS nejdou po importu upravit.
+- Testy: `make test` (Go, web 70/70), `make lint`, e2e 32/32 lokálně. Opraven DST-citlivý `TestPromoCheckoutAndInvoice`.
 
 ## Beta na NAS (JODA) – 2026-10-16
 

@@ -18,6 +18,9 @@ class LeaseSummary {
     this.orgName,
     required this.code,
     required this.state,
+    required this.origin,
+    this.cutoverOn,
+    this.variableSymbol,
     required this.template,
     required this.propertyAddress,
     this.unitLabel,
@@ -41,10 +44,30 @@ class LeaseSummary {
   ///
   String? orgName;
 
-  /// Variable symbol of payments.
+  /// Lease number; the variable symbol of payments unless `variable_symbol` is set.
   int code;
 
   LeaseState state;
+
+  LeaseOrigin origin;
+
+  /// Imported lease: payments are tracked from this day.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  DateTime? cutoverOn;
+
+  /// Imported lease: the tenants' own variable symbol, used for payments instead of `code`.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? variableSymbol;
 
   LeaseTemplate template;
 
@@ -89,6 +112,9 @@ class LeaseSummary {
     other.orgName == orgName &&
     other.code == code &&
     other.state == state &&
+    other.origin == origin &&
+    other.cutoverOn == cutoverOn &&
+    other.variableSymbol == variableSymbol &&
     other.template == template &&
     other.propertyAddress == propertyAddress &&
     other.unitLabel == unitLabel &&
@@ -107,6 +133,9 @@ class LeaseSummary {
     (orgName == null ? 0 : orgName!.hashCode) +
     (code.hashCode) +
     (state.hashCode) +
+    (origin.hashCode) +
+    (cutoverOn == null ? 0 : cutoverOn!.hashCode) +
+    (variableSymbol == null ? 0 : variableSymbol!.hashCode) +
     (template.hashCode) +
     (propertyAddress.hashCode) +
     (unitLabel == null ? 0 : unitLabel!.hashCode) +
@@ -118,7 +147,7 @@ class LeaseSummary {
     (createdAt.hashCode);
 
   @override
-  String toString() => 'LeaseSummary[id=$id, orgId=$orgId, orgName=$orgName, code=$code, state=$state, template=$template, propertyAddress=$propertyAddress, unitLabel=$unitLabel, tenantNames=$tenantNames, startsOn=$startsOn, endsOn=$endsOn, rentAmount=$rentAmount, currency=$currency, createdAt=$createdAt]';
+  String toString() => 'LeaseSummary[id=$id, orgId=$orgId, orgName=$orgName, code=$code, state=$state, origin=$origin, cutoverOn=$cutoverOn, variableSymbol=$variableSymbol, template=$template, propertyAddress=$propertyAddress, unitLabel=$unitLabel, tenantNames=$tenantNames, startsOn=$startsOn, endsOn=$endsOn, rentAmount=$rentAmount, currency=$currency, createdAt=$createdAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -131,6 +160,17 @@ class LeaseSummary {
     }
       json[r'code'] = this.code;
       json[r'state'] = this.state;
+      json[r'origin'] = this.origin;
+    if (this.cutoverOn != null) {
+      json[r'cutover_on'] = _dateFormatter.format(this.cutoverOn!.toUtc());
+    } else {
+      json[r'cutover_on'] = null;
+    }
+    if (this.variableSymbol != null) {
+      json[r'variable_symbol'] = this.variableSymbol;
+    } else {
+      json[r'variable_symbol'] = null;
+    }
       json[r'template'] = this.template;
       json[r'property_address'] = this.propertyAddress;
     if (this.unitLabel != null) {
@@ -179,6 +219,9 @@ class LeaseSummary {
         orgName: mapValueOfType<String>(json, r'org_name'),
         code: mapValueOfType<int>(json, r'code')!,
         state: LeaseState.fromJson(json[r'state'])!,
+        origin: LeaseOrigin.fromJson(json[r'origin'])!,
+        cutoverOn: mapDateTime(json, r'cutover_on', r''),
+        variableSymbol: mapValueOfType<String>(json, r'variable_symbol'),
         template: LeaseTemplate.fromJson(json[r'template'])!,
         propertyAddress: mapValueOfType<String>(json, r'property_address')!,
         unitLabel: mapValueOfType<String>(json, r'unit_label'),
@@ -239,6 +282,7 @@ class LeaseSummary {
     'org_id',
     'code',
     'state',
+    'origin',
     'template',
     'property_address',
     'starts_on',

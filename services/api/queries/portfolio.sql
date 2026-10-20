@@ -208,8 +208,9 @@ SELECT l.id, l.code, l.state, l.template, l.property_address, l.unit_label, l.un
     AND e.amount > 0 AND e.booked_on <= sqlc.arg(as_of)::date), 0)::bigint AS billed,
   coalesce(-(SELECT sum(e.amount) FROM ledger_entries e WHERE e.lease_id = l.id AND e.account = 'receivable'
     AND e.amount < 0 AND e.booked_on <= sqlc.arg(as_of)::date), 0)::bigint AS paid,
-  coalesce((SELECT sum(s.paid_amount) FROM obligation_splits s JOIN payment_obligations o ON o.id = s.obligation_id
-    WHERE o.lease_id = l.id AND o.kind = 'deposit'), 0)::bigint AS deposit_paid,
+  (coalesce((SELECT sum(s.paid_amount) FROM obligation_splits s JOIN payment_obligations o ON o.id = s.obligation_id
+    WHERE o.lease_id = l.id AND o.kind = 'deposit'), 0)
+    + CASE WHEN l.deposit_held THEN l.deposit_amount ELSE 0 END)::bigint AS deposit_paid,
   coalesce((SELECT max(ev.created_at) FROM lease_events ev WHERE ev.lease_id = l.id AND ev.kind = 'payment_escalated'),
     'epoch'::timestamptz)::timestamptz AS last_escalation,
   coalesce(rk.score, -1)::int AS risk_score, coalesce(rk.band, '')::text AS risk_band,

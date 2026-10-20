@@ -179,8 +179,9 @@ func TestPromoCheckoutAndInvoice(t *testing.T) {
 		} `json:"items"`
 	}
 	e.must(200, "GET", orgPath+"/listings/"+mine.String()+"/promotions", tok, nil, &promos)
+	// Seven calendar days in the server's zone: across a DST change that is 167 or 169 hours.
 	if len(promos.Items) != 1 || promos.Items[0].Kind != "top" || !promos.Items[0].Active || promos.Items[0].OrderID != co.OrderID ||
-		promos.Items[0].EndsAt.Sub(promos.Items[0].StartsAt) != 7*24*time.Hour {
+		(promos.Items[0].EndsAt.Sub(promos.Items[0].StartsAt)-7*24*time.Hour).Abs() > time.Hour {
 		t.Fatalf("promotions %+v", promos)
 	}
 

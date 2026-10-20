@@ -22,6 +22,8 @@ class LeaseParty {
     required this.me,
     this.signedAt,
     this.debt,
+    required this.hasAccount,
+    this.invitedAt,
   });
 
   String id;
@@ -63,6 +65,18 @@ class LeaseParty {
   ///
   int? debt;
 
+  /// Linked to a user account (an imported lease's tenant gets reminders only then).
+  bool hasAccount;
+
+  /// Landlord side: when a tenant of an imported lease was invited to the portal.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  DateTime? invitedAt;
+
   @override
   bool operator ==(Object other) => identical(this, other) || other is LeaseParty &&
     other.id == id &&
@@ -73,7 +87,9 @@ class LeaseParty {
     other.position == position &&
     other.me == me &&
     other.signedAt == signedAt &&
-    other.debt == debt;
+    other.debt == debt &&
+    other.hasAccount == hasAccount &&
+    other.invitedAt == invitedAt;
 
   @override
   int get hashCode =>
@@ -86,10 +102,12 @@ class LeaseParty {
     (position.hashCode) +
     (me.hashCode) +
     (signedAt == null ? 0 : signedAt!.hashCode) +
-    (debt == null ? 0 : debt!.hashCode);
+    (debt == null ? 0 : debt!.hashCode) +
+    (hasAccount.hashCode) +
+    (invitedAt == null ? 0 : invitedAt!.hashCode);
 
   @override
-  String toString() => 'LeaseParty[id=$id, role=$role, name=$name, email=$email, shareBps=$shareBps, position=$position, me=$me, signedAt=$signedAt, debt=$debt]';
+  String toString() => 'LeaseParty[id=$id, role=$role, name=$name, email=$email, shareBps=$shareBps, position=$position, me=$me, signedAt=$signedAt, debt=$debt, hasAccount=$hasAccount, invitedAt=$invitedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -113,6 +131,12 @@ class LeaseParty {
       json[r'debt'] = this.debt;
     } else {
       json[r'debt'] = null;
+    }
+      json[r'has_account'] = this.hasAccount;
+    if (this.invitedAt != null) {
+      json[r'invited_at'] = this.invitedAt!.toUtc().toIso8601String();
+    } else {
+      json[r'invited_at'] = null;
     }
     return json;
   }
@@ -145,6 +169,8 @@ class LeaseParty {
         me: mapValueOfType<bool>(json, r'me')!,
         signedAt: mapDateTime(json, r'signed_at', r''),
         debt: mapValueOfType<int>(json, r'debt'),
+        hasAccount: mapValueOfType<bool>(json, r'has_account')!,
+        invitedAt: mapDateTime(json, r'invited_at', r''),
       );
     }
     return null;
@@ -198,6 +224,7 @@ class LeaseParty {
     'share_bps',
     'position',
     'me',
+    'has_account',
   };
 }
 

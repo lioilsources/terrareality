@@ -9,8 +9,10 @@ All URIs are relative to *http://localhost:8080*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
+[**completeContractScanUpload**](LeasingApi.md#completecontractscanupload) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete | Check the uploaded scan and attach it as the lease's contract scan
 [**confirmLeaseSettlement**](LeasingApi.md#confirmleasesettlement) | **POST** /v1/leases/{leaseId}/settlement | Confirm the deposit settlement after the lease ended (all parties settle the lease)
 [**connectBank**](LeasingApi.md#connectbank) | **POST** /v1/orgs/{orgId}/bank/connections | Link the landlord's account (open banking AIS, read only)
+[**createContractScanUpload**](LeasingApi.md#createcontractscanupload) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/contract-scan | Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
 [**createLease**](LeasingApi.md#createlease) | **POST** /v1/orgs/{orgId}/leases | Draft a lease (from an accepted application, or with explicit parties)
 [**finishBankConnection**](LeasingApi.md#finishbankconnection) | **POST** /v1/orgs/{orgId}/bank/connections/{connectionId}/finish | Complete linking after returning from the bank
 [**getBankOverview**](LeasingApi.md#getbankoverview) | **GET** /v1/orgs/{orgId}/bank | Linked accounts and recent incoming transactions with their match status
@@ -19,6 +21,8 @@ Method | HTTP request | Description
 [**getLeaseLedger**](LeasingApi.md#getleaseledger) | **GET** /v1/leases/{leaseId}/ledger | Double-entry ledger of the lease (JSON, or CSV with format=csv)
 [**getShareQR**](LeasingApi.md#getshareqr) | **GET** /v1/obligation-shares/{shareId}/qr | QR payment (QR Platba / SPAYD) of one open share as a PNG image
 [**giveLeaseNotice**](LeasingApi.md#giveleasenotice) | **POST** /v1/leases/{leaseId}/notice | Give notice; the lease ends after the notice period
+[**importLease**](LeasingApi.md#importlease) | **POST** /v1/orgs/{orgId}/leases/import | Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+[**inviteLeaseParty**](LeasingApi.md#inviteleaseparty) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite | Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
 [**listLeaseObligations**](LeasingApi.md#listleaseobligations) | **GET** /v1/leases/{leaseId}/obligations | Payment schedule split between parties, with QR payments (SPAYD) for open shares
 [**listMyLeases**](LeasingApi.md#listmyleases) | **GET** /v1/me/leases | Leases where I am a tenant
 [**listOrgLeases**](LeasingApi.md#listorgleases) | **GET** /v1/orgs/{orgId}/leases | Leases of the organization
@@ -30,6 +34,59 @@ Method | HTTP request | Description
 [**syncBank**](LeasingApi.md#syncbank) | **POST** /v1/orgs/{orgId}/bank/sync | Fetch and match new transactions now
 [**updateLease**](LeasingApi.md#updatelease) | **PUT** /v1/orgs/{orgId}/leases/{leaseId} | Edit a draft or a lease in negotiation
 
+
+# **completeContractScanUpload**
+> LeaseDetail completeContractScanUpload(orgId, leaseId, completeIncomeUploadRequest)
+
+Check the uploaded scan and attach it as the lease's contract scan
+
+Errors: 404 `upload_not_found`, 409 `lease_not_imported`, 422 `attachment_missing`, `attachment_type`, `attachment_size`, `attachment_infected`.
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = LeasingApi();
+final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final leaseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final completeIncomeUploadRequest = CompleteIncomeUploadRequest(); // CompleteIncomeUploadRequest | 
+
+try {
+    final result = api_instance.completeContractScanUpload(orgId, leaseId, completeIncomeUploadRequest);
+    print(result);
+} catch (e) {
+    print('Exception when calling LeasingApi->completeContractScanUpload: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **orgId** | **String**|  | 
+ **leaseId** | **String**|  | 
+ **completeIncomeUploadRequest** | [**CompleteIncomeUploadRequest**](CompleteIncomeUploadRequest.md)|  | 
+
+### Return type
+
+[**LeaseDetail**](LeaseDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **confirmLeaseSettlement**
 > ConfirmLeaseSettlement200Response confirmLeaseSettlement(leaseId)
@@ -115,6 +172,59 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**BankLink**](BankLink.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createContractScanUpload**
+> CreateIncomeUpload201Response createContractScanUpload(orgId, leaseId, createContractScanUploadRequest)
+
+Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
+
+Errors: 409 `lease_not_imported`, 422 `attachment_type`, 422 `attachment_size`.
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = LeasingApi();
+final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final leaseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final createContractScanUploadRequest = CreateContractScanUploadRequest(); // CreateContractScanUploadRequest | 
+
+try {
+    final result = api_instance.createContractScanUpload(orgId, leaseId, createContractScanUploadRequest);
+    print(result);
+} catch (e) {
+    print('Exception when calling LeasingApi->createContractScanUpload: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **orgId** | **String**|  | 
+ **leaseId** | **String**|  | 
+ **createContractScanUploadRequest** | [**CreateContractScanUploadRequest**](CreateContractScanUploadRequest.md)|  | 
+
+### Return type
+
+[**CreateIncomeUpload201Response**](CreateIncomeUpload201Response.md)
 
 ### Authorization
 
@@ -509,6 +619,112 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**GiveLeaseNotice200Response**](GiveLeaseNotice200Response.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **importLease**
+> LeaseDetail importLease(orgId, leaseImportInput)
+
+Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+
+Creates the lease directly as `active` (or `signed` when it starts later; the lifecycle activates it on the start date) with `origin` = imported. No document is rendered and nobody signs: the event log records that the lease was signed outside the platform. The payment schedule starts at `cutover_on` (default: the first day of next month, or the start date when later); it may lie at most 31 days in the past and 12 months ahead, never before the start or after the end. Each party's `opening_balance` (owed at the cutover) becomes one opening-balance obligation due on the cutover day. With `deposit_held` the deposit is recorded as held and not scheduled. With `variable_symbol` payments, QR codes and bank matching use the tenants' existing symbol instead of `code`. Tenants get no e-mails or pushes until invited (inviteLeaseParty) and signed in. Errors: 422 `address_required`, `tenant_required`, `party_incomplete`, `invalid_email`, `invalid_template`, `end_required`, `end_not_allowed`, `invalid_term`, `deposit_too_high`, `invalid_iban`, `shares_total`, `joint_needs_two`, `lease_ended`, `cutover_before_start`, `cutover_too_old`, `cutover_too_far`, `cutover_after_end`, `invalid_variable_symbol`, `invalid_opening_balance`, `opening_balance_guarantor`; 409 `variable_symbol_taken` (another lease of the organization uses the symbol). 
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = LeasingApi();
+final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final leaseImportInput = LeaseImportInput(); // LeaseImportInput | 
+
+try {
+    final result = api_instance.importLease(orgId, leaseImportInput);
+    print(result);
+} catch (e) {
+    print('Exception when calling LeasingApi->importLease: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **orgId** | **String**|  | 
+ **leaseImportInput** | [**LeaseImportInput**](LeaseImportInput.md)|  | 
+
+### Return type
+
+[**LeaseDetail**](LeaseDetail.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json, application/problem+json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **inviteLeaseParty**
+> LeaseDetail inviteLeaseParty(orgId, leaseId, partyId, inviteLeasePartyRequest)
+
+Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
+
+Stores the e-mail (optional when the party has one) and sends the invitation. The tenant is linked once they sign in with this verified address; only then do they get payment reminders. Errors: 409 `lease_not_imported`, 409 `lease_not_active`, 409 `party_linked` (already uses the portal), 404 `party_not_found`, 422 `invalid_email`. 
+
+### Example
+```dart
+import 'package:terra_api/api.dart';
+// TODO Configure HTTP Bearer authorization: bearerAuth
+// Case 1. Use String Token
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken('YOUR_ACCESS_TOKEN');
+// Case 2. Use Function which generate token.
+// String yourTokenGeneratorFunction() { ... }
+//defaultApiClient.getAuthentication<HttpBearerAuth>('bearerAuth').setAccessToken(yourTokenGeneratorFunction);
+
+final api_instance = LeasingApi();
+final orgId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final leaseId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final partyId = 38400000-8cf0-11bd-b23e-10b96e4ef00d; // String | 
+final inviteLeasePartyRequest = InviteLeasePartyRequest(); // InviteLeasePartyRequest | 
+
+try {
+    final result = api_instance.inviteLeaseParty(orgId, leaseId, partyId, inviteLeasePartyRequest);
+    print(result);
+} catch (e) {
+    print('Exception when calling LeasingApi->inviteLeaseParty: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **orgId** | **String**|  | 
+ **leaseId** | **String**|  | 
+ **partyId** | **String**|  | 
+ **inviteLeasePartyRequest** | [**InviteLeasePartyRequest**](InviteLeasePartyRequest.md)|  | [optional] 
+
+### Return type
+
+[**LeaseDetail**](LeaseDetail.md)
 
 ### Authorization
 

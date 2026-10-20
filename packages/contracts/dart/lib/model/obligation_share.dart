@@ -33,6 +33,7 @@ class ObligationShare {
 
   String obligationId;
 
+  /// opening_balance: what was owed at the cutover of an imported lease.
   ObligationShareKindEnum kind;
 
   String period;
@@ -214,7 +215,7 @@ class ObligationShare {
   };
 }
 
-
+/// opening_balance: what was owed at the cutover of an imported lease.
 class ObligationShareKindEnum {
   /// Instantiate a new enum with the provided [value].
   const ObligationShareKindEnum._(this.value);
@@ -231,6 +232,7 @@ class ObligationShareKindEnum {
   static const services = ObligationShareKindEnum._(r'services');
   static const deposit = ObligationShareKindEnum._(r'deposit');
   static const oneoff = ObligationShareKindEnum._(r'oneoff');
+  static const openingBalance = ObligationShareKindEnum._(r'opening_balance');
 
   /// List of all possible values in this [enum][ObligationShareKindEnum].
   static const values = <ObligationShareKindEnum>[
@@ -238,6 +240,7 @@ class ObligationShareKindEnum {
     services,
     deposit,
     oneoff,
+    openingBalance,
   ];
 
   static ObligationShareKindEnum? fromJson(dynamic value) => ObligationShareKindEnumTypeTransformer().decode(value);
@@ -280,6 +283,7 @@ class ObligationShareKindEnumTypeTransformer {
         case r'services': return ObligationShareKindEnum.services;
         case r'deposit': return ObligationShareKindEnum.deposit;
         case r'oneoff': return ObligationShareKindEnum.oneoff;
+        case r'opening_balance': return ObligationShareKindEnum.openingBalance;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');
