@@ -59,6 +59,7 @@ doc/Conversation.md
 doc/ConversationDetail.md
 doc/ConversationRole.md
 doc/CreateAttachmentUploadRequest.md
+doc/CreateContractScanUploadRequest.md
 doc/CreateGroupRequest.md
 doc/CreateIncomeUpload201Response.md
 doc/CreateIncomeUploadRequest.md
@@ -88,6 +89,7 @@ doc/Invitation.md
 doc/InvitationInput.md
 doc/InvitationPreview.md
 doc/InvitationTokenInput.md
+doc/InviteLeasePartyRequest.md
 doc/InviteToGroupRequest.md
 doc/Invoice.md
 doc/InvoiceList.md
@@ -98,7 +100,10 @@ doc/LeaseDetail.md
 doc/LeaseDocument.md
 doc/LeaseEvent.md
 doc/LeaseEventLog.md
+doc/LeaseImportInput.md
+doc/LeaseImportPartyInput.md
 doc/LeaseInput.md
+doc/LeaseOrigin.md
 doc/LeaseParty.md
 doc/LeasePartyInput.md
 doc/LeaseRisk.md
@@ -338,6 +343,7 @@ lib/model/conversation.dart
 lib/model/conversation_detail.dart
 lib/model/conversation_role.dart
 lib/model/create_attachment_upload_request.dart
+lib/model/create_contract_scan_upload_request.dart
 lib/model/create_group_request.dart
 lib/model/create_income_upload201_response.dart
 lib/model/create_income_upload_request.dart
@@ -367,6 +373,7 @@ lib/model/invitation.dart
 lib/model/invitation_input.dart
 lib/model/invitation_preview.dart
 lib/model/invitation_token_input.dart
+lib/model/invite_lease_party_request.dart
 lib/model/invite_to_group_request.dart
 lib/model/invoice.dart
 lib/model/invoice_list.dart
@@ -376,7 +383,10 @@ lib/model/lease_detail.dart
 lib/model/lease_document.dart
 lib/model/lease_event.dart
 lib/model/lease_event_log.dart
+lib/model/lease_import_input.dart
+lib/model/lease_import_party_input.dart
 lib/model/lease_input.dart
+lib/model/lease_origin.dart
 lib/model/lease_party.dart
 lib/model/lease_party_input.dart
 lib/model/lease_risk.dart

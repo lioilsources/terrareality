@@ -16,6 +16,72 @@ class LeasingApi {
 
   final ApiClient apiClient;
 
+  /// Check the uploaded scan and attach it as the lease's contract scan
+  ///
+  /// Errors: 404 `upload_not_found`, 409 `lease_not_imported`, 422 `attachment_missing`, `attachment_type`, `attachment_size`, `attachment_infected`.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [CompleteIncomeUploadRequest] completeIncomeUploadRequest (required):
+  Future<Response> completeContractScanUploadWithHttpInfo(String orgId, String leaseId, CompleteIncomeUploadRequest completeIncomeUploadRequest,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete'
+      .replaceAll('{orgId}', orgId)
+      .replaceAll('{leaseId}', leaseId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = completeIncomeUploadRequest;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Check the uploaded scan and attach it as the lease's contract scan
+  ///
+  /// Errors: 404 `upload_not_found`, 409 `lease_not_imported`, 422 `attachment_missing`, `attachment_type`, `attachment_size`, `attachment_infected`.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [CompleteIncomeUploadRequest] completeIncomeUploadRequest (required):
+  Future<LeaseDetail?> completeContractScanUpload(String orgId, String leaseId, CompleteIncomeUploadRequest completeIncomeUploadRequest,) async {
+    final response = await completeContractScanUploadWithHttpInfo(orgId, leaseId, completeIncomeUploadRequest,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'LeaseDetail',) as LeaseDetail;
+    
+    }
+    return null;
+  }
+
   /// Confirm the deposit settlement after the lease ended (all parties settle the lease)
   ///
   /// Note: This method returns the HTTP [Response].
@@ -121,6 +187,72 @@ class LeasingApi {
     // FormatException when trying to decode an empty string.
     if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
       return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'BankLink',) as BankLink;
+    
+    }
+    return null;
+  }
+
+  /// Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
+  ///
+  /// Errors: 409 `lease_not_imported`, 422 `attachment_type`, 422 `attachment_size`.
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [CreateContractScanUploadRequest] createContractScanUploadRequest (required):
+  Future<Response> createContractScanUploadWithHttpInfo(String orgId, String leaseId, CreateContractScanUploadRequest createContractScanUploadRequest,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/orgs/{orgId}/leases/{leaseId}/contract-scan'
+      .replaceAll('{orgId}', orgId)
+      .replaceAll('{leaseId}', leaseId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = createContractScanUploadRequest;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
+  ///
+  /// Errors: 409 `lease_not_imported`, 422 `attachment_type`, 422 `attachment_size`.
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [CreateContractScanUploadRequest] createContractScanUploadRequest (required):
+  Future<CreateIncomeUpload201Response?> createContractScanUpload(String orgId, String leaseId, CreateContractScanUploadRequest createContractScanUploadRequest,) async {
+    final response = await createContractScanUploadWithHttpInfo(orgId, leaseId, createContractScanUploadRequest,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'CreateIncomeUpload201Response',) as CreateIncomeUpload201Response;
     
     }
     return null;
@@ -601,6 +733,138 @@ class LeasingApi {
     // FormatException when trying to decode an empty string.
     if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
       return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'GiveLeaseNotice200Response',) as GiveLeaseNotice200Response;
+    
+    }
+    return null;
+  }
+
+  /// Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+  ///
+  /// Creates the lease directly as `active` (or `signed` when it starts later; the lifecycle activates it on the start date) with `origin` = imported. No document is rendered and nobody signs: the event log records that the lease was signed outside the platform. The payment schedule starts at `cutover_on` (default: the first day of next month, or the start date when later); it may lie at most 31 days in the past and 12 months ahead, never before the start or after the end. Each party's `opening_balance` (owed at the cutover) becomes one opening-balance obligation due on the cutover day. With `deposit_held` the deposit is recorded as held and not scheduled. With `variable_symbol` payments, QR codes and bank matching use the tenants' existing symbol instead of `code`. Tenants get no e-mails or pushes until invited (inviteLeaseParty) and signed in. Errors: 422 `address_required`, `tenant_required`, `party_incomplete`, `invalid_email`, `invalid_template`, `end_required`, `end_not_allowed`, `invalid_term`, `deposit_too_high`, `invalid_iban`, `shares_total`, `joint_needs_two`, `lease_ended`, `cutover_before_start`, `cutover_too_old`, `cutover_too_far`, `cutover_after_end`, `invalid_variable_symbol`, `invalid_opening_balance`, `opening_balance_guarantor`; 409 `variable_symbol_taken` (another lease of the organization uses the symbol). 
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [LeaseImportInput] leaseImportInput (required):
+  Future<Response> importLeaseWithHttpInfo(String orgId, LeaseImportInput leaseImportInput,) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/orgs/{orgId}/leases/import'
+      .replaceAll('{orgId}', orgId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = leaseImportInput;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+  ///
+  /// Creates the lease directly as `active` (or `signed` when it starts later; the lifecycle activates it on the start date) with `origin` = imported. No document is rendered and nobody signs: the event log records that the lease was signed outside the platform. The payment schedule starts at `cutover_on` (default: the first day of next month, or the start date when later); it may lie at most 31 days in the past and 12 months ahead, never before the start or after the end. Each party's `opening_balance` (owed at the cutover) becomes one opening-balance obligation due on the cutover day. With `deposit_held` the deposit is recorded as held and not scheduled. With `variable_symbol` payments, QR codes and bank matching use the tenants' existing symbol instead of `code`. Tenants get no e-mails or pushes until invited (inviteLeaseParty) and signed in. Errors: 422 `address_required`, `tenant_required`, `party_incomplete`, `invalid_email`, `invalid_template`, `end_required`, `end_not_allowed`, `invalid_term`, `deposit_too_high`, `invalid_iban`, `shares_total`, `joint_needs_two`, `lease_ended`, `cutover_before_start`, `cutover_too_old`, `cutover_too_far`, `cutover_after_end`, `invalid_variable_symbol`, `invalid_opening_balance`, `opening_balance_guarantor`; 409 `variable_symbol_taken` (another lease of the organization uses the symbol). 
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [LeaseImportInput] leaseImportInput (required):
+  Future<LeaseDetail?> importLease(String orgId, LeaseImportInput leaseImportInput,) async {
+    final response = await importLeaseWithHttpInfo(orgId, leaseImportInput,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'LeaseDetail',) as LeaseDetail;
+    
+    }
+    return null;
+  }
+
+  /// Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
+  ///
+  /// Stores the e-mail (optional when the party has one) and sends the invitation. The tenant is linked once they sign in with this verified address; only then do they get payment reminders. Errors: 409 `lease_not_imported`, 409 `lease_not_active`, 409 `party_linked` (already uses the portal), 404 `party_not_found`, 422 `invalid_email`. 
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [String] partyId (required):
+  ///
+  /// * [InviteLeasePartyRequest] inviteLeasePartyRequest:
+  Future<Response> inviteLeasePartyWithHttpInfo(String orgId, String leaseId, String partyId, { InviteLeasePartyRequest? inviteLeasePartyRequest, }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite'
+      .replaceAll('{orgId}', orgId)
+      .replaceAll('{leaseId}', leaseId)
+      .replaceAll('{partyId}', partyId);
+
+    // ignore: prefer_final_locals
+    Object? postBody = inviteLeasePartyRequest;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>['application/json'];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'POST',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+    );
+  }
+
+  /// Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
+  ///
+  /// Stores the e-mail (optional when the party has one) and sends the invitation. The tenant is linked once they sign in with this verified address; only then do they get payment reminders. Errors: 409 `lease_not_imported`, 409 `lease_not_active`, 409 `party_linked` (already uses the portal), 404 `party_not_found`, 422 `invalid_email`. 
+  ///
+  /// Parameters:
+  ///
+  /// * [String] orgId (required):
+  ///
+  /// * [String] leaseId (required):
+  ///
+  /// * [String] partyId (required):
+  ///
+  /// * [InviteLeasePartyRequest] inviteLeasePartyRequest:
+  Future<LeaseDetail?> inviteLeaseParty(String orgId, String leaseId, String partyId, { InviteLeasePartyRequest? inviteLeasePartyRequest, }) async {
+    final response = await inviteLeasePartyWithHttpInfo(orgId, leaseId, partyId,  inviteLeasePartyRequest: inviteLeasePartyRequest, );
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      return await apiClient.deserializeAsync(await _decodeBodyBytes(response), 'LeaseDetail',) as LeaseDetail;
     
     }
     return null;

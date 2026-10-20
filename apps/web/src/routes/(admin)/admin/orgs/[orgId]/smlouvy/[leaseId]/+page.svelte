@@ -6,6 +6,7 @@
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import ImportedLeasePanel from '#lib/components/ImportedLeasePanel.svelte';
 	import LandlordNoticeForm from '#lib/components/LandlordNoticeForm.svelte';
 	import LeaseForm from '#lib/components/LeaseForm.svelte';
 	import LeasePayments from '#lib/components/LeasePayments.svelte';
@@ -19,7 +20,13 @@
 	const d = $derived(data.detail);
 	const l = $derived(d.lease);
 	const me = $derived(d.parties.find((p) => p.me));
-	const editable = $derived(l.state === 'draft' || l.state === 'negotiating');
+	const imported = $derived(l.origin === 'imported');
+	// An imported lease was signed on paper: no drafting, proposal or signing here.
+	const editable = $derived(!imported && (l.state === 'draft' || l.state === 'negotiating'));
+	// Errors of the scan and invite forms are shown next to them.
+	const local = $derived(
+		!!form && ('noticeError' in form || 'scanError' in form || 'inviteError' in form)
+	);
 	const values = $derived({
 		template: l.template,
 		starts_on: l.starts_on,
@@ -44,7 +51,7 @@
 <p class="mb-2 text-sm">
 	<a href={localizeHref(`/admin/orgs/${params.orgId}/smlouvy`)}>← {m.lease_title()}</a>
 </p>
-{#if form?.error && !('noticeError' in form)}<div class="mb-4">
+{#if form?.error && !local}<div class="mb-4">
 		<Alert kind="error">{form.error}</Alert>
 	</div>{/if}
 <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -91,7 +98,19 @@
 				<Button type="submit">{m.lease_propose()}</Button>
 			</form>
 		{/if}
-		{#if l.state === 'proposed' && me && !me.signed_at}
+		{#if imported}
+			<ImportedLeasePanel
+				detail={d}
+				{locale}
+				scanError={form && 'scanError' in form ? form.error : null}
+				scanned={!!form && 'scanned' in form}
+				inviteError={form && 'inviteError' in form && form.inviteError
+					? [form.inviteError, form.error]
+					: null}
+				invited={form && 'invited' in form ? form.invited : null}
+			/>
+		{/if}
+		{#if !imported && l.state === 'proposed' && me && !me.signed_at}
 			<LeaseSignForm providers={d.sign_providers} />
 		{/if}
 		{#if form && 'endsOn' in form && form.endsOn}

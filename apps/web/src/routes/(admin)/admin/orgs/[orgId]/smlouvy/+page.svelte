@@ -18,8 +18,13 @@
 	<h1 class="text-2xl font-semibold">{m.lease_title()}</h1>
 	<a href={localizeHref(`${base}/banka`)} class="text-sm">{m.nav_bank()}</a>
 	<a
+		href={localizeHref(`${base}/smlouvy/existujici`)}
+		class="ml-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text)] no-underline hover:bg-[var(--border)]/40"
+		>{m.lease_import_new()}</a
+	>
+	<a
 		href={localizeHref(`${base}/smlouvy/nova`)}
-		class="ml-auto rounded-lg bg-[var(--accent)] px-4 py-2 text-sm text-white no-underline"
+		class="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm text-white no-underline"
 		>{m.lease_new()}</a
 	>
 </div>
@@ -37,7 +42,14 @@
 					<span class="text-sm"
 						>{formatMoney(l.rent_amount, l.currency, locale)} · {fmtDate(l.starts_on, locale)}</span
 					>
-					<span class="ml-auto rounded bg-[var(--border)]/60 px-2 py-0.5 text-sm"
+					{#if l.origin === 'imported'}<span
+							class="ml-auto rounded border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]"
+							data-testid="lease-imported">{m.lease_imported_badge()}</span
+						>{/if}
+					<span
+						class="{l.origin === 'imported'
+							? ''
+							: 'ml-auto'} rounded bg-[var(--border)]/60 px-2 py-0.5 text-sm"
 						>{stateLabel[l.state]()}</span
 					>
 				</a>

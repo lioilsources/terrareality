@@ -13,9 +13,53 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addImportedParty = `-- name: AddImportedParty :one
+INSERT INTO lease_parties (lease_id, org_id, role, name, email, share_bps, position)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, lease_id, org_id, role, user_id, name, email, share_bps, position, settlement_ok_at, created_at, invited_at
+`
+
+type AddImportedPartyParams struct {
+	LeaseID  uuid.UUID `json:"lease_id"`
+	OrgID    uuid.UUID `json:"org_id"`
+	Role     string    `json:"role"`
+	Name     string    `json:"name"`
+	Email    *string   `json:"email"`
+	ShareBps int32     `json:"share_bps"`
+	Position int32     `json:"position"`
+}
+
+// A tenant-side party of an imported lease: never linked to an account here.
+func (q *Queries) AddImportedParty(ctx context.Context, arg AddImportedPartyParams) (LeaseParty, error) {
+	row := q.db.QueryRow(ctx, addImportedParty,
+		arg.LeaseID,
+		arg.OrgID,
+		arg.Role,
+		arg.Name,
+		arg.Email,
+		arg.ShareBps,
+		arg.Position,
+	)
+	var i LeaseParty
+	err := row.Scan(
+		&i.ID,
+		&i.LeaseID,
+		&i.OrgID,
+		&i.Role,
+		&i.UserID,
+		&i.Name,
+		&i.Email,
+		&i.ShareBps,
+		&i.Position,
+		&i.SettlementOkAt,
+		&i.CreatedAt,
+		&i.InvitedAt,
+	)
+	return i, err
+}
+
 const addLeaseParty = `-- name: AddLeaseParty :one
 INSERT INTO lease_parties (lease_id, org_id, role, user_id, name, email, share_bps, position)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, lease_id, org_id, role, user_id, name, email, share_bps, position, settlement_ok_at, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, lease_id, org_id, role, user_id, name, email, share_bps, position, settlement_ok_at, created_at, invited_at
 `
 
 type AddLeasePartyParams struct {
@@ -53,6 +97,7 @@ func (q *Queries) AddLeaseParty(ctx context.Context, arg AddLeasePartyParams) (L
 		&i.Position,
 		&i.SettlementOkAt,
 		&i.CreatedAt,
+		&i.InvitedAt,
 	)
 	return i, err
 }
@@ -104,10 +149,13 @@ UPDATE lease_parties p SET user_id = u.id
 FROM users u
 WHERE u.id = $1 AND u.email_verified_at IS NOT NULL AND u.pseudonymized_at IS NULL
   AND p.user_id IS NULL AND p.email = u.email::citext
+  AND (p.invited_at IS NOT NULL OR NOT EXISTS (SELECT 1 FROM leases l WHERE l.id = p.lease_id AND l.origin = 'imported'))
 `
 
 // Links parties invited by e-mail to the account with that address, only
-// once the account proved it owns the address (verified e-mail).
+// once the account proved it owns the address (verified e-mail). Parties of
+// an imported lease are linked only after the landlord invited them
+// (invited_at): the paper contract is no consent to the tenant portal.
 func (q *Queries) ClaimLeaseParties(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, claimLeaseParties, id)
 	return err
@@ -238,7 +286,7 @@ INSERT INTO leases (org_id, listing_id, application_id, jurisdiction_code, curre
   property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day,
   notice_months, payee_iban, payee_name, clauses, terms, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-RETURNING id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng
+RETURNING id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng, origin, cutover_on, variable_symbol, deposit_held, contract_media_id
 `
 
 type CreateLeaseParams struct {
@@ -326,6 +374,11 @@ func (q *Queries) CreateLease(ctx context.Context, arg CreateLeaseParams) (Lease
 		&i.AdminPath,
 		&i.Lat,
 		&i.Lng,
+		&i.Origin,
+		&i.CutoverOn,
+		&i.VariableSymbol,
+		&i.DepositHeld,
+		&i.ContractMediaID,
 	)
 	return i, err
 }
@@ -377,6 +430,18 @@ DELETE FROM lease_parties WHERE lease_id = $1 AND role <> 'landlord'
 func (q *Queries) DeleteLeaseTenants(ctx context.Context, leaseID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteLeaseTenants, leaseID)
 	return err
+}
+
+const firstOrgOwner = `-- name: FirstOrgOwner :one
+SELECT user_id FROM memberships WHERE org_id = $1 AND role = 'owner' ORDER BY created_at LIMIT 1
+`
+
+// System context (terractl): the longest-standing owner of an organization.
+func (q *Queries) FirstOrgOwner(ctx context.Context, orgID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, firstOrgOwner, orgID)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const getBankConnection = `-- name: GetBankConnection :one
@@ -431,7 +496,7 @@ func (q *Queries) GetBankTransaction(ctx context.Context, id uuid.UUID) (BankTra
 }
 
 const getLease = `-- name: GetLease :one
-SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng FROM leases WHERE id = $1
+SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng, origin, cutover_on, variable_symbol, deposit_held, contract_media_id FROM leases WHERE id = $1
 `
 
 func (q *Queries) GetLease(ctx context.Context, id uuid.UUID) (Lease, error) {
@@ -472,12 +537,38 @@ func (q *Queries) GetLease(ctx context.Context, id uuid.UUID) (Lease, error) {
 		&i.AdminPath,
 		&i.Lat,
 		&i.Lng,
+		&i.Origin,
+		&i.CutoverOn,
+		&i.VariableSymbol,
+		&i.DepositHeld,
+		&i.ContractMediaID,
+	)
+	return i, err
+}
+
+const getLeaseDocument = `-- name: GetLeaseDocument :one
+SELECT id, lease_id, org_id, kind, version, object_key, filename, sha256, created_at FROM lease_documents WHERE id = $1
+`
+
+func (q *Queries) GetLeaseDocument(ctx context.Context, id uuid.UUID) (LeaseDocument, error) {
+	row := q.db.QueryRow(ctx, getLeaseDocument, id)
+	var i LeaseDocument
+	err := row.Scan(
+		&i.ID,
+		&i.LeaseID,
+		&i.OrgID,
+		&i.Kind,
+		&i.Version,
+		&i.ObjectKey,
+		&i.Filename,
+		&i.Sha256,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getLeaseForUpdate = `-- name: GetLeaseForUpdate :one
-SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng FROM leases WHERE id = $1 FOR UPDATE
+SELECT id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng, origin, cutover_on, variable_symbol, deposit_held, contract_media_id FROM leases WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetLeaseForUpdate(ctx context.Context, id uuid.UUID) (Lease, error) {
@@ -518,13 +609,18 @@ func (q *Queries) GetLeaseForUpdate(ctx context.Context, id uuid.UUID) (Lease, e
 		&i.AdminPath,
 		&i.Lat,
 		&i.Lng,
+		&i.Origin,
+		&i.CutoverOn,
+		&i.VariableSymbol,
+		&i.DepositHeld,
+		&i.ContractMediaID,
 	)
 	return i, err
 }
 
 const getSplit = `-- name: GetSplit :one
 SELECT s.id, s.obligation_id, s.lease_id, s.org_id, s.party_id, s.amount, s.paid_amount, o.due_on, o.kind, o.period, o.currency, o.status AS obligation_status, l.code, l.payee_iban, l.payee_name,
-  p.position, p.name AS party_name, p.user_id AS party_user_id
+  l.origin AS lease_origin, p.position, p.name AS party_name, p.user_id AS party_user_id
 FROM obligation_splits s
 JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
@@ -548,6 +644,7 @@ type GetSplitRow struct {
 	Code             int64       `json:"code"`
 	PayeeIban        string      `json:"payee_iban"`
 	PayeeName        string      `json:"payee_name"`
+	LeaseOrigin      string      `json:"lease_origin"`
 	Position         int32       `json:"position"`
 	PartyName        string      `json:"party_name"`
 	PartyUserID      *uuid.UUID  `json:"party_user_id"`
@@ -572,9 +669,121 @@ func (q *Queries) GetSplit(ctx context.Context, id uuid.UUID) (GetSplitRow, erro
 		&i.Code,
 		&i.PayeeIban,
 		&i.PayeeName,
+		&i.LeaseOrigin,
 		&i.Position,
 		&i.PartyName,
 		&i.PartyUserID,
+	)
+	return i, err
+}
+
+const importLease = `-- name: ImportLease :one
+
+INSERT INTO leases (org_id, listing_id, jurisdiction_code, currency, state, template, template_version,
+  property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day,
+  notice_months, payee_iban, payee_name, clauses, terms, created_by, origin, cutover_on, variable_symbol, deposit_held)
+VALUES ($1, $2, $3, $4, $5,
+  $6, $7, $8, $9, $10,
+  $11, $12, $13, $14, $15,
+  $16, $17, $18, '{}', '{}'::jsonb, $19,
+  'imported', $20, $21, $22)
+RETURNING id, org_id, listing_id, application_id, code, jurisdiction_code, currency, state, template, template_version, property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day, notice_months, payee_iban, payee_name, clauses, terms, change_request, notice_on, workflow_id, created_by, created_at, updated_at, signed_at, unit_id, admin_path, lat, lng, origin, cutover_on, variable_symbol, deposit_held, contract_media_id
+`
+
+type ImportLeaseParams struct {
+	OrgID            uuid.UUID   `json:"org_id"`
+	ListingID        *uuid.UUID  `json:"listing_id"`
+	JurisdictionCode string      `json:"jurisdiction_code"`
+	Currency         string      `json:"currency"`
+	State            string      `json:"state"`
+	Template         string      `json:"template"`
+	TemplateVersion  string      `json:"template_version"`
+	PropertyAddress  string      `json:"property_address"`
+	UnitLabel        string      `json:"unit_label"`
+	StartsOn         pgtype.Date `json:"starts_on"`
+	EndsOn           pgtype.Date `json:"ends_on"`
+	RentAmount       int64       `json:"rent_amount"`
+	ServicesAmount   int64       `json:"services_amount"`
+	DepositAmount    int64       `json:"deposit_amount"`
+	DueDay           int32       `json:"due_day"`
+	NoticeMonths     int32       `json:"notice_months"`
+	PayeeIban        string      `json:"payee_iban"`
+	PayeeName        string      `json:"payee_name"`
+	CreatedBy        *uuid.UUID  `json:"created_by"`
+	CutoverOn        pgtype.Date `json:"cutover_on"`
+	VariableSymbol   *string     `json:"variable_symbol"`
+	DepositHeld      bool        `json:"deposit_held"`
+}
+
+// ---------------------------------------------------------------------------
+// M9: existing (imported) leases.
+// A lease signed on paper: created directly in its running state.
+func (q *Queries) ImportLease(ctx context.Context, arg ImportLeaseParams) (Lease, error) {
+	row := q.db.QueryRow(ctx, importLease,
+		arg.OrgID,
+		arg.ListingID,
+		arg.JurisdictionCode,
+		arg.Currency,
+		arg.State,
+		arg.Template,
+		arg.TemplateVersion,
+		arg.PropertyAddress,
+		arg.UnitLabel,
+		arg.StartsOn,
+		arg.EndsOn,
+		arg.RentAmount,
+		arg.ServicesAmount,
+		arg.DepositAmount,
+		arg.DueDay,
+		arg.NoticeMonths,
+		arg.PayeeIban,
+		arg.PayeeName,
+		arg.CreatedBy,
+		arg.CutoverOn,
+		arg.VariableSymbol,
+		arg.DepositHeld,
+	)
+	var i Lease
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.ListingID,
+		&i.ApplicationID,
+		&i.Code,
+		&i.JurisdictionCode,
+		&i.Currency,
+		&i.State,
+		&i.Template,
+		&i.TemplateVersion,
+		&i.PropertyAddress,
+		&i.UnitLabel,
+		&i.StartsOn,
+		&i.EndsOn,
+		&i.RentAmount,
+		&i.ServicesAmount,
+		&i.DepositAmount,
+		&i.DueDay,
+		&i.NoticeMonths,
+		&i.PayeeIban,
+		&i.PayeeName,
+		&i.Clauses,
+		&i.Terms,
+		&i.ChangeRequest,
+		&i.NoticeOn,
+		&i.WorkflowID,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.SignedAt,
+		&i.UnitID,
+		&i.AdminPath,
+		&i.Lat,
+		&i.Lng,
+		&i.Origin,
+		&i.CutoverOn,
+		&i.VariableSymbol,
+		&i.DepositHeld,
+		&i.ContractMediaID,
 	)
 	return i, err
 }
@@ -865,6 +1074,27 @@ func (q *Queries) InsertSplit(ctx context.Context, arg InsertSplitParams) (Oblig
 		&i.PaidAmount,
 	)
 	return i, err
+}
+
+const inviteLeaseParty = `-- name: InviteLeaseParty :execrows
+UPDATE lease_parties SET email = $1, invited_at = now()
+WHERE id = $2 AND lease_id = $3 AND role <> 'landlord' AND user_id IS NULL
+`
+
+type InviteLeasePartyParams struct {
+	Email   *string   `json:"email"`
+	ID      uuid.UUID `json:"id"`
+	LeaseID uuid.UUID `json:"lease_id"`
+}
+
+// The landlord invites a tenant-side party without an account to the tenant
+// portal (the e-mail may be set or corrected on the way).
+func (q *Queries) InviteLeaseParty(ctx context.Context, arg InviteLeasePartyParams) (int64, error) {
+	result, err := q.db.Exec(ctx, inviteLeaseParty, arg.Email, arg.ID, arg.LeaseID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const lastLeaseEvent = `-- name: LastLeaseEvent :one
@@ -1179,7 +1409,7 @@ func (q *Queries) ListLeaseEvents(ctx context.Context, leaseID uuid.UUID) ([]Lea
 }
 
 const listLeaseParties = `-- name: ListLeaseParties :many
-SELECT id, lease_id, org_id, role, user_id, name, email, share_bps, position, settlement_ok_at, created_at FROM lease_parties WHERE lease_id = $1 ORDER BY position
+SELECT id, lease_id, org_id, role, user_id, name, email, share_bps, position, settlement_ok_at, created_at, invited_at FROM lease_parties WHERE lease_id = $1 ORDER BY position
 `
 
 func (q *Queries) ListLeaseParties(ctx context.Context, leaseID uuid.UUID) ([]LeaseParty, error) {
@@ -1203,6 +1433,7 @@ func (q *Queries) ListLeaseParties(ctx context.Context, leaseID uuid.UUID) ([]Le
 			&i.Position,
 			&i.SettlementOkAt,
 			&i.CreatedAt,
+			&i.InvitedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1269,7 +1500,7 @@ func (q *Queries) ListLedger(ctx context.Context, leaseID uuid.UUID) ([]ListLedg
 }
 
 const listMyLeases = `-- name: ListMyLeases :many
-SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, coalesce(org_display_name(l.org_id), '')::text AS org_name
+SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, l.origin, l.cutover_on, l.variable_symbol, l.deposit_held, l.contract_media_id, coalesce(org_display_name(l.org_id), '')::text AS org_name
 FROM leases l
 WHERE l.id IN (SELECT p.lease_id FROM lease_parties p WHERE p.user_id = $1)
 ORDER BY l.created_at DESC
@@ -1310,6 +1541,11 @@ type ListMyLeasesRow struct {
 	AdminPath        pgtype.Text `json:"admin_path"`
 	Lat              *float64    `json:"lat"`
 	Lng              *float64    `json:"lng"`
+	Origin           string      `json:"origin"`
+	CutoverOn        pgtype.Date `json:"cutover_on"`
+	VariableSymbol   *string     `json:"variable_symbol"`
+	DepositHeld      bool        `json:"deposit_held"`
+	ContractMediaID  *uuid.UUID  `json:"contract_media_id"`
 	OrgName          string      `json:"org_name"`
 }
 
@@ -1357,6 +1593,11 @@ func (q *Queries) ListMyLeases(ctx context.Context, userID *uuid.UUID) ([]ListMy
 			&i.AdminPath,
 			&i.Lat,
 			&i.Lng,
+			&i.Origin,
+			&i.CutoverOn,
+			&i.VariableSymbol,
+			&i.DepositHeld,
+			&i.ContractMediaID,
 			&i.OrgName,
 		); err != nil {
 			return nil, err
@@ -1430,7 +1671,7 @@ func (q *Queries) ListObligations(ctx context.Context, leaseID uuid.UUID) ([]Lis
 }
 
 const listOrgLeases = `-- name: ListOrgLeases :many
-SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
+SELECT l.id, l.org_id, l.listing_id, l.application_id, l.code, l.jurisdiction_code, l.currency, l.state, l.template, l.template_version, l.property_address, l.unit_label, l.starts_on, l.ends_on, l.rent_amount, l.services_amount, l.deposit_amount, l.due_day, l.notice_months, l.payee_iban, l.payee_name, l.clauses, l.terms, l.change_request, l.notice_on, l.workflow_id, l.created_by, l.created_at, l.updated_at, l.signed_at, l.unit_id, l.admin_path, l.lat, l.lng, l.origin, l.cutover_on, l.variable_symbol, l.deposit_held, l.contract_media_id, (SELECT string_agg(p.name, ', ' ORDER BY p.position) FROM lease_parties p
   WHERE p.lease_id = l.id AND p.role <> 'landlord')::text AS tenant_names
 FROM leases l WHERE l.org_id = $1
   AND ($2::uuid IS NULL
@@ -1480,6 +1721,11 @@ type ListOrgLeasesRow struct {
 	AdminPath        pgtype.Text `json:"admin_path"`
 	Lat              *float64    `json:"lat"`
 	Lng              *float64    `json:"lng"`
+	Origin           string      `json:"origin"`
+	CutoverOn        pgtype.Date `json:"cutover_on"`
+	VariableSymbol   *string     `json:"variable_symbol"`
+	DepositHeld      bool        `json:"deposit_held"`
+	ContractMediaID  *uuid.UUID  `json:"contract_media_id"`
 	TenantNames      string      `json:"tenant_names"`
 }
 
@@ -1527,6 +1773,11 @@ func (q *Queries) ListOrgLeases(ctx context.Context, arg ListOrgLeasesParams) ([
 			&i.AdminPath,
 			&i.Lat,
 			&i.Lng,
+			&i.Origin,
+			&i.CutoverOn,
+			&i.VariableSymbol,
+			&i.DepositHeld,
+			&i.ContractMediaID,
 			&i.TenantNames,
 		); err != nil {
 			return nil, err
@@ -1744,24 +1995,25 @@ func (q *Queries) OpenSplitsByAmount(ctx context.Context, arg OpenSplitsByAmount
 	return items, nil
 }
 
-const openSplitsForCode = `-- name: OpenSplitsForCode :many
+const openSplitsForSymbol = `-- name: OpenSplitsForSymbol :many
 SELECT s.id, s.amount, s.paid_amount, o.due_on, p.position, p.name, l.id AS lease_id
 FROM obligation_splits s
 JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
-WHERE l.org_id = $1 AND l.code = $2 AND s.paid_amount < s.amount AND o.status = 'open'
+WHERE l.org_id = $1 AND coalesce(l.variable_symbol, l.code::text) = $2::text
+  AND s.paid_amount < s.amount AND o.status = 'open'
   AND o.currency = $3::text
 ORDER BY o.due_on, p.position
 `
 
-type OpenSplitsForCodeParams struct {
+type OpenSplitsForSymbolParams struct {
 	OrgID    uuid.UUID `json:"org_id"`
-	Code     int64     `json:"code"`
+	Symbol   string    `json:"symbol"`
 	Currency string    `json:"currency"`
 }
 
-type OpenSplitsForCodeRow struct {
+type OpenSplitsForSymbolRow struct {
 	ID         uuid.UUID   `json:"id"`
 	Amount     int64       `json:"amount"`
 	PaidAmount int64       `json:"paid_amount"`
@@ -1771,16 +2023,17 @@ type OpenSplitsForCodeRow struct {
 	LeaseID    uuid.UUID   `json:"lease_id"`
 }
 
-// Unpaid splits of the organization's lease with this variable symbol, oldest first.
-func (q *Queries) OpenSplitsForCode(ctx context.Context, arg OpenSplitsForCodeParams) ([]OpenSplitsForCodeRow, error) {
-	rows, err := q.db.Query(ctx, openSplitsForCode, arg.OrgID, arg.Code, arg.Currency)
+// Unpaid splits of the organization's lease with this variable symbol (the
+// lease's own variable_symbol when set, else its code), oldest first.
+func (q *Queries) OpenSplitsForSymbol(ctx context.Context, arg OpenSplitsForSymbolParams) ([]OpenSplitsForSymbolRow, error) {
+	rows, err := q.db.Query(ctx, openSplitsForSymbol, arg.OrgID, arg.Symbol, arg.Currency)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []OpenSplitsForCodeRow{}
+	items := []OpenSplitsForSymbolRow{}
 	for rows.Next() {
-		var i OpenSplitsForCodeRow
+		var i OpenSplitsForSymbolRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Amount,
@@ -1789,6 +2042,42 @@ func (q *Queries) OpenSplitsForCode(ctx context.Context, arg OpenSplitsForCodePa
 			&i.Position,
 			&i.Name,
 			&i.LeaseID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const organizationsByName = `-- name: OrganizationsByName :many
+SELECT id, kind, name, registration_no, vat_no, jurisdiction_code, personal_owner_id, created_at, updated_at, deleted_at FROM organizations WHERE lower(name) = lower($1::text) AND deleted_at IS NULL ORDER BY created_at
+`
+
+// System context (terractl): organizations with this name, case-insensitive.
+func (q *Queries) OrganizationsByName(ctx context.Context, name string) ([]Organization, error) {
+	rows, err := q.db.Query(ctx, organizationsByName, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Organization{}
+	for rows.Next() {
+		var i Organization
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Name,
+			&i.RegistrationNo,
+			&i.VatNo,
+			&i.JurisdictionCode,
+			&i.PersonalOwnerID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1880,6 +2169,20 @@ func (q *Queries) SetBankConnectionLinked(ctx context.Context, arg SetBankConnec
 	return err
 }
 
+const setLeaseContractScan = `-- name: SetLeaseContractScan :exec
+UPDATE leases SET contract_media_id = $2 WHERE id = $1
+`
+
+type SetLeaseContractScanParams struct {
+	ID              uuid.UUID  `json:"id"`
+	ContractMediaID *uuid.UUID `json:"contract_media_id"`
+}
+
+func (q *Queries) SetLeaseContractScan(ctx context.Context, arg SetLeaseContractScanParams) error {
+	_, err := q.db.Exec(ctx, setLeaseContractScan, arg.ID, arg.ContractMediaID)
+	return err
+}
+
 const setLeaseEnd = `-- name: SetLeaseEnd :exec
 UPDATE leases SET ends_on = $2 WHERE id = $1
 `
@@ -1934,6 +2237,20 @@ func (q *Queries) SetLeaseState(ctx context.Context, arg SetLeaseStateParams) (i
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const setLeaseWorkflow = `-- name: SetLeaseWorkflow :exec
+UPDATE leases SET workflow_id = $2 WHERE id = $1
+`
+
+type SetLeaseWorkflowParams struct {
+	ID         uuid.UUID `json:"id"`
+	WorkflowID *string   `json:"workflow_id"`
+}
+
+func (q *Queries) SetLeaseWorkflow(ctx context.Context, arg SetLeaseWorkflowParams) error {
+	_, err := q.db.Exec(ctx, setLeaseWorkflow, arg.ID, arg.WorkflowID)
+	return err
 }
 
 const setTransactionMatch = `-- name: SetTransactionMatch :exec
@@ -2027,6 +2344,25 @@ func (q *Queries) UpdateLeaseDraft(ctx context.Context, arg UpdateLeaseDraftPara
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const variableSymbolTaken = `-- name: VariableSymbolTaken :one
+SELECT EXISTS (SELECT 1 FROM leases WHERE org_id = $1 AND state <> 'cancelled'
+  AND coalesce(variable_symbol, code::text) = $2::text)::boolean
+`
+
+type VariableSymbolTakenParams struct {
+	OrgID  uuid.UUID `json:"org_id"`
+	Symbol string    `json:"symbol"`
+}
+
+// Whether a lease of the organization that is not cancelled already uses
+// the symbol for payments (its custom symbol or its code).
+func (q *Queries) VariableSymbolTaken(ctx context.Context, arg VariableSymbolTakenParams) (bool, error) {
+	row := q.db.QueryRow(ctx, variableSymbolTaken, arg.OrgID, arg.Symbol)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const verifiedUserByEmail = `-- name: VerifiedUserByEmail :one

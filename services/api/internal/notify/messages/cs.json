@@ -101,23 +101,27 @@
   },
   "lease_signed": {
     "subject": "Smlouva {{.Code}} je podepsaná",
-    "text": "Dobrý den,\n\nvšechny strany podepsaly nájemní smlouvu {{.Code}} ({{.Address}}). Platební kalendář a QR platby najdete zde:\n{{.Link}}\n\nPlatby posílejte přímo na účet pronajímatele s variabilním symbolem {{.Code}}."
+    "text": "Dobrý den,\n\nvšechny strany podepsaly nájemní smlouvu {{.Code}} ({{.Address}}). Platební kalendář a QR platby najdete zde:\n{{.Link}}\n\nPlatby posílejte přímo na účet pronajímatele s variabilním symbolem {{.VS}}."
   },
   "lease_notice": {
     "subject": "Výpověď smlouvy {{.Code}}",
     "text": "Dobrý den,\n\nke smlouvě {{.Code}} ({{.Address}}) byla podána výpověď. Nájem skončí {{.EndsOn}}.\n\n{{.Link}}"
   },
+  "lease_invitation": {
+    "subject": "Pozvánka do portálu nájemníka: {{.Address}}",
+    "text": "Dobrý den,\n\npronajímatel {{.Landlord}} vás zve do portálu nájemníka TerraReality k vašemu nájmu {{.Address}}. Uvidíte v něm platby, QR kódy pro platbu a smlouvu.\n\nPřihlaste se nebo si vytvořte účet s touto e-mailovou adresou ({{.Email}}) a otevřete:\n{{.Link}}\n\nPokud pozvánku nechcete, nic nedělejte: bez přihlášení vám nebudeme posílat žádné zprávy."
+  },
   "payment_upcoming": {
     "subject": "Blíží se splatnost: {{.Amount}} do {{.Due}}",
-    "text": "Dobrý den,\n\nk {{.Due}} je splatná platba {{.Amount}} za nájem {{.Address}} (VS {{.Code}}). QR platbu najdete zde:\n{{.Link}}\n\nPokud jste už zaplatili, tuto zprávu ignorujte."
+    "text": "Dobrý den,\n\nk {{.Due}} je splatná platba {{.Amount}} za nájem {{.Address}} (VS {{.VS}}). QR platbu najdete zde:\n{{.Link}}\n\nPokud jste už zaplatili, tuto zprávu ignorujte."
   },
   "payment_overdue": {
     "subject": "Platba po splatnosti: {{.Amount}}",
-    "text": "Dobrý den,\n\nplatbu {{.Amount}} splatnou {{.Due}} za nájem {{.Address}} jsme zatím neviděli. Uhraďte ji prosím co nejdříve (VS {{.Code}}):\n{{.Link}}\n\nPokud jste už zaplatili, platba se zobrazí po spárování."
+    "text": "Dobrý den,\n\nplatbu {{.Amount}} splatnou {{.Due}} za nájem {{.Address}} jsme zatím neviděli. Uhraďte ji prosím co nejdříve (VS {{.VS}}):\n{{.Link}}\n\nPokud jste už zaplatili, platba se zobrazí po spárování."
   },
   "payment_escalation": {
     "subject": "Upomínka: {{.Amount}} 7 dní po splatnosti",
-    "text": "Dobrý den,\n\nplatba {{.Amount}} splatná {{.Due}} za nájem {{.Address}} je týden po splatnosti. Pronajímatel byl informován. Uhraďte ji prosím neprodleně (VS {{.Code}}) nebo se s pronajímatelem domluvte:\n{{.Link}}"
+    "text": "Dobrý den,\n\nplatba {{.Amount}} splatná {{.Due}} za nájem {{.Address}} je týden po splatnosti. Pronajímatel byl informován. Uhraďte ji prosím neprodleně (VS {{.VS}}) nebo se s pronajímatelem domluvte:\n{{.Link}}"
   },
   "payment_escalation_landlord": {
     "subject": "Nezaplaceno 7 dní po splatnosti: smlouva {{.Code}}",

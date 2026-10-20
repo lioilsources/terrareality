@@ -131,7 +131,8 @@ export const kindLabel: Record<string, Label> = {
 	rent: m.kind_rent,
 	deposit: m.kind_deposit,
 	services: m.kind_services,
-	oneoff: m.kind_oneoff
+	oneoff: m.kind_oneoff,
+	opening_balance: m.kind_opening_balance
 };
 
 export const matchLabel: Record<string, Label> = {
@@ -174,4 +175,152 @@ export function leaseFromForm(f: FormData): LeaseInput {
 				}))
 			: undefined
 	};
+}
+
+export type LeaseImportInput = components['schemas']['LeaseImportInput'];
+type ImportRole = components['schemas']['LeaseImportPartyInput']['role'];
+
+/** A tenant row of the import form (amounts in CZK as typed). */
+export type ImportParty = {
+	name: string;
+	email: string;
+	role: string;
+	share: number | string;
+	opening: number | string;
+};
+
+/** Fields of the import form that can carry an error. */
+export type ImportField =
+	| 'template'
+	| 'property_address'
+	| 'starts_on'
+	| 'ends_on'
+	| 'rent'
+	| 'deposit'
+	| 'due_day'
+	| 'payee_iban'
+	| 'payee_name'
+	| 'variable_symbol'
+	| 'cutover_on'
+	| 'parties';
+
+/** The api's import error codes by the form field they belong to (others go to the top). */
+const importFieldByCode: Record<string, ImportField> = {
+	address_required: 'property_address',
+	invalid_template: 'template',
+	end_required: 'ends_on',
+	end_not_allowed: 'ends_on',
+	invalid_term: 'ends_on',
+	lease_ended: 'ends_on',
+	rent_required: 'rent',
+	deposit_too_high: 'deposit',
+	invalid_due_day: 'due_day',
+	invalid_iban: 'payee_iban',
+	payee_required: 'payee_name',
+	cutover_before_start: 'cutover_on',
+	cutover_too_old: 'cutover_on',
+	cutover_too_far: 'cutover_on',
+	cutover_after_end: 'cutover_on',
+	invalid_variable_symbol: 'variable_symbol',
+	variable_symbol_taken: 'variable_symbol',
+	tenant_required: 'parties',
+	party_incomplete: 'parties',
+	invalid_email: 'parties',
+	shares_total: 'parties',
+	joint_needs_two: 'parties',
+	invalid_opening_balance: 'parties',
+	opening_balance_guarantor: 'parties'
+};
+
+/** The form field an api problem code points at; null for errors of the whole form. */
+export function importErrorField(code: string | undefined): ImportField | null {
+	return (code && importFieldByCode[code]) || null;
+}
+
+const ymd = (y: number, mo: number, d: number) =>
+	new Date(Date.UTC(y, mo, d)).toISOString().slice(0, 10);
+
+/** Default cutover (yyyy-mm-dd): the first day of next month, or the start when it is later. */
+export function defaultCutover(now = new Date(), startsOn = ''): string {
+	const first = ymd(now.getFullYear(), now.getMonth() + 1, 1);
+	return /^\d{4}-\d{2}-\d{2}$/.test(startsOn) && startsOn > first ? startsOn : first;
+}
+
+/** Allowed cutover dates (yyyy-mm-dd): 31 days back to 12 months ahead (the api checks the same). */
+export function cutoverRange(now = new Date()) {
+	const [y, mo, d] = [now.getFullYear(), now.getMonth(), now.getDate()];
+	return { min: ymd(y, mo, d - 31), max: ymd(y, mo + 12, d) };
+}
+
+/** A Czech variable symbol without spaces and leading zeros; null unless 1 to 10 digits (not all zeros). */
+export function normalizeVariableSymbol(v: string): string | null {
+	const s = v.replace(/\s/g, '');
+	if (!/^[0-9]{1,10}$/.test(s)) return null;
+	return s.replace(/^0+/, '') || null;
+}
+
+const importRoles: readonly string[] = ['tenant', 'co_tenant', 'subtenant', 'guarantor'];
+
+/**
+ * Builds the importLease body from the form: CZK amounts to minor units,
+ * share % to basis points, empty optional fields left out. Returns a field
+ * error for what the contract would reject before the api's own checks.
+ */
+export function leaseImportFromForm(
+	f: FormData
+): { body: LeaseImportInput } | { error: string; field: ImportField } {
+	const str = (k: string) => String(f.get(k) ?? '').trim();
+	const parties = JSON.parse(String(f.get('parties') || '[]')) as ImportParty[];
+	let variable_symbol: string | undefined;
+	if (str('variable_symbol')) {
+		const vs = normalizeVariableSymbol(str('variable_symbol'));
+		if (vs === null) return { error: m.err_invalid_variable_symbol(), field: 'variable_symbol' };
+		variable_symbol = vs;
+	}
+	const out: LeaseImportInput['parties'] = [];
+	for (const p of parties) {
+		const email = String(p.email ?? '').trim();
+		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+			return { error: m.err_invalid_email(), field: 'parties' };
+		const opening = toMinor(String(p.opening ?? ''));
+		if (opening === undefined && String(p.opening ?? '').trim() !== '')
+			return { error: m.err_invalid_opening_balance(), field: 'parties' };
+		const role = (importRoles.includes(p.role) ? p.role : 'tenant') as ImportRole;
+		out.push({
+			name: String(p.name ?? '').trim(),
+			email: email || undefined,
+			role,
+			share_bps: role === 'guarantor' ? 0 : Math.round((Number(p.share) || 0) * 100),
+			opening_balance: role === 'guarantor' ? undefined : opening || undefined
+		});
+	}
+	const ruian = Number(str('ruian_id'));
+	const notice = str('notice_months');
+	return {
+		body: {
+			template: str('template') as LeaseImportInput['template'],
+			starts_on: str('starts_on'),
+			ends_on: str('ends_on') || undefined,
+			// "12 500,50" and "12500.5" both parse; an empty or invalid rent is 0, which the api rejects.
+			rent_amount: toMinor(f.get('rent')) ?? 0,
+			services_amount: toMinor(f.get('services')),
+			deposit_amount: toMinor(f.get('deposit')),
+			deposit_held: f.get('deposit_held') === 'on',
+			due_day: Number(str('due_day') || 15),
+			notice_months: notice ? Number(notice) : undefined,
+			payee_iban: str('payee_iban'),
+			payee_name: str('payee_name'),
+			property_address: str('property_address'),
+			ruian_id: Number.isInteger(ruian) && ruian > 0 ? ruian : undefined,
+			unit_label: str('unit_label') || undefined,
+			cutover_on: str('cutover_on') || undefined,
+			variable_symbol,
+			parties: out
+		}
+	};
+}
+
+/** Tenants of an imported lease can be invited while the lease runs (the api's lifecycle states). */
+export function invitable(state: string): boolean {
+	return state === 'signed' || state === 'active' || state === 'notice_given';
 }

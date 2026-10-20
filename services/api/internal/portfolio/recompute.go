@@ -48,6 +48,9 @@ func (s *Scorer) Input(ctx context.Context, q *db.Queries, l db.Lease) (Input, e
 	day := today(s.now())
 	in := Input{Today: day, State: l.State, Monthly: l.RentAmount + l.ServicesAmount, Rent: l.RentAmount,
 		Deposit: l.DepositAmount, NoticeGiven: l.NoticeOn.Valid}
+	if l.DepositHeld {
+		in.DepositHeld = l.DepositAmount
+	}
 	if l.EndsOn.Valid {
 		t := l.EndsOn.Time
 		in.EndsOn = &t

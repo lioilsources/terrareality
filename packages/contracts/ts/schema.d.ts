@@ -2168,6 +2168,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{orgId}/leases/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+         * @description Creates the lease directly as `active` (or `signed` when it starts later; the lifecycle activates it on the
+         *     start date) with `origin` = imported. No document is rendered and nobody signs: the event log records that the
+         *     lease was signed outside the platform. The payment schedule starts at `cutover_on` (default: the first day of
+         *     next month, or the start date when later); it may lie at most 31 days in the past and 12 months ahead, never
+         *     before the start or after the end. Each party's `opening_balance` (owed at the cutover) becomes one
+         *     opening-balance obligation due on the cutover day. With `deposit_held` the deposit is recorded as held and not
+         *     scheduled. With `variable_symbol` payments, QR codes and bank matching use the tenants' existing symbol
+         *     instead of `code`. Tenants get no e-mails or pushes until invited (inviteLeaseParty) and signed in.
+         *     Errors: 422 `address_required`, `tenant_required`, `party_incomplete`, `invalid_email`, `invalid_template`,
+         *     `end_required`, `end_not_allowed`, `invalid_term`, `deposit_too_high`, `invalid_iban`, `shares_total`,
+         *     `joint_needs_two`, `lease_ended`, `cutover_before_start`, `cutover_too_old`, `cutover_too_far`,
+         *     `cutover_after_end`, `invalid_variable_symbol`, `invalid_opening_balance`, `opening_balance_guarantor`;
+         *     409 `variable_symbol_taken` (another lease of the organization uses the symbol).
+         */
+        post: operations["importLease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+                partyId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
+         * @description Stores the e-mail (optional when the party has one) and sends the invitation. The tenant is linked once they
+         *     sign in with this verified address; only then do they get payment reminders. Errors: 409 `lease_not_imported`,
+         *     409 `lease_not_active`, 409 `party_linked` (already uses the portal), 404 `party_not_found`,
+         *     422 `invalid_email`.
+         */
+        post: operations["inviteLeaseParty"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leases/{leaseId}/contract-scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
+         * @description Errors: 409 `lease_not_imported`, 422 `attachment_type`, 422 `attachment_size`.
+         */
+        post: operations["createContractScanUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check the uploaded scan and attach it as the lease's contract scan
+         * @description Errors: 404 `upload_not_found`, 409 `lease_not_imported`, 422 `attachment_missing`, `attachment_type`, `attachment_size`, `attachment_infected`.
+         */
+        post: operations["completeContractScanUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs/{orgId}/leases/{leaseId}": {
         parameters: {
             query?: never;
@@ -4522,6 +4629,69 @@ export interface components {
             unit_label?: string;
             parties?: components["schemas"]["LeasePartyInput"][];
         };
+        /**
+         * @description platform: drafted and signed here; imported: signed on paper before the landlord joined.
+         * @enum {string}
+         */
+        LeaseOrigin: "platform" | "imported";
+        LeaseImportPartyInput: {
+            name: string;
+            /**
+             * Format: email
+             * @description Optional; nobody is contacted at import.
+             */
+            email?: string;
+            /** @enum {string} */
+            role: "tenant" | "co_tenant" | "subtenant" | "guarantor";
+            /** @description Payment share in basis points; all zero = equal shares. */
+            share_bps?: number;
+            /**
+             * Format: int64
+             * @description Owed at the cutover (minor units); 0 = nothing.
+             */
+            opening_balance?: number;
+        };
+        LeaseImportInput: {
+            /** Format: uuid */
+            listing_id?: string;
+            template: components["schemas"]["LeaseTemplate"];
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on?: string;
+            /** Format: int64 */
+            rent_amount: number;
+            /** Format: int64 */
+            services_amount?: number;
+            /** Format: int64 */
+            deposit_amount?: number;
+            /**
+             * @description The landlord already holds the deposit (no deposit obligation).
+             * @default false
+             */
+            deposit_held: boolean;
+            /** @default 15 */
+            due_day: number;
+            /** @description Default: the portfolio rules of the place, else 3. */
+            notice_months?: number;
+            payee_iban: string;
+            payee_name: string;
+            property_address: string;
+            /**
+             * Format: int64
+             * @description RÚIAN address of the flat (where the lease is in the portfolio).
+             */
+            ruian_id?: number;
+            unit_label?: string;
+            /**
+             * Format: date
+             * @description Payments are tracked from this day (default: the first day of next month).
+             */
+            cutover_on?: string;
+            /** @description The tenants' existing variable symbol (leading zeros are dropped). */
+            variable_symbol?: string;
+            parties: components["schemas"]["LeaseImportPartyInput"][];
+        };
         LeaseSummary: {
             /** Format: uuid */
             id: string;
@@ -4530,10 +4700,18 @@ export interface components {
             org_name?: string;
             /**
              * Format: int64
-             * @description Variable symbol of payments.
+             * @description Lease number; the variable symbol of payments unless `variable_symbol` is set.
              */
             code: number;
             state: components["schemas"]["LeaseState"];
+            origin: components["schemas"]["LeaseOrigin"];
+            /**
+             * Format: date
+             * @description Imported lease: payments are tracked from this day.
+             */
+            cutover_on?: string;
+            /** @description Imported lease: the tenants' own variable symbol, used for payments instead of `code`. */
+            variable_symbol?: string;
             template: components["schemas"]["LeaseTemplate"];
             property_address: string;
             unit_label?: string;
@@ -4567,6 +4745,13 @@ export interface components {
              * @description Due and unpaid amount today.
              */
             debt?: number;
+            /** @description Linked to a user account (an imported lease's tenant gets reminders only then). */
+            has_account: boolean;
+            /**
+             * Format: date-time
+             * @description Landlord side: when a tenant of an imported lease was invited to the portal.
+             */
+            invited_at?: string;
         };
         LeaseDocument: {
             /** Format: uuid */
@@ -4614,6 +4799,10 @@ export interface components {
             deposit_amount: number;
             /** Format: int64 */
             services_amount: number;
+            /** @description Imported lease: the landlord collected the deposit before the cutover (not scheduled). */
+            deposit_held: boolean;
+            /** @description Imported lease: short-lived download link of the paper contract's scan. */
+            contract_scan_url?: string;
             clauses: string[];
             change_request?: string;
             parties: components["schemas"]["LeaseParty"][];
@@ -4631,8 +4820,11 @@ export interface components {
             id: string;
             /** Format: uuid */
             obligation_id: string;
-            /** @enum {string} */
-            kind: "rent" | "services" | "deposit" | "oneoff";
+            /**
+             * @description opening_balance: what was owed at the cutover of an imported lease.
+             * @enum {string}
+             */
+            kind: "rent" | "services" | "deposit" | "oneoff" | "opening_balance";
             period: string;
             /** Format: date */
             due_on: string;
@@ -8672,6 +8864,132 @@ export interface operations {
         responses: {
             /** @description Draft created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    importLease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseImportInput"];
+            };
+        };
+        responses: {
+            /** @description Imported */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    inviteLeaseParty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+                partyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Invited */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseDetail"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createContractScanUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    content_type: "application/pdf" | "image/jpeg" | "image/png";
+                    /** Format: int64 */
+                    size_bytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload slot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        key: string;
+                        upload_url: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    completeContractScanUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                leaseId: components["parameters"]["LeaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    filename: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Lease with the scan */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

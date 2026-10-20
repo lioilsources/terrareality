@@ -73,6 +73,7 @@ type Input struct {
 	Monthly     int64 // rent + services
 	Rent        int64
 	Deposit     int64 // agreed
+	DepositHeld int64 // collected before the platform tracked the lease (imported lease, no obligation)
 	EndsOn      *time.Time
 	NoticeGiven bool
 	Escalations int // payment escalations (D+7) in the last 12 months
@@ -151,6 +152,7 @@ func Score(in Input, weights map[string]int) Result {
 			payers++
 		}
 	}
+	depositPaid += in.DepositHeld
 	monthly := float64(max(in.Monthly, 1))
 	values := map[string]Factor{}
 	set := func(key string, v float64, known bool, detail map[string]any) {

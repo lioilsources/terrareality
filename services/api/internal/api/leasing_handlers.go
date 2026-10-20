@@ -28,9 +28,59 @@ func dateDTO(d pgtype.Date) *openapi_types.Date {
 
 func leaseSummary(l db.Lease, tenants, orgName *string) gen.LeaseSummary {
 	return gen.LeaseSummary{Id: l.ID, OrgId: l.OrgID, Code: l.Code, State: gen.LeaseState(l.State),
+		Origin: gen.LeaseOrigin(l.Origin), CutoverOn: dateDTO(l.CutoverOn), VariableSymbol: l.VariableSymbol,
 		Template: gen.LeaseTemplate(l.Template), PropertyAddress: l.PropertyAddress, UnitLabel: &l.UnitLabel,
 		StartsOn: *dateDTO(l.StartsOn), EndsOn: dateDTO(l.EndsOn), RentAmount: l.RentAmount, Currency: l.Currency,
 		CreatedAt: l.CreatedAt, TenantNames: tenants, OrgName: orgName}
+}
+
+func importInput(b gen.LeaseImportInput) leasing.ImportInput {
+	in := leasing.ImportInput{Lease: leasing.Input{ListingID: b.ListingId, Template: string(b.Template),
+		StartsOn: b.StartsOn.Time, Rent: b.RentAmount, PayeeIBAN: b.PayeeIban, PayeeName: b.PayeeName, DueDay: 15,
+		PropertyAddress: b.PropertyAddress, RuianID: b.RuianId}}
+	if b.EndsOn != nil {
+		t := b.EndsOn.Time
+		in.Lease.EndsOn = &t
+	}
+	if b.ServicesAmount != nil {
+		in.Lease.Services = *b.ServicesAmount
+	}
+	if b.DepositAmount != nil {
+		in.Lease.Deposit = *b.DepositAmount
+	}
+	if b.DueDay != nil {
+		in.Lease.DueDay = int32(*b.DueDay)
+	}
+	if b.NoticeMonths != nil {
+		in.Lease.NoticeMonths = int32(*b.NoticeMonths)
+	}
+	if b.UnitLabel != nil {
+		in.Lease.UnitLabel = *b.UnitLabel
+	}
+	if b.CutoverOn != nil {
+		t := b.CutoverOn.Time
+		in.CutoverOn = &t
+	}
+	if b.DepositHeld != nil {
+		in.DepositHeld = *b.DepositHeld
+	}
+	if b.VariableSymbol != nil {
+		in.VariableSymbol = *b.VariableSymbol
+	}
+	for _, p := range b.Parties {
+		pi := leasing.ImportParty{PartyInput: leasing.PartyInput{Name: p.Name, Role: string(p.Role)}}
+		if p.Email != nil {
+			pi.Email = string(*p.Email)
+		}
+		if p.ShareBps != nil {
+			pi.ShareBps = *p.ShareBps
+		}
+		if p.OpeningBalance != nil {
+			pi.OpeningBalance = *p.OpeningBalance
+		}
+		in.Parties = append(in.Parties, pi)
+	}
+	return in
 }
 
 func leaseInput(b gen.LeaseInput) leasing.Input {
@@ -84,8 +134,8 @@ func (s *Server) leaseDetail(ctx context.Context, p *auth.Principal, id uuid.UUI
 	l := d.Lease
 	out := gen.LeaseDetail{Lease: leaseSummary(l, nil, nil), LandlordView: d.Landlord, PayeeIban: leasing.FormatIBAN(l.PayeeIban),
 		PayeeName: l.PayeeName, DueDay: int(l.DueDay), NoticeMonths: int(l.NoticeMonths), DepositAmount: l.DepositAmount,
-		ServicesAmount: l.ServicesAmount, Clauses: l.Clauses, ChangeRequest: l.ChangeRequest, Parties: []gen.LeaseParty{},
-		Documents: []gen.LeaseDocument{}, SignProviders: []gen.SignProvider{}}
+		ServicesAmount: l.ServicesAmount, DepositHeld: l.DepositHeld, Clauses: l.Clauses, ChangeRequest: l.ChangeRequest,
+		Parties: []gen.LeaseParty{}, Documents: []gen.LeaseDocument{}, SignProviders: []gen.SignProvider{}}
 	for _, sp := range s.Leases.SignProviders() {
 		out.SignProviders = append(out.SignProviders, gen.SignProvider{Id: gen.SignProviderId(sp.ID), Level: gen.SignProviderLevel(sp.Level)})
 	}
@@ -104,11 +154,14 @@ func (s *Server) leaseDetail(ctx context.Context, p *auth.Principal, id uuid.UUI
 	for _, pp := range d.Parties {
 		me := d.Party != nil && d.Party.ID == pp.ID
 		gp := gen.LeaseParty{Id: pp.ID, Role: gen.LeasePartyRole(pp.Role), Name: pp.Name,
-			ShareBps: int(pp.ShareBps), Position: int(pp.Position), Me: me, SignedAt: signed[pp.ID]}
+			ShareBps: int(pp.ShareBps), Position: int(pp.Position), Me: me, SignedAt: signed[pp.ID], HasAccount: pp.UserID != nil}
 		// Contact details of co-tenants and guarantors are the landlord's
 		// business; a tenant-side caller sees their own and the landlord's.
 		if d.Landlord || me || pp.Role == "landlord" {
 			gp.Email = (*string)(pp.Email)
+		}
+		if d.Landlord {
+			gp.InvitedAt = pp.InvitedAt
 		}
 		if v, ok := debt[pp.ID]; ok {
 			gp.Debt = &v
@@ -116,9 +169,13 @@ func (s *Server) leaseDetail(ctx context.Context, p *auth.Principal, id uuid.UUI
 		out.Parties = append(out.Parties, gp)
 	}
 	for _, doc := range d.Documents {
+		u := s.Leases.DocumentURL(ctx, doc)
 		out.Documents = append(out.Documents, gen.LeaseDocument{Id: doc.ID, Kind: gen.LeaseDocumentKind(doc.Kind),
 			Version: int(doc.Version), Filename: doc.Filename, Sha256: hex.EncodeToString(doc.Sha256),
-			Url: s.Leases.DocumentURL(ctx, doc), CreatedAt: doc.CreatedAt})
+			Url: u, CreatedAt: doc.CreatedAt})
+		if l.ContractMediaID != nil && *l.ContractMediaID == doc.ID {
+			out.ContractScanUrl = &u
+		}
 	}
 	return out, nil
 }
@@ -156,6 +213,72 @@ func (s *Server) CreateLease(ctx context.Context, r gen.CreateLeaseRequestObject
 		return nil, err
 	}
 	return gen.CreateLease201JSONResponse(d), nil
+}
+
+// ImportLease implements POST /v1/orgs/{orgId}/leases/import.
+func (s *Server) ImportLease(ctx context.Context, r gen.ImportLeaseRequestObject) (gen.ImportLeaseResponseObject, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := s.Leases.Import(ctx, p, r.OrgId, importInput(*r.Body))
+	if err != nil {
+		return nil, err
+	}
+	d, err := s.leaseDetail(ctx, p, id)
+	if err != nil {
+		return nil, err
+	}
+	return gen.ImportLease201JSONResponse(d), nil
+}
+
+// InviteLeaseParty implements POST /v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite.
+func (s *Server) InviteLeaseParty(ctx context.Context, r gen.InviteLeasePartyRequestObject) (gen.InviteLeasePartyResponseObject, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	email := ""
+	if r.Body != nil && r.Body.Email != nil {
+		email = string(*r.Body.Email)
+	}
+	if err := s.Leases.InviteParty(ctx, p, r.OrgId, r.LeaseId, r.PartyId, email); err != nil {
+		return nil, err
+	}
+	d, err := s.leaseDetail(ctx, p, r.LeaseId)
+	if err != nil {
+		return nil, err
+	}
+	return gen.InviteLeaseParty200JSONResponse(d), nil
+}
+
+// CreateContractScanUpload implements POST /v1/orgs/{orgId}/leases/{leaseId}/contract-scan.
+func (s *Server) CreateContractScanUpload(ctx context.Context, r gen.CreateContractScanUploadRequestObject) (gen.CreateContractScanUploadResponseObject, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	u, err := s.Leases.CreateScanUpload(ctx, p, r.OrgId, r.LeaseId, string(r.Body.ContentType), r.Body.SizeBytes)
+	if err != nil {
+		return nil, err
+	}
+	return gen.CreateContractScanUpload201JSONResponse{Key: u.Key, UploadUrl: u.UploadURL}, nil
+}
+
+// CompleteContractScanUpload implements POST /v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete.
+func (s *Server) CompleteContractScanUpload(ctx context.Context, r gen.CompleteContractScanUploadRequestObject) (gen.CompleteContractScanUploadResponseObject, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Leases.CompleteScanUpload(ctx, p, r.OrgId, r.LeaseId, r.Body.Key, r.Body.Filename); err != nil {
+		return nil, err
+	}
+	d, err := s.leaseDetail(ctx, p, r.LeaseId)
+	if err != nil {
+		return nil, err
+	}
+	return gen.CompleteContractScanUpload200JSONResponse(d), nil
 }
 
 // UpdateLease implements PUT /v1/orgs/{orgId}/leases/{leaseId}.

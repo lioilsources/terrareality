@@ -11,6 +11,8 @@
 //	                                import a launch region's addresses (+ boundaries), offline sample by default
 //	terractl onboard-owner --email e --name n [--org o] | --csv f [--dry-run]
 //	                                create invited pilot owner organizations (magic-link invitation e-mail)
+//	terractl leases import --org <org-id-or-name> --csv <file> [--dry-run]
+//	                                import leases signed on paper (one row per tenant, docs/examples/existing-leases.csv)
 //	terractl rotate-secrets [--dry-run] [--batch n]
 //	                                re-encrypt sealed columns with the current APP_SECRET_KEY (docs/runbooks/key-rotation.md)
 //	terractl demo seed --photos <dir> [--org "TerraReality – ukázka"] [--count 15]
@@ -69,6 +71,8 @@ func run(args []string) error {
 		return importRuian(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) >= 1 && args[0] == "onboard-owner":
 		return onboardOwners(ctx, cfg, pool, args[1:], os.Stdout)
+	case len(args) >= 1 && args[0] == "leases":
+		return leasesCmd(ctx, pool, args[1:], os.Stdout)
 	case len(args) >= 1 && args[0] == "demo":
 		return demoCmd(ctx, cfg, pool, args[1:], os.Stdout)
 	case len(args) >= 1 && args[0] == "rotate-secrets":
@@ -154,7 +158,7 @@ func run(args []string) error {
 		}
 		return nil
 	}
-	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex | import-ruian --region praha [...] | onboard-owner [...] | rotate-secrets [--dry-run] [--batch n] | demo seed --photos <dir> [--org o] [--count n] | demo list | demo remove")
+	return errors.New("usage: terractl staff grant|revoke <email> | seed-dev | ruian import <file> | admin import <file> | seed-search <n> | reindex | import-ruian --region praha [...] | onboard-owner [...] | leases import --org <org> --csv <file> [--dry-run] | rotate-secrets [--dry-run] [--batch n] | demo seed --photos <dir> [--org o] [--count n] | demo list | demo remove")
 }
 
 func seedUser(ctx context.Context, pool *pgxpool.Pool, email, name string, staff bool) error {

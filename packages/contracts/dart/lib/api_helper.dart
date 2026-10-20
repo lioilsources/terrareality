@@ -70,6 +70,9 @@ String parameterToString(dynamic value) {
   if (value is LandlordNoticeReason) {
     return LandlordNoticeReasonTypeTransformer().encode(value).toString();
   }
+  if (value is LeaseOrigin) {
+    return LeaseOriginTypeTransformer().encode(value).toString();
+  }
   if (value is LeaseState) {
     return LeaseStateTypeTransformer().encode(value).toString();
   }

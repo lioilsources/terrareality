@@ -32,6 +32,15 @@ describe('errorMessage', () => {
 		expect(knownCodes()).not.toContain('slot_has_bookings');
 	});
 
+	it('translates existing-lease codes', () => {
+		expect(errorMessage(problem(422, 'cutover_too_old'))).toBe(m.err_cutover_too_old());
+		expect(errorMessage(problem(409, 'variable_symbol_taken'))).toBe(m.err_variable_symbol_taken());
+		expect(errorMessage(problem(409, 'party_linked'))).toBe(m.err_party_linked());
+		expect(errorMessage(problem(422, 'opening_balance_guarantor'))).toBe(
+			m.err_opening_balance_guarantor()
+		);
+	});
+
 	it('falls back by status, then to the generic message', () => {
 		expect(errorMessage(problem(503, 'something_new'))).toBe(m.err_unavailable());
 		expect(errorMessage(problem(404))).toBe(m.err_not_found());

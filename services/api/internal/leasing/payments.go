@@ -60,8 +60,16 @@ func (s *Service) Get(ctx context.Context, p *auth.Principal, id uuid.UUID) (Det
 }
 
 // DocumentURL returns a short-lived download link of a lease document.
+// A scan the landlord uploaded is served as a download with its checked
+// type, so it never renders as a page on the storage origin.
 func (s *Service) DocumentURL(ctx context.Context, d db.LeaseDocument) string {
-	u, err := s.Blob.PresignGet(ctx, d.ObjectKey, 15*time.Minute)
+	var u string
+	var err error
+	if d.Kind == "scan" {
+		u, err = s.Blob.PresignDownload(ctx, d.ObjectKey, d.Filename, scanContentType(d.Filename), 15*time.Minute)
+	} else {
+		u, err = s.Blob.PresignGet(ctx, d.ObjectKey, 15*time.Minute)
+	}
 	if err != nil {
 		s.Log.Warn("presign lease document", "err", err)
 	}
@@ -131,10 +139,13 @@ func (s *Service) Obligations(ctx context.Context, p *auth.Principal, id uuid.UU
 
 func (s *Service) spayd(l db.Lease, kind, period string, position int32, amount int64, due time.Time) string {
 	msg := "Najem " + period
-	if kind == "deposit" {
+	switch kind {
+	case "deposit":
 		msg = "Kauce"
+	case KindOpeningBalance:
+		msg = "Nedoplatek"
 	}
-	return SPAYD(Payment{IBAN: l.PayeeIban, Amount: amount, Currency: l.Currency, VS: strconv.FormatInt(l.Code, 10),
+	return SPAYD(Payment{IBAN: l.PayeeIban, Amount: amount, Currency: l.Currency, VS: VariableSymbol(l),
 		SS: strconv.Itoa(int(position)), Message: msg, Payee: l.PayeeName, DueDate: due.Format("20060102")})
 }
 
@@ -598,7 +609,8 @@ func (s *Service) Sync(ctx context.Context, connID uuid.UUID) (SyncResult, error
 }
 
 // match pairs an incoming transaction with an open share of the same
-// currency: by variable symbol (lease code) and specific symbol (party
+// currency: by variable symbol (VariableSymbol: the lease code or an
+// imported lease's own symbol) and specific symbol (party
 // position) with the exact amount automatically; by symbol with another
 // amount, by symbol without a specific symbol when several tenants owe that
 // amount, or by amount and date alone, as a suggestion the landlord confirms.
@@ -617,8 +629,10 @@ func (s *Service) match(ctx context.Context, q *db.Queries, tx pgx.Tx, t db.Bank
 		open     int64
 		position int32
 	}
-	if code, err := strconv.ParseInt(t.VariableSymbol, 10, 64); err == nil {
-		rows, err := q.OpenSplitsForCode(ctx, db.OpenSplitsForCodeParams{OrgID: t.OrgID, Code: code, Currency: t.Currency})
+	// The lease's own symbol (an imported lease's standing order) or its
+	// code, within the organization that owns the account.
+	if vs := NormalizeVS(t.VariableSymbol); vs != "" {
+		rows, err := q.OpenSplitsForSymbol(ctx, db.OpenSplitsForSymbolParams{OrgID: t.OrgID, Symbol: vs, Currency: t.Currency})
 		if err != nil {
 			return "", err
 		}

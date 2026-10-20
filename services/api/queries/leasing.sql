@@ -125,7 +125,7 @@ ORDER BY o.due_on, o.kind, p.position;
 
 -- name: GetSplit :one
 SELECT s.*, o.due_on, o.kind, o.period, o.currency, o.status AS obligation_status, l.code, l.payee_iban, l.payee_name,
-  p.position, p.name AS party_name, p.user_id AS party_user_id
+  l.origin AS lease_origin, p.position, p.name AS party_name, p.user_id AS party_user_id
 FROM obligation_splits s
 JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
@@ -226,14 +226,16 @@ UPDATE bank_transactions SET match_status = $2, split_id = $3, match_note = $4 W
 UPDATE bank_transactions SET match_status = 'matched', split_id = $2, match_note = $3
 WHERE id = $1 AND match_status <> 'matched';
 
--- name: OpenSplitsForCode :many
--- Unpaid splits of the organization's lease with this variable symbol, oldest first.
+-- name: OpenSplitsForSymbol :many
+-- Unpaid splits of the organization's lease with this variable symbol (the
+-- lease's own variable_symbol when set, else its code), oldest first.
 SELECT s.id, s.amount, s.paid_amount, o.due_on, p.position, p.name, l.id AS lease_id
 FROM obligation_splits s
 JOIN payment_obligations o ON o.id = s.obligation_id
 JOIN leases l ON l.id = s.lease_id
 JOIN lease_parties p ON p.id = s.party_id
-WHERE l.org_id = $1 AND l.code = $2 AND s.paid_amount < s.amount AND o.status = 'open'
+WHERE l.org_id = sqlc.arg(org_id) AND coalesce(l.variable_symbol, l.code::text) = sqlc.arg(symbol)::text
+  AND s.paid_amount < s.amount AND o.status = 'open'
   AND o.currency = sqlc.arg(currency)::text
 ORDER BY o.due_on, p.position;
 
@@ -254,11 +256,14 @@ SELECT id FROM leases WHERE id = $1 FOR UPDATE;
 
 -- name: ClaimLeaseParties :exec
 -- Links parties invited by e-mail to the account with that address, only
--- once the account proved it owns the address (verified e-mail).
+-- once the account proved it owns the address (verified e-mail). Parties of
+-- an imported lease are linked only after the landlord invited them
+-- (invited_at): the paper contract is no consent to the tenant portal.
 UPDATE lease_parties p SET user_id = u.id
 FROM users u
 WHERE u.id = $1 AND u.email_verified_at IS NOT NULL AND u.pseudonymized_at IS NULL
-  AND p.user_id IS NULL AND p.email = u.email::citext;
+  AND p.user_id IS NULL AND p.email = u.email::citext
+  AND (p.invited_at IS NOT NULL OR NOT EXISTS (SELECT 1 FROM leases l WHERE l.id = p.lease_id AND l.origin = 'imported'));
 
 -- name: VerifiedUserByEmail :one
 -- The account with a verified e-mail address (lease parties link only to it).
@@ -282,3 +287,52 @@ UPDATE leases SET state = $2 WHERE id = $1;
 -- Dev: the oldest due date with an unpaid share (simulated escalation).
 SELECT min(o.due_on)::date FROM payment_obligations o JOIN obligation_splits s ON s.obligation_id = o.id
 WHERE o.lease_id = $1 AND o.status = 'open' AND s.paid_amount < s.amount AND o.due_on <= $2;
+
+-- ---------------------------------------------------------------------------
+-- M9: existing (imported) leases.
+
+-- name: ImportLease :one
+-- A lease signed on paper: created directly in its running state.
+INSERT INTO leases (org_id, listing_id, jurisdiction_code, currency, state, template, template_version,
+  property_address, unit_label, starts_on, ends_on, rent_amount, services_amount, deposit_amount, due_day,
+  notice_months, payee_iban, payee_name, clauses, terms, created_by, origin, cutover_on, variable_symbol, deposit_held)
+VALUES (sqlc.arg(org_id), sqlc.narg(listing_id), sqlc.arg(jurisdiction_code), sqlc.arg(currency), sqlc.arg(state),
+  sqlc.arg(template), sqlc.arg(template_version), sqlc.arg(property_address), sqlc.arg(unit_label), sqlc.arg(starts_on),
+  sqlc.narg(ends_on), sqlc.arg(rent_amount), sqlc.arg(services_amount), sqlc.arg(deposit_amount), sqlc.arg(due_day),
+  sqlc.arg(notice_months), sqlc.arg(payee_iban), sqlc.arg(payee_name), '{}', '{}'::jsonb, sqlc.narg(created_by),
+  'imported', sqlc.arg(cutover_on), sqlc.narg(variable_symbol), sqlc.arg(deposit_held))
+RETURNING *;
+
+-- name: SetLeaseWorkflow :exec
+UPDATE leases SET workflow_id = $2 WHERE id = $1;
+
+-- name: VariableSymbolTaken :one
+-- Whether a lease of the organization that is not cancelled already uses
+-- the symbol for payments (its custom symbol or its code).
+SELECT EXISTS (SELECT 1 FROM leases WHERE org_id = sqlc.arg(org_id) AND state <> 'cancelled'
+  AND coalesce(variable_symbol, code::text) = sqlc.arg(symbol)::text)::boolean;
+
+-- name: AddImportedParty :one
+-- A tenant-side party of an imported lease: never linked to an account here.
+INSERT INTO lease_parties (lease_id, org_id, role, name, email, share_bps, position)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+
+-- name: InviteLeaseParty :execrows
+-- The landlord invites a tenant-side party without an account to the tenant
+-- portal (the e-mail may be set or corrected on the way).
+UPDATE lease_parties SET email = sqlc.arg(email), invited_at = now()
+WHERE id = sqlc.arg(id) AND lease_id = sqlc.arg(lease_id) AND role <> 'landlord' AND user_id IS NULL;
+
+-- name: SetLeaseContractScan :exec
+UPDATE leases SET contract_media_id = $2 WHERE id = $1;
+
+-- name: GetLeaseDocument :one
+SELECT * FROM lease_documents WHERE id = $1;
+
+-- name: OrganizationsByName :many
+-- System context (terractl): organizations with this name, case-insensitive.
+SELECT * FROM organizations WHERE lower(name) = lower(sqlc.arg(name)::text) AND deleted_at IS NULL ORDER BY created_at;
+
+-- name: FirstOrgOwner :one
+-- System context (terractl): the longest-standing owner of an organization.
+SELECT user_id FROM memberships WHERE org_id = $1 AND role = 'owner' ORDER BY created_at LIMIT 1;

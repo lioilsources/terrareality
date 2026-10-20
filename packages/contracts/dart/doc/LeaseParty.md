@@ -17,6 +17,8 @@ Name | Type | Description | Notes
 **me** | **bool** |  | 
 **signedAt** | [**DateTime**](DateTime.md) |  | [optional] 
 **debt** | **int** | Due and unpaid amount today. | [optional] 
+**hasAccount** | **bool** | Linked to a user account (an imported lease's tenant gets reminders only then). | 
+**invitedAt** | [**DateTime**](DateTime.md) | Landlord side: when a tenant of an imported lease was invited to the portal. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

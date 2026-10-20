@@ -164,8 +164,10 @@ Class | Method | HTTP request | Description
 *CatalogApi* | [**updateMedia**](doc//CatalogApi.md#updatemedia) | **PATCH** /v1/orgs/{orgId}/media/{mediaId} | Change order and caption
 *JurisdictionsApi* | [**getJurisdiction**](doc//JurisdictionsApi.md#getjurisdiction) | **GET** /v1/jurisdictions/{code} | One jurisdiction
 *JurisdictionsApi* | [**listJurisdictions**](doc//JurisdictionsApi.md#listjurisdictions) | **GET** /v1/jurisdictions | Active jurisdictions and their rules
+*LeasingApi* | [**completeContractScanUpload**](doc//LeasingApi.md#completecontractscanupload) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/contract-scan/complete | Check the uploaded scan and attach it as the lease's contract scan
 *LeasingApi* | [**confirmLeaseSettlement**](doc//LeasingApi.md#confirmleasesettlement) | **POST** /v1/leases/{leaseId}/settlement | Confirm the deposit settlement after the lease ended (all parties settle the lease)
 *LeasingApi* | [**connectBank**](doc//LeasingApi.md#connectbank) | **POST** /v1/orgs/{orgId}/bank/connections | Link the landlord's account (open banking AIS, read only)
+*LeasingApi* | [**createContractScanUpload**](doc//LeasingApi.md#createcontractscanupload) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/contract-scan | Reserve an upload for the scan of an imported lease's paper contract (PUT the file, then complete)
 *LeasingApi* | [**createLease**](doc//LeasingApi.md#createlease) | **POST** /v1/orgs/{orgId}/leases | Draft a lease (from an accepted application, or with explicit parties)
 *LeasingApi* | [**finishBankConnection**](doc//LeasingApi.md#finishbankconnection) | **POST** /v1/orgs/{orgId}/bank/connections/{connectionId}/finish | Complete linking after returning from the bank
 *LeasingApi* | [**getBankOverview**](doc//LeasingApi.md#getbankoverview) | **GET** /v1/orgs/{orgId}/bank | Linked accounts and recent incoming transactions with their match status
@@ -174,6 +176,8 @@ Class | Method | HTTP request | Description
 *LeasingApi* | [**getLeaseLedger**](doc//LeasingApi.md#getleaseledger) | **GET** /v1/leases/{leaseId}/ledger | Double-entry ledger of the lease (JSON, or CSV with format=csv)
 *LeasingApi* | [**getShareQR**](doc//LeasingApi.md#getshareqr) | **GET** /v1/obligation-shares/{shareId}/qr | QR payment (QR Platba / SPAYD) of one open share as a PNG image
 *LeasingApi* | [**giveLeaseNotice**](doc//LeasingApi.md#giveleasenotice) | **POST** /v1/leases/{leaseId}/notice | Give notice; the lease ends after the notice period
+*LeasingApi* | [**importLease**](doc//LeasingApi.md#importlease) | **POST** /v1/orgs/{orgId}/leases/import | Import an existing lease signed on paper (no signing round; payments tracked from the cutover)
+*LeasingApi* | [**inviteLeaseParty**](doc//LeasingApi.md#inviteleaseparty) | **POST** /v1/orgs/{orgId}/leases/{leaseId}/parties/{partyId}/invite | Invite a tenant of an imported lease to the tenant portal (e-mail with a link)
 *LeasingApi* | [**listLeaseObligations**](doc//LeasingApi.md#listleaseobligations) | **GET** /v1/leases/{leaseId}/obligations | Payment schedule split between parties, with QR payments (SPAYD) for open shares
 *LeasingApi* | [**listMyLeases**](doc//LeasingApi.md#listmyleases) | **GET** /v1/me/leases | Leases where I am a tenant
 *LeasingApi* | [**listOrgLeases**](doc//LeasingApi.md#listorgleases) | **GET** /v1/orgs/{orgId}/leases | Leases of the organization
@@ -326,6 +330,7 @@ Class | Method | HTTP request | Description
  - [ConversationDetail](doc//ConversationDetail.md)
  - [ConversationRole](doc//ConversationRole.md)
  - [CreateAttachmentUploadRequest](doc//CreateAttachmentUploadRequest.md)
+ - [CreateContractScanUploadRequest](doc//CreateContractScanUploadRequest.md)
  - [CreateGroupRequest](doc//CreateGroupRequest.md)
  - [CreateIncomeUpload201Response](doc//CreateIncomeUpload201Response.md)
  - [CreateIncomeUploadRequest](doc//CreateIncomeUploadRequest.md)
@@ -355,6 +360,7 @@ Class | Method | HTTP request | Description
  - [InvitationInput](doc//InvitationInput.md)
  - [InvitationPreview](doc//InvitationPreview.md)
  - [InvitationTokenInput](doc//InvitationTokenInput.md)
+ - [InviteLeasePartyRequest](doc//InviteLeasePartyRequest.md)
  - [InviteToGroupRequest](doc//InviteToGroupRequest.md)
  - [Invoice](doc//Invoice.md)
  - [InvoiceList](doc//InvoiceList.md)
@@ -364,7 +370,10 @@ Class | Method | HTTP request | Description
  - [LeaseDocument](doc//LeaseDocument.md)
  - [LeaseEvent](doc//LeaseEvent.md)
  - [LeaseEventLog](doc//LeaseEventLog.md)
+ - [LeaseImportInput](doc//LeaseImportInput.md)
+ - [LeaseImportPartyInput](doc//LeaseImportPartyInput.md)
  - [LeaseInput](doc//LeaseInput.md)
+ - [LeaseOrigin](doc//LeaseOrigin.md)
  - [LeaseParty](doc//LeaseParty.md)
  - [LeasePartyInput](doc//LeasePartyInput.md)
  - [LeaseRisk](doc//LeaseRisk.md)

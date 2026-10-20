@@ -73,6 +73,23 @@ confirms them (plan, section 6.3). Each item: question, current implementation, 
   checkbox; it does not produce or deliver the written notice. The legal review must confirm the hint and
   reason texts (web `lease_notice_*` messages), whether the platform should generate the written notice
   with the instruction about the court review, and the allowed delivery-date window (30 days back, 7 ahead).
+- **Q-LEASE-5 Tenants of imported leases without an account (M9).** A landlord (or our concierge with
+  `terractl leases import`) imports leases signed on paper: names, optionally e-mails, payment shares and
+  the debt at the cutover of tenants who have no account and never accepted our terms or privacy policy;
+  the landlord may upload a scan of the paper contract (with whatever personal data it contains). Our
+  assumption: the landlord is the controller of this data (lawful basis art. 6(1)(b) performance of the
+  lease and 6(1)(f)/(c) for payment records), the operator is the processor under art. 28. Questions:
+  (a) does this require a DPA (landlord agreement with a processing annex, see Q-LEGAL-1) accepted before
+  the first import, and who signs it for an org onboarded by the concierge; (b) who fulfils the
+  information duty of art. 14 toward these tenants (the landlord, with a template we provide?) and by when;
+  (c) may the platform send payment reminders to such tenants at all: today we send nothing (no e-mail, no
+  push) until the landlord invites the tenant and the tenant signs in with the invited, verified address;
+  the invitation e-mail itself is sent on the landlord's instruction: is that a processor act or our own
+  marketing, and does it need the tenant's prior consent; (d) retention of the scan and of the opening
+  balance after the lease ends (Q-LEASE-3); (e) is the "imported" event in the hash chain ("signed outside
+  the platform", operator or landlord as actor) adequate evidence, given the platform never saw the
+  signatures; (f) may the lease risk score (Q-RISK-1) be computed for tenants who never had an account and
+  were not informed.
 
 ## Portfolio risk (M6b)
 

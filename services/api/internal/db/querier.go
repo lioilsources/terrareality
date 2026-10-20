@@ -18,6 +18,8 @@ type Querier interface {
 	AddGroupLease(ctx context.Context, arg AddGroupLeaseParams) error
 	AddGroupMember(ctx context.Context, arg AddGroupMemberParams) (GroupMember, error)
 	AddGroupProperty(ctx context.Context, arg AddGroupPropertyParams) error
+	// A tenant-side party of an imported lease: never linked to an account here.
+	AddImportedParty(ctx context.Context, arg AddImportedPartyParams) (LeaseParty, error)
 	AddLeaseParty(ctx context.Context, arg AddLeasePartyParams) (LeaseParty, error)
 	AddMembership(ctx context.Context, arg AddMembershipParams) error
 	// Never more than what is due: no row (pgx.ErrNoRows) when the payment
@@ -46,7 +48,9 @@ type Querier interface {
 	// members).
 	CancelSlotBookings(ctx context.Context, arg CancelSlotBookingsParams) ([]CancelSlotBookingsRow, error)
 	// Links parties invited by e-mail to the account with that address, only
-	// once the account proved it owns the address (verified e-mail).
+	// once the account proved it owns the address (verified e-mail). Parties of
+	// an imported lease are linked only after the landlord invited them
+	// (invited_at): the paper contract is no consent to the tenant portal.
 	ClaimLeaseParties(ctx context.Context, id uuid.UUID) error
 	ClearGroupItems(ctx context.Context, groupID uuid.UUID) error
 	ClearLeaseRisk(ctx context.Context, leaseID uuid.UUID) error
@@ -174,6 +178,8 @@ type Querier interface {
 	FindDemoOrganization(ctx context.Context, name string) (Organization, error)
 	FindPropertyByRuian(ctx context.Context, arg FindPropertyByRuianParams) (Property, error)
 	FinishSuggestion(ctx context.Context, arg FinishSuggestionParams) (int64, error)
+	// System context (terractl): the longest-standing owner of an organization.
+	FirstOrgOwner(ctx context.Context, orgID uuid.UUID) (uuid.UUID, error)
 	// Returns the new case id, or null when the message was already flagged.
 	FlagMessage(ctx context.Context, arg FlagMessageParams) (uuid.UUID, error)
 	GetActivePromoProductByCode(ctx context.Context, code string) (PromoProduct, error)
@@ -206,6 +212,7 @@ type Querier interface {
 	GetJurisdiction(ctx context.Context, code string) (Jurisdiction, error)
 	GetLatestPaymentLink(ctx context.Context, shareID uuid.UUID) (PaymentLink, error)
 	GetLease(ctx context.Context, id uuid.UUID) (Lease, error)
+	GetLeaseDocument(ctx context.Context, id uuid.UUID) (LeaseDocument, error)
 	GetLeaseForUpdate(ctx context.Context, id uuid.UUID) (Lease, error)
 	GetLeaseRisk(ctx context.Context, leaseID uuid.UUID) (LeaseRisk, error)
 	GetListing(ctx context.Context, arg GetListingParams) (Listing, error)
@@ -253,6 +260,10 @@ type Querier interface {
 	GroupItems(ctx context.Context, orgID uuid.UUID) ([]GroupItemsRow, error)
 	// Joined members (system context, realtime fan-out and notifications).
 	GroupMemberUserIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error)
+	// ---------------------------------------------------------------------------
+	// M9: existing (imported) leases.
+	// A lease signed on paper: created directly in its running state.
+	ImportLease(ctx context.Context, arg ImportLeaseParams) (Lease, error)
 	IncrementAuthTokenAttempts(ctx context.Context, id uuid.UUID) (int32, error)
 	// ---------------------------------------------------------------------------
 	// Applications.
@@ -281,6 +292,9 @@ type Querier interface {
 	// 0 rows: the event was already received and must be ignored.
 	InsertStripeEvent(ctx context.Context, arg InsertStripeEventParams) (int64, error)
 	InvalidateAuthTokens(ctx context.Context, arg InvalidateAuthTokensParams) error
+	// The landlord invites a tenant-side party without an account to the tenant
+	// portal (the e-mail may be set or corrected on the way).
+	InviteLeaseParty(ctx context.Context, arg InviteLeasePartyParams) (int64, error)
 	// Buyer data for the invoice (system context): the organization and the
 	// person who ordered.
 	InvoiceBuyer(ctx context.Context, arg InvoiceBuyerParams) (InvoiceBuyerRow, error)
@@ -476,9 +490,12 @@ type Querier interface {
 	OldestOverdueDue(ctx context.Context, arg OldestOverdueDueParams) (pgtype.Date, error)
 	// Unpaid splits of the organization with this exact outstanding amount, due around a date.
 	OpenSplitsByAmount(ctx context.Context, arg OpenSplitsByAmountParams) ([]OpenSplitsByAmountRow, error)
-	// Unpaid splits of the organization's lease with this variable symbol, oldest first.
-	OpenSplitsForCode(ctx context.Context, arg OpenSplitsForCodeParams) ([]OpenSplitsForCodeRow, error)
+	// Unpaid splits of the organization's lease with this variable symbol (the
+	// lease's own variable_symbol when set, else its code), oldest first.
+	OpenSplitsForSymbol(ctx context.Context, arg OpenSplitsForSymbolParams) ([]OpenSplitsForSymbolRow, error)
 	OrgMessagingMembers(ctx context.Context, orgID uuid.UUID) ([]OrgMessagingMembersRow, error)
+	// System context (terractl): organizations with this name, case-insensitive.
+	OrganizationsByName(ctx context.Context, name string) ([]Organization, error)
 	// Open splits of a lease due on a given date (workflow reminders, system context).
 	OverdueSplitsForReminder(ctx context.Context, arg OverdueSplitsForReminderParams) ([]OverdueSplitsForReminderRow, error)
 	PendingModerationAI(ctx context.Context) ([]uuid.UUID, error)
@@ -548,11 +565,13 @@ type Querier interface {
 	SetBankConnectionLinked(ctx context.Context, arg SetBankConnectionLinkedParams) error
 	SetConversationBlock(ctx context.Context, arg SetConversationBlockParams) error
 	SetInvoicePdfKey(ctx context.Context, arg SetInvoicePdfKeyParams) error
+	SetLeaseContractScan(ctx context.Context, arg SetLeaseContractScanParams) error
 	SetLeaseEnd(ctx context.Context, arg SetLeaseEndParams) error
 	SetLeaseLocation(ctx context.Context, arg SetLeaseLocationParams) error
 	SetLeaseNotice(ctx context.Context, arg SetLeaseNoticeParams) (int64, error)
 	SetLeaseState(ctx context.Context, arg SetLeaseStateParams) (int64, error)
 	SetLeaseTerms(ctx context.Context, arg SetLeaseTermsParams) error
+	SetLeaseWorkflow(ctx context.Context, arg SetLeaseWorkflowParams) error
 	SetListingAttributes(ctx context.Context, arg SetListingAttributesParams) error
 	SetListingDemo(ctx context.Context, id uuid.UUID) error
 	SetListingEmbedding(ctx context.Context, arg SetListingEmbeddingParams) error
@@ -650,6 +669,9 @@ type Querier interface {
 	UpsertRoommateProfile(ctx context.Context, arg UpsertRoommateProfileParams) (uuid.UUID, error)
 	UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error)
 	UserMessagingSuspended(ctx context.Context, id uuid.UUID) (bool, error)
+	// Whether a lease of the organization that is not cancelled already uses
+	// the symbol for payments (its custom symbol or its code).
+	VariableSymbolTaken(ctx context.Context, arg VariableSymbolTakenParams) (bool, error)
 	// The account with a verified e-mail address (lease parties link only to it).
 	VerifiedUserByEmail(ctx context.Context, email string) (User, error)
 	// Idempotency of reminder jobs: this reminder was already queued (audit

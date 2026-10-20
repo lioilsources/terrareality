@@ -16,6 +16,7 @@
 		locale: string;
 	} = $props();
 	const l = $derived(detail.lease);
+	const imported = $derived(l.origin === 'imported');
 </script>
 
 <Card>
@@ -24,12 +25,15 @@
 		<span class="rounded bg-[var(--border)]/60 px-2 py-0.5 text-sm" data-testid="lease-state"
 			>{stateLabel[l.state]()}</span
 		>
+		{#if imported}<span
+				class="rounded border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]"
+				title={m.lease_imported_hint()}
+				data-testid="lease-imported">{m.lease_imported_badge()}</span
+			>{/if}
 	</div>
 	<p class="mt-1 text-sm text-[var(--muted)]">
-		{m.lease_code()}: <strong data-testid="lease-code">{l.code}</strong> · {fmtDate(
-			l.starts_on,
-			locale
-		)}
+		{l.variable_symbol ? m.lease_number() : m.lease_code()}:
+		<strong data-testid="lease-code">{l.code}</strong> · {fmtDate(l.starts_on, locale)}
 		{#if l.ends_on}– {fmtDate(l.ends_on, locale)}{/if}
 		· {formatMoney(l.rent_amount, l.currency, locale)} + {formatMoney(
 			detail.services_amount,
@@ -37,6 +41,23 @@
 			locale
 		)}
 	</p>
+	{#if imported}
+		<dl
+			class="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]"
+			data-testid="lease-import"
+		>
+			{#if l.cutover_on}<dt class="text-[var(--muted)]">{m.lease_import_cutover()}</dt>
+				<dd data-testid="lease-cutover">{fmtDate(l.cutover_on, locale)}</dd>{/if}
+			{#if l.variable_symbol}<dt class="text-[var(--muted)]">{m.lease_import_vs()}</dt>
+				<dd data-testid="lease-vs">{l.variable_symbol}</dd>{/if}
+			{#if detail.deposit_amount > 0}<dt class="text-[var(--muted)]">{m.lease_deposit()}</dt>
+				<dd data-testid="lease-deposit">
+					{formatMoney(detail.deposit_amount, l.currency, locale)} · {detail.deposit_held
+						? m.lease_deposit_held()
+						: m.lease_deposit_not_held()}
+				</dd>{/if}
+		</dl>
+	{/if}
 	<ul class="mt-3 grid gap-1 text-sm" data-testid="lease-parties">
 		{#each detail.parties as p (p.id)}
 			<li>
@@ -44,7 +65,11 @@
 				{#if p.role !== 'landlord' && p.role !== 'guarantor'}· {p.share_bps / 100} %{/if}
 				·
 				<span data-testid="signature"
-					>{p.signed_at ? `✓ ${m.lease_signed_badge()}` : m.lease_not_signed()}</span
+					>{imported
+						? m.lease_signed_outside()
+						: p.signed_at
+							? `✓ ${m.lease_signed_badge()}`
+							: m.lease_not_signed()}</span
 				>
 				{#if p.debt}<span class="text-red-700">· {formatMoney(p.debt, l.currency, locale)}</span
 					>{/if}
