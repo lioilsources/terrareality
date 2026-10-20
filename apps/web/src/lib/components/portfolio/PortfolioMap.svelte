@@ -3,6 +3,7 @@
 	import { MAP_STYLE } from '$app/env/public';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { bandColor, type RiskBand } from '#lib/portfolio.js';
+	import { loadMaplibre } from '#lib/map/maplibre.js';
 
 	export type MapPoint = {
 		id: string;
@@ -47,7 +48,7 @@
 
 	onMount(() => {
 		let disposed = false;
-		import('maplibre-gl').then((maplibregl) => {
+		loadMaplibre().then((maplibregl) => {
 			if (disposed) return;
 			map = new maplibregl.Map({
 				container: el,
