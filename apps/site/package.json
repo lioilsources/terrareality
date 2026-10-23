@@ -13,9 +13,9 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/svelte": "^9.0.1",
+    "@astrojs/svelte": "^9.1.0",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.3.8",
+    "astro": "^7.4.1",
     "svelte": "^5.57.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
@@ -23,6 +23,6 @@
     "@terra/contracts": "*"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.0"
+    "@astrojs/check": "^0.9.11"
   }
 }
