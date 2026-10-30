@@ -7,7 +7,7 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
-  centrifuge: ^0.20.1
+  centrifuge: ^0.21.0
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -19,7 +19,7 @@ dependencies:
   intl: any
   maplibre_gl: ^0.27.1
   qr_flutter: ^4.1.0
-  sentry_flutter: ^10.1.0
+  sentry_flutter: ^10.2.0
   terra_api:
     path: ../../packages/contracts/dart
   url_launcher: ^6.3.3
