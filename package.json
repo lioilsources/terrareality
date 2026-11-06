@@ -26,6 +26,6 @@
     "basic-ftp": "$basic-ftp"
   },
   "devDependencies": {
-    "basic-ftp": "^6.2.3"
+    "basic-ftp": "^6.2.5"
   }
 }
