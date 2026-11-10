@@ -30,14 +30,22 @@ runs goose + River migrations once before api/worker start. Afterwards: `make de
    Media and image hosts: `IMG_DOMAIN`, `S3_DOMAIN` (Caddy), with `S3_ENDPOINT=$S3_DOMAIN`,
    `IMGPROXY_URL=https://$IMG_DOMAIN` and `CSP_MEDIA_ORIGINS="https://$IMG_DOMAIN https://$S3_DOMAIN"`.
    The api and web reach the bucket through the public `S3_DOMAIN` too (presigned URLs are signed
-   for that host). On ZFS give the database its own dataset (`recordsize=16k`, `compression=lz4`,
-   `atime=off`). A snap-installed Docker only sees bind mounts under /home, /media and /mnt: keep
-   the data directories there.
-2. The tunnel for this profile (below): the credentials and `config.yml` go to
+   for that host). Data go on the pool disk (DevConventions `shared/infra.md`): dataset `pool/terra`
+   mounted at `/home/oli/pool-terra`, the database its own dataset (`recordsize=16k`,
+   `compression=lz4`, `atime=off`), e.g. `pool/terra/qa-db` at `/home/oli/pool-terra/qa/db`.
+   Olin creates datasets (sudo); until then the directories are plain folders on the pool. A
+   snap-installed Docker only sees bind mounts under /home, /media and /mnt.
+2. The tunnel for this profile (below): the credentials and `config-<p>.yml` go to
    `infra/nas/cloudflared/` on JODA. Two stacks on one box both need the tunnel (ports 80/443
    can only belong to one of them).
-3. `make deploy PROFILE=<p>` from the Mac.
+3. `make deploy PROFILE=<p>` from the Mac. Every deploy appends a line to `~/deploy/events.jsonl`.
 4. Check `https://$API_DOMAIN/healthz`.
+
+Memory: JODA has 2 cores and 3.8 GB RAM shared with everything else on it; this stack's limits
+add up to about 2.6 GB. Run one full stack at a time next to `terra-dev` and stop the other
+(`scripts/joda.sh compose <p> stop`; data stay on disk). An older `terra-staging` project may still
+be running there: point `.env.qa` at its data directories and stop it before the first
+`make deploy PROFILE=qa`.
 
 Slow build on JODA: build the images elsewhere instead (the Dockerfiles cross-compile):
 `docker buildx build --platform linux/amd64 -t terra/api:<TERRA_TAG> --load services/api` (likewise

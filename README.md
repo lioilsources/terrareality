@@ -42,7 +42,7 @@ Google, Apple and BankID run against a local mock IdP until real credentials are
 
 Catalog (M2): dev loads a small synthetic RÚIAN address sample (try "Dejvická" or "Korunní");
 import the full register with `cd services/api && go run ./cmd/terractl ruian import <ČÚZK zip>`.
-Photos go to SeaweedFS and are served through imgproxy (http://localhost:8081). AI suggestions use
+Photos go to SeaweedFS and are served through imgproxy (http://joda:8082). AI suggestions use
 the offline mock unless `LLM_BASE_URL` points at the Spark gateway. Listings submitted for review
 appear at http://localhost:5173/backoffice/reviews for `staff@terra.local`.
 

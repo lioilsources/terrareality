@@ -159,7 +159,7 @@ func Load() (Config, error) {
 	c := Config{
 		Env:             get("APP_ENV", "dev"),
 		HTTPAddr:        get("HTTP_ADDR", ":8080"),
-		DatabaseURL:     get("DATABASE_URL", "postgres://terra:terra@localhost:5433/terra?sslmode=disable"),
+		DatabaseURL:     get("DATABASE_URL", "postgres://terra:terra@localhost:5435/terra?sslmode=disable"),
 		LogLevel:        get("LOG_LEVEL", "info"),
 		LogFormat:       get("LOG_FORMAT", "text"),
 		TemporalAddress: get("TEMPORAL_ADDRESS", ""),
@@ -213,7 +213,7 @@ func Load() (Config, error) {
 	c.S3UseSSL = MustBool("S3_USE_SSL", false)
 	c.S3Region = get("S3_REGION", "us-east-1")
 	c.LLMAPIKey = get("LLM_API_KEY", "not-needed")
-	c.ImgproxyURL = strings.TrimRight(get("IMGPROXY_URL", "http://localhost:8081"), "/")
+	c.ImgproxyURL = strings.TrimRight(get("IMGPROXY_URL", "http://localhost:8082"), "/")
 	// Dev defaults match infra/dev/docker-compose.yml.
 	c.ImgproxyKey = get("IMGPROXY_KEY", devImgproxyKey)
 	c.ImgproxySalt = get("IMGPROXY_SALT", devImgproxySalt)
