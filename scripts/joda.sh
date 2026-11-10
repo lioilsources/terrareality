@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Docker runs on JODA, not on the Mac. Everything that needs it goes through here:
 #   joda.sh dev <compose args>     dependencies for `make dev` (project terra-dev, infra/dev, LAN ports)
-#   joda.sh deploy qa|prod         full stack from infra/nas (project terra-<profile>, env file
-#                                  .env.<profile> next to the compose file on JODA)
+#   joda.sh deploy qa|prod         full stack from infra/nas: qa = the terra-staging project that
+#                                  already runs on JODA (its .env), prod = terra-prod (.env.prod)
 #   joda.sh compose qa|prod <args> docker compose of that stack (ps, logs -f api, exec db psql ...)
 #   joda.sh images                 build terra/{api,web,vision} on JODA
 #   joda.sh restore-test           scripts/restore-test.sh on JODA
@@ -38,18 +38,22 @@ remote() {
   ssh $(tty_flag) "$JODA" "cd $DIR && $(printf '%q ' "$@")"
 }
 
-profile() {
+# The full stacks (infra/nas). qa is the stack that has run on JODA as terra-staging since
+# October, with its .env, cloudflared/config.yml and site-dist; prod gets suffixed files.
+stack() {
   case ${1:-} in
-    qa|prod) ;;
+    qa)   PROJECT=terra-staging; ENVF=.env;      SITE=site-dist ;;
+    prod) PROJECT=terra-prod;    ENVF=.env.prod; SITE=site-dist-prod ;;
     *) echo "profile must be qa or prod, got '${1:-}'" >&2; exit 2 ;;
   esac
 }
 
-# One line per action in ~/deploy/events.jsonl on JODA (DevConventions infra-architektura.md).
+# One line per action in ~/deploy/events.jsonl on JODA (DevConventions infra-architektura.md),
+# same keys as the other projects there.
 event() {
   local json
-  json=$(printf '{"ts":"%s","who":"%s@%s","repo":"terrareality","action":"%s","commit":"%s"}' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$USER" "$(hostname -s)" "$1" "$(git -C "$ROOT" rev-parse --short HEAD)")
+  json=$(printf '{"ts":"%s","project":"terrareality","action":"%s","who":"%s@%s","commit":"%s"}' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$USER" "$(hostname -s)" "$(git -C "$ROOT" rev-parse --short HEAD)")
   ssh "$JODA" "mkdir -p ~/deploy && printf '%s\n' $(printf %q "$json") >> ~/deploy/events.jsonl"
 }
 
@@ -76,47 +80,47 @@ REMOTE
 # docker compose of one full stack: its env file provides COMPOSE_FILE (tunnel) and the values.
 compose() {
   local p=$1; shift
-  profile "$p"
+  stack "$p"
   # shellcheck disable=SC2046
-  ssh $(tty_flag) "$JODA" "cd $DIR/infra/nas && set -a && . ./.env.$p && set +a \
-    && SITE_DIST=./site-dist-$p docker compose -p terra-$p --env-file .env.$p $(printf '%q ' "$@")"
+  ssh $(tty_flag) "$JODA" "cd $DIR/infra/nas && set -a && . ./$ENVF && set +a \
+    && SITE_DIST=./$SITE docker compose -p $PROJECT --env-file $ENVF $(printf '%q ' "$@")"
 }
 
 deploy() {
   local p=$1
-  profile "$p"
+  stack "$p"
   sync
-  if ! ssh "$JODA" "test -f $DIR/infra/nas/.env.$p"; then
-    echo "missing ~/$DIR/infra/nas/.env.$p on $JODA: start from infra/nas/.env.example (infra/nas/README.md)" >&2
+  if ! ssh "$JODA" "test -f $DIR/infra/nas/$ENVF"; then
+    echo "missing ~/$DIR/infra/nas/$ENVF on $JODA: start from infra/nas/.env.example (infra/nas/README.md)" >&2
     exit 1
   fi
   # The site is built here (Node) for this stack's domains and copied next to the compose file.
   local app api
-  read -r app api < <(ssh "$JODA" "set -a; . $DIR/infra/nas/.env.$p; set +a; echo \"\$APP_DOMAIN \$API_DOMAIN\"")
-  [ -n "$app" ] && [ -n "$api" ] || { echo "APP_DOMAIN / API_DOMAIN missing in .env.$p" >&2; exit 1; }
+  read -r app api < <(ssh "$JODA" "set -a; . $DIR/infra/nas/$ENVF; set +a; echo \"\$APP_DOMAIN \$API_DOMAIN\"")
+  [ -n "$app" ] && [ -n "$api" ] || { echo "APP_DOMAIN / API_DOMAIN missing in $ENVF" >&2; exit 1; }
   local site_env=
   [ "$p" = prod ] && site_env=SITE_ENV=production
   # shellcheck disable=SC2086
   (cd "$ROOT" && env API_URL="https://$api" PUBLIC_APP_URL="https://$app" $site_env npm run build -w site)
-  rsync -a --delete "$ROOT"/apps/site/dist/ "$JODA":$DIR/infra/nas/site-dist-$p/
-  ssh "$JODA" bash -s -- "$p" <<'REMOTE'
+  rsync -a --delete "$ROOT"/apps/site/dist/ "$JODA":$DIR/infra/nas/$SITE/
+  ssh "$JODA" bash -s -- "$PROJECT" "$ENVF" "$SITE" <<'REMOTE'
 set -euo pipefail
-p=$1
+project=$1 envf=$2 site=$3
 cd ~/deploy/terrareality/infra/nas
 # Both stacks on one box must keep their data apart.
-other=$([ "$p" = qa ] && echo prod || echo qa)
-if [ -f ".env.$other" ]; then
-  mine=$(set -a; . "./.env.$p"; echo "${TERRA_DB_DIR:-./data}")
-  theirs=$(set -a; . "./.env.$other"; echo "${TERRA_DB_DIR:-./data}")
-  [ "$mine" != "$theirs" ] || { echo "TERRA_DB_DIR is '$mine' in both .env.$p and .env.$other" >&2; exit 1; }
-fi
-set -a; . "./.env.$p"; set +a
-export SITE_DIST=./site-dist-$p
-docker compose -p "terra-$p" --env-file ".env.$p" up -d --build --remove-orphans
-docker compose -p "terra-$p" --env-file ".env.$p" ps --format 'table {{.Name}}\t{{.Status}}'
+for other in .env .env.prod; do
+  [ "$other" = "$envf" ] || [ ! -f "$other" ] && continue
+  mine=$(set -a; . "./$envf"; echo "${TERRA_DB_DIR:-./data}")
+  theirs=$(set -a; . "./$other"; echo "${TERRA_DB_DIR:-./data}")
+  [ "$mine" != "$theirs" ] || { echo "TERRA_DB_DIR is '$mine' in both $envf and $other" >&2; exit 1; }
+done
+set -a; . "./$envf"; set +a
+export SITE_DIST=./$site
+docker compose -p "$project" --env-file "$envf" up -d --build --remove-orphans
+docker compose -p "$project" --env-file "$envf" ps --format 'table {{.Name}}\t{{.Status}}'
 REMOTE
-  event "deploy $p"
-  echo "deployed terra-$p: https://$api/healthz"
+  event "deploy $p ($PROJECT)"
+  echo "deployed $PROJECT: https://$api/healthz"
 }
 
 images() {
