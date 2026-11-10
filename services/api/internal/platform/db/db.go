@@ -52,11 +52,35 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
+// migrateLock serialises migrators that share one database: api and worker
+// both start with MIGRATE_ON_START, and test packages run in parallel against
+// terra_test. Goose 3.29 takes no lock of its own, so two of them racing end in
+// "duplicate key value violates unique constraint pg_extension_name_index".
+const migrateLock int64 = 0x74657272615f6d67 // "terra_mg"
+
+// locked runs fn while holding migrateLock on one dedicated session.
+func locked(ctx context.Context, sqlDB *sql.DB, fn func() error) error {
+	conn, err := sqlDB.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("migrate lock: %w", err)
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", migrateLock); err != nil {
+		return fmt.Errorf("migrate lock: %w", err)
+	}
+	defer func() {
+		_, _ = conn.ExecContext(context.WithoutCancel(ctx), "SELECT pg_advisory_unlock($1)", migrateLock)
+	}()
+	return fn()
+}
+
 // Migrate applies all pending goose migrations embedded in the binary.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	sqlDB := stdlib.OpenDBFromPool(pool)
 	defer sqlDB.Close()
-	return withGoose(func() error { return goose.UpContext(ctx, sqlDB, ".") })
+	return locked(ctx, sqlDB, func() error {
+		return withGoose(func() error { return goose.UpContext(ctx, sqlDB, ".") })
+	})
 }
 
 // SchemaVersion returns the current goose schema version.
@@ -74,7 +98,9 @@ func SchemaVersion(ctx context.Context, pool *pgxpool.Pool) (int64, error) {
 
 // MigrateCmd runs an arbitrary goose command (up, down, status, redo...).
 func MigrateCmd(ctx context.Context, sqlDB *sql.DB, command string, args ...string) error {
-	return withGoose(func() error { return goose.RunContext(ctx, command, sqlDB, ".", args...) })
+	return locked(ctx, sqlDB, func() error {
+		return withGoose(func() error { return goose.RunContext(ctx, command, sqlDB, ".", args...) })
+	})
 }
 
 func withGoose(fn func() error) error {
