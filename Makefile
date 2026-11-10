@@ -1,12 +1,16 @@
 # TerraReality developer entry points. Run `make help`.
+# Docker runs on JODA, not on the Mac (scripts/joda.sh): `make up` starts the dependencies there
+# (project terra-dev) and the code runs here against them (DEPS_HOST in .env);
+# `make deploy PROFILE=qa|prod` runs a full stack there from infra/nas.
 SHELL := /bin/bash
-COMPOSE := docker compose -f infra/dev/docker-compose.yml
+JODA_SH := scripts/joda.sh
+PROFILE ?= qa
 API := services/api
 VISION := services/vision
 -include .env
 export
 
-.PHONY: help setup up down dev migrate seed gen gen-go gen-clients gen-check gen-check-go test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db
+.PHONY: help setup up down dev migrate seed gen gen-go gen-clients gen-check gen-check-go test test-go test-web test-site test-mobile test-vision lint e2e build images clean-db deploy deploy-ps deploy-logs
 
 help: ## List targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -19,12 +23,12 @@ setup: ## Install all dependencies (npm, Go, Python venv, Flutter)
 	cd apps/mobile && flutter pub get && flutter gen-l10n
 	cd apps/web && npm run i18n
 
-up: ## Start docker dependencies
-	$(COMPOSE) up -d --build --wait db centrifugo mailpit
-	$(COMPOSE) up -d temporal s3 imgproxy
+up: ## Start the dependencies on JODA (terra-dev: db, temporal, centrifugo, s3, imgproxy, mailpit)
+	$(JODA_SH) dev up -d --build --wait db centrifugo mailpit
+	$(JODA_SH) dev up -d temporal s3 imgproxy
 
-down: ## Stop docker dependencies
-	$(COMPOSE) down
+down: ## Stop the dependencies on JODA
+	$(JODA_SH) dev down
 
 dev: ## Start everything (deps, api, worker, vision, web, site)
 	./scripts/dev.sh
@@ -98,19 +102,24 @@ build: ## Build Go binaries and web/site bundles
 	cd $(API) && go build -o bin/ ./cmd/...
 	npm run build
 
-images: ## Build production container images
-	docker build -f $(API)/Dockerfile -t terra/api \
-		--build-arg VERSION="$$(git describe --tags --always --dirty)" --build-arg COMMIT="$$(git rev-parse HEAD)" \
-		--build-arg BUILT_AT="$$(date -u +%Y-%m-%dT%H:%M:%SZ)" $(API)
-	docker build -f apps/web/Dockerfile -t terra/web .
-	docker build -t terra/vision $(VISION)
+images: ## Build production container images on JODA
+	$(JODA_SH) images
 
-clean-db: ## Drop and recreate the dev database volume (DESTROYS local data)
-	$(COMPOSE) down -v
+clean-db: ## Drop and recreate the dev database volume on JODA (DESTROYS dev data)
+	$(JODA_SH) dev down -v
+
+deploy: ## Full stack on JODA from infra/nas: make deploy PROFILE=qa|prod (.env.<profile> lives on JODA)
+	$(JODA_SH) deploy $(PROFILE)
+
+deploy-ps: ## Containers of the $(PROFILE) stack on JODA
+	$(JODA_SH) compose $(PROFILE) ps
+
+deploy-logs: ## Follow the api and worker logs of the $(PROFILE) stack on JODA
+	$(JODA_SH) compose $(PROFILE) logs -f --tail=100 api worker
 
 .PHONY: restore-test
-restore-test: ## Backup + point-in-time restore drill with pgBackRest in throwaway containers (offline, ~2-5 min)
-	./scripts/restore-test.sh
+restore-test: ## Backup + point-in-time restore drill with pgBackRest in throwaway containers on JODA (~2-5 min)
+	$(JODA_SH) restore-test
 
 .PHONY: smoke
 smoke: ## Read-only production smoke E2E: make smoke BASE_URL=https://app.. API_URL=https://api.. SITE_URL=https://..
