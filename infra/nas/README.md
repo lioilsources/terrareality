@@ -1,43 +1,58 @@
-# Staging on the NAS
+# Full stack on JODA: profiles qa and prod
 
-Pilot/staging only. Production runs on Hetzner from milestone M8 (see `docs/02-plan.md`).
+Two stacks from this one compose file, deployed from the Mac with `make deploy PROFILE=qa` and
+`make deploy PROFILE=prod` (`scripts/joda.sh deploy`). Each is a compose project `terra-<profile>`
+with its own env file `.env.<profile>`, domains, Cloudflare Tunnel, data directories and site
+build. `prod` is the production for now; `infra/hetzner` stays the layout for a hosted production
+later (`docs/02-plan.md`, M8).
 
-1. Create `.env` next to `docker-compose.yml` with:
-   `POSTGRES_PASSWORD`, `TERRA_API_DB_PASSWORD`, `CENTRIFUGO_API_KEY`, `CENTRIFUGO_TOKEN_SECRET`,
-   `APP_SECRET_KEY`, `APP_DOMAIN`, `API_DOMAIN`, `SITE_DOMAIN`, `CSP_MEDIA_ORIGINS` (imgproxy and S3
-   origins the browser loads photos/downloads from), the media settings `S3_ENDPOINT`,
-   `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `IMGPROXY_URL`, `IMGPROXY_KEY`, `IMGPROXY_SALT` (the api refuses
-   to start outside dev without S3), the app-link values `APPLE_TEAM_ID` and
-   `ANDROID_CERT_SHA256` (see `docs/runbooks/launch.md` §8), optionally `SMTP_ADDR`/`SMTP_USERNAME`/
-   `SMTP_PASSWORD` (empty = mails only logged; sign-in is by e-mail link, so testers need real mail), `IMGPROXY_URL_TTL`, `SESSION_MAX_AGE` (default 2160h),
-   `PHONE_VERIFICATION` (default false), `LLM_BASE_URL`
-   (AiStack gateway on the Spark over LAN, e.g. `http://192.168.88.66:8080/v1`).
-   api and worker connect as `terra_api` (no superuser, no BYPASSRLS, same as production); only
+What `make deploy PROFILE=<p>` does: mirrors the checkout to `~/deploy/terrareality` on JODA
+(rsync; `.env.*`, `data`, `cloudflared` and site builds there are never touched), builds the Astro
+site here for the stack's domains and copies it to `infra/nas/site-dist-<p>`, then runs
+`docker compose -p terra-<p> --env-file .env.<p> up -d --build` there. The `migrate` service
+runs goose + River migrations once before api/worker start. Afterwards: `make deploy-ps`,
+`make deploy-logs`, or anything through `scripts/joda.sh compose <p> …`
+(`exec db psql -U terra`, `logs -f caddy`, `down`).
+
+## First deploy of a profile
+
+1. On JODA create `~/deploy/terrareality/infra/nas/.env.<p>` from `.env.example` (`chmod 600`):
+   secrets (`openssl rand -hex 32` each), the five domains, `TERRA_DB_DIR`/`TERRA_POOL_DIR`
+   (different for qa and prod; the deploy refuses to start a stack whose `TERRA_DB_DIR` equals the
+   other profile's), `TERRA_TAG`, optionally mail, `LLM_BASE_URL` (AiStack gateway on the Spark
+   over LAN, e.g. `http://192.168.88.66:8080/v1`), `IMGPROXY_URL_TTL`, `SESSION_MAX_AGE`
+   (default 2160h), `PHONE_VERIFICATION` (default false), the app-link values `APPLE_TEAM_ID` and
+   `ANDROID_CERT_SHA256` (`docs/runbooks/launch.md` §8).
+   api and worker connect as `terra_api` (no superuser, no BYPASSRLS, same as Hetzner); only
    `migrate` uses the owner `terra`. A new volume gets the role from `initdb/13-api-role.sh`; on an
    existing volume create it once with the SQL in `docs/runbooks/deploy.md` §1.4
-   (`docker compose exec -T db psql -U terra -d postgres ...`), then `docker compose up -d`.
+   (`scripts/joda.sh compose <p> exec -T db psql -U terra -d postgres ...`), then deploy again.
    Media and image hosts: `IMG_DOMAIN`, `S3_DOMAIN` (Caddy), with `S3_ENDPOINT=$S3_DOMAIN`,
    `IMGPROXY_URL=https://$IMG_DOMAIN` and `CSP_MEDIA_ORIGINS="https://$IMG_DOMAIN https://$S3_DOMAIN"`.
    The api and web reach the bucket through the public `S3_DOMAIN` too (presigned URLs are signed
-   for that host). Data locations: `TERRA_DB_DIR` (PostgreSQL, Temporal) and `TERRA_POOL_DIR`
-   (media bucket, daily dumps), both default `./data`. On ZFS give the database its own dataset
-   (`recordsize=16k`, `compression=lz4`, `atime=off`). A snap-installed Docker only sees bind mounts
-   under /home, /media and /mnt: mount the datasets there.
-2. Build the Astro site and copy it: `npm run build -w site && cp -r apps/site/dist infra/nas/site-dist`
-   (with `API_URL=https://$API_DOMAIN PUBLIC_APP_URL=https://$APP_DOMAIN` once the api is up).
-3. `docker compose up -d --build`. The `migrate` service runs goose + River migrations once before api/worker start.
-   On a slow NAS build the images elsewhere instead (the Dockerfiles cross-compile):
-   `docker buildx build --platform linux/amd64 -t terra/api:staging --load services/api` (likewise
-   `terra/web` from the repo root with `-f apps/web/Dockerfile`, `terra/vision`, `terra/postgres` from
-   `infra/dev/postgres`), then `docker save ... | ssh nas docker load` and `docker compose up -d`.
+   for that host). On ZFS give the database its own dataset (`recordsize=16k`, `compression=lz4`,
+   `atime=off`). A snap-installed Docker only sees bind mounts under /home, /media and /mnt: keep
+   the data directories there.
+2. The tunnel for this profile (below): the credentials and `config.yml` go to
+   `infra/nas/cloudflared/` on JODA. Two stacks on one box both need the tunnel (ports 80/443
+   can only belong to one of them).
+3. `make deploy PROFILE=<p>` from the Mac.
 4. Check `https://$API_DOMAIN/healthz`.
+
+Slow build on JODA: build the images elsewhere instead (the Dockerfiles cross-compile):
+`docker buildx build --platform linux/amd64 -t terra/api:<TERRA_TAG> --load services/api` (likewise
+`terra/web` from the repo root with `-f apps/web/Dockerfile`, `terra/vision`, `terra/postgres` from
+`infra/dev/postgres`), then `docker save ... | ssh joda docker load` and deploy.
 
 ## Behind a Cloudflare Tunnel (no open ports)
 
-Set `COMPOSE_FILE=docker-compose.yml:docker-compose.tunnel.yml` and `SITE_SCHEME=http://` in `.env`.
-Create the tunnel and one CNAME per host, then put the config next to the compose file:
+`.env.<p>` has `COMPOSE_FILE=docker-compose.yml:docker-compose.tunnel.yml`,
+`SITE_SCHEME=http://` and `CLOUDFLARED_CONFIG=config-<p>.yml` (the example does). The
+`cloudflared/` directory is shared by both stacks, so each profile has its own tunnel and config
+file there. Create the tunnel and one CNAME per host of the profile, then put its config next to
+the compose file:
 
-    cloudflared tunnel create terra
+    cloudflared tunnel create terra-<p>
     # An existing ~/.cloudflared/config.yml with `tunnel:` wins over the argument: pass an empty config.
     echo '{}' > /tmp/cf-empty.yml
     for h in $APP_DOMAIN $API_DOMAIN $SITE_DOMAIN $IMG_DOMAIN $S3_DOMAIN; do
@@ -45,7 +60,8 @@ Create the tunnel and one CNAME per host, then put the config next to the compos
     done
     mkdir -p cloudflared && cp ~/.cloudflared/<tunnel-id>.json cloudflared/
 
-`cloudflared/config.yml` sends every host to Caddy:
+`cloudflared/config-<p>.yml` sends every host to that stack's Caddy (each stack has its own
+compose network, so `caddy` resolves to the right one):
 
     tunnel: <tunnel-id>
     credentials-file: /etc/cloudflared/<tunnel-id>.json
@@ -53,20 +69,20 @@ Create the tunnel and one CNAME per host, then put the config next to the compos
       - service: http://caddy:80
 
 Cloudflare's free certificate covers one level of subdomains only (`*.example.com`), so use names
-like `terra-api.example.com`, not `api.terra.example.com`.
+like `terra-qa-api.example.com`, not `api.qa.example.com`.
 
 ## Backups
 
 The `backup` service writes `pg_dump -Fc` to `$TERRA_POOL_DIR/backups` once a day and keeps
-`BACKUP_KEEP_DAYS` (14). The media bucket lives on the same disk; copy both off the NAS for a real
-second copy. Restore into a scratch database:
+`BACKUP_KEEP_DAYS` (14). The media bucket lives on the same disk; copy both off JODA for a real
+second copy. Restore into a scratch database (`scripts/joda.sh compose <p> exec -T db ...`):
 
-    docker compose exec -T db createdb -U terra terra_restore
-    docker compose exec -T db pg_restore -U terra -d terra_restore --no-owner < $TERRA_POOL_DIR/backups/<file>.dump
+    createdb -U terra terra_restore
+    pg_restore -U terra -d terra_restore --no-owner < $TERRA_POOL_DIR/backups/<file>.dump
 
-Differences from production, accepted for staging: Temporal is the single-binary dev server on
+Differences from the Hetzner layout, accepted here: Temporal is the single-binary dev server on
 SQLite (no durability), PostgreSQL has no TLS (same Docker network) and no pgBackRest (daily
 `pg_dump` instead), no ClamAV upload scanning (needs ~1.5 GB RAM), media on SeaweedFS instead of
-Hetzner Object Storage. Caddy sets the
-same header baseline and access-log redaction as production plus `X-Robots-Tag: noindex`, and
-answers 404 on `/dev/*` (mock IdP, dev bank), so `MOCK_IDP` cannot be used from the internet.
+Hetzner Object Storage. Caddy sets the same header baseline and access-log redaction plus
+`X-Robots-Tag: noindex`, and answers 404 on `/dev/*` (mock IdP, dev bank), so `MOCK_IDP` cannot be
+used from the internet.

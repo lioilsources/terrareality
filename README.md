@@ -14,22 +14,27 @@ services/api        Go: api, worker (River + Temporal), migrate
 services/vision     Python: photo tagging via the Spark LLM gateway (mock without GPU)
 packages/contracts  openapi.yaml + generated TS and Dart clients
 packages/ui         shared Svelte components and design tokens
-infra/dev           docker compose for local dependencies
-infra/nas           staging/pilot compose + Caddy
+infra/dev           docker compose of the dev dependencies (they run on JODA, make up)
+infra/nas           full stack on JODA, profiles qa and prod (make deploy PROFILE=…) + Caddy
 infra/spark         LLM routes for the AiStack gateway
 ```
 
 ## Quick start (macOS)
 
-Requirements: Docker, Go 1.26, Node 24+, Python 3.12+, Flutter 3.44+, Java 17+ (Dart client generator), sqlc.
+Requirements: ssh to JODA (`ssh joda`; Docker runs there, not here), Go 1.26, Node 24+, Python 3.12+,
+Flutter 3.44+, Java 17+ (Dart client generator), sqlc.
 
 ```bash
 make setup   # npm, Go modules, Python venv, Flutter packages, .env
-make dev     # docker deps + api :8080 + worker + vision :8001 + web :5173 + site :4321
+make dev     # deps on JODA + api :8080 + worker + vision :8001 + web :5173 + site :4321
 ```
 
 Then open http://localhost:5173 (platform status), http://localhost:8080/healthz,
-Temporal UI http://localhost:8233, Mailpit http://localhost:8025.
+Temporal UI http://joda:8233, Mailpit http://joda:8025 (`DEPS_HOST` in `.env`).
+
+Everything that needs Docker goes through `scripts/joda.sh`: `make up`/`down`/`clean-db` (the
+dev dependencies, project `terra-dev`), `make images`, `make restore-test`, and the two full
+stacks `make deploy PROFILE=qa` / `PROFILE=prod` (`infra/nas/README.md`).
 
 `make seed` creates dev accounts `staff@terra.local` (backoffice) and `owner@terra.local`, both with
 password `terra-dev-password`. Verification e-mails, invitations and the SMS mock land in Mailpit.

@@ -1,7 +1,10 @@
-# Staging / pilot on the NAS (Ubuntu, docker compose). Production runs on
-# Hetzner (milestone M8, infra/hetzner). Only Caddy is exposed publicly, either on
-# ports 80/443 or (docker-compose.tunnel.yml) only through a Cloudflare Tunnel.
-# Usage: see README.md. Sized for a small box (4 GB RAM): every service has a memory limit.
+# Full stack on JODA (docker compose), two profiles from this one file: `make deploy PROFILE=qa|prod`
+# (scripts/joda.sh) runs project terra-<profile> with the env file .env.<profile> that lives next
+# to this file on JODA. Each profile has its own domains, tunnel, TERRA_DB_DIR/TERRA_POOL_DIR and
+# site build (SITE_DIST). Only Caddy is exposed publicly, either on ports 80/443 or
+# (docker-compose.tunnel.yml) only through a Cloudflare Tunnel; two stacks on one box need the
+# tunnel. Hetzner (infra/hetzner) stays the layout for a later hosted production.
+# Usage: README.md. Sized for a small box: every service has a memory limit.
 name: terra-staging
 
 x-logging: &logging
@@ -69,7 +72,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../../apps/web/static/.well-known:/srv/app-links/.well-known:ro
-      - ./site-dist:/srv/site:ro
+      - ${SITE_DIST:-./site-dist}:/srv/site:ro
       - caddy_data:/data
     depends_on: [api, web, imgproxy, s3]
     mem_limit: 128m

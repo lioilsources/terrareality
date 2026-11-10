@@ -8,7 +8,8 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:2026.7.3
-    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
+    # One tunnel per stack: .env.<profile> names its config (config-qa.yml, config-prod.yml).
+    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/${CLOUDFLARED_CONFIG:-config.yml}", "run"]
     user: "${BACKUP_UID:-1000}:${BACKUP_UID:-1000}"
     volumes: ["./cloudflared:/etc/cloudflared:ro"]
     depends_on: [caddy]
