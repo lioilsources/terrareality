@@ -1,18 +1,22 @@
 # Full stack on JODA: profiles qa and prod
 
 Two stacks from this one compose file, deployed from the Mac with `make deploy PROFILE=qa` and
-`make deploy PROFILE=prod` (`scripts/joda.sh deploy`). Each is a compose project `terra-<profile>`
-with its own env file `.env.<profile>`, domains, Cloudflare Tunnel, data directories and site
-build. `prod` is the production for now; `infra/hetzner` stays the layout for a hosted production
-later (`docs/02-plan.md`, M8).
+`make deploy PROFILE=prod` (`scripts/joda.sh deploy`). Each has its own env file, domains,
+Cloudflare Tunnel, data directories and site build. `prod` is the production for now;
+`infra/hetzner` stays the layout for a hosted production later (`docs/02-plan.md`, M8).
+
+| profile | compose project | env file | tunnel config | site build |
+|---|---|---|---|---|
+| `qa` | `terra-staging` (the stack that has run on JODA since October: `terra.ol1n.com`) | `.env` | `cloudflared/config.yml` | `site-dist` |
+| `prod` | `terra-prod` | `.env.prod` | `cloudflared/config-prod.yml` | `site-dist-prod` |
 
 What `make deploy PROFILE=<p>` does: mirrors the checkout to `~/deploy/terrareality` on JODA
-(rsync; `.env.*`, `data`, `cloudflared` and site builds there are never touched), builds the Astro
-site here for the stack's domains and copies it to `infra/nas/site-dist-<p>`, then runs
-`docker compose -p terra-<p> --env-file .env.<p> up -d --build` there. The `migrate` service
+(rsync; `.env*`, `data`, `cloudflared` and site builds there are never touched), builds the Astro
+site here for the stack's domains and copies it next to the compose file, then runs
+`docker compose -p <project> --env-file <env file> up -d --build` there. The `migrate` service
 runs goose + River migrations once before api/worker start. Afterwards: `make deploy-ps`,
 `make deploy-logs`, or anything through `scripts/joda.sh compose <p> …`
-(`exec db psql -U terra`, `logs -f caddy`, `down`).
+(`exec db psql -U terra`, `logs -f caddy`, `stop`).
 
 ## First deploy of a profile
 
@@ -43,9 +47,8 @@ runs goose + River migrations once before api/worker start. Afterwards: `make de
 
 Memory: JODA has 2 cores and 3.8 GB RAM shared with everything else on it; this stack's limits
 add up to about 2.6 GB. Run one full stack at a time next to `terra-dev` and stop the other
-(`scripts/joda.sh compose <p> stop`; data stay on disk). An older `terra-staging` project may still
-be running there: point `.env.qa` at its data directories and stop it before the first
-`make deploy PROFILE=qa`.
+(`scripts/joda.sh compose <p> stop`; data stay on disk). Data of `qa` are `/home/oli/pool-terra/db`
+and `/home/oli/pool-terra` (media, backups); `prod` gets `/home/oli/pool-terra/prod/…`.
 
 Slow build on JODA: build the images elsewhere instead (the Dockerfiles cross-compile):
 `docker buildx build --platform linux/amd64 -t terra/api:<TERRA_TAG> --load services/api` (likewise
