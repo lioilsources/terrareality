@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TEST_DATABASE_URL: postgres://terra:terra@localhost:5433/terra_test?sslmode=disable
+      TEST_DATABASE_URL: postgres://terra:terra@localhost:5435/terra_test?sslmode=disable
     defaults:
       run:
         working-directory: services/api
@@ -111,7 +111,7 @@ jobs:
           (bin/worker &) ; (bin/api &)
           for _ in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 2; done
         env:
-          DATABASE_URL: postgres://terra:terra@localhost:5433/terra?sslmode=disable
+          DATABASE_URL: postgres://terra:terra@localhost:5435/terra?sslmode=disable
           CENTRIFUGO_API_URL: http://localhost:8000/api
           CENTRIFUGO_API_KEY: dev-centrifugo-api-key
           MESSAGE_NOTIFY_DELAY: 2s

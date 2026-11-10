@@ -45,10 +45,32 @@ profile() {
   esac
 }
 
+# One line per action in ~/deploy/events.jsonl on JODA (DevConventions infra-architektura.md).
+event() {
+  local json
+  json=$(printf '{"ts":"%s","who":"%s@%s","repo":"terrareality","action":"%s","commit":"%s"}' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$USER" "$(hostname -s)" "$1" "$(git -C "$ROOT" rev-parse --short HEAD)")
+  ssh "$JODA" "mkdir -p ~/deploy && printf '%s\n' $(printf %q "$json") >> ~/deploy/events.jsonl"
+}
+
+# Ports only on JODA's LAN address; data on the pool dataset once Olin created it (DevConventions
+# shared/infra.md: /home/oli/pool-terra), under the mirror until then.
 dev() {
   ssh "$JODA" "mkdir -p $DIR/infra"
   rsync -a --delete --exclude data "$ROOT"/infra/dev/ "$JODA":$DIR/infra/dev/
-  remote docker compose -p terra-dev -f infra/dev/docker-compose.yml "$@"
+  ssh "$JODA" bash -s -- "$@" <<'REMOTE'
+set -euo pipefail
+cd ~/deploy/terrareality
+if [ -d "$HOME/pool-terra" ]; then
+  data=$HOME/pool-terra/dev
+else
+  data=$PWD/infra/dev/data
+  echo "dataset pool/terra is not mounted at $HOME/pool-terra: dev data stays in $data" >&2
+fi
+DEPS_BIND=$(hostname -I | cut -d' ' -f1) TERRA_DEV_DIR=$data \
+  docker compose -p terra-dev -f infra/dev/docker-compose.yml "$@"
+REMOTE
+  [ "${1:-}" = up ] && event "dev up" || true
 }
 
 # docker compose of one full stack: its env file provides COMPOSE_FILE (tunnel) and the values.
@@ -93,6 +115,7 @@ export SITE_DIST=./site-dist-$p
 docker compose -p "terra-$p" --env-file ".env.$p" up -d --build --remove-orphans
 docker compose -p "terra-$p" --env-file ".env.$p" ps --format 'table {{.Name}}\t{{.Status}}'
 REMOTE
+  event "deploy $p"
   echo "deployed terra-$p: https://$api/healthz"
 }
 
@@ -106,6 +129,7 @@ images() {
     --build-arg "VERSION=$version" --build-arg "COMMIT=$commit" --build-arg "BUILT_AT=$built" services/api
   remote docker build -f apps/web/Dockerfile -t terra/web .
   remote docker build -t terra/vision services/vision
+  event "images $version"
 }
 
 restore_test() {

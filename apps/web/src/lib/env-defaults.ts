@@ -8,7 +8,7 @@
 export const LOCAL_DEFAULTS = {
 	API_URL: 'http://localhost:8080',
 	API_PUBLIC_URL: 'http://localhost:8080',
-	CSP_MEDIA_ORIGINS: 'http://localhost:8081 http://localhost:8333',
+	CSP_MEDIA_ORIGINS: 'http://localhost:8082 http://localhost:8333',
 	CSP_REALTIME_ORIGIN: 'ws://localhost:8000'
 } as const;
 

@@ -13,7 +13,7 @@ import (
 // Imgproxy builds signed URLs for resized, metadata-free variants. Originals
 // are private in object storage; browsers only ever see imgproxy URLs.
 type Imgproxy struct {
-	BaseURL string // public imgproxy URL, e.g. http://localhost:8081
+	BaseURL string // public imgproxy URL, e.g. http://localhost:8082
 	Bucket  string
 	// TTL, when set, makes every URL expire (imgproxy "exp" option) after
 	// at least TTL. The expiry is rounded up to a whole TTL window so URLs

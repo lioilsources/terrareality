@@ -1,7 +1,9 @@
 # Development dependencies. They run on JODA (`make up` → scripts/joda.sh dev), the code runs on
 # the Mac and reaches them over the LAN (DEPS_HOST in .env); CI runs them on the runner.
-# Host ports avoid the defaults so this stack can run next to other projects on JODA
-# (e.g. Webtoon's Postgres on 5434). They are open on every interface: LAN only, dev secrets.
+# Host ports avoid what JODA already uses (DevConventions shared/ports.md: 5433 library_postgres,
+# 8081 auction-sim, 5434 Webtoon, 5437/5438 Papánek) and bind to DEPS_BIND: JODA's LAN address
+# when joda.sh starts them, loopback otherwise (CI). Data in TERRA_DEV_DIR: the pool dataset on
+# JODA (/home/oli/pool-terra/dev), ./data elsewhere.
 # Without internet (CLAUDE.md): one online `make up` first to pull and build the images below;
 # after that nothing here reaches the network.
 name: terra-dev
@@ -14,9 +16,9 @@ services:
       POSTGRES_USER: terra
       POSTGRES_PASSWORD: terra
       POSTGRES_DB: terra
-    ports: ["5433:5432"]
+    ports: ["${DEPS_BIND:-127.0.0.1}:5435:5432"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${TERRA_DEV_DIR:-./data}/pg:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U terra -d terra"]
@@ -27,15 +29,15 @@ services:
   temporal:
     # Single-binary dev server with SQLite persistence and Web UI on :8233.
     image: temporalio/temporal:1.4.1
-    user: "0:0"  # the image user cannot write to a fresh named volume
+    user: "0:0"  # the image user cannot write to a fresh data directory
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/data/temporal.db"]
-    ports: ["7233:7233", "8233:8233"]
-    volumes: [temporaldata:/data]
+    ports: ["${DEPS_BIND:-127.0.0.1}:7233:7233", "${DEPS_BIND:-127.0.0.1}:8233:8233"]
+    volumes: ["${TERRA_DEV_DIR:-./data}/temporal:/data"]
 
   centrifugo:
     image: centrifugo/centrifugo:v6
     command: ["centrifugo", "--config", "/centrifugo/config.json"]
-    ports: ["8000:8000"]
+    ports: ["${DEPS_BIND:-127.0.0.1}:8000:8000"]
     volumes: [./centrifugo/config.json:/centrifugo/config.json:ro]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
@@ -47,9 +49,9 @@ services:
     # S3-compatible object storage (MinIO no longer publishes images).
     image: chrislusf/seaweedfs:3.97
     command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json", "-master.volumeSizeLimitMB=256"]
-    ports: ["8333:8333"]
+    ports: ["${DEPS_BIND:-127.0.0.1}:8333:8333"]
     volumes:
-      - s3data:/data
+      - ${TERRA_DEV_DIR:-./data}/s3:/data
       - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
 
   imgproxy:
@@ -65,14 +67,9 @@ services:
       IMGPROXY_ENABLE_WEBP_DETECTION: "true"
       IMGPROXY_ENABLE_AVIF_DETECTION: "true"
       IMGPROXY_STRIP_METADATA: "true"
-    ports: ["8081:8080"]
+    ports: ["${DEPS_BIND:-127.0.0.1}:8082:8080"]
     depends_on: [s3]
 
   mailpit:
     image: axllent/mailpit:v1.27
-    ports: ["1025:1025", "8025:8025"]
-
-volumes:
-  pgdata:
-  temporaldata:
-  s3data:
+    ports: ["${DEPS_BIND:-127.0.0.1}:1025:1025", "${DEPS_BIND:-127.0.0.1}:8025:8025"]
