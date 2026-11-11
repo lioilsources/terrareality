@@ -14,6 +14,6 @@ String authErrorMessage(AppLocalizations t, Object error) => switch (errorCode(e
   _ => errorMessage(t, error),
 };
 
-/// The language of e-mails the API sends, following the app's locale.
+/// The language of e-mails the API sends: Czech or English only; other app languages get English.
 UserLocale mailLocale(BuildContext context) =>
-    Localizations.localeOf(context).languageCode == 'en' ? UserLocale.en : UserLocale.cs;
+    Localizations.localeOf(context).languageCode == 'cs' ? UserLocale.cs : UserLocale.en;

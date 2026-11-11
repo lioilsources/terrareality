@@ -1,6 +1,7 @@
 import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import type { components } from '@terra/contracts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -36,7 +37,7 @@ export const actions: Actions = {
 				explanation: values.explanation,
 				email: locals.me ? undefined : values.email,
 				name: locals.me ? undefined : values.name || undefined,
-				locale: getLocale() === 'en' ? 'en' : 'cs'
+				locale: apiLocale(getLocale())
 			}
 		});
 		if (error) return fail(400, { values, error: errorMessage(error), missingReason: false });

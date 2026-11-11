@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import {
 	parseFrontMatter,
 	renderLegalMarkdown,
@@ -19,7 +20,8 @@ export function legalPage(doc: LegalDoc): LegalPage {
 	const locale = getLocale();
 	const pick = (l: string) =>
 		Object.entries(sources).find(([path]) => path.endsWith(`/legal/${l}/${doc}.md`))?.[1];
-	const source = pick(locale) ?? pick('cs');
+	// Legal texts exist in Czech (binding) and English; other locales read the English one.
+	const source = pick(locale) ?? pick(apiLocale(locale)) ?? pick('cs');
 	if (!source) error(404, 'Not found');
 	const { meta, body } = parseFrontMatter(source);
 	return {

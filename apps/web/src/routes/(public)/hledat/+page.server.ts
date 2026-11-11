@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { m } from '#lib/paraglide/messages.js';
 import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import { paramsFromQuery, queryFromParams } from '#lib/searchParams.js';
 import { EMPTY_SCHEMA } from '#lib/catalog.js';
 import type { Actions, PageServerLoad } from './$types';
@@ -41,7 +42,7 @@ export const actions: Actions = {
 		if (!message) return fail(400, { error: '' });
 		const current = queryFromParams(url.searchParams);
 		const { data, error } = await locals.api.POST('/v1/search/chat', {
-			body: { message, query: current, locale: getLocale() === 'en' ? 'en' : 'cs' }
+			body: { message, query: current, locale: apiLocale(getLocale()) }
 		});
 		if (!data) return fail(400, { error: errorMessage(error) });
 		const p = paramsFromQuery(data.query);

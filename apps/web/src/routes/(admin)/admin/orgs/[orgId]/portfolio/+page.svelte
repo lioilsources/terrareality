@@ -5,6 +5,7 @@
 	import { field } from '#lib/applications.js';
 	import { fmtDate, fmtDateTime } from '#lib/labels.js';
 	import { attentionLabel, bandColor, money, pct } from '#lib/portfolio.js';
+	import { intlLocale } from '#lib/locale.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
@@ -21,7 +22,7 @@
 		Math.max(1, ...(d?.trend ?? []).map((t) => Math.max(t.expected, t.received)))
 	);
 	const monthLabel = (period: string) =>
-		new Date(`${period}-01`).toLocaleDateString(locale === 'en' ? 'en-GB' : 'cs-CZ', {
+		new Date(`${period}-01`).toLocaleDateString(intlLocale(locale), {
 			month: 'short'
 		});
 	const leaseHref = (id?: string) => (id ? localizeHref(`${base}/smlouvy/${id}`) : undefined);
@@ -273,7 +274,7 @@
 					{/if}
 					<div>
 						<dt class="text-[var(--muted)]">{m.pf_hhi()}</dt>
-						<dd>{d.concentration.hhi.toLocaleString(locale === 'en' ? 'en-GB' : 'cs-CZ')}</dd>
+						<dd>{d.concentration.hhi.toLocaleString(intlLocale(locale))}</dd>
 					</div>
 				</dl>
 			</Card>

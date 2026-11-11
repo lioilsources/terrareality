@@ -3,6 +3,7 @@ import { completeAuth } from '#lib/server/auth.js';
 import { safeNext } from '#lib/server/session.js';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import { legalVersion } from '#lib/server/legal.js';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +18,7 @@ export const actions: Actions = {
 		const f = await request.formData();
 		const email = String(f.get('email') ?? '');
 		const displayName = String(f.get('display_name') ?? '');
-		const locale = getLocale() === 'en' ? 'en' : 'cs';
+		const locale = apiLocale(getLocale());
 		const { data, error } = await locals.api.POST('/v1/auth/register', {
 			body: {
 				email,
