@@ -20,7 +20,8 @@ test('filtered search is noindex with a canonical to /hledat', async ({ page }) 
 
 test('language switch keeps the search query', async ({ page }) => {
 	await page.goto('/hledat?kind=apartment&rent_max=20000');
-	await page.getByRole('link', { name: /^en$/i }).click();
+	await page.getByTestId('lang-switch').locator('summary').click();
+	await page.getByRole('link', { name: 'English' }).click();
 	await expect(page).toHaveURL(/\/en\/hledat\?kind=apartment&rent_max=20000/);
 });
 

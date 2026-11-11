@@ -3,6 +3,7 @@ import { completeAuth } from '#lib/server/auth.js';
 import { safeNext } from '#lib/server/session.js';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -23,7 +24,7 @@ export const actions: Actions = {
 	magic: async ({ request, locals }) => {
 		const email = String((await request.formData()).get('email') ?? '');
 		const { error } = await locals.api.POST('/v1/auth/magic-link', {
-			body: { email, locale: getLocale() }
+			body: { email, locale: apiLocale(getLocale()) }
 		});
 		if (error) return fail(400, { email, magicError: errorMessage(error) });
 		return { email, magicSent: true };

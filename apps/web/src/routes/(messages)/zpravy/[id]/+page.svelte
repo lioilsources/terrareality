@@ -6,6 +6,7 @@
 	import type { Message } from '@terra/contracts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
+	import { apiLocale } from '#lib/locale.js';
 	import { t } from '#lib/catalog.js';
 	import { fmtDateTime } from '#lib/labels.js';
 	import { connect, type RealtimeEvent } from '#lib/realtime.js';
@@ -252,7 +253,7 @@
 				<dl class="grid gap-2 text-sm" data-testid="prescreen-answers">
 					{#each data.detail.prescreen as a (a.id)}
 						<div>
-							<dt class="text-[var(--muted)]">{a.question[locale as 'cs'] || a.question.cs}</dt>
+							<dt class="text-[var(--muted)]">{a.question[apiLocale(locale)] || a.question.cs}</dt>
 							<dd>
 								{a.kind === 'yes_no' ? (a.answer === 'yes' ? m.msg_yes() : m.msg_no()) : a.answer}
 							</dd>

@@ -2,6 +2,7 @@ import { invitableRoles } from '#lib/labels.js';
 import { error as kitError, fail } from '@sveltejs/kit';
 import { errorMessage } from '#lib/errors.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
+import { apiLocale } from '#lib/locale.js';
 import type { Role } from '@terra/contracts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -53,7 +54,7 @@ export const actions: Actions = {
 			body: {
 				email,
 				role: String(f.get('role')) as (typeof invitableRoles)[number],
-				locale: getLocale() === 'en' ? 'en' : 'cs'
+				locale: apiLocale(getLocale())
 			}
 		});
 		if (error) return fail(400, { email, inviteError: errorMessage(error) });
