@@ -149,7 +149,7 @@ suggestion (ADR 0003). Nothing in the repository deploys itself.
   `alertmanager` scrape jobs are covered by `ScrapeTargetDown`.
 - Point 5 (database roles): api, worker and migrate connect over TLS (`sslmode=verify-full`, internal
   CA from `scripts/pg-tls-init.sh`); Temporal's connection is still plain on the private network.
-- Point 6 (CI): Go is pinned to 1.26.9 (`go` + `toolchain` in `go.mod`, `golang:1.26.9-alpine`) with
+- Point 6 (CI): Go is pinned to 1.26.11 (`go` + `toolchain` in `go.mod`, `golang:1.26.11-alpine`) with
   patched kin-openapi and excelize so govulncheck passes; CI runs `make gen-check-go` (catalog and
   lease templates included), `terraform validate`, has `permissions: contents: read`, job timeouts,
   build args for `/v1/version`, a sha256-verified typst download and Dependabot. Actions are still
