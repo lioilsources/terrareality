@@ -24,7 +24,7 @@ runs goose + River migrations once before api/worker start. Afterwards: `make de
    secrets (`openssl rand -hex 32` each), the five domains, `TERRA_DB_DIR`/`TERRA_POOL_DIR`
    (different for qa and prod; the deploy refuses to start a stack whose `TERRA_DB_DIR` equals the
    other profile's), `TERRA_TAG`, optionally mail, `LLM_BASE_URL` (AiStack gateway on the Spark
-   over LAN, e.g. `http://192.168.88.66:8080/v1`), `IMGPROXY_URL_TTL`, `SESSION_MAX_AGE`
+   over LAN, e.g. `http://$SPARK_HOST:8080/v1`), `IMGPROXY_URL_TTL`, `SESSION_MAX_AGE`
    (default 2160h), `PHONE_VERIFICATION` (default false), the app-link values `APPLE_TEAM_ID` and
    `ANDROID_CERT_SHA256` (`docs/runbooks/launch.md` §8).
    api and worker connect as `terra_api` (no superuser, no BYPASSRLS, same as Hetzner); only

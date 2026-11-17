@@ -49,3 +49,18 @@ apps/web/src/lib/paraglide/
 infra/nas/data/
 infra/nas/cloudflared/
 infra/nas/site-dist/
+# devconv:start
+*.p8
+*.p12
+*.jks
+key.properties
+.claude/settings.local.json
+CLAUDE.local.md
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+lib/**/secrets.dart
+bin/
+*.test
+*.out
+# devconv:end
