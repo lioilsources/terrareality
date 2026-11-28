@@ -288,6 +288,8 @@ func TestServiceRolePolicies(t *testing.T) {
 			"invoices":         {"UPDATE", "DELETE"},
 			"orders":           {"DELETE"},
 			"goose_db_version": {"INSERT", "UPDATE", "DELETE"},
+			// The platform kit's goose history (ADR 0013).
+			"ol1n_kit_schema_version": {"INSERT", "UPDATE", "DELETE"},
 		}
 		for _, tb := range appTables(t, pool) {
 			for _, priv := range []string{"SELECT", "INSERT", "UPDATE", "DELETE"} {

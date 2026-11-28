@@ -12,6 +12,9 @@ Hard rules (from the plan, section 0 and 6):
 - Every org-scoped table enables row-level security with the `org_id IN (SELECT app_user_org_ids())`
   policy (ADR 0004); owner-facing code reads and writes through `db.AsUser`.
 - Schema changes are new goose migrations in `services/api/migrations`; queries live in `services/api/queries` (sqlc).
+- Tenancy/RLS, audit and feature flags come from `github.com/lioilsources/ol1n_platform_kit` (ADR 0013).
+  Its tables (`audit_events`, `feature_flags`) change only via kit migrations; local kit work uses an
+  uncommitted `services/api/go.work`.
 - External services only behind adapters with a mock implementation; `make dev` must work without
   internet (the dependencies run on JODA over the LAN, `scripts/joda.sh`; no Docker on the Mac).
 - Legal questions go to `docs/legal-questions.md`, other open questions to `docs/open-questions.md`.

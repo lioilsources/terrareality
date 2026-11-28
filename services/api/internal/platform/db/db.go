@@ -12,11 +12,20 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/lioilsources/ol1n_platform_kit/schema"
+	"github.com/lioilsources/ol1n_platform_kit/tenancy"
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
 	"github.com/pressly/goose/v3"
 
 	"github.com/terrareality/terrareality/services/api/migrations"
 )
+
+// rls is TerraReality's row-level security setup (ADR 0004) for the kit.
+var rls = tenancy.Tenancy{Role: "terra_app", UserSetting: tenancy.DefaultUserSetting}
+
+// KitMigrations is the platform kit's own goose history (ADR 0013). It runs
+// after TerraReality's migrations, whose history already created its tables.
+func KitMigrations() tenancy.MigrationSet { return schema.Migrations() }
 
 var _ embed.FS // migrations are embedded in the migrations package
 
@@ -74,13 +83,25 @@ func locked(ctx context.Context, sqlDB *sql.DB, fn func() error) error {
 	return fn()
 }
 
-// Migrate applies all pending goose migrations embedded in the binary.
+// Migrate applies all pending goose migrations embedded in the binary, then
+// the platform kit's migrations (no-ops over tables TerraReality created).
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	sqlDB := stdlib.OpenDBFromPool(pool)
 	defer sqlDB.Close()
-	return locked(ctx, sqlDB, func() error {
+	if err := locked(ctx, sqlDB, func() error {
 		return withGoose(func() error { return goose.UpContext(ctx, sqlDB, ".") })
-	})
+	}); err != nil {
+		return err
+	}
+	kit := KitMigrations()
+	if err := tenancy.Migrate(ctx, pool, migrateLock, kit); err != nil {
+		return err
+	}
+	// Like goose_db_version (00012, 00013): the schema version is the
+	// migration owner's business; the app and service roles only read it.
+	_, err := pool.Exec(ctx, "REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON "+
+		pgx.Identifier{kit.Table}.Sanitize()+" FROM terra_app, terra_service")
+	return err
 }
 
 // SchemaVersion returns the current goose schema version.
@@ -114,22 +135,14 @@ func withGoose(fn func() error) error {
 // InTx runs fn in a transaction as the owner role (system context: auth,
 // jobs, backoffice). Authorization is the caller's responsibility.
 func InTx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
-	return pgx.BeginFunc(ctx, pool, fn)
+	return tenancy.InTx(ctx, pool, fn)
 }
 
 // AsUser runs fn in a transaction with row-level security enforced for the
 // given user: the role switches to terra_app and app.current_user is set, so
 // org-scoped tables only expose rows of the user's organizations.
 func AsUser(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID, fn func(pgx.Tx) error) error {
-	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SET LOCAL ROLE terra_app"); err != nil {
-			return fmt.Errorf("set role: %w", err)
-		}
-		if _, err := tx.Exec(ctx, "SELECT set_config('app.current_user', $1, true)", userID.String()); err != nil {
-			return fmt.Errorf("set current user: %w", err)
-		}
-		return fn(tx)
-	})
+	return rls.AsUser(ctx, pool, userID, fn)
 }
 
 // Elevate ends row-level security for the rest of an AsUser transaction: the
@@ -138,11 +151,5 @@ func AsUser(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID, fn func(p
 // system part of the same change (notifications to other users, the e-mail
 // outbox) in the same transaction, so both commit or roll back together.
 func Elevate(ctx context.Context, tx pgx.Tx) error {
-	if _, err := tx.Exec(ctx, "RESET ROLE"); err != nil {
-		return fmt.Errorf("reset role: %w", err)
-	}
-	if _, err := tx.Exec(ctx, "SELECT set_config('app.current_user', '', true)"); err != nil {
-		return fmt.Errorf("clear current user: %w", err)
-	}
-	return nil
+	return rls.Elevate(ctx, tx)
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
+	"github.com/lioilsources/ol1n_platform_kit/principal"
 )
 
 // Principal is the authenticated caller of a request.
@@ -24,8 +26,12 @@ func (p *Principal) Impersonated() bool { return p.ImpersonatorID != nil }
 
 type principalKey struct{}
 
-// WithPrincipal stores p in ctx.
+// WithPrincipal stores p in ctx, and the kit principal read by audit.
 func WithPrincipal(ctx context.Context, p *Principal) context.Context {
+	if p != nil {
+		ctx = principal.With(ctx, principal.Principal{UserID: p.UserID, SessionID: p.SessionID,
+			ImpersonatorID: p.ImpersonatorID})
+	}
 	return context.WithValue(ctx, principalKey{}, p)
 }
 
@@ -44,8 +50,9 @@ type RequestMeta struct {
 
 type metaKey struct{}
 
-// WithMeta stores request metadata in ctx.
+// WithMeta stores request metadata in ctx, and the kit copy read by audit.
 func WithMeta(ctx context.Context, m RequestMeta) context.Context {
+	ctx = principal.WithMeta(ctx, principal.Meta{IP: m.IP, UserAgent: m.UserAgent, RequestID: m.RequestID})
 	return context.WithValue(ctx, metaKey{}, m)
 }
 
