@@ -3,21 +3,17 @@ package billing
 import (
 	"context"
 	"embed"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/lioilsources/ol1n_platform_kit/typstdoc"
 )
 
 //go:embed templates/invoice.typ
 var invoiceFS embed.FS
 
 // ErrNoTypst means the typst binary is missing.
-var ErrNoTypst = errors.New("typst binary not found")
+var ErrNoTypst = typstdoc.ErrNoTypst
 
 // PaymentMethodCardPaid is the payment method printed on promo invoices.
 const PaymentMethodCardPaid = "Platební karta – uhrazeno"
@@ -155,37 +151,5 @@ type InvoiceRenderer struct {
 
 // Render returns the invoice PDF.
 func (t InvoiceRenderer) Render(ctx context.Context, d InvoiceData) ([]byte, error) {
-	bin := t.Bin
-	if bin == "" {
-		bin = "typst"
-	}
-	if _, err := exec.LookPath(bin); err != nil {
-		return nil, ErrNoTypst
-	}
-	dir, err := os.MkdirTemp("", "terra-invoice-")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(dir)
-	tpl, err := invoiceFS.ReadFile("templates/invoice.typ")
-	if err != nil {
-		return nil, err
-	}
-	src := filepath.Join(dir, "invoice.typ")
-	if err := os.WriteFile(src, tpl, 0o600); err != nil {
-		return nil, err
-	}
-	raw, err := json.Marshal(d.view())
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	out := filepath.Join(dir, "out.pdf")
-	cmd := exec.CommandContext(ctx, bin, "compile", "--ignore-system-fonts", "--root", dir,
-		"--input", "data="+string(raw), src, out)
-	if msg, err := cmd.CombinedOutput(); err != nil {
-		return nil, fmt.Errorf("typst: %v: %.500s", err, msg)
-	}
-	return os.ReadFile(out)
+	return typstdoc.Renderer{FS: invoiceFS, Dir: "templates", Bin: t.Bin}.Render(ctx, "invoice", d.view())
 }
