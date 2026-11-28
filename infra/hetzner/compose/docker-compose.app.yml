@@ -130,7 +130,7 @@ x-healthcheck: &healthcheck
 
 services:
   caddy:
-    image: caddy:2.10.2
+    image: caddy:2.11.6
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
