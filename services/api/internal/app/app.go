@@ -121,11 +121,11 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 			}
 			a = smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, host)
 		}
-		email = &notify.SMTP{Addr: cfg.SMTPAddr, From: cfg.MailFrom, Auth: a}
+		email = &notify.SMTP{Addr: cfg.SMTPAddr, From: cfg.MailFrom, Auth: a, IDDomain: "terrareality"}
 	}
 	var sms notify.Sender = notify.Log{L: log}
 	if cfg.SMSProvider == "mock" {
-		sms = notify.SMSViaEmail{Email: email}
+		sms = notify.SMSViaEmail{Email: email, Domain: notify.MockDomain}
 	}
 	d.Sender = notify.Router{Email: email, SMS: sms}
 
@@ -154,7 +154,7 @@ func Build(cfg config.Config, log *slog.Logger) (Deps, error) {
 	var mobile notify.Pusher = notify.PushLog{L: log}
 	switch cfg.PushProvider {
 	case "mock":
-		mobile = notify.PushViaEmail{Email: email}
+		mobile = notify.PushViaEmail{Email: email, Domain: notify.MockDomain}
 	case "fcm":
 		creds, err := os.ReadFile(cfg.FCMCredentialsFile)
 		if err != nil {
