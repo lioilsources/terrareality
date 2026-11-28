@@ -30,7 +30,7 @@ RUN mkdir /p && cd /p && go mod init probe >/dev/null 2>&1 && printf '%s\n' \
 
 # Typst renders lease documents (static musl binary). The tarball is verified against the
 # sha256 published on the GitHub release (bump version and both digests together).
-FROM --platform=$BUILDPLATFORM alpine:3.22 AS typst
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS typst
 ARG TARGETARCH
 ARG TYPST_VERSION=0.15.1
 ARG TYPST_SHA256_X86_64=a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c
