@@ -110,7 +110,7 @@ Spark LLM gateway is operated by the owner and out of scope (see `infra/spark/RE
 | Req.   | Topic                            | Status | Evidence / note                                                                                                     |
 | ------ | -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
 | 10.2.x | No back doors, time bombs        | done   | Mock/dev handlers mounted only in dev/test; prod config refuses mock providers (`config.go`)                        |
-| 10.3.x | Dependency integrity and updates | done   | `security` CI job: govulncheck, npm audit, pip-audit, osv-scanner (`.github/workflows/ci.yml`); lockfiles committed; Go pinned to `go`/`toolchain` 1.26.9 with patched modules so govulncheck is green; Dependabot for actions, Go, npm, pip, pub, Docker, Terraform (`.github/dependabot.yml`); typst download verified by sha256 (Dockerfile, CI). GitHub Actions are pinned by tag, not by commit SHA (open) |
+| 10.3.x | Dependency integrity and updates | done   | `security` CI job: govulncheck, npm audit, pip-audit, osv-scanner (`.github/workflows/ci.yml`); lockfiles committed; Go pinned to `go`/`toolchain` 1.26.11 with patched modules so govulncheck is green; Dependabot for actions, Go, npm, pip, pub, Docker, Terraform (`.github/dependabot.yml`); typst download verified by sha256 (Dockerfile, CI). GitHub Actions are pinned by tag, not by commit SHA (open) |
 | 10.3.2 | Subresource integrity            | n/a    | No third-party scripts loaded from CDNs                                                                             |
 
 ## V11 Business logic
