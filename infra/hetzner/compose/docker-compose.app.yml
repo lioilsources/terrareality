@@ -337,7 +337,7 @@ services:
     restart: "no"
 
   temporal:
-    image: ${TEMPORAL_SERVER_IMAGE:-temporalio/server:1.28.1}
+    image: ${TEMPORAL_SERVER_IMAGE:-temporalio/server:1.32.0}
     environment:
       DB: postgres12
       DB_PORT: "5432"
