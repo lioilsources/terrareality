@@ -3,7 +3,7 @@
 # Patch pinned to go.mod (`go`/`toolchain` 1.26.9): govulncheck runs against this toolchain.
 # Build stages run on the builder's platform and cross-compile (CGO off), so an amd64 image builds
 # natively on an arm64 Mac (NAS staging) and vice versa.
-FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS build
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -16,7 +16,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
 
 # Healthcheck probe for docker compose: `probe <url>` exits 0 on a 2xx answer. A tiny static
 # binary instead of busybox/curl, so the distroless image still has no shell.
-FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine AS probe
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS probe
 ARG TARGETOS TARGETARCH
 RUN mkdir /p && cd /p && go mod init probe >/dev/null 2>&1 && printf '%s\n' \
     'package main' \
