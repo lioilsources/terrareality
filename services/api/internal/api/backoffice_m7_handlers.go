@@ -99,7 +99,7 @@ func (s *Server) BackofficeSetFeatureFlag(ctx context.Context, r gen.BackofficeS
 	}
 	f, err := st.Set(ctx, p.UserID, r.Key, r.Body.Enabled, r.Body.Description)
 	if err != nil {
-		return nil, err
+		return nil, flags.AppErr(err)
 	}
 	return gen.BackofficeSetFeatureFlag200JSONResponse(flagDTO(f)), nil
 }
