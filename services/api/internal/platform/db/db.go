@@ -12,9 +12,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	pgxvec "github.com/pgvector/pgvector-go/pgx"
 	"github.com/lioilsources/ol1n_platform_kit/schema"
 	"github.com/lioilsources/ol1n_platform_kit/tenancy"
+	pgxvec "github.com/pgvector/pgvector-go/pgx"
 	"github.com/pressly/goose/v3"
 
 	"github.com/terrareality/terrareality/services/api/migrations"
@@ -93,7 +93,15 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	}); err != nil {
 		return err
 	}
-	return tenancy.Migrate(ctx, pool, migrateLock, KitMigrations())
+	kit := KitMigrations()
+	if err := tenancy.Migrate(ctx, pool, migrateLock, kit); err != nil {
+		return err
+	}
+	// Like goose_db_version (00012, 00013): the schema version is the
+	// migration owner's business; the app and service roles only read it.
+	_, err := pool.Exec(ctx, "REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON "+
+		pgx.Identifier{kit.Table}.Sanitize()+" FROM terra_app, terra_service")
+	return err
 }
 
 // SchemaVersion returns the current goose schema version.
