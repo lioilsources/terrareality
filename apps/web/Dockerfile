@@ -1,6 +1,6 @@
 # Build context: repository root (needs packages/ui and packages/contracts).
 # The build output is plain JavaScript: build on the builder's platform (fast amd64 images on arm64).
-FROM --platform=$BUILDPLATFORM node:24-alpine AS build
+FROM --platform=$BUILDPLATFORM node:25-alpine AS build
 WORKDIR /repo
 COPY package.json package-lock.json .npmrc ./
 COPY apps/web/package.json apps/web/
@@ -12,7 +12,7 @@ COPY packages packages
 COPY apps/web apps/web
 RUN cd apps/web && npm run i18n && npx svelte-kit sync && npm run build
 
-FROM node:24-alpine
+FROM node:25-alpine
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 COPY --from=build /repo/apps/web/build ./build
