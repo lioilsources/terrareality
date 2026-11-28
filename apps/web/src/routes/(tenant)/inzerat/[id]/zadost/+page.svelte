@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
+	import { apiLocale } from '#lib/locale.js';
 	import { t } from '#lib/catalog.js';
 	import { field } from '#lib/applications.js';
 	import Alert from '#lib/components/Alert.svelte';
@@ -48,7 +49,7 @@
 			{/if}
 			{#each l.prescreen as q (q.id)}
 				{@const label =
-					(q.text[locale as 'cs'] || q.text.cs || q.text.en) + (q.required ? ' *' : '')}
+					(q.text[apiLocale(locale)] || q.text.cs || q.text.en) + (q.required ? ' *' : '')}
 				{#if q.kind === 'yes_no'}
 					<div class="grid gap-1 text-sm">
 						<span class="font-medium">{label}</span>

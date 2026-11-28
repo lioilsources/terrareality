@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { getLocale, locales, localizeHref } from '#lib/paraglide/runtime.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { autonyms } from '#lib/locale.js';
 	import { Logo } from '@terra/ui';
 	import CookieBanner from '#lib/components/CookieBanner.svelte';
 	import { LEGAL_ROUTES } from '#lib/legal.js';
@@ -66,17 +67,29 @@
 					<a href={localizeHref('/login')}>{m.nav_login()}</a>
 				{/if}
 			</div>
-			<div class="flex items-center gap-2 text-sm" aria-label={m.language()}>
-				{#each locales as locale (locale)}
-					<a
-						href={localizeHref(page.url.pathname + page.url.search, { locale })}
-						data-sveltekit-reload
-						class="rounded px-2 py-1 uppercase {locale === getLocale()
-							? 'bg-[var(--accent)] text-white'
-							: 'text-[var(--muted)]'}">{locale}</a
-					>
-				{/each}
-			</div>
+			<details class="relative text-sm" data-testid="lang-switch">
+				<summary
+					class="cursor-pointer rounded px-2 py-1 text-[var(--muted)] hover:text-[var(--text)]"
+					aria-label={m.language()}>{autonyms[getLocale()] ?? getLocale()}</summary
+				>
+				<ul
+					class="absolute end-0 z-10 mt-1 grid max-h-80 w-56 gap-0.5 overflow-y-auto rounded border border-[var(--border)] bg-[var(--surface)] p-1 shadow"
+				>
+					{#each locales as locale (locale)}
+						<li>
+							<a
+								href={localizeHref(page.url.pathname + page.url.search, { locale })}
+								hreflang={locale}
+								lang={locale}
+								data-sveltekit-reload
+								class="block rounded px-2 py-1 no-underline {locale === getLocale()
+									? 'bg-[var(--accent)] text-white'
+									: 'text-[var(--text)] hover:bg-[var(--bg)]'}">{autonyms[locale] ?? locale}</a
+							>
+						</li>
+					{/each}
+				</ul>
+			</details>
 		</div>
 	</header>
 	{#if data.me?.impersonator}

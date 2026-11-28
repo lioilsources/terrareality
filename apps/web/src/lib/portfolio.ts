@@ -1,6 +1,7 @@
 import type { components } from '@terra/contracts';
 import { m } from '#lib/paraglide/messages.js';
 import { formatMoney } from '#lib/catalog.js';
+import { intlLocale } from './locale.js';
 
 export type RiskFactor = components['schemas']['RiskFactor'];
 export type RiskBand = components['schemas']['RiskBand'];
@@ -97,7 +98,7 @@ export function factorDetail(f: RiskFactor, locale: string, currency = 'CZK'): s
 		case 'market_rent':
 			return f.known
 				? m.risk_detail_market_rent({
-						ratio: n('ratio').toLocaleString(locale === 'en' ? 'en-GB' : 'cs-CZ'),
+						ratio: n('ratio').toLocaleString(intlLocale(locale)),
 						median: money(n('median'), currency, locale),
 						listings: n('listings')
 					})

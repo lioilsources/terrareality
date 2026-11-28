@@ -3,6 +3,7 @@
 	import { getLocale, localizeHref } from '#lib/paraglide/runtime.js';
 	import { fmtDate, levelLabel } from '#lib/labels.js';
 	import { formatMoney } from '#lib/catalog.js';
+	import { intlLocale } from '#lib/locale.js';
 	import Alert from '#lib/components/Alert.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
@@ -11,7 +12,7 @@
 
 	let { data }: PageProps = $props();
 	const locale = getLocale();
-	const num = (n: number) => new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ').format(n);
+	const num = (n: number) => new Intl.NumberFormat(intlLocale(locale)).format(n);
 
 	type Tile = { id: string; label: string; value: string; href?: string };
 	const tiles = $derived.by((): Tile[] => {

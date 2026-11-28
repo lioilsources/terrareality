@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
 	import { factorDetail, factorLabel, type RiskFactor } from '#lib/portfolio.js';
+	import { intlLocale } from '#lib/locale.js';
 
 	let {
 		factors,
@@ -19,7 +20,7 @@
 				{#if !tenant && f.points !== undefined}
 					<span class="tabular-nums {f.points > 0 ? '' : 'text-[var(--muted)]'}"
 						>{m.risk_points({
-							points: f.points.toLocaleString(locale === 'en' ? 'en-GB' : 'cs-CZ')
+							points: f.points.toLocaleString(intlLocale(locale))
 						})}</span
 					>
 				{/if}

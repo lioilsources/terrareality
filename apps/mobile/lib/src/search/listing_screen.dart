@@ -314,7 +314,7 @@ class _ContactDialogState extends State<_ContactDialog> {
             for (final q in questions)
               q.kind == PrescreenQuestionKindEnum.yesNo
                   ? DropdownButtonFormField<String>(
-                      decoration: InputDecoration(labelText: (lang == 'en' ? q.text.en : null) ?? q.text.cs ?? ''),
+                      decoration: InputDecoration(labelText: (lang != 'cs' ? q.text.en : null) ?? q.text.cs ?? ''),
                       items: [
                         DropdownMenuItem(value: 'yes', child: Text(t.yes)),
                         DropdownMenuItem(value: 'no', child: Text(t.no)),
@@ -323,7 +323,7 @@ class _ContactDialogState extends State<_ContactDialog> {
                       validator: q.required_ ? required : null,
                     )
                   : TextFormField(
-                      decoration: InputDecoration(labelText: (lang == 'en' ? q.text.en : null) ?? q.text.cs ?? ''),
+                      decoration: InputDecoration(labelText: (lang != 'cs' ? q.text.en : null) ?? q.text.cs ?? ''),
                       keyboardType:
                           q.kind == PrescreenQuestionKindEnum.number ? TextInputType.number : TextInputType.text,
                       onChanged: (v) => _answers[q.id!] = v,

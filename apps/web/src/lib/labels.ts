@@ -1,5 +1,6 @@
 import { m } from '#lib/paraglide/messages.js';
 import type { Role } from '@terra/contracts';
+import { intlLocale } from './locale.js';
 
 export const roleLabel: Record<Role, () => string> = {
 	owner: m.role_owner,
@@ -37,11 +38,11 @@ export const invitableRoles = [
 ] as const;
 
 export function fmtDate(iso: string, locale: string): string {
-	return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'cs-CZ');
+	return new Date(iso).toLocaleDateString(intlLocale(locale));
 }
 
 export function fmtDateTime(iso: string, locale: string): string {
-	return new Date(iso).toLocaleString(locale === 'en' ? 'en-GB' : 'cs-CZ', {
+	return new Date(iso).toLocaleString(intlLocale(locale), {
 		dateStyle: 'short',
 		timeStyle: 'short'
 	});

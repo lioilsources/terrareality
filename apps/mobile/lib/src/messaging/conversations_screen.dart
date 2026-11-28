@@ -35,7 +35,8 @@ class Conversations extends AsyncNotifier<CursorPage<Conversation>> {
 final conversationsProvider =
     AsyncNotifierProvider.autoDispose<Conversations, CursorPage<Conversation>>(Conversations.new);
 
-String titleOf(I18nText text, String locale) => (locale == 'en' && text.en.isNotEmpty) ? text.en : text.cs;
+/// The API provides listing texts in Czech and English only: every other UI language shows the English text.
+String titleOf(I18nText text, String locale) => (locale != 'cs' && text.en.isNotEmpty) ? text.en : text.cs;
 
 /// Inbox: conversations as a seeker and for the user's organizations.
 class ConversationsScreen extends ConsumerWidget {

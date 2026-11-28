@@ -204,7 +204,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
           else
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 4, 8),
+                padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 4, 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -257,7 +257,7 @@ class _Bubble extends StatelessWidget {
 
   Widget _bubble(BuildContext context, AppLocalizations t, ColorScheme scheme, bool advance, bool contact) {
     return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
         child: Column(

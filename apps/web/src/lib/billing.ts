@@ -1,5 +1,6 @@
 import type { components } from '@terra/contracts';
 import { m } from '#lib/paraglide/messages.js';
+import { intlLocale } from './locale.js';
 
 export type PromoProduct = components['schemas']['PromoProduct'];
 export type Promotion = components['schemas']['Promotion'];
@@ -13,7 +14,7 @@ export type RevolutState = 'on' | 'connect' | 'off';
 
 /** Exact amount with minor units (invoices and prices with VAT are not whole crowns). */
 export function fmtAmount(minor: number, currency: string, locale: string): string {
-	return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ', {
+	return new Intl.NumberFormat(intlLocale(locale), {
 		style: 'currency',
 		currency: currency || 'CZK',
 		minimumFractionDigits: 2

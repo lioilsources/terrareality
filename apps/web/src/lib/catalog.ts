@@ -1,5 +1,6 @@
 import type { AttributeDef, AttributeSchema, I18nText, UnitKind } from '@terra/contracts';
 import { m } from '#lib/paraglide/messages.js';
+import { intlLocale } from './locale.js';
 
 export const statusLabel: Record<string, () => string> = {
 	draft: m.status_draft,
@@ -43,7 +44,7 @@ export const layouts = [
 /** Text in the current locale with fallback to Czech. */
 export function t(text: I18nText | undefined, locale: string): string {
 	if (!text) return '';
-	return (locale === 'en' ? text.en : text.cs) || text.cs || text.en || '';
+	return (locale === 'cs' ? text.cs : text.en) || text.cs || text.en || '';
 }
 
 /** Minor units (haléře) to whole crowns. */
@@ -75,7 +76,7 @@ export function formatMoney(
 ): string {
 	if (minor === undefined || minor === null) return '';
 	const whole = minor % 100 === 0;
-	return new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'cs-CZ', {
+	return new Intl.NumberFormat(intlLocale(locale), {
 		style: 'currency',
 		currency: currency || 'CZK',
 		currencyDisplay: 'narrowSymbol',
